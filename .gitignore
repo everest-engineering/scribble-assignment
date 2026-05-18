@@ -1,6 +1,3 @@
-~
-~
-~
 node_modules/
 dist/
 build/
@@ -14,6 +11,5 @@ coverage/
 .env.test.local
 .env.production.local
 
-~
 .vscode/
 .vite/

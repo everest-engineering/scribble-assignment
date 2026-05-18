@@ -8,7 +8,7 @@ export function createApiRouter() {
   router.get("/", (_request, response) => {
     response.json({
       ok: true,
-      service: "drawing-game-api"
+      service: "scribble-api"
     });
   });
 

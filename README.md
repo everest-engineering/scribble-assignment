@@ -1,6 +1,6 @@
-# Drawing Game Starter
+# Scribble Starter
 
-This repository is a scaffold for the drawing game lab.
+This repository is a scaffold for the Scribble lab.
 
 It already provides:
 
@@ -12,9 +12,9 @@ It already provides:
   - words: `rocket`, `pizza`, `castle`, `guitar`, `sunflower`
   - roles: `drawer`, `guesser`
 
-It does not implement the required room and gameplay features from `final.md`. Those are for learners to build in four phases.
+It does not implement the required room and gameplay features described in your lab module. Those are for learners to build in four phases.
 
-The current UI uses drawing-game branding and presentational copy, but the supported behavior is still the scaffold described in this document.
+The current UI uses Scribble branding and presentational copy, but the supported behavior is still the scaffold described in this document.
 
 ## Current Implementation
 
@@ -93,7 +93,7 @@ Use this to confirm the starter works from a clean clone:
 
 ## What Learners Build In Four Phases
 
-The required work follows the four feature groups from `final.md`.
+The required work follows the four feature groups described in your lab module.
 
 ### Phase 1: Room Setup And Lobby
 
@@ -156,7 +156,7 @@ Expected outcome:
 
 ## Explicitly Out Of Scope
 
-These should stay out of the learner implementation because `final.md` marks them out of scope:
+These should stay out of the learner implementation because the lab module marks them out of scope:
 
 - WebSockets or live stroke broadcast
 - databases or persistent storage
