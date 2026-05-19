@@ -26,6 +26,10 @@ tests where practical plus explicit manual multiplayer validation from
 - Current backend snapshots still hide `secretWord` from guessers in `result`, and
   current `ResultPanel` still behaves like an activity panel instead of a dedicated
   shared result view.
+- Current score rendering, result polling, and room-session restore already work as
+  a usable Phase 3 baseline and should be extended rather than rebuilt.
+- Existing backend room-store tests already cover Phase 3 result behavior and should
+  be extended for Phase 4 cases instead of starting a new test suite.
 - No restart endpoint or restart client/store flow exists yet.
 
 ## Phase 1: Setup (Shared Infrastructure)
@@ -43,11 +47,11 @@ tests where practical plus explicit manual multiplayer validation from
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T003 Update Phase 4 snapshot and restart contract types in backend/src/models/game.ts and frontend/src/services/api.ts
+- [ ] T003 Align existing Phase 3 snapshot and restart contract types for Phase 4 in backend/src/models/game.ts and frontend/src/services/api.ts
 - [ ] T004 [P] Add restart request validation in backend/src/api/schemas.ts
-- [ ] T005 [P] Extend API client with restartRoom() and result-state contract notes in frontend/src/services/api.ts
-- [ ] T006 Add shared room-store derivations for result reveal and host-only restart state in frontend/src/state/roomStore.ts
-- [ ] T007 [P] Extend backend room-store test coverage scaffolding for Phase 4 result/restart helpers in backend/src/services/roomStore.test.ts
+- [ ] T005 [P] Extend the existing API client with restartRoom() and Phase 4 result-state contract notes in frontend/src/services/api.ts
+- [ ] T006 Extend existing room-store derivations for result reveal and host-only restart state in frontend/src/state/roomStore.ts
+- [ ] T007 [P] Extend existing backend room-store test coverage scaffolding for Phase 4 result/restart helpers in backend/src/services/roomStore.test.ts
 
 **Checkpoint**: Foundation ready - user story implementation can now begin
 
@@ -61,18 +65,18 @@ tests where practical plus explicit manual multiplayer validation from
 
 ### Tests for User Story 1 ⚠️
 
-- [ ] T008 [P] [US1] Extend result-snapshot backend tests for shared secret-word and full-history reveal in backend/src/services/roomStore.test.ts
+- [ ] T008 [P] [US1] Extend current result-snapshot backend tests for shared secret-word and full-history reveal in backend/src/services/roomStore.test.ts
 - [ ] T009 [US1] Add explicit manual validation steps for shared result reveal in specs/005-result-restart-flow/quickstart.md
 
 ### Implementation for User Story 1
 
 - [ ] T010 [US1] Update result-state snapshot projection to reveal secretWord and full guess history to all viewers only in result state in backend/src/services/roomStore.ts
-- [ ] T011 [US1] Align GET /rooms/:code and guess submission responses with Phase 4 result reveal semantics in backend/src/api/rooms.ts
-- [ ] T012 [US1] Derive result-visible secret word and shared result-state display data in frontend/src/state/roomStore.ts
-- [ ] T013 [US1] Convert frontend/src/components/ResultPanel.tsx from activity-only panel into the dedicated Phase 4 result view
-- [ ] T014 [P] [US1] Adjust final-score and winner presentation for result state in frontend/src/components/Scoreboard.tsx
-- [ ] T015 [US1] Wire Phase 4 result rendering and preserve result-state canvas lock in frontend/src/pages/GamePage.tsx
-- [ ] T016 [US1] Ensure local canvas does not accept input and still reads correctly after the room enters result in frontend/src/pages/GamePage.tsx
+- [ ] T011 [US1] Align existing GET /rooms/:code and guess submission responses with Phase 4 result reveal semantics in backend/src/api/rooms.ts
+- [ ] T012 [US1] Extend frontend/src/state/roomStore.ts to derive result-visible secret word and shared result-state display data
+- [ ] T013 [US1] Adapt frontend/src/components/ResultPanel.tsx from the current activity panel into the dedicated Phase 4 result view
+- [ ] T014 [P] [US1] Adjust the existing final-score and winner presentation for result state in frontend/src/components/Scoreboard.tsx
+- [ ] T015 [US1] Extend frontend/src/pages/GamePage.tsx to render the Phase 4 result view while preserving the current result-state canvas lock
+- [ ] T016 [US1] Verify and preserve the existing no-draw result behavior while updating result-state messaging in frontend/src/pages/GamePage.tsx
 
 **Checkpoint**: User Story 1 should now show a complete shared result reveal without restart
 
@@ -93,11 +97,11 @@ tests where practical plus explicit manual multiplayer validation from
 
 - [ ] T019 [US2] Implement restartRoom() and deterministic round-state reset helpers in backend/src/services/roomStore.ts
 - [ ] T020 [US2] Add POST /rooms/:code/restart with correct error mapping in backend/src/api/rooms.ts
-- [ ] T021 [US2] Add room-store restart action and host-only restart derivations in frontend/src/state/roomStore.ts
-- [ ] T022 [US2] Show restart to all result-state viewers but disable it for non-host players with a clear reason in frontend/src/pages/GamePage.tsx
-- [ ] T023 [US2] Clear local canvas state and rely on lobby redirect when the restarted room snapshot returns to lobby in frontend/src/pages/GamePage.tsx
-- [ ] T024 [US2] Ensure result UI and scoreboard clear correctly when the room transitions from result back to lobby in frontend/src/components/ResultPanel.tsx and frontend/src/components/Scoreboard.tsx
-- [ ] T025 [US2] Keep restarted lobby snapshots free of stale result data in frontend/src/state/roomStore.ts
+- [ ] T021 [US2] Extend frontend/src/state/roomStore.ts with a restart action and host-only restart derivations
+- [ ] T022 [US2] Extend frontend/src/pages/GamePage.tsx to show restart to all result-state viewers but disable it for non-host players with a clear reason
+- [ ] T023 [US2] Add local canvas cleanup and rely on the existing lobby redirect when the restarted room snapshot returns to lobby in frontend/src/pages/GamePage.tsx
+- [ ] T024 [US2] Ensure the adapted result UI and scoreboard clear correctly when the room transitions from result back to lobby in frontend/src/components/ResultPanel.tsx and frontend/src/components/Scoreboard.tsx
+- [ ] T025 [US2] Keep restarted lobby snapshots free of stale result data by extending frontend/src/state/roomStore.ts
 
 **Checkpoint**: User Stories 1 and 2 should both work independently and together
 
