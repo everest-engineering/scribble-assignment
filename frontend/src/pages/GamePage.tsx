@@ -48,12 +48,8 @@ export function GamePage() {
     }
   }, [navigate, room?.status]);
 
-  if (!room) {
-    return null;
-  }
-
-  const viewer = room.participants.find((participant) => participant.id === participantId) ?? null;
-  const canDraw = isDrawer && room.status === "playing";
+  const viewer = room?.participants.find((participant) => participant.id === participantId) ?? null;
+  const canDraw = isDrawer && room?.status === "playing";
 
   function resetCanvas() {
     const canvas = canvasRef.current;
@@ -97,7 +93,7 @@ export function GamePage() {
     return () => {
       window.removeEventListener("resize", resizeCanvas);
     };
-  }, [isDrawer, room.code]);
+  }, [isDrawer, room?.code]);
 
   useEffect(() => {
     if (!room || room.status === "lobby") {
@@ -129,6 +125,10 @@ export function GamePage() {
       roomStore.stopGamePolling();
     };
   }, [room?.code, room?.status, roomStore]);
+
+  if (!room) {
+    return null;
+  }
 
   function getCanvasPoint(event: React.PointerEvent<HTMLCanvasElement>) {
     const rect = event.currentTarget.getBoundingClientRect();
