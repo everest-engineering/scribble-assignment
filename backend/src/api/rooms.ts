@@ -12,6 +12,7 @@ import {
 import {
   createRoom,
   getRoom,
+  isAuthorizedParticipant,
   joinRoom,
   restartRoom,
   startRoom,
@@ -29,6 +30,7 @@ export function createRoomsRouter() {
 
       response.status(201).json({
         participantId: result.participantId,
+        sessionId: result.sessionId,
         room: toRoomSnapshot(result.room, result.participantId)
       });
     } catch (error) {
@@ -52,6 +54,7 @@ export function createRoomsRouter() {
 
       response.json({
         participantId: result.participantId,
+        sessionId: result.sessionId,
         room: toRoomSnapshot(result.room, result.participantId)
       });
     } catch (error) {
@@ -62,11 +65,15 @@ export function createRoomsRouter() {
   router.get("/:code", (request, response, next) => {
     try {
       const { code } = roomCodeParamsSchema.parse(request.params);
-      const { participantId } = roomViewerQuerySchema.parse(request.query);
+      const { participantId, sessionId } = roomViewerQuerySchema.parse(request.query);
       const room = getRoom(code);
 
       if (!room) {
         throw new HttpError(404, "Room not found");
+      }
+
+      if (!participantId || !sessionId || !isAuthorizedParticipant(room, participantId, sessionId)) {
+        throw new HttpError(403, "Room access denied");
       }
 
       response.json({
@@ -80,8 +87,8 @@ export function createRoomsRouter() {
   router.post("/:code/start", (request, response, next) => {
     try {
       const { code } = roomCodeParamsSchema.parse(request.params);
-      const { participantId } = startRoomSchema.parse(request.body);
-      const result = startRoom(code, participantId);
+      const { participantId, sessionId } = startRoomSchema.parse(request.body);
+      const result = startRoom(code, participantId, sessionId);
 
       if (!result.ok) {
         switch (result.reason) {
@@ -107,8 +114,8 @@ export function createRoomsRouter() {
   router.post("/:code/guesses", (request, response, next) => {
     try {
       const { code } = roomCodeParamsSchema.parse(request.params);
-      const { participantId, guessText } = submitGuessSchema.parse(request.body);
-      const result = submitGuess(code, participantId, guessText);
+      const { participantId, sessionId, guessText } = submitGuessSchema.parse(request.body);
+      const result = submitGuess(code, participantId, sessionId, guessText);
 
       if (!result.ok) {
         switch (result.reason) {
@@ -134,8 +141,8 @@ export function createRoomsRouter() {
   router.post("/:code/restart", (request, response, next) => {
     try {
       const { code } = roomCodeParamsSchema.parse(request.params);
-      const { participantId } = restartRoomSchema.parse(request.body);
-      const result = restartRoom(code, participantId);
+      const { participantId, sessionId } = restartRoomSchema.parse(request.body);
+      const result = restartRoom(code, participantId, sessionId);
 
       if (!result.ok) {
         switch (result.reason) {

@@ -27,6 +27,7 @@ export interface Room {
   status: RoomStatus;
   hostId: string;
   participants: Participant[];
+  participantSessions: Record<string, string>;
   drawerId?: string;
   guesserIds: string[];
   secretWord?: string;
@@ -53,5 +54,6 @@ export interface RoomSnapshot {
 
 export interface RoomSessionResponse {
   participantId: string;
+  sessionId: string;
   room: RoomSnapshot;
 }

@@ -45,7 +45,8 @@ export const roomCodeParamsSchema = z.object({
 });
 
 export const roomViewerQuerySchema = z.object({
-  participantId: z.string().optional()
+  participantId: z.string().optional(),
+  sessionId: z.string().optional()
 });
 
 export const startRoomSchema = z.object({
@@ -54,7 +55,13 @@ export const startRoomSchema = z.object({
       required_error: "Participant id is required"
     })
     .trim()
-    .min(1, "Participant id is required")
+    .min(1, "Participant id is required"),
+  sessionId: z
+    .string({
+      required_error: "Session id is required"
+    })
+    .trim()
+    .min(1, "Session id is required")
 });
 
 export const restartRoomSchema = z.object({
@@ -63,7 +70,13 @@ export const restartRoomSchema = z.object({
       required_error: "Participant id is required"
     })
     .trim()
-    .min(1, "Participant id is required")
+    .min(1, "Participant id is required"),
+  sessionId: z
+    .string({
+      required_error: "Session id is required"
+    })
+    .trim()
+    .min(1, "Session id is required")
 });
 
 export const submitGuessSchema = z.object({
@@ -73,6 +86,12 @@ export const submitGuessSchema = z.object({
     })
     .trim()
     .min(1, "Participant id is required"),
+  sessionId: z
+    .string({
+      required_error: "Session id is required"
+    })
+    .trim()
+    .min(1, "Session id is required"),
   guessText: z.string({
     required_error: "Enter a guess"
   })

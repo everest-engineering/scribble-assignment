@@ -37,8 +37,11 @@ export interface RoomSnapshot {
 
 export interface RoomSessionResponse {
   participantId: string;
+  sessionId: string;
   room: RoomSnapshot;
 }
+
+const ROOM_SESSION_ID_STORAGE_KEY = "scribble-room-session-id";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3001";
 
@@ -76,25 +79,39 @@ export const api = {
     });
   },
   fetchRoom(code: string, participantId?: string) {
-    const query = participantId ? `?participantId=${encodeURIComponent(participantId)}` : "";
+    const sessionId = sessionStorage.getItem(ROOM_SESSION_ID_STORAGE_KEY);
+    const query =
+      participantId && sessionId
+        ? `?participantId=${encodeURIComponent(participantId)}&sessionId=${encodeURIComponent(sessionId)}`
+        : "";
     return request<{ room: RoomSnapshot }>(`/rooms/${encodeURIComponent(code)}${query}`);
   },
   startRoom(code: string, participantId: string) {
     return request<{ room: RoomSnapshot }>(`/rooms/${encodeURIComponent(code)}/start`, {
       method: "POST",
-      body: JSON.stringify({ participantId })
+      body: JSON.stringify({
+        participantId,
+        sessionId: sessionStorage.getItem(ROOM_SESSION_ID_STORAGE_KEY)
+      })
     });
   },
   submitGuess(code: string, participantId: string, guessText: string) {
     return request<{ room: RoomSnapshot }>(`/rooms/${encodeURIComponent(code)}/guesses`, {
       method: "POST",
-      body: JSON.stringify({ participantId, guessText })
+      body: JSON.stringify({
+        participantId,
+        sessionId: sessionStorage.getItem(ROOM_SESSION_ID_STORAGE_KEY),
+        guessText
+      })
     });
   },
   restartRoom(code: string, participantId: string) {
     return request<{ room: RoomSnapshot }>(`/rooms/${encodeURIComponent(code)}/restart`, {
       method: "POST",
-      body: JSON.stringify({ participantId })
+      body: JSON.stringify({
+        participantId,
+        sessionId: sessionStorage.getItem(ROOM_SESSION_ID_STORAGE_KEY)
+      })
     });
   }
 };

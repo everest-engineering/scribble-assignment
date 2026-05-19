@@ -18,10 +18,12 @@ import {
 } from "../services/api";
 
 const ROOM_SESSION_STORAGE_KEY = "scribble-room-session";
+const ROOM_SESSION_ID_STORAGE_KEY = "scribble-room-session-id";
 
 interface StoredRoomSession {
   participantId: string;
   roomCode: string;
+  sessionId: string;
 }
 
 export interface GuessHistoryRow extends GuessEntry {
@@ -202,6 +204,7 @@ class RoomStore {
 
   private persistSession(session: StoredRoomSession) {
     sessionStorage.setItem(ROOM_SESSION_STORAGE_KEY, JSON.stringify(session));
+    sessionStorage.setItem(ROOM_SESSION_ID_STORAGE_KEY, session.sessionId);
   }
 
   private readStoredSession() {
@@ -218,15 +221,19 @@ class RoomStore {
         typeof parsed.participantId !== "string" ||
         !parsed.participantId ||
         typeof parsed.roomCode !== "string" ||
-        !parsed.roomCode
+        !parsed.roomCode ||
+        typeof parsed.sessionId !== "string" ||
+        !parsed.sessionId
       ) {
         sessionStorage.removeItem(ROOM_SESSION_STORAGE_KEY);
+        sessionStorage.removeItem(ROOM_SESSION_ID_STORAGE_KEY);
         return null;
       }
 
       return parsed as StoredRoomSession;
     } catch {
       sessionStorage.removeItem(ROOM_SESSION_STORAGE_KEY);
+      sessionStorage.removeItem(ROOM_SESSION_ID_STORAGE_KEY);
       return null;
     }
   }
@@ -234,6 +241,7 @@ class RoomStore {
   clearSession() {
     this.stopPolling();
     sessionStorage.removeItem(ROOM_SESSION_STORAGE_KEY);
+    sessionStorage.removeItem(ROOM_SESSION_ID_STORAGE_KEY);
     this.setState({
       room: null,
       participantId: null,
@@ -268,6 +276,7 @@ class RoomStore {
     } catch (error) {
       const message = error instanceof Error ? error.message : "Unable to restore room";
       sessionStorage.removeItem(ROOM_SESSION_STORAGE_KEY);
+      sessionStorage.removeItem(ROOM_SESSION_ID_STORAGE_KEY);
       this.setState({
         room: null,
         participantId: null,
@@ -299,7 +308,8 @@ class RoomStore {
     this.stopPolling();
     this.persistSession({
       participantId: response.participantId,
-      roomCode: response.room.code
+      roomCode: response.room.code,
+      sessionId: response.sessionId
     });
     this.setState({
       participantId: response.participantId,
@@ -320,7 +330,11 @@ class RoomStore {
     if (this.state.participantId) {
       this.persistSession({
         participantId: this.state.participantId,
-        roomCode: room.code
+        roomCode: room.code,
+        sessionId:
+          this.readStoredSession()?.sessionId ??
+          sessionStorage.getItem(ROOM_SESSION_ID_STORAGE_KEY) ??
+          ""
       });
     }
 

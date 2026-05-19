@@ -19,6 +19,7 @@ export type JoinRoomResult =
       ok: true;
       room: Room;
       participantId: string;
+      sessionId: string;
     }
   | {
       ok: false;
@@ -138,6 +139,10 @@ export function createInitialScores(room: Room) {
   return Object.fromEntries(room.participants.map((participant) => [participant.id, 0]));
 }
 
+export function isAuthorizedParticipant(room: Room, participantId: string, sessionId: string) {
+  return room.participantSessions[participantId] === sessionId;
+}
+
 export function canParticipantGuess(room: Room, participantId: string) {
   return room.guesserIds.includes(participantId);
 }
@@ -176,11 +181,15 @@ function getVisibleGuessHistory(room: Room, viewerRole: ParticipantRole) {
 
 export function createRoom(playerName: string) {
   const participant = createParticipant(playerName, "host");
+  const sessionId = randomUUID();
   const room: Room = {
     code: generateUniqueCode(),
     status: "lobby",
     hostId: participant.id,
     participants: [participant],
+    participantSessions: {
+      [participant.id]: sessionId
+    },
     guesserIds: [],
     guessHistory: [],
     scores: {},
@@ -192,7 +201,8 @@ export function createRoom(playerName: string) {
 
   return {
     room: cloneRoom(room),
-    participantId: participant.id
+    participantId: participant.id,
+    sessionId
   };
 }
 
@@ -228,14 +238,17 @@ export function joinRoom(code: string, playerName: string): JoinRoomResult {
   }
 
   const participant = createParticipant(playerName, "player");
+  const sessionId = randomUUID();
   room.participants.push(participant);
+  room.participantSessions[participant.id] = sessionId;
   room.updatedAt = now();
   rooms.set(room.code, room);
 
   return {
     ok: true,
     room: cloneRoom(room),
-    participantId: participant.id
+    participantId: participant.id,
+    sessionId
   };
 }
 
@@ -250,7 +263,7 @@ export function saveRoom(room: Room) {
   return getRoom(room.code);
 }
 
-export function startRoom(code: string, participantId: string): StartRoomResult {
+export function startRoom(code: string, participantId: string, sessionId: string): StartRoomResult {
   const room = rooms.get(code);
 
   if (!room) {
@@ -268,6 +281,13 @@ export function startRoom(code: string, participantId: string): StartRoomResult 
   }
 
   if (room.hostId !== participantId) {
+    return {
+      ok: false,
+      reason: "not_host"
+    };
+  }
+
+  if (!isAuthorizedParticipant(room, participantId, sessionId)) {
     return {
       ok: false,
       reason: "not_host"
@@ -300,7 +320,7 @@ export function startRoom(code: string, participantId: string): StartRoomResult 
   };
 }
 
-export function submitGuess(code: string, participantId: string, guessText: string): SubmitGuessResult {
+export function submitGuess(code: string, participantId: string, sessionId: string, guessText: string): SubmitGuessResult {
   const room = rooms.get(code);
 
   if (!room) {
@@ -318,6 +338,13 @@ export function submitGuess(code: string, participantId: string, guessText: stri
   }
 
   if (!canParticipantGuess(room, participantId)) {
+    return {
+      ok: false,
+      reason: "not_allowed"
+    };
+  }
+
+  if (!isAuthorizedParticipant(room, participantId, sessionId)) {
     return {
       ok: false,
       reason: "not_allowed"
@@ -355,7 +382,7 @@ export function submitGuess(code: string, participantId: string, guessText: stri
   };
 }
 
-export function restartRoom(code: string, participantId: string): RestartRoomResult {
+export function restartRoom(code: string, participantId: string, sessionId: string): RestartRoomResult {
   const room = rooms.get(code);
 
   if (!room) {
@@ -366,6 +393,13 @@ export function restartRoom(code: string, participantId: string): RestartRoomRes
   }
 
   if (room.hostId !== participantId) {
+    return {
+      ok: false,
+      reason: "not_host"
+    };
+  }
+
+  if (!isAuthorizedParticipant(room, participantId, sessionId)) {
     return {
       ok: false,
       reason: "not_host"

@@ -8,6 +8,7 @@ import {
   createStartedRoundState,
   getSecretWord,
   getViewerRole,
+  isAuthorizedParticipant,
   isCorrectGuess,
   saveRoom,
   restartRoom,
@@ -35,6 +36,10 @@ function createRoomFixture(): Room {
         role: "player"
       }
     ],
+    participantSessions: {
+      "host-1": "session-host",
+      "guest-1": "session-guest"
+    },
     guesserIds: [],
     guessHistory: [],
     scores: {},
@@ -100,6 +105,14 @@ test("canParticipantGuess only allows assigned guessers", () => {
   assert.equal(canParticipantGuess(room, "host-1"), false);
 });
 
+test("isAuthorizedParticipant only accepts the matching room session id", () => {
+  const room = createRoomFixture();
+
+  assert.equal(isAuthorizedParticipant(room, "host-1", "session-host"), true);
+  assert.equal(isAuthorizedParticipant(room, "host-1", "session-guest"), false);
+  assert.equal(isAuthorizedParticipant(room, "missing", "session-host"), false);
+});
+
 test("isCorrectGuess compares guesses case-insensitively", () => {
   assert.equal(isCorrectGuess("rocket", "ROCKET"), true);
   assert.equal(isCorrectGuess("rocket", "  rocket  "), true);
@@ -135,8 +148,8 @@ test("submitGuess rejects the drawer and blank guesses", () => {
   room.scores = createInitialScores(room);
   saveRoom(room);
 
-  const blankGuess = submitGuess(room.code, "guest-1", "   ");
-  const drawerGuess = submitGuess(room.code, "host-1", "rocket");
+  const blankGuess = submitGuess(room.code, "guest-1", "session-guest", "   ");
+  const drawerGuess = submitGuess(room.code, "host-1", "session-host", "rocket");
 
   assert.deepEqual(blankGuess, {
     ok: false,
@@ -157,7 +170,7 @@ test("submitGuess records incorrect guesses without changing scores", () => {
   room.scores = createInitialScores(room);
   saveRoom(room);
 
-  const result = submitGuess(room.code, "guest-1", "castle");
+  const result = submitGuess(room.code, "guest-1", "session-guest", "castle");
 
   assert.equal(result.ok, true);
   if (!result.ok) {
@@ -181,7 +194,7 @@ test("submitGuess awards 100 to the first correct guesser and transitions to res
   room.scores = createInitialScores(room);
   saveRoom(room);
 
-  const result = submitGuess(room.code, "guest-1", "ROCKET");
+  const result = submitGuess(room.code, "guest-1", "session-guest", "ROCKET");
 
   assert.equal(result.ok, true);
   if (!result.ok) {
@@ -272,12 +285,12 @@ test("restartRoom rejects non-host viewers and rooms that are not in result", ()
   playingRoom.scores = createInitialScores(playingRoom);
   saveRoom(playingRoom);
 
-  assert.deepEqual(restartRoom(playingRoom.code, "guest-1"), {
+  assert.deepEqual(restartRoom(playingRoom.code, "guest-1", "session-guest"), {
     ok: false,
     reason: "not_host"
   });
 
-  assert.deepEqual(restartRoom(playingRoom.code, "host-1"), {
+  assert.deepEqual(restartRoom(playingRoom.code, "host-1", "session-host"), {
     ok: false,
     reason: "not_result"
   });
@@ -307,6 +320,10 @@ test("restartRoom resets only the targeted finished room back to lobby", () => {
   const roomB = {
     ...createRoomFixture(),
     code: "WXYZ",
+    participantSessions: {
+      "host-1": "session-host-b",
+      "guest-1": "session-guest-b"
+    },
     status: "result" as const,
     drawerId: "host-1",
     guesserIds: ["guest-1"],
@@ -329,7 +346,7 @@ test("restartRoom resets only the targeted finished room back to lobby", () => {
   };
   saveRoom(roomB);
 
-  const result = restartRoom(roomA.code, "host-1");
+  const result = restartRoom(roomA.code, "host-1", "session-host");
 
   assert.equal(result.ok, true);
   if (!result.ok) {
@@ -353,4 +370,41 @@ test("restartRoom resets only the targeted finished room back to lobby", () => {
   assert.equal(untouchedRoomSnapshot.status, "result");
   assert.equal(untouchedRoomSnapshot.secretWord, "rocket");
   assert.equal(untouchedRoomSnapshot.guessHistory?.[0]?.text, "rocket");
+});
+
+test("submitGuess and restartRoom reject callers with stolen participant ids but wrong session ids", () => {
+  const room = createRoomFixture();
+  room.status = "result";
+  room.drawerId = "host-1";
+  room.guesserIds = ["guest-1"];
+  room.secretWord = "rocket";
+  room.guessHistory = [
+    {
+      id: "guess-1",
+      participantId: "guest-1",
+      text: "rocket",
+      submittedAt: "2026-05-19T00:00:02.000Z",
+      isCorrect: true
+    }
+  ];
+  room.scores = createInitialScores(room);
+  room.scores["guest-1"] = 100;
+  room.winnerId = "guest-1";
+  room.endedAt = "2026-05-19T00:00:03.000Z";
+  saveRoom(room);
+
+  assert.deepEqual(restartRoom(room.code, "host-1", "session-guest"), {
+    ok: false,
+    reason: "not_host"
+  });
+
+  room.status = "playing";
+  room.winnerId = undefined;
+  room.endedAt = undefined;
+  saveRoom(room);
+
+  assert.deepEqual(submitGuess(room.code, "guest-1", "session-host", "rocket"), {
+    ok: false,
+    reason: "not_allowed"
+  });
 });
