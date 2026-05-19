@@ -63,8 +63,8 @@ plan identified practical pure helpers.
 
 ### Tests for User Story 1 ⚠️
 
-- [ ] T009 [P] [US1] Optionally add pure room-state assignment checks for host-as-drawer and non-host-as-guesser behavior in backend/src/services/roomStore.ts if helper extraction makes them practical
-- [ ] T010 [US1] Use the existing manual multiplayer validation steps for host start, drawer identity, and guesser role in specs/003-drawer-word-flow/quickstart.md
+- [X] T009 [P] [US1] Optionally add pure room-state assignment checks for host-as-drawer and non-host-as-guesser behavior in backend/src/services/roomStore.ts if helper extraction makes them practical
+- [X] T010 [US1] Use the existing manual multiplayer validation steps for host start, drawer identity, and guesser role in specs/003-drawer-word-flow/quickstart.md
 
 ### Implementation for User Story 1
 
@@ -86,8 +86,8 @@ plan identified practical pure helpers.
 
 ### Tests for User Story 2 ⚠️
 
-- [ ] T016 [P] [US2] Optionally add deterministic word-selection helper checks in backend/src/services/roomStore.ts if helper extraction makes them practical
-- [ ] T017 [US2] Use the existing repeated fresh-room `rocket` validation flow in specs/003-drawer-word-flow/quickstart.md
+- [X] T016 [P] [US2] Optionally add deterministic word-selection helper checks in backend/src/services/roomStore.ts if helper extraction makes them practical
+- [X] T017 [US2] Use the existing repeated fresh-room `rocket` validation flow in specs/003-drawer-word-flow/quickstart.md
 
 ### Implementation for User Story 2
 
@@ -108,8 +108,8 @@ plan identified practical pure helpers.
 
 ### Tests for User Story 3 ⚠️
 
-- [ ] T022 [P] [US3] Optionally add viewer-specific snapshot projection checks for drawer and guesser responses in backend/src/services/roomStore.ts if helper extraction makes them practical
-- [ ] T023 [US3] Use the existing drawer-vs-guesser secrecy validation flow in specs/003-drawer-word-flow/quickstart.md
+- [X] T022 [P] [US3] Optionally add viewer-specific snapshot projection checks for drawer and guesser responses in backend/src/services/roomStore.ts if helper extraction makes them practical
+- [X] T023 [US3] Use the existing drawer-vs-guesser secrecy validation flow in specs/003-drawer-word-flow/quickstart.md
 
 ### Implementation for User Story 3
 
@@ -130,7 +130,7 @@ plan identified practical pure helpers.
 - [X] T029 [P] Refresh Phase 2 artifact details if implementation changes contract wording in specs/003-drawer-word-flow/plan.md, specs/003-drawer-word-flow/data-model.md, and specs/003-drawer-word-flow/contracts/rooms.yaml
 - [X] T030 Run required backend build validation in backend/
 - [X] T031 Run required frontend build validation in frontend/
-- [ ] T032 Run the complete manual quickstart validation in specs/003-drawer-word-flow/quickstart.md
+- [X] T032 Run the complete manual quickstart validation in specs/003-drawer-word-flow/quickstart.md
 
 ---
 

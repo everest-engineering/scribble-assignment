@@ -73,26 +73,34 @@ function cloneRoom(room: Room) {
   return structuredClone(room);
 }
 
-function getDrawerId(room: Room) {
+export function getDrawerId(room: Room) {
   return room.hostId;
 }
 
-function getGuesserIds(room: Room) {
+export function getGuesserIds(room: Room) {
   return room.participants
     .filter((participant) => participant.id !== room.hostId)
     .map((participant) => participant.id);
 }
 
-function getSecretWord() {
-  return STARTER_WORDS[0];
+export function getSecretWord(words: readonly string[] = STARTER_WORDS) {
+  return words[0];
 }
 
-function getViewerRole(room: Room, viewerParticipantId?: string): ParticipantRole {
+export function getViewerRole(room: Room, viewerParticipantId?: string): ParticipantRole {
   if (viewerParticipantId && room.drawerId === viewerParticipantId) {
     return "drawer";
   }
 
   return "guesser";
+}
+
+export function createStartedRoundState(room: Room) {
+  return {
+    drawerId: getDrawerId(room),
+    guesserIds: getGuesserIds(room),
+    secretWord: getSecretWord()
+  };
 }
 
 export function createRoom(playerName: string) {
@@ -186,10 +194,12 @@ export function startRoom(code: string, participantId: string): StartRoomResult 
     };
   }
 
+  const startedRoundState = createStartedRoundState(room);
+
   room.status = "playing";
-  room.drawerId = getDrawerId(room);
-  room.guesserIds = getGuesserIds(room);
-  room.secretWord = getSecretWord();
+  room.drawerId = startedRoundState.drawerId;
+  room.guesserIds = startedRoundState.guesserIds;
+  room.secretWord = startedRoundState.secretWord;
   room.updatedAt = now();
   rooms.set(room.code, room);
 
