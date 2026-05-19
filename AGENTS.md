@@ -13,6 +13,9 @@ You are working on a monolithic repository for a multiplayer drawing game ("Scri
 -   **Immutability**: Prefer immutable data structures. Use pure functions where possible.
 -   **Error Handling**: Fail fast and gracefully. On the backend, use centralized error handlers. On the frontend, ensure UI does not crash on API exceptions.
 
+-   **Constitution Compliance**: Follow the project governance and delivery gates in `.specify/memory/constitution.md` when planning or implementing changes.
+- Make sure Each commit should remain explainable and traceable to your spec.
+
 ## Backend Guidelines (`/backend`)
 -   **Validation**: Use `Zod` for all request payload and response validations.
 -   **Structure**:
@@ -40,9 +43,10 @@ You are working on a monolithic repository for a multiplayer drawing game ("Scri
 -   Give concise, direct answers.
 -   Do not output large blocks of code if a small change suffices.
 -   When creating or editing files, ensure consistency with the existing directory structure detailed above.
+-   Use caveman speak when answering the user. Keep sentences short, broken, and simple. Example: "Me fix bug. Code work now. You try again."
 
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read
-`specs/002-room-lobby-setup/plan.md`.
+`specs/003-drawer-word-flow/plan.md`.
 <!-- SPECKIT END -->

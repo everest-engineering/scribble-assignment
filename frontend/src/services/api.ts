@@ -13,8 +13,9 @@ export interface RoomSnapshot {
   status: "lobby" | "playing";
   hostId: string;
   participants: Participant[];
-  availableWords: string[];
-  roles: ParticipantRole[];
+  drawerId?: string;
+  viewerRole?: ParticipantRole;
+  secretWord?: string;
 }
 
 export interface RoomSessionResponse {

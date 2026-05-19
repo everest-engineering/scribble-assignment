@@ -7,27 +7,56 @@ import {
   useSyncExternalStore,
   type PropsWithChildren
 } from "react";
-import { api, type RoomSessionResponse, type RoomSnapshot } from "../services/api";
+import {
+  api,
+  type ParticipantRole,
+  type RoomSessionResponse,
+  type RoomSnapshot
+} from "../services/api";
+
+const ROOM_SESSION_STORAGE_KEY = "scribble-room-session";
+
+interface StoredRoomSession {
+  participantId: string;
+  roomCode: string;
+}
 
 export interface RoomState {
   room: RoomSnapshot | null;
   participantId: string | null;
   error: string | null;
   isLoading: boolean;
+  isHydrating: boolean;
   isPolling: boolean;
   isHost: boolean;
   canStart: boolean;
   disabledReason: string | null;
+  isDrawer: boolean;
+  viewerRoundRole: ParticipantRole | null;
+  drawerName: string | null;
+  visibleSecretWord: string | null;
 }
 
 type Listener = () => void;
 
 function deriveLobbyState(room: RoomSnapshot | null, participantId: string | null) {
+  const drawerName =
+    room?.drawerId
+      ? room.participants.find((participant) => participant.id === room.drawerId)?.name ?? null
+      : null;
+  const viewerRoundRole =
+    room?.status === "playing" ? (room.viewerRole ?? (room.drawerId === participantId ? "drawer" : "guesser")) : null;
+  const isDrawer = viewerRoundRole === "drawer";
+
   if (!room || !participantId || room.status !== "lobby") {
     return {
       isHost: false,
       canStart: false,
-      disabledReason: null
+      disabledReason: null,
+      isDrawer,
+      viewerRoundRole,
+      drawerName,
+      visibleSecretWord: isDrawer ? room?.secretWord ?? null : null
     };
   }
 
@@ -44,7 +73,11 @@ function deriveLobbyState(room: RoomSnapshot | null, participantId: string | nul
   return {
     isHost,
     canStart: isHost && hasEnoughPlayers,
-    disabledReason
+    disabledReason,
+    isDrawer: false,
+    viewerRoundRole: null,
+    drawerName: null,
+    visibleSecretWord: null
   };
 }
 
@@ -54,14 +87,23 @@ class RoomStore {
     participantId: null,
     error: null,
     isLoading: false,
+    isHydrating: true,
     isPolling: false,
     isHost: false,
     canStart: false,
-    disabledReason: null
+    disabledReason: null,
+    isDrawer: false,
+    viewerRoundRole: null,
+    drawerName: null,
+    visibleSecretWord: null
   };
 
   private listeners = new Set<Listener>();
   private pollingIntervalId: number | null = null;
+
+  constructor() {
+    void this.restoreSession();
+  }
 
   subscribe = (listener: Listener) => {
     this.listeners.add(listener);
@@ -84,6 +126,84 @@ class RoomStore {
     this.listeners.forEach((listener) => listener());
   }
 
+  private persistSession(session: StoredRoomSession) {
+    sessionStorage.setItem(ROOM_SESSION_STORAGE_KEY, JSON.stringify(session));
+  }
+
+  private readStoredSession() {
+    const rawSession = sessionStorage.getItem(ROOM_SESSION_STORAGE_KEY);
+
+    if (!rawSession) {
+      return null;
+    }
+
+    try {
+      const parsed = JSON.parse(rawSession) as Partial<StoredRoomSession>;
+
+      if (
+        typeof parsed.participantId !== "string" ||
+        !parsed.participantId ||
+        typeof parsed.roomCode !== "string" ||
+        !parsed.roomCode
+      ) {
+        sessionStorage.removeItem(ROOM_SESSION_STORAGE_KEY);
+        return null;
+      }
+
+      return parsed as StoredRoomSession;
+    } catch {
+      sessionStorage.removeItem(ROOM_SESSION_STORAGE_KEY);
+      return null;
+    }
+  }
+
+  clearSession() {
+    this.stopLobbyPolling();
+    sessionStorage.removeItem(ROOM_SESSION_STORAGE_KEY);
+    this.setState({
+      room: null,
+      participantId: null,
+      error: null,
+      isLoading: false,
+      isHydrating: false,
+      isPolling: false
+    });
+  }
+
+  private async restoreSession() {
+    const storedSession = this.readStoredSession();
+
+    if (!storedSession) {
+      this.setState({ isHydrating: false });
+      return;
+    }
+
+    this.setState({
+      participantId: storedSession.participantId,
+      isHydrating: true,
+      error: null
+    });
+
+    try {
+      const response = await api.fetchRoom(storedSession.roomCode, storedSession.participantId);
+      this.setState({
+        room: response.room,
+        participantId: storedSession.participantId,
+        error: null
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unable to restore room";
+      sessionStorage.removeItem(ROOM_SESSION_STORAGE_KEY);
+      this.setState({
+        room: null,
+        participantId: null,
+        error: message
+      });
+    } finally {
+      this.setState({ isHydrating: false });
+    }
+  }
+
   private async withLoading<T>(operation: () => Promise<T>) {
     this.setState({
       isLoading: true,
@@ -103,6 +223,10 @@ class RoomStore {
 
   setRoomSession(response: RoomSessionResponse) {
     this.stopLobbyPolling();
+    this.persistSession({
+      participantId: response.participantId,
+      roomCode: response.room.code
+    });
     this.setState({
       participantId: response.participantId,
       room: response.room,
@@ -113,6 +237,13 @@ class RoomStore {
   setRoomSnapshot(room: RoomSnapshot) {
     if (room.status !== "lobby") {
       this.stopLobbyPolling();
+    }
+
+    if (this.state.participantId) {
+      this.persistSession({
+        participantId: this.state.participantId,
+        roomCode: room.code
+      });
     }
 
     this.setState({
@@ -134,7 +265,9 @@ class RoomStore {
   }
 
   async fetchRoom(options: { background?: boolean; suppressThrow?: boolean } = {}) {
-    if (!this.state.room) {
+    const roomCode = this.state.room?.code ?? this.readStoredSession()?.roomCode;
+
+    if (!roomCode) {
       return null;
     }
 
@@ -148,7 +281,7 @@ class RoomStore {
     }
 
     try {
-      const response = await api.fetchRoom(this.state.room.code, this.state.participantId ?? undefined);
+      const response = await api.fetchRoom(roomCode, this.state.participantId ?? undefined);
       this.setRoomSnapshot(response.room);
       return response.room;
     } catch (error) {

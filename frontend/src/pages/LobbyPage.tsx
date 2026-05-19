@@ -8,13 +8,13 @@ import { useRoomState, useRoomStore } from "../state/roomStore";
 export function LobbyPage() {
   const navigate = useNavigate();
   const roomStore = useRoomStore();
-  const { room, error, isLoading, isPolling, canStart, disabledReason } = useRoomState();
+  const { room, error, isHydrating, isLoading, isPolling, canStart, disabledReason } = useRoomState();
 
   useEffect(() => {
-    if (!room) {
+    if (!isHydrating && !room) {
       navigate("/", { replace: true });
     }
-  }, [navigate, room]);
+  }, [isHydrating, navigate, room]);
 
   useEffect(() => {
     if (room?.status === "playing") {
