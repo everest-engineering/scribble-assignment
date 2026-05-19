@@ -36,8 +36,8 @@ tests where practical plus explicit manual multiplayer validation from
 
 **Purpose**: Review Phase 3 baseline and prepare Phase 4 artifacts for execution
 
-- [ ] T001 Review Phase 4 spec, plan, research, contracts, and quickstart artifacts in specs/005-result-restart-flow/
-- [ ] T002 Capture current Phase 3 baseline behavior for result snapshots and game polling in backend/src/services/roomStore.ts and frontend/src/state/roomStore.ts
+- [X] T001 Review Phase 4 spec, plan, research, contracts, and quickstart artifacts in specs/005-result-restart-flow/
+- [X] T002 Capture current Phase 3 baseline behavior for result snapshots and game polling in backend/src/services/roomStore.ts and frontend/src/state/roomStore.ts
 
 ---
 
@@ -47,11 +47,11 @@ tests where practical plus explicit manual multiplayer validation from
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T003 Align existing Phase 3 snapshot and restart contract types for Phase 4 in backend/src/models/game.ts and frontend/src/services/api.ts
-- [ ] T004 [P] Add restart request validation in backend/src/api/schemas.ts
-- [ ] T005 [P] Extend the existing API client with restartRoom() and Phase 4 result-state contract notes in frontend/src/services/api.ts
-- [ ] T006 Extend existing room-store derivations for result reveal and host-only restart state in frontend/src/state/roomStore.ts
-- [ ] T007 [P] Extend existing backend room-store test coverage scaffolding for Phase 4 result/restart helpers in backend/src/services/roomStore.test.ts
+- [X] T003 Align existing Phase 3 snapshot and restart contract types for Phase 4 in backend/src/models/game.ts and frontend/src/services/api.ts
+- [X] T004 [P] Add restart request validation in backend/src/api/schemas.ts
+- [X] T005 [P] Extend the existing API client with restartRoom() and Phase 4 result-state contract notes in frontend/src/services/api.ts
+- [X] T006 Extend existing room-store derivations for result reveal and host-only restart state in frontend/src/state/roomStore.ts
+- [X] T007 [P] Extend existing backend room-store test coverage scaffolding for Phase 4 result/restart helpers in backend/src/services/roomStore.test.ts
 
 **Checkpoint**: Foundation ready - user story implementation can now begin
 
@@ -65,18 +65,17 @@ tests where practical plus explicit manual multiplayer validation from
 
 ### Tests for User Story 1 ⚠️
 
-- [ ] T008 [P] [US1] Extend current result-snapshot backend tests for shared secret-word and full-history reveal in backend/src/services/roomStore.test.ts
-- [ ] T009 [US1] Add explicit manual validation steps for shared result reveal in specs/005-result-restart-flow/quickstart.md
+- [X] T008 [P] [US1] Extend current result-snapshot backend tests for shared secret-word and full-history reveal in backend/src/services/roomStore.test.ts
+- [X] T009 [US1] Add explicit manual validation steps for shared result reveal in specs/005-result-restart-flow/quickstart.md
 
 ### Implementation for User Story 1
 
-- [ ] T010 [US1] Update result-state snapshot projection to reveal secretWord and full guess history to all viewers only in result state in backend/src/services/roomStore.ts
-- [ ] T011 [US1] Align existing GET /rooms/:code and guess submission responses with Phase 4 result reveal semantics in backend/src/api/rooms.ts
-- [ ] T012 [US1] Extend frontend/src/state/roomStore.ts to derive result-visible secret word and shared result-state display data
-- [ ] T013 [US1] Adapt frontend/src/components/ResultPanel.tsx from the current activity panel into the dedicated Phase 4 result view
-- [ ] T014 [P] [US1] Adjust the existing final-score and winner presentation for result state in frontend/src/components/Scoreboard.tsx
-- [ ] T015 [US1] Extend frontend/src/pages/GamePage.tsx to render the Phase 4 result view while preserving the current result-state canvas lock
-- [ ] T016 [US1] Verify and preserve the existing no-draw result behavior while updating result-state messaging in frontend/src/pages/GamePage.tsx
+- [X] T010 [US1] Update result-state snapshot projection to reveal secretWord and full guess history to all viewers only in result state in backend/src/services/roomStore.ts
+- [X] T011 [US1] Align existing GET /rooms/:code and guess submission responses with Phase 4 result reveal semantics in backend/src/api/rooms.ts
+- [X] T012 [US1] Extend frontend/src/state/roomStore.ts to derive result-visible secret word and shared result-state display data
+- [X] T013 [US1] Adapt frontend/src/components/ResultPanel.tsx from the current activity panel into the dedicated Phase 4 result view
+- [X] T014 [P] [US1] Adjust the existing final-score and winner presentation for result state in frontend/src/components/Scoreboard.tsx
+- [X] T015 [US1] Extend frontend/src/pages/GamePage.tsx to render the Phase 4 result view while preserving the current result-state canvas lock and result-state messaging
 
 **Checkpoint**: User Story 1 should now show a complete shared result reveal without restart
 
@@ -90,18 +89,17 @@ tests where practical plus explicit manual multiplayer validation from
 
 ### Tests for User Story 2 ⚠️
 
-- [ ] T017 [P] [US2] Extend backend tests for host-only restart, result-only restart, and cleared-lobby invariants in backend/src/services/roomStore.test.ts
-- [ ] T018 [US2] Add explicit manual restart validation steps to specs/005-result-restart-flow/quickstart.md
+- [X] T016 [P] [US2] Extend backend tests for host-only restart, result-only restart, cleared-lobby invariants, and room-scoped restart isolation in backend/src/services/roomStore.test.ts
+- [X] T017 [US2] Add explicit manual restart validation steps to specs/005-result-restart-flow/quickstart.md
 
 ### Implementation for User Story 2
 
-- [ ] T019 [US2] Implement restartRoom() and deterministic round-state reset helpers in backend/src/services/roomStore.ts
-- [ ] T020 [US2] Add POST /rooms/:code/restart with correct error mapping in backend/src/api/rooms.ts
-- [ ] T021 [US2] Extend frontend/src/state/roomStore.ts with a restart action and host-only restart derivations
-- [ ] T022 [US2] Extend frontend/src/pages/GamePage.tsx to show restart to all result-state viewers but disable it for non-host players with a clear reason
-- [ ] T023 [US2] Add local canvas cleanup and rely on the existing lobby redirect when the restarted room snapshot returns to lobby in frontend/src/pages/GamePage.tsx
-- [ ] T024 [US2] Ensure the adapted result UI and scoreboard clear correctly when the room transitions from result back to lobby in frontend/src/components/ResultPanel.tsx and frontend/src/components/Scoreboard.tsx
-- [ ] T025 [US2] Keep restarted lobby snapshots free of stale result data by extending frontend/src/state/roomStore.ts
+- [X] T018 [US2] Implement restartRoom() and deterministic round-state reset helpers, keeping restart strictly room-scoped, in backend/src/services/roomStore.ts
+- [X] T019 [US2] Add POST /rooms/:code/restart with correct error mapping in backend/src/api/rooms.ts
+- [X] T020 [US2] Extend frontend/src/state/roomStore.ts with a restart action, host-only restart derivations, and clean restarted lobby snapshots
+- [X] T021 [US2] Extend frontend/src/pages/GamePage.tsx to show restart to all result-state viewers but disable it for non-host players with a clear reason
+- [X] T022 [US2] Add local canvas cleanup and rely on the existing lobby redirect when the restarted room snapshot returns to lobby in frontend/src/pages/GamePage.tsx
+- [X] T023 [US2] Ensure the adapted result UI and scoreboard clear correctly when the room transitions from result back to lobby in frontend/src/components/ResultPanel.tsx and frontend/src/components/Scoreboard.tsx
 
 **Checkpoint**: User Stories 1 and 2 should both work independently and together
 
@@ -111,12 +109,12 @@ tests where practical plus explicit manual multiplayer validation from
 
 **Purpose**: Final verification, contract alignment, and cleanup across both stories
 
-- [ ] T026 [P] Sync Phase 4 API contract examples and schemas with implemented result/restart behavior in specs/005-result-restart-flow/contracts/rooms.yaml
-- [ ] T027 [P] Sync Phase 4 data-model notes with the final implementation details in specs/005-result-restart-flow/data-model.md
-- [ ] T028 Run backend test suite for Phase 4 coverage with backend/src/services/roomStore.test.ts via backend/package.json
-- [ ] T029 Run required backend build validation in backend/package.json
-- [ ] T030 Run required frontend build validation in frontend/package.json
-- [ ] T031 Execute the full manual multiplayer validation flow in specs/005-result-restart-flow/quickstart.md
+- [X] T024 [P] Sync Phase 4 API contract examples and schemas with implemented result/restart behavior in specs/005-result-restart-flow/contracts/rooms.yaml
+- [X] T025 [P] Sync Phase 4 data-model notes with the final implementation details in specs/005-result-restart-flow/data-model.md
+- [X] T026 Run backend test suite for Phase 4 coverage with backend/src/services/roomStore.test.ts via backend/package.json
+- [X] T027 Run required backend build validation in backend/package.json
+- [X] T028 Run required frontend build validation in frontend/package.json
+- [ ] T029 Execute the full manual multiplayer validation flow in specs/005-result-restart-flow/quickstart.md
 
 ---
 
@@ -147,9 +145,9 @@ tests where practical plus explicit manual multiplayer validation from
 - `T004` and `T005` can run in parallel
 - `T008` and `T009` can run in parallel
 - `T013` and `T014` can run in parallel after store/state work begins
-- `T017` and `T018` can run in parallel
-- `T026` and `T027` can run in parallel
-- `T029` and `T030` can run in parallel
+- `T016` and `T017` can run in parallel
+- `T024` and `T025` can run in parallel
+- `T027` and `T028` can run in parallel
 
 ---
 

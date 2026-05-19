@@ -11,11 +11,12 @@ interface ScoreboardRow {
 
 interface ScoreboardProps {
   rows: ScoreboardRow[];
+  isResult?: boolean;
 }
 
-export function Scoreboard({ rows }: ScoreboardProps) {
+export function Scoreboard({ rows, isResult = false }: ScoreboardProps) {
   return (
-    <Card title="Scoreboard">
+    <Card title={isResult ? "Final Scores" : "Scoreboard"}>
       {rows.length === 0 ? (
         <div className="placeholder-block" style={{ backgroundColor: '#f9fafb' }}>
           <div className="placeholder-row">
@@ -31,7 +32,7 @@ export function Scoreboard({ rows }: ScoreboardProps) {
                 {row.name}
                 {row.isViewer ? " (you)" : ""}
                 {row.isDrawer ? " · drawer" : ""}
-                {row.isWinner ? " · winner" : ""}
+                {row.isWinner ? (isResult ? " · winner" : " · leading") : ""}
               </span>
               <strong>{row.score}</strong>
             </li>

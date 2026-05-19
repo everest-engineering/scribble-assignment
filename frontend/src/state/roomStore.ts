@@ -45,6 +45,8 @@ export interface RoomState {
   isHost: boolean;
   canStart: boolean;
   disabledReason: string | null;
+  canRestart: boolean;
+  restartDisabledReason: string | null;
   isDrawer: boolean;
   isResult: boolean;
   viewerRoundRole: ParticipantRole | null;
@@ -64,6 +66,7 @@ function isActiveGameStatus(status: RoomStatus) {
 
 function deriveRoomState(room: RoomSnapshot | null, participantId: string | null) {
   const participantById = new Map(room?.participants.map((participant) => [participant.id, participant]) ?? []);
+  const isHost = Boolean(room && participantId && room.hostId === participantId);
   const drawerName =
     room?.drawerId
       ? participantById.get(room.drawerId)?.name ?? null
@@ -89,17 +92,27 @@ function deriveRoomState(room: RoomSnapshot | null, participantId: string | null
     })) ?? [];
   const winnerName = room?.winnerId ? participantById.get(room.winnerId)?.name ?? null : null;
   const canSubmitGuess = room?.status === "playing" && viewerRoundRole === "guesser";
+  const canRestart = room?.status === "result" && isHost;
+  const restartDisabledReason =
+    room?.status === "result" && !isHost ? "Only the host can restart the room." : null;
 
   if (!room || !participantId || room.status !== "lobby") {
     return {
-      isHost: false,
+      isHost,
       canStart: false,
       disabledReason: null,
+      canRestart,
+      restartDisabledReason,
       isDrawer,
       isResult,
       viewerRoundRole,
       drawerName,
-      visibleSecretWord: isDrawer ? room?.secretWord ?? null : null,
+      visibleSecretWord:
+        room?.status === "result"
+          ? room.secretWord ?? null
+          : isDrawer
+            ? room?.secretWord ?? null
+            : null,
       canSubmitGuess,
       guessHistoryRows,
       scoreRows,
@@ -107,7 +120,6 @@ function deriveRoomState(room: RoomSnapshot | null, participantId: string | null
     };
   }
 
-  const isHost = room.hostId === participantId;
   const hasEnoughPlayers = room.participants.length >= 2;
   let disabledReason: string | null = null;
 
@@ -121,6 +133,8 @@ function deriveRoomState(room: RoomSnapshot | null, participantId: string | null
     isHost,
     canStart: isHost && hasEnoughPlayers,
     disabledReason,
+    canRestart: false,
+    restartDisabledReason: null,
     isDrawer: false,
     isResult: false,
     viewerRoundRole: null,
@@ -144,6 +158,8 @@ class RoomStore {
     isHost: false,
     canStart: false,
     disabledReason: null,
+    canRestart: false,
+    restartDisabledReason: null,
     isDrawer: false,
     isResult: false,
     viewerRoundRole: null,
@@ -383,6 +399,18 @@ class RoomStore {
 
     const response = await this.withLoading(() =>
       api.submitGuess(this.state.room!.code, this.state.participantId!, guessText)
+    );
+    this.setRoomSnapshot(response.room);
+    return response.room;
+  }
+
+  async restartRoom() {
+    if (!this.state.room || !this.state.participantId) {
+      throw new Error("Unable to restart room");
+    }
+
+    const response = await this.withLoading(() =>
+      api.restartRoom(this.state.room!.code, this.state.participantId!)
     );
     this.setRoomSnapshot(response.room);
     return response.room;

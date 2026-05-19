@@ -17,11 +17,14 @@ export function GamePage() {
     isHydrating,
     isLoading,
     isPolling,
+    isHost,
     isDrawer,
     isResult,
     canSubmitGuess,
+    canRestart,
     drawerName,
     guessHistoryRows,
+    restartDisabledReason,
     scoreRows,
     viewerRoundRole,
     visibleSecretWord,
@@ -39,6 +42,8 @@ export function GamePage() {
 
   useEffect(() => {
     if (room?.status === "lobby") {
+      stopDrawing();
+      resetCanvas();
       navigate("/lobby", { replace: true });
     }
   }, [navigate, room?.status]);
@@ -188,6 +193,14 @@ export function GamePage() {
     }
   }
 
+  async function handleRestart() {
+    try {
+      await roomStore.restartRoom();
+    } catch (_caughtError) {
+      // Request errors are already surfaced by the room store state.
+    }
+  }
+
   const guessHint =
     room.status === "result"
       ? "Round is over."
@@ -207,8 +220,13 @@ export function GamePage() {
 
       <div className="game-page__layout">
         <aside className="game-page__sidebar game-page__sidebar--left">
-          <Scoreboard rows={scoreRows} />
-          <ResultPanel historyRows={guessHistoryRows} winnerName={winnerName} isResult={isResult} />
+          <Scoreboard rows={scoreRows} isResult={isResult} />
+          <ResultPanel
+            historyRows={guessHistoryRows}
+            isResult={isResult}
+            revealedWord={visibleSecretWord}
+            winnerName={winnerName}
+          />
         </aside>
 
         <div className="game-page__main">
@@ -266,10 +284,38 @@ export function GamePage() {
               </div>
               <div>
                 <dt>Secret word</dt>
-                <dd>{isDrawer ? visibleSecretWord ?? "Loading word..." : "Only the drawer can see the word."}</dd>
+                <dd>
+                  {visibleSecretWord
+                    ? visibleSecretWord
+                    : isResult
+                      ? "Waiting for reveal..."
+                      : isDrawer
+                        ? "Loading word..."
+                        : "Only the drawer can see the word."}
+                </dd>
               </div>
             </dl>
           </Card>
+
+          {isResult ? (
+            <Card title="Next Round">
+              <p>
+                {isHost
+                  ? "Restart returns everyone to the lobby with the same room and players."
+                  : restartDisabledReason}
+              </p>
+              <div className="button-row button-row--compact">
+                <button
+                  className="button button--primary"
+                  type="button"
+                  onClick={handleRestart}
+                  disabled={!canRestart || isLoading}
+                >
+                  {isLoading ? "Restarting..." : "Restart Round"}
+                </button>
+              </div>
+            </Card>
+          ) : null}
 
           <Card title="Player Info">
             <dl className="detail-list">

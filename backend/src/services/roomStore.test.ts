@@ -3,12 +3,14 @@ import assert from "node:assert/strict";
 import type { Room } from "../models/game.js";
 import {
   canParticipantGuess,
+  createRestartedLobbyState,
   createInitialScores,
   createStartedRoundState,
   getSecretWord,
   getViewerRole,
   isCorrectGuess,
   saveRoom,
+  restartRoom,
   submitGuess,
   normalizeGuessText,
   toRoomSnapshot
@@ -194,10 +196,10 @@ test("submitGuess awards 100 to the first correct guesser and transitions to res
   const guesserView = toRoomSnapshot(result.room, "guest-1");
   assert.equal(guesserView.status, "result");
   assert.equal(guesserView.winnerId, "guest-1");
-  assert.equal("secretWord" in guesserView, false);
+  assert.equal(guesserView.secretWord, "rocket");
 });
 
-test("toRoomSnapshot redacts correct guess text for guessers while preserving drawer history", () => {
+test("toRoomSnapshot reveals secret word and full correct guess history to all viewers in result", () => {
   const room = createRoomFixture();
   room.status = "result";
   room.drawerId = "host-1";
@@ -219,6 +221,136 @@ test("toRoomSnapshot redacts correct guess text for guessers while preserving dr
   const guesserView = toRoomSnapshot(room, "guest-1");
 
   assert.equal(drawerView.guessHistory?.[0]?.text, "rocket");
-  assert.equal(guesserView.guessHistory?.[0]?.text, "[correct guess]");
-  assert.equal("secretWord" in guesserView, false);
+  assert.equal(guesserView.guessHistory?.[0]?.text, "rocket");
+  assert.equal(guesserView.secretWord, "rocket");
+});
+
+test("createRestartedLobbyState clears round-owned state while preserving room identity and participants", () => {
+  const room = createRoomFixture();
+  room.status = "result";
+  room.drawerId = "host-1";
+  room.guesserIds = ["guest-1"];
+  room.secretWord = "rocket";
+  room.guessHistory = [
+    {
+      id: "guess-1",
+      participantId: "guest-1",
+      text: "rocket",
+      submittedAt: "2026-05-19T00:00:02.000Z",
+      isCorrect: true
+    }
+  ];
+  room.scores = createInitialScores(room);
+  room.scores["guest-1"] = 100;
+  room.winnerId = "guest-1";
+  room.endedAt = "2026-05-19T00:00:03.000Z";
+
+  const restarted = createRestartedLobbyState(room);
+
+  assert.equal(restarted.code, "ABCD");
+  assert.equal(restarted.hostId, "host-1");
+  assert.deepEqual(
+    restarted.participants.map((participant) => participant.id),
+    ["host-1", "guest-1"]
+  );
+  assert.equal(restarted.status, "lobby");
+  assert.equal(restarted.drawerId, undefined);
+  assert.deepEqual(restarted.guesserIds, []);
+  assert.equal(restarted.secretWord, undefined);
+  assert.deepEqual(restarted.guessHistory, []);
+  assert.deepEqual(restarted.scores, {});
+  assert.equal(restarted.winnerId, undefined);
+  assert.equal(restarted.endedAt, undefined);
+});
+
+test("restartRoom rejects non-host viewers and rooms that are not in result", () => {
+  const playingRoom = createRoomFixture();
+  playingRoom.status = "playing";
+  playingRoom.drawerId = "host-1";
+  playingRoom.guesserIds = ["guest-1"];
+  playingRoom.secretWord = "rocket";
+  playingRoom.scores = createInitialScores(playingRoom);
+  saveRoom(playingRoom);
+
+  assert.deepEqual(restartRoom(playingRoom.code, "guest-1"), {
+    ok: false,
+    reason: "not_host"
+  });
+
+  assert.deepEqual(restartRoom(playingRoom.code, "host-1"), {
+    ok: false,
+    reason: "not_result"
+  });
+});
+
+test("restartRoom resets only the targeted finished room back to lobby", () => {
+  const roomA = createRoomFixture();
+  roomA.status = "result";
+  roomA.drawerId = "host-1";
+  roomA.guesserIds = ["guest-1"];
+  roomA.secretWord = "rocket";
+  roomA.guessHistory = [
+    {
+      id: "guess-1",
+      participantId: "guest-1",
+      text: "rocket",
+      submittedAt: "2026-05-19T00:00:02.000Z",
+      isCorrect: true
+    }
+  ];
+  roomA.scores = createInitialScores(roomA);
+  roomA.scores["guest-1"] = 100;
+  roomA.winnerId = "guest-1";
+  roomA.endedAt = "2026-05-19T00:00:03.000Z";
+  saveRoom(roomA);
+
+  const roomB = {
+    ...createRoomFixture(),
+    code: "WXYZ",
+    status: "result" as const,
+    drawerId: "host-1",
+    guesserIds: ["guest-1"],
+    secretWord: "rocket",
+    guessHistory: [
+      {
+        id: "guess-2",
+        participantId: "guest-1",
+        text: "rocket",
+        submittedAt: "2026-05-19T00:10:02.000Z",
+        isCorrect: true
+      }
+    ],
+    scores: {
+      "host-1": 0,
+      "guest-1": 100
+    },
+    winnerId: "guest-1",
+    endedAt: "2026-05-19T00:10:03.000Z"
+  };
+  saveRoom(roomB);
+
+  const result = restartRoom(roomA.code, "host-1");
+
+  assert.equal(result.ok, true);
+  if (!result.ok) {
+    return;
+  }
+
+  assert.equal(result.room.status, "lobby");
+  assert.equal(result.room.secretWord, undefined);
+  assert.equal(result.room.drawerId, undefined);
+  assert.deepEqual(result.room.guessHistory, []);
+  assert.deepEqual(result.room.scores, {});
+  assert.equal(result.room.winnerId, undefined);
+  assert.equal(result.room.endedAt, undefined);
+
+  const restartedSnapshot = toRoomSnapshot(result.room, "guest-1");
+  assert.equal(restartedSnapshot.status, "lobby");
+  assert.equal("secretWord" in restartedSnapshot, false);
+  assert.equal("guessHistory" in restartedSnapshot, false);
+
+  const untouchedRoomSnapshot = toRoomSnapshot(roomB, "guest-1");
+  assert.equal(untouchedRoomSnapshot.status, "result");
+  assert.equal(untouchedRoomSnapshot.secretWord, "rocket");
+  assert.equal(untouchedRoomSnapshot.guessHistory?.[0]?.text, "rocket");
 });

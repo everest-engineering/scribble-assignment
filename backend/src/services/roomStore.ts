@@ -45,6 +45,16 @@ export type SubmitGuessResult =
       reason: "not_found" | "not_allowed" | "not_playing" | "invalid_guess";
     };
 
+export type RestartRoomResult =
+  | {
+      ok: true;
+      room: Room;
+    }
+  | {
+      ok: false;
+      reason: "not_found" | "not_host" | "not_result";
+    };
+
 function now() {
   return new Date().toISOString();
 }
@@ -154,7 +164,7 @@ function getScoreEntries(room: Room): ScoreEntry[] {
 }
 
 function getVisibleGuessHistory(room: Room, viewerRole: ParticipantRole) {
-  if (viewerRole === "drawer") {
+  if (room.status === "result" || viewerRole === "drawer") {
     return room.guessHistory.map((guessEntry) => ({ ...guessEntry }));
   }
 
@@ -183,6 +193,20 @@ export function createRoom(playerName: string) {
   return {
     room: cloneRoom(room),
     participantId: participant.id
+  };
+}
+
+export function createRestartedLobbyState(room: Room) {
+  return {
+    ...room,
+    status: "lobby" as const,
+    drawerId: undefined,
+    guesserIds: [],
+    secretWord: undefined,
+    guessHistory: [] as GuessEntry[],
+    scores: {},
+    winnerId: undefined,
+    endedAt: undefined
   };
 }
 
@@ -331,6 +355,40 @@ export function submitGuess(code: string, participantId: string, guessText: stri
   };
 }
 
+export function restartRoom(code: string, participantId: string): RestartRoomResult {
+  const room = rooms.get(code);
+
+  if (!room) {
+    return {
+      ok: false,
+      reason: "not_found"
+    };
+  }
+
+  if (room.hostId !== participantId) {
+    return {
+      ok: false,
+      reason: "not_host"
+    };
+  }
+
+  if (room.status !== "result") {
+    return {
+      ok: false,
+      reason: "not_result"
+    };
+  }
+
+  const restartedRoom = createRestartedLobbyState(room);
+  restartedRoom.updatedAt = now();
+  rooms.set(restartedRoom.code, restartedRoom);
+
+  return {
+    ok: true,
+    room: cloneRoom(restartedRoom)
+  };
+}
+
 export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSnapshot {
   const snapshot: RoomSnapshot = {
     code: room.code,
@@ -352,6 +410,8 @@ export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSn
     guessHistory: getVisibleGuessHistory(room, viewerRole),
     scores: getScoreEntries(room),
     ...(room.winnerId ? { winnerId: room.winnerId } : {}),
-    ...(viewerRole === "drawer" && room.secretWord ? { secretWord: room.secretWord } : {})
+    ...((room.status === "result" || viewerRole === "drawer") && room.secretWord
+      ? { secretWord: room.secretWord }
+      : {})
   };
 }

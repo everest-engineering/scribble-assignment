@@ -3,6 +3,7 @@ import {
   createRoomSchema,
   HttpError,
   joinRoomSchema,
+  restartRoomSchema,
   roomCodeParamsSchema,
   roomViewerQuerySchema,
   startRoomSchema,
@@ -12,6 +13,7 @@ import {
   createRoom,
   getRoom,
   joinRoom,
+  restartRoom,
   startRoom,
   submitGuess,
   toRoomSnapshot
@@ -118,6 +120,31 @@ export function createRoomsRouter() {
             throw new HttpError(409, "Room is not accepting guesses");
           case "invalid_guess":
             throw new HttpError(422, "Enter a guess");
+        }
+      }
+
+      response.json({
+        room: toRoomSnapshot(result.room, participantId)
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/:code/restart", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId } = restartRoomSchema.parse(request.body);
+      const result = restartRoom(code, participantId);
+
+      if (!result.ok) {
+        switch (result.reason) {
+          case "not_found":
+            throw new HttpError(404, "Room not found");
+          case "not_host":
+            throw new HttpError(403, "Only the host can restart the room");
+          case "not_result":
+            throw new HttpError(409, "Room is not ready to restart");
         }
       }
 

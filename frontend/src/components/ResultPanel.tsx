@@ -9,17 +9,26 @@ interface GuessHistoryRow {
 
 interface ResultPanelProps {
   historyRows: GuessHistoryRow[];
+  revealedWord?: string | null;
   winnerName?: string | null;
   isResult?: boolean;
 }
 
-export function ResultPanel({ historyRows, winnerName = null, isResult = false }: ResultPanelProps) {
+export function ResultPanel({
+  historyRows,
+  revealedWord = null,
+  winnerName = null,
+  isResult = false
+}: ResultPanelProps) {
   return (
-    <Card title="Activity">
+    <Card title={isResult ? "Round Result" : "Activity"}>
+      {isResult && revealedWord ? <p>Word: {revealedWord}</p> : null}
       {winnerName ? <p>{isResult ? `Winner: ${winnerName}` : `${winnerName} is leading`}</p> : null}
       {historyRows.length === 0 ? (
         <div className="placeholder-block" style={{ backgroundColor: '#f9fafb' }}>
-          <p style={{ fontSize: '0.875rem', color: '#6b7280' }}>No guesses yet.</p>
+          <p style={{ fontSize: '0.875rem', color: '#6b7280' }}>
+            {isResult ? "No round history available." : "No guesses yet."}
+          </p>
         </div>
       ) : (
         <ul className="player-list">

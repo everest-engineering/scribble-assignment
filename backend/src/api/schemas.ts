@@ -57,6 +57,15 @@ export const startRoomSchema = z.object({
     .min(1, "Participant id is required")
 });
 
+export const restartRoomSchema = z.object({
+  participantId: z
+    .string({
+      required_error: "Participant id is required"
+    })
+    .trim()
+    .min(1, "Participant id is required")
+});
+
 export const submitGuessSchema = z.object({
   participantId: z
     .string({
