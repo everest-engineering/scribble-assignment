@@ -17,6 +17,11 @@ export function LobbyPage() {
       return;
     }
 
+    if (room.status === "active") {
+      navigate("/game");
+      return;
+    }
+
     roomStore.startPolling();
 
     return () => {
