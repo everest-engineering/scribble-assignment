@@ -48,6 +48,7 @@ export function GamePage() {
   }
 
   const viewer = room.participants.find((participant) => participant.id === participantId) ?? null;
+  const canDraw = isDrawer && room.status === "playing";
 
   function resetCanvas() {
     const canvas = canvasRef.current;
@@ -133,7 +134,7 @@ export function GamePage() {
   }
 
   function handleCanvasPointerDown(event: React.PointerEvent<HTMLCanvasElement>) {
-    if (!isDrawer) {
+    if (!canDraw) {
       return;
     }
 
@@ -143,7 +144,7 @@ export function GamePage() {
   }
 
   function handleCanvasPointerMove(event: React.PointerEvent<HTMLCanvasElement>) {
-    if (!isDrawer || !isDrawingRef.current || !canvasRef.current || !lastPointRef.current) {
+    if (!canDraw || !isDrawingRef.current || !canvasRef.current || !lastPointRef.current) {
       return;
     }
 
@@ -217,7 +218,14 @@ export function GamePage() {
                 <canvas
                   ref={canvasRef}
                   className="canvas-placeholder"
-                  style={{ minHeight: "500px", width: "100%", backgroundColor: "#ffffff", border: "1px solid #e5e7eb", touchAction: "none" }}
+                  style={{
+                    minHeight: "500px",
+                    width: "100%",
+                    backgroundColor: "#ffffff",
+                    border: "1px solid #e5e7eb",
+                    touchAction: "none",
+                    cursor: canDraw ? "crosshair" : "default"
+                  }}
                   onPointerDown={handleCanvasPointerDown}
                   onPointerMove={handleCanvasPointerMove}
                   onPointerUp={stopDrawing}
@@ -225,10 +233,11 @@ export function GamePage() {
                   onPointerCancel={stopDrawing}
                 />
                 <div className="button-row button-row--compact" style={{ marginTop: "12px" }}>
-                  <button className="button button--secondary" type="button" onClick={resetCanvas}>
+                  <button className="button button--secondary" type="button" onClick={resetCanvas} disabled={!canDraw}>
                     Clear Canvas
                   </button>
                 </div>
+                {!canDraw ? <p>Round ended. Drawing is locked.</p> : null}
               </>
             ) : (
               <div className="canvas-placeholder" style={{ minHeight: "500px", backgroundColor: "#ffffff", border: "1px solid #e5e7eb", display: "grid", placeItems: "center" }}>
