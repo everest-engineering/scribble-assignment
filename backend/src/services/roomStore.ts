@@ -1,6 +1,12 @@
 import { randomUUID } from "node:crypto";
-import type { LobbyParticipantRole, Participant, Room, RoomSnapshot } from "../models/game.js";
-import { STARTER_ROLES, STARTER_WORDS } from "../seed/starterData.js";
+import type {
+  LobbyParticipantRole,
+  Participant,
+  ParticipantRole,
+  Room,
+  RoomSnapshot
+} from "../models/game.js";
+import { STARTER_WORDS } from "../seed/starterData.js";
 
 const rooms = new Map<string, Room>();
 export const ROOM_CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -67,8 +73,26 @@ function cloneRoom(room: Room) {
   return structuredClone(room);
 }
 
-export function listWords() {
-  return [...STARTER_WORDS];
+function getDrawerId(room: Room) {
+  return room.hostId;
+}
+
+function getGuesserIds(room: Room) {
+  return room.participants
+    .filter((participant) => participant.id !== room.hostId)
+    .map((participant) => participant.id);
+}
+
+function getSecretWord() {
+  return STARTER_WORDS[0];
+}
+
+function getViewerRole(room: Room, viewerParticipantId?: string): ParticipantRole {
+  if (viewerParticipantId && room.drawerId === viewerParticipantId) {
+    return "drawer";
+  }
+
+  return "guesser";
 }
 
 export function createRoom(playerName: string) {
@@ -78,6 +102,7 @@ export function createRoom(playerName: string) {
     status: "lobby",
     hostId: participant.id,
     participants: [participant],
+    guesserIds: [],
     createdAt: now(),
     updatedAt: now()
   };
@@ -162,6 +187,9 @@ export function startRoom(code: string, participantId: string): StartRoomResult 
   }
 
   room.status = "playing";
+  room.drawerId = getDrawerId(room);
+  room.guesserIds = getGuesserIds(room);
+  room.secretWord = getSecretWord();
   room.updatedAt = now();
   rooms.set(room.code, room);
 
@@ -172,14 +200,23 @@ export function startRoom(code: string, participantId: string): StartRoomResult 
 }
 
 export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSnapshot {
-  void viewerParticipantId;
-
-  return {
+  const snapshot: RoomSnapshot = {
     code: room.code,
     status: room.status,
     hostId: room.hostId,
-    participants: room.participants.map((participant) => ({ ...participant })),
-    availableWords: listWords(),
-    roles: [...STARTER_ROLES]
+    participants: room.participants.map((participant) => ({ ...participant }))
+  };
+
+  if (room.status !== "playing" || !room.drawerId) {
+    return snapshot;
+  }
+
+  const viewerRole = getViewerRole(room, viewerParticipantId);
+
+  return {
+    ...snapshot,
+    drawerId: room.drawerId,
+    viewerRole,
+    ...(viewerRole === "drawer" && room.secretWord ? { secretWord: room.secretWord } : {})
   };
 }

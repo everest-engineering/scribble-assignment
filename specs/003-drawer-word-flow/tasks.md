@@ -33,8 +33,8 @@ plan identified practical pure helpers.
 
 **Purpose**: Confirm the Phase 2 artifacts and checkpoints are aligned before code changes
 
-- [ ] T001 Review Phase 2 scope and manual validation flow in specs/003-drawer-word-flow/spec.md, specs/003-drawer-word-flow/plan.md, and specs/003-drawer-word-flow/quickstart.md
-- [ ] T002 Review the current starter implementation in backend/src/models/game.ts, backend/src/services/roomStore.ts, backend/src/api/rooms.ts, frontend/src/services/api.ts, frontend/src/state/roomStore.ts, frontend/src/pages/LobbyPage.tsx, and frontend/src/pages/GamePage.tsx
+- [X] T001 Review Phase 2 scope and manual validation flow in specs/003-drawer-word-flow/spec.md, specs/003-drawer-word-flow/plan.md, and specs/003-drawer-word-flow/quickstart.md
+- [X] T002 Review the current starter implementation in backend/src/models/game.ts, backend/src/services/roomStore.ts, backend/src/api/rooms.ts, frontend/src/services/api.ts, frontend/src/state/roomStore.ts, frontend/src/pages/LobbyPage.tsx, and frontend/src/pages/GamePage.tsx
 
 ---
 
@@ -44,12 +44,12 @@ plan identified practical pure helpers.
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T003 Update Phase 2 room and snapshot types in backend/src/models/game.ts
-- [ ] T004 [P] Extend the existing frontend room snapshot and response types with Phase 2 fields in frontend/src/services/api.ts
-- [ ] T005 [P] Keep the generated Phase 2 room API contract aligned with the implementation delta in specs/003-drawer-word-flow/contracts/rooms.yaml
-- [ ] T006 Extend backend room-store helpers for deterministic round setup and viewer-specific snapshot projection in backend/src/services/roomStore.ts
-- [ ] T007 Adapt the existing room routes to the Phase 2 viewer-specific snapshot shape in backend/src/api/rooms.ts
-- [ ] T008 Extend the existing frontend room-store derived state for started-round fields in frontend/src/state/roomStore.ts
+- [X] T003 Update Phase 2 room and snapshot types in backend/src/models/game.ts
+- [X] T004 [P] Extend the existing frontend room snapshot and response types with Phase 2 fields in frontend/src/services/api.ts
+- [X] T005 [P] Keep the generated Phase 2 room API contract aligned with the implementation delta in specs/003-drawer-word-flow/contracts/rooms.yaml
+- [X] T006 Extend backend room-store helpers for deterministic round setup and viewer-specific snapshot projection in backend/src/services/roomStore.ts
+- [X] T007 Adapt the existing room routes to the Phase 2 viewer-specific snapshot shape in backend/src/api/rooms.ts
+- [X] T008 Extend the existing frontend room-store derived state for started-round fields in frontend/src/state/roomStore.ts
 
 **Checkpoint**: Foundation ready - user story implementation can now begin in parallel
 
@@ -68,11 +68,11 @@ plan identified practical pure helpers.
 
 ### Implementation for User Story 1
 
-- [ ] T011 [US1] Extend the existing start-room mutation to assign drawerId and guesserIds in backend/src/services/roomStore.ts
-- [ ] T012 [US1] Extend POST /rooms/:code/start to return started-room drawer metadata in backend/src/api/rooms.ts
-- [ ] T013 [US1] Extend frontend started-room derivations for isDrawer, viewerRoundRole, and drawerName in frontend/src/state/roomStore.ts
-- [ ] T014 [US1] Confirm the existing lobby-to-game transition uses the new started-room snapshot metadata in frontend/src/pages/LobbyPage.tsx
-- [ ] T015 [US1] Render drawer identity, viewer round role, and visible started-room status in frontend/src/pages/GamePage.tsx
+- [X] T011 [US1] Extend the existing start-room mutation to assign drawerId and guesserIds in backend/src/services/roomStore.ts
+- [X] T012 [US1] Extend POST /rooms/:code/start to return started-room drawer metadata in backend/src/api/rooms.ts
+- [X] T013 [US1] Extend frontend started-room derivations for isDrawer, viewerRoundRole, and drawerName in frontend/src/state/roomStore.ts
+- [X] T014 [US1] Confirm the existing lobby-to-game transition uses the new started-room snapshot metadata in frontend/src/pages/LobbyPage.tsx
+- [X] T015 [US1] Render drawer identity, viewer round role, and visible started-room status in frontend/src/pages/GamePage.tsx
 
 **Checkpoint**: User Story 1 should now be fully functional and testable independently
 
@@ -91,10 +91,10 @@ plan identified practical pure helpers.
 
 ### Implementation for User Story 2
 
-- [ ] T018 [US2] Extend the start transition to use the starter word list deterministically in backend/src/services/roomStore.ts
-- [ ] T019 [US2] Replace the current shared `availableWords` gameplay payload with active-word state in backend/src/services/roomStore.ts and backend/src/models/game.ts
-- [ ] T020 [US2] Keep the Phase 2 API contract aligned with deterministic active-word behavior in specs/003-drawer-word-flow/contracts/rooms.yaml
-- [ ] T021 [US2] Surface the drawer-visible deterministic word through frontend state and frontend/src/pages/GamePage.tsx
+- [X] T018 [US2] Extend the start transition to use the starter word list deterministically in backend/src/services/roomStore.ts
+- [X] T019 [US2] Replace the current shared `availableWords` gameplay payload with active-word state in backend/src/services/roomStore.ts and backend/src/models/game.ts
+- [X] T020 [US2] Keep the Phase 2 API contract aligned with deterministic active-word behavior in specs/003-drawer-word-flow/contracts/rooms.yaml
+- [X] T021 [US2] Surface the drawer-visible deterministic word through frontend state and frontend/src/pages/GamePage.tsx
 
 **Checkpoint**: User Stories 1 and 2 should both work independently
 
@@ -113,11 +113,11 @@ plan identified practical pure helpers.
 
 ### Implementation for User Story 3
 
-- [ ] T024 [US3] Finalize viewer-specific secret-word omission rules in backend/src/services/roomStore.ts
-- [ ] T025 [US3] Ensure the existing fetch and start routes consistently pass viewerParticipantId for secrecy in backend/src/api/rooms.ts
-- [ ] T026 [US3] Align the frontend API snapshot typing so guessers do not expect a secret-word field in frontend/src/services/api.ts
-- [ ] T027 [US3] Render drawer-only secret word UI, guesser-safe fallback copy, and visible started-room status in frontend/src/pages/GamePage.tsx
-- [ ] T028 [US3] Extend started-room refresh handling to preserve drawer secrecy in frontend/src/state/roomStore.ts and frontend/src/pages/GamePage.tsx
+- [X] T024 [US3] Finalize viewer-specific secret-word omission rules in backend/src/services/roomStore.ts
+- [X] T025 [US3] Ensure the existing fetch and start routes consistently pass viewerParticipantId for secrecy in backend/src/api/rooms.ts
+- [X] T026 [US3] Align the frontend API snapshot typing so guessers do not expect a secret-word field in frontend/src/services/api.ts
+- [X] T027 [US3] Render drawer-only secret word UI, guesser-safe fallback copy, and visible started-room status in frontend/src/pages/GamePage.tsx
+- [X] T028 [US3] Extend started-room refresh handling to preserve drawer secrecy in frontend/src/state/roomStore.ts and frontend/src/pages/GamePage.tsx
 
 **Checkpoint**: All user stories should now be independently functional
 
@@ -127,9 +127,9 @@ plan identified practical pure helpers.
 
 **Purpose**: Final alignment, documentation, and verification across all Phase 2 stories
 
-- [ ] T029 [P] Refresh Phase 2 artifact details if implementation changes contract wording in specs/003-drawer-word-flow/plan.md, specs/003-drawer-word-flow/data-model.md, and specs/003-drawer-word-flow/contracts/rooms.yaml
-- [ ] T030 Run required backend build validation in backend/
-- [ ] T031 Run required frontend build validation in frontend/
+- [X] T029 [P] Refresh Phase 2 artifact details if implementation changes contract wording in specs/003-drawer-word-flow/plan.md, specs/003-drawer-word-flow/data-model.md, and specs/003-drawer-word-flow/contracts/rooms.yaml
+- [X] T030 Run required backend build validation in backend/
+- [X] T031 Run required frontend build validation in frontend/
 - [ ] T032 Run the complete manual quickstart validation in specs/003-drawer-word-flow/quickstart.md
 
 ---
