@@ -12,6 +12,7 @@ import { STARTER_WORDS } from "../seed/starterData.js";
 
 const rooms = new Map<string, Room>();
 export const ROOM_CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+const REDACTED_CORRECT_GUESS_TEXT = "[correct guess]";
 
 export type JoinRoomResult =
   | {
@@ -149,6 +150,17 @@ function getScoreEntries(room: Room): ScoreEntry[] {
   return room.participants.map((participant) => ({
     participantId: participant.id,
     score: room.scores[participant.id] ?? 0
+  }));
+}
+
+function getVisibleGuessHistory(room: Room, viewerRole: ParticipantRole) {
+  if (viewerRole === "drawer") {
+    return room.guessHistory.map((guessEntry) => ({ ...guessEntry }));
+  }
+
+  return room.guessHistory.map((guessEntry) => ({
+    ...guessEntry,
+    text: guessEntry.isCorrect ? REDACTED_CORRECT_GUESS_TEXT : guessEntry.text
   }));
 }
 
@@ -337,7 +349,7 @@ export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSn
     ...snapshot,
     drawerId: room.drawerId,
     viewerRole,
-    guessHistory: room.guessHistory.map((guessEntry) => ({ ...guessEntry })),
+    guessHistory: getVisibleGuessHistory(room, viewerRole),
     scores: getScoreEntries(room),
     ...(room.winnerId ? { winnerId: room.winnerId } : {}),
     ...(viewerRole === "drawer" && room.secretWord ? { secretWord: room.secretWord } : {})

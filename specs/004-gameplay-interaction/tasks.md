@@ -130,7 +130,7 @@
 - [X] T035 [P] Align Phase 3 contract and state wording across `specs/004-gameplay-interaction/plan.md`, `specs/004-gameplay-interaction/data-model.md`, and `specs/004-gameplay-interaction/contracts/rooms.yaml` if implementation details changed
 - [X] T036 [P] Run required backend verification in `backend` with `npm run build` and `npm test`
 - [X] T037 [P] Run required frontend verification in `frontend` with `npm run build`
-- [ ] T038 Run the full manual validation flow from `specs/004-gameplay-interaction/quickstart.md` and record completion in `specs/004-gameplay-interaction/tasks.md`
+- [X] T038 Run the full manual validation flow from `specs/004-gameplay-interaction/quickstart.md` and record completion in `specs/004-gameplay-interaction/tasks.md`
 
 ---
 

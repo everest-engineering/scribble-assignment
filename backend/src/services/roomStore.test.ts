@@ -196,3 +196,29 @@ test("submitGuess awards 100 to the first correct guesser and transitions to res
   assert.equal(guesserView.winnerId, "guest-1");
   assert.equal("secretWord" in guesserView, false);
 });
+
+test("toRoomSnapshot redacts correct guess text for guessers while preserving drawer history", () => {
+  const room = createRoomFixture();
+  room.status = "result";
+  room.drawerId = "host-1";
+  room.guesserIds = ["guest-1"];
+  room.secretWord = "rocket";
+  room.scores = createInitialScores(room);
+  room.winnerId = "guest-1";
+  room.guessHistory = [
+    {
+      id: "guess-1",
+      participantId: "guest-1",
+      text: "rocket",
+      submittedAt: "2026-05-19T00:00:02.000Z",
+      isCorrect: true
+    }
+  ];
+
+  const drawerView = toRoomSnapshot(room, "host-1");
+  const guesserView = toRoomSnapshot(room, "guest-1");
+
+  assert.equal(drawerView.guessHistory?.[0]?.text, "rocket");
+  assert.equal(guesserView.guessHistory?.[0]?.text, "[correct guess]");
+  assert.equal("secretWord" in guesserView, false);
+});
