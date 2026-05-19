@@ -49,6 +49,12 @@ Stay strictly within these features. Do not include result state rendering or re
 
 Out of scope (do not include in this spec): WebSockets, live drawing stroke broadcast to other clients, persistent storage, authentication, multiple rounds, drawer rotation, timers, speed bonuses, custom word packs."
 
+## Clarifications
+
+### Session 2026-05-19
+
+- Q: What room status should represent the ended round after the first correct guess? → A: `result`
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Draw Locally as the Drawer (Priority: P1)
@@ -154,7 +160,7 @@ moment.
 **Independent Test**: Start a room, submit incorrect guesses and confirm scores
 remain at 0, then submit the first correct guess with different letter casing and
 confirm the guesser receives 100 points and the room leaves the playing state for a
-result state.
+`result` state.
 
 **Acceptance Scenarios**:
 
@@ -164,7 +170,7 @@ result state.
 2. **Given** a playing room has an active secret word, **When** a guesser submits
    the correct word using any letter casing, **Then** the comparison succeeds, that
    guesser becomes the round winner with a score of 100, and the room transitions
-   out of the playing state into a result state.
+   out of the playing state into the `result` state.
 3. **Given** the first correct guess has already ended the round, **When** players
    refresh room data, **Then** they all see the same ended-round status, winner, and
    final scores for that room.
@@ -172,7 +178,7 @@ result state.
 **Edge Cases Discovered During Inspection**:
 
 - The current room model does not yet track guesses, scores, winner identity, or a
-  result status, so scoring has no authoritative place to live yet.
+  `result` status, so scoring has no authoritative place to live yet.
 - The secret word is currently drawer-only in room snapshots, so correctness checks
   must happen without exposing the word to guessers.
 - The current scoreboard and result panels are placeholders, so round-end and final
@@ -186,7 +192,7 @@ result state.
 - The current game store already knows how to keep room state in memory and can
   refresh it from the backend.
 - The starter does not yet compare guesses, assign scores, or transition a room to
-  a result status after the first correct guess.
+  the `result` status after the first correct guess.
 
 ### Edge Cases
 
@@ -209,7 +215,7 @@ result state.
 
 - **Typed Contract Impact**: Room-view data will expand to include gameplay round
   information beyond drawer identity, including guess history, player scores, and a
-  result status after the first correct guess. Guess submission introduces a new
+  `result` status after the first correct guess. Guess submission introduces a new
   room-scoped action and response shape.
 - **Validation Boundaries**: The system must validate guess submission rights,
   trimmed non-empty guess text, case-insensitive correctness checks, first-correct
@@ -261,7 +267,7 @@ result state.
 - **FR-017 (G9)**: The first correct guess of the round MUST set the winning
   guesser's final score to 100.
 - **FR-018 (G9)**: Once the first correct guess is accepted, the room MUST end the
-  round immediately and transition from the playing state to a result status for
+  round immediately and transition from the playing state to the `result` status for
   later rendering.
 - **FR-019 (G9)**: After the round ends, all players in that room MUST see the same
   winner identity, final scores, and ended-round status on refresh.
@@ -279,7 +285,7 @@ result state.
 - **Score Entry**: The current score for one player in the room, starting at 0 and
   reaching 100 only for the first correct guesser in this phase.
 - **Round Outcome**: The shared ended-round state created by the first correct
-  guess, including the winner identity, final scores, and result room status.
+  guess, including the winner identity, final scores, and the `result` room status.
 
 ## Success Criteria *(mandatory)*
 
@@ -309,7 +315,7 @@ result state.
 - If the drawer refreshes the page, local canvas marks may be lost because live
   stroke persistence and sync are explicitly out of scope for this phase.
 - Result presentation details are deferred to Phase 4 even though Phase 3 must
-  create the result room state that later rendering depends on.
+  create the `result` room state that later rendering depends on.
 
 ## Verification Plan *(mandatory)*
 
