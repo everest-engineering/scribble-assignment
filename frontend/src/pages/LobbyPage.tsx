@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card } from "../components/Card";
 import { PageHeader } from "../components/PageHeader";
@@ -8,8 +8,7 @@ import { useRoomState, useRoomStore } from "../state/roomStore";
 export function LobbyPage() {
   const navigate = useNavigate();
   const roomStore = useRoomStore();
-  const { room, error, isLoading } = useRoomState();
-  const [refreshError, setRefreshError] = useState<string | null>(null);
+  const { room, error, isLoading, isPolling, canStart, disabledReason } = useRoomState();
 
   useEffect(() => {
     if (!room) {
@@ -17,12 +16,56 @@ export function LobbyPage() {
     }
   }, [navigate, room]);
 
+  useEffect(() => {
+    if (room?.status === "playing") {
+      navigate("/game");
+    }
+  }, [navigate, room?.status]);
+
+  useEffect(() => {
+    if (!room || room.status !== "lobby") {
+      roomStore.stopLobbyPolling();
+      return;
+    }
+
+    if (document.visibilityState === "visible") {
+      roomStore.startLobbyPolling();
+    }
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        void roomStore.fetchRoom({
+          background: true,
+          suppressThrow: true
+        });
+        roomStore.startLobbyPolling();
+        return;
+      }
+
+      roomStore.stopLobbyPolling();
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      roomStore.stopLobbyPolling();
+    };
+  }, [room?.code, room?.status, roomStore]);
+
   async function handleRefresh() {
     try {
-      setRefreshError(null);
       await roomStore.fetchRoom();
-    } catch (caughtError) {
-      setRefreshError(caughtError instanceof Error ? caughtError.message : "Unable to refresh room");
+    } catch (_caughtError) {
+      // Request errors are already surfaced by the room store state.
+    }
+  }
+
+  async function handleStart() {
+    try {
+      await roomStore.startRoom();
+    } catch (_caughtError) {
+      // Request errors are already surfaced by the room store state.
     }
   }
 
@@ -50,7 +93,9 @@ export function LobbyPage() {
               {room.participants.map((participant) => (
                 <li key={participant.id}>
                   <span>{participant.name}</span>
-                  <span className="player-list__meta">joined</span>
+                  <span className="player-list__meta">
+                    {participant.role === "host" ? "host" : "joined"}
+                  </span>
                 </li>
               ))}
             </ul>
@@ -58,10 +103,12 @@ export function LobbyPage() {
         </Card>
 
         <Card title="Status">
-          <p className="status-line" style={{ backgroundColor: isLoading ? '#fef3c7' : '#e0e7ff', color: isLoading ? '#b45309' : '#3730a3' }}>
-            {isLoading ? "Refreshing players..." : "Ready to play"}
+          <p className="status-line" style={{ backgroundColor: isLoading || isPolling ? '#fef3c7' : '#e0e7ff', color: isLoading || isPolling ? '#b45309' : '#3730a3' }}>
+            {room.status === "playing" ? "Game starting..." : isLoading || isPolling ? "Refreshing players..." : "Ready to play"}
           </p>
-          <p style={{ marginTop: '8px' }}>{error ?? refreshError ?? "Waiting for the host to start the game."}</p>
+          <p style={{ marginTop: '8px' }}>
+            {error ?? disabledReason ?? "Waiting for the host to start the game."}
+          </p>
         </Card>
       </div>
 
@@ -69,8 +116,8 @@ export function LobbyPage() {
         <button className="button button--secondary" disabled={isLoading} onClick={handleRefresh}>
           {isLoading ? "Refreshing..." : "Refresh Room"}
         </button>
-        <button className="button button--primary" onClick={() => navigate("/game")}>
-          Start Game
+        <button className="button button--primary" disabled={isLoading || isPolling || !canStart} onClick={handleStart}>
+          {isLoading ? "Starting..." : "Start Game"}
         </button>
       </div>
     </section>
