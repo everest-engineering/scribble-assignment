@@ -86,11 +86,22 @@ export function createRoomsRouter() {
           throw new HttpError(403, "Only the host can start the game");
         }
 
-        throw new HttpError(403, "At least 2 players are needed to start");
+        if (existing.participants.length < 2) {
+          throw new HttpError(403, "At least 2 players are needed to start");
+        }
+
+        const validName = (name: string) => /^[a-zA-Z0-9]+$/.test(name.trim()) && name.trim().length >= 1 && name.trim().length <= 16;
+        const hasInvalidName = existing.participants.some((p) => !validName(p.name));
+
+        if (hasInvalidName) {
+          throw new HttpError(400, "All players must have a valid name to start the game");
+        }
+
+        throw new HttpError(503, "Game cannot start: word list is unavailable");
       }
 
       response.json({
-        room: toRoomSnapshot(room)
+        room: toRoomSnapshot(room, participantId)
       });
     } catch (error) {
       next(error);

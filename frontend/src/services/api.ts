@@ -6,11 +6,19 @@ export interface Participant {
   joinedAt: string;
 }
 
+export interface RoundSnapshot {
+  number: number;
+  drawerId: string;
+  secretWord?: string;
+  status: "drawing";
+}
+
 export interface RoomSnapshot {
   code: string;
   status: "lobby" | "active";
   hostId: string;
   participants: Participant[];
+  currentRound: RoundSnapshot | null;
   availableWords: string[];
   roles: ParticipantRole[];
 }
