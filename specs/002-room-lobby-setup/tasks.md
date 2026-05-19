@@ -35,7 +35,7 @@ and testing of each story.
 
 **Purpose**: Align the existing starter behavior with the approved Phase 1 contract.
 
-- [ ] T001 Sync the implementation target with specs/002-room-lobby-setup/contracts/rooms.yaml and specs/002-room-lobby-setup/quickstart.md
+- [X] T001 Sync the implementation target with specs/002-room-lobby-setup/contracts/rooms.yaml and specs/002-room-lobby-setup/quickstart.md
 
 ---
 
@@ -46,12 +46,12 @@ exist before user story behavior changes ship.
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T002 Extend shared backend room and participant types for host and playing state in backend/src/models/game.ts
-- [ ] T003 Tighten backend validation schemas for trimmed names, exact 4-character room codes, and start requests in backend/src/api/schemas.ts
-- [ ] T004 Extend backend room state helpers and snapshot shaping with host-aware Phase 1 state in backend/src/services/roomStore.ts
-- [ ] T005 Extend backend room routes to use the stricter validation and expanded room snapshot contract in backend/src/api/rooms.ts
-- [ ] T006 [P] Extend frontend room API types and request helpers for hostId, playing status, and start-room requests in frontend/src/services/api.ts
-- [ ] T007 Extend frontend room store state with derived lobby permissions and polling/start hooks in frontend/src/state/roomStore.ts
+- [X] T002 Extend shared backend room and participant types for host and playing state in backend/src/models/game.ts
+- [X] T003 Tighten backend validation schemas for trimmed names, exact 4-character room codes, and start requests in backend/src/api/schemas.ts
+- [X] T004 Extend backend room state helpers and snapshot shaping with host-aware Phase 1 state in backend/src/services/roomStore.ts
+- [X] T005 Extend backend room routes to use the stricter validation and expanded room snapshot contract in backend/src/api/rooms.ts
+- [X] T006 [P] Extend frontend room API types and request helpers for hostId, playing status, and start-room requests in frontend/src/services/api.ts
+- [X] T007 Extend frontend room store state with derived lobby permissions and polling/start hooks in frontend/src/state/roomStore.ts
 
 **Checkpoint**: Foundation ready - user story implementation can now begin
 
@@ -67,15 +67,15 @@ whitespace-only, malformed, and not-found inputs are rejected clearly.
 
 ### Tests for User Story 1 ⚠️
 
-- [ ] T008 [US1] Run the Story 1 manual validation flow from specs/002-room-lobby-setup/quickstart.md
+- [X] T008 [US1] Run the Story 1 manual validation flow from specs/002-room-lobby-setup/quickstart.md
 
 ### Implementation for User Story 1
 
-- [ ] T009 [US1] Extend backend room creation/join logic with host assignment, trimmed name storage, and not-joinable outcomes in backend/src/services/roomStore.ts
-- [ ] T010 [US1] Extend create/join route responses and error mapping in backend/src/api/rooms.ts
-- [ ] T011 [P] [US1] Add fast-feedback trimmed-name validation to frontend/src/pages/CreateRoomPage.tsx
-- [ ] T012 [P] [US1] Add fast-feedback trimmed-name and 4-character room-code validation to frontend/src/pages/JoinRoomPage.tsx
-- [ ] T013 [US1] Adapt existing create/join session handling to the stricter contract in frontend/src/state/roomStore.ts
+- [X] T009 [US1] Extend backend room creation/join logic with host assignment, trimmed name storage, and not-joinable outcomes in backend/src/services/roomStore.ts
+- [X] T010 [US1] Extend create/join route responses and error mapping in backend/src/api/rooms.ts
+- [X] T011 [P] [US1] Add fast-feedback trimmed-name validation to frontend/src/pages/CreateRoomPage.tsx
+- [X] T012 [P] [US1] Add fast-feedback trimmed-name and 4-character room-code validation to frontend/src/pages/JoinRoomPage.tsx
+- [X] T013 [US1] Adapt existing create/join session handling to the stricter contract in frontend/src/state/roomStore.ts
 
 **Checkpoint**: User Story 1 is fully functional and testable on its own
 
@@ -91,13 +91,13 @@ about two seconds without manual refresh.
 
 ### Tests for User Story 2 ⚠️
 
-- [ ] T014 [US2] Run the Story 2 manual validation flow from specs/002-room-lobby-setup/quickstart.md
+- [X] T014 [US2] Run the Story 2 manual validation flow from specs/002-room-lobby-setup/quickstart.md
 
 ### Implementation for User Story 2
 
-- [ ] T015 [US2] Preserve room-scoped fetch behavior while extending deterministic room snapshot reads in backend/src/services/roomStore.ts
-- [ ] T016 [US2] Add lobby polling lifecycle and transient refresh-error handling to frontend/src/state/roomStore.ts
-- [ ] T017 [US2] Extend frontend/src/pages/LobbyPage.tsx with auto-refresh roster updates and non-destructive refresh feedback
+- [X] T015 [US2] Preserve room-scoped fetch behavior while extending deterministic room snapshot reads in backend/src/services/roomStore.ts
+- [X] T016 [US2] Add lobby polling lifecycle and transient refresh-error handling to frontend/src/state/roomStore.ts
+- [X] T017 [US2] Extend frontend/src/pages/LobbyPage.tsx with auto-refresh roster updates and non-destructive refresh feedback
 
 **Checkpoint**: User Stories 1 and 2 both work independently
 
@@ -114,15 +114,15 @@ screen after the room status becomes `playing`.
 
 ### Tests for User Story 3 ⚠️
 
-- [ ] T018 [US3] Run the Story 3 manual validation flow from specs/002-room-lobby-setup/quickstart.md
+- [X] T018 [US3] Run the Story 3 manual validation flow from specs/002-room-lobby-setup/quickstart.md
 
 ### Implementation for User Story 3
 
-- [ ] T019 [US3] Extend backend room state transitions with host-only start guards and playing status in backend/src/services/roomStore.ts
-- [ ] T020 [US3] Add the POST /rooms/:code/start endpoint and status-specific error mapping in backend/src/api/rooms.ts
-- [ ] T021 [US3] Add the start-room request helper and widened room status typing in frontend/src/services/api.ts
-- [ ] T022 [US3] Add start-room action handling and lobby permission derivation to frontend/src/state/roomStore.ts
-- [ ] T023 [US3] Extend frontend/src/pages/LobbyPage.tsx with disabled start states, host-only messaging, and playing-status navigation
+- [X] T019 [US3] Extend backend room state transitions with host-only start guards and playing status in backend/src/services/roomStore.ts
+- [X] T020 [US3] Add the POST /rooms/:code/start endpoint and status-specific error mapping in backend/src/api/rooms.ts
+- [X] T021 [US3] Add the start-room request helper and widened room status typing in frontend/src/services/api.ts
+- [X] T022 [US3] Add start-room action handling and lobby permission derivation to frontend/src/state/roomStore.ts
+- [X] T023 [US3] Extend frontend/src/pages/LobbyPage.tsx with disabled start states, host-only messaging, and playing-status navigation
 
 **Checkpoint**: All user stories are independently functional
 
@@ -133,10 +133,10 @@ screen after the room status becomes `playing`.
 **Purpose**: Final consistency, documentation alignment, and required build checks
 across the whole feature.
 
-- [ ] T024 Update feature validation notes and any implementation-specific clarifications in specs/002-room-lobby-setup/quickstart.md
-- [ ] T025 [P] Review backend and frontend code for redundant logic and tighten shared messaging in backend/src/api/rooms.ts and frontend/src/state/roomStore.ts
-- [ ] T026 Run backend build validation in backend/package.json
-- [ ] T027 Run frontend build validation in frontend/package.json
+- [X] T024 Update feature validation notes and any implementation-specific clarifications in specs/002-room-lobby-setup/quickstart.md
+- [X] T025 [P] Review backend and frontend code for redundant logic and tighten shared messaging in backend/src/api/rooms.ts and frontend/src/state/roomStore.ts
+- [X] T026 Run backend build validation in backend/package.json
+- [X] T027 Run frontend build validation in frontend/package.json
 
 ---
 

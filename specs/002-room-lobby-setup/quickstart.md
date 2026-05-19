@@ -37,7 +37,7 @@ Frontend expected URL: `http://localhost:5173`
    Expected: join succeeds and the player enters the same lobby.
 4. Try joining with:
    - blank room code
-   - malformed room code
+   - malformed room code (wrong length or unsupported characters)
    - valid-format room code that does not exist
    Expected: each case shows clear feedback and does not enter a lobby.
 
