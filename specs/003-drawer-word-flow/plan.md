@@ -223,13 +223,12 @@ and the existing starter-word seed file. All frontend changes stay within
 ### API Contract Changes
 
 - `POST /rooms`
-  Response still returns `{ participantId, room }`, but the `room` snapshot now
-  includes started-round fields when applicable and never includes a guesser-visible
-  secret-word field.
+  Response still returns `{ participantId, room }`, and the `room` snapshot remains
+  a lobby snapshot for the newly created host session.
 
 - `POST /rooms/:code/join`
-  Contract stays the same for Phase 2. Joined players still receive a room snapshot,
-  and joins remain limited to lobby rooms only.
+  Contract stays the same for Phase 2. Joined players still receive a lobby
+  snapshot, and joins remain limited to lobby rooms only.
 
 - `GET /rooms/:code`
   Query remains `participantId?: string`.

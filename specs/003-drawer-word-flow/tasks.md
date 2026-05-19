@@ -72,7 +72,7 @@ plan identified practical pure helpers.
 - [ ] T012 [US1] Extend POST /rooms/:code/start to return started-room drawer metadata in backend/src/api/rooms.ts
 - [ ] T013 [US1] Extend frontend started-room derivations for isDrawer, viewerRoundRole, and drawerName in frontend/src/state/roomStore.ts
 - [ ] T014 [US1] Confirm the existing lobby-to-game transition uses the new started-room snapshot metadata in frontend/src/pages/LobbyPage.tsx
-- [ ] T015 [US1] Render drawer identity and viewer round role in frontend/src/pages/GamePage.tsx
+- [ ] T015 [US1] Render drawer identity, viewer round role, and visible started-room status in frontend/src/pages/GamePage.tsx
 
 **Checkpoint**: User Story 1 should now be fully functional and testable independently
 
@@ -116,7 +116,7 @@ plan identified practical pure helpers.
 - [ ] T024 [US3] Finalize viewer-specific secret-word omission rules in backend/src/services/roomStore.ts
 - [ ] T025 [US3] Ensure the existing fetch and start routes consistently pass viewerParticipantId for secrecy in backend/src/api/rooms.ts
 - [ ] T026 [US3] Align the frontend API snapshot typing so guessers do not expect a secret-word field in frontend/src/services/api.ts
-- [ ] T027 [US3] Render drawer-only secret word UI and guesser-safe fallback copy in frontend/src/pages/GamePage.tsx
+- [ ] T027 [US3] Render drawer-only secret word UI, guesser-safe fallback copy, and visible started-room status in frontend/src/pages/GamePage.tsx
 - [ ] T028 [US3] Extend started-room refresh handling to preserve drawer secrecy in frontend/src/state/roomStore.ts and frontend/src/pages/GamePage.tsx
 
 **Checkpoint**: All user stories should now be independently functional
