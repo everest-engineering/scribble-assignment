@@ -47,6 +47,12 @@ Stay strictly within these features. Do not add multiple rounds, drawer rotation
 
 Out of scope (do not include in this spec): WebSockets, live drawing stroke broadcast, persistent storage, authentication, multiple rounds, drawer rotation, timers, speed bonuses, custom word packs."
 
+## Clarifications
+
+### Session 2026-05-19
+
+- Q: How should restart access appear for non-host players in the result state? → A: Show restart to everyone in result state, but disable it for non-host players with a clear reason.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Reveal Shared Result State (Priority: P1)
@@ -123,7 +129,8 @@ while round-specific data is cleared.
    and no longer see previous round scores, guesses, drawer assignment, secret word,
    winner, or ended-round data.
 3. **Given** a viewer is not the host, **When** that viewer is in the result state,
-   **Then** the restart action is unavailable or rejected with clear feedback.
+   **Then** the restart action remains visible but disabled with clear feedback
+   explaining that only the host can restart the room.
 
 **Edge Cases Discovered During Inspection**:
 
@@ -133,6 +140,8 @@ while round-specific data is cleared.
   work for already-connected clients without forcing them to rejoin manually.
 - Restart must clear round-owned state without deleting the participant list or
   changing `hostId`.
+- Non-host players need a visible but disabled restart control so the host-only
+  rule is obvious without requiring a failed click path.
 
 **Discovery Notes**:
 
@@ -146,6 +155,8 @@ while round-specific data is cleared.
 ### Edge Cases
 
 - A non-host attempts to restart the room and must be blocked with clear feedback.
+- The result view must not hide the restart action completely from non-host players;
+  it should stay visible but disabled with the host-only reason.
 - A restart request arrives for a room that is not in the result state and must be
   rejected.
 - Two clients refresh near the same time as restart and must converge on the same
@@ -195,6 +206,9 @@ while round-specific data is cleared.
   `result` state.
 - **FR-008 (G11)**: The system MUST provide a room-scoped restart action for rooms
   in the `result` state.
+- **FR-008a (G11)**: In the `result` state, the restart action MUST remain visible
+  to all players, but it MUST be disabled for non-host viewers with a clear
+  host-only reason.
 - **FR-009 (G11)**: Restarting a room MUST return the room status to `lobby`.
 - **FR-010 (G11)**: Restarting a room MUST preserve the room code, host identity,
   and participant list.
