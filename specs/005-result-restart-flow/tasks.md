@@ -114,7 +114,7 @@ tests where practical plus explicit manual multiplayer validation from
 - [X] T026 Run backend test suite for Phase 4 coverage with backend/src/services/roomStore.test.ts via backend/package.json
 - [X] T027 Run required backend build validation in backend/package.json
 - [X] T028 Run required frontend build validation in frontend/package.json
-- [ ] T029 Execute the full manual multiplayer validation flow in specs/005-result-restart-flow/quickstart.md
+- [X] T029 Execute the full manual multiplayer validation flow in specs/005-result-restart-flow/quickstart.md
 
 ---
 
