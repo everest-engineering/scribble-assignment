@@ -37,6 +37,8 @@ Frontend expected URL: `http://localhost:5173`
    Expected: no drawing interaction is available there.
 6. In the drawer session, clear the canvas.
    Expected: all local marks disappear; scores and guess history remain unchanged.
+7. Refresh the drawer session.
+   Expected: local sketch may reset, but shared room state remains intact.
 
 ### Story 2: Guesses validate and sync
 
@@ -48,6 +50,8 @@ Frontend expected URL: `http://localhost:5173`
    Expected: the new guess appears in shared activity/history there as well.
 4. Submit one or more incorrect guesses.
    Expected: scores remain `0` for all players and the room stays in `playing`.
+5. Briefly interrupt a refresh attempt or wait for a transient refresh error if one occurs.
+   Expected: already visible guess history and scores remain on screen instead of blanking.
 
 ### Story 3: First correct guess ends the round
 
@@ -58,6 +62,7 @@ Frontend expected URL: `http://localhost:5173`
 4. Refresh the drawer and guesser sessions.
    Expected: both still show the same winner, final scores, and ended-round status.
 5. Confirm the guesser still does not receive the drawer's secret word in the UI.
+6. Confirm the drawer still sees the secret word after the room enters `result`.
 
 ### Isolation check
 

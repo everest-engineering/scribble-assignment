@@ -5,9 +5,17 @@ import {
   joinRoomSchema,
   roomCodeParamsSchema,
   roomViewerQuerySchema,
-  startRoomSchema
+  startRoomSchema,
+  submitGuessSchema
 } from "./schemas.js";
-import { createRoom, getRoom, joinRoom, startRoom, toRoomSnapshot } from "../services/roomStore.js";
+import {
+  createRoom,
+  getRoom,
+  joinRoom,
+  startRoom,
+  submitGuess,
+  toRoomSnapshot
+} from "../services/roomStore.js";
 
 export function createRoomsRouter() {
   const router = Router();
@@ -83,6 +91,33 @@ export function createRoomsRouter() {
             throw new HttpError(403, "Only the host can start the game");
           case "not_enough_players":
             throw new HttpError(422, "At least 2 players are required");
+        }
+      }
+
+      response.json({
+        room: toRoomSnapshot(result.room, participantId)
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/:code/guesses", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId, guessText } = submitGuessSchema.parse(request.body);
+      const result = submitGuess(code, participantId, guessText);
+
+      if (!result.ok) {
+        switch (result.reason) {
+          case "not_found":
+            throw new HttpError(404, "Room not found");
+          case "not_allowed":
+            throw new HttpError(403, "Only active guessers can submit guesses");
+          case "not_playing":
+            throw new HttpError(409, "Room is not accepting guesses");
+          case "invalid_guess":
+            throw new HttpError(422, "Enter a guess");
         }
       }
 

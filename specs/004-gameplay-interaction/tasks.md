@@ -27,8 +27,8 @@
 
 **Purpose**: Confirm the feature artifacts and test surfaces before implementation
 
-- [ ] T001 Review Phase 3 design artifacts and trace requirements to planned files in `specs/004-gameplay-interaction/spec.md`, `specs/004-gameplay-interaction/plan.md`, `specs/004-gameplay-interaction/data-model.md`, and `specs/004-gameplay-interaction/contracts/rooms.yaml`
-- [ ] T002 Review current gameplay implementation gaps in `backend/src/models/game.ts`, `backend/src/services/roomStore.ts`, `backend/src/api/rooms.ts`, `backend/src/api/schemas.ts`, `frontend/src/pages/GamePage.tsx`, `frontend/src/components/GuessForm.tsx`, `frontend/src/components/Scoreboard.tsx`, `frontend/src/components/ResultPanel.tsx`, `frontend/src/state/roomStore.ts`, and `frontend/src/services/api.ts`
+- [X] T001 Review Phase 3 design artifacts and trace requirements to planned files in `specs/004-gameplay-interaction/spec.md`, `specs/004-gameplay-interaction/plan.md`, `specs/004-gameplay-interaction/data-model.md`, and `specs/004-gameplay-interaction/contracts/rooms.yaml`
+- [X] T002 Review current gameplay implementation gaps in `backend/src/models/game.ts`, `backend/src/services/roomStore.ts`, `backend/src/api/rooms.ts`, `backend/src/api/schemas.ts`, `frontend/src/pages/GamePage.tsx`, `frontend/src/components/GuessForm.tsx`, `frontend/src/components/Scoreboard.tsx`, `frontend/src/components/ResultPanel.tsx`, `frontend/src/state/roomStore.ts`, and `frontend/src/services/api.ts`
 
 ---
 
@@ -38,13 +38,13 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T003 Extend Phase 3 backend model types for `result`, `GuessEntry`, score state, winner metadata, and widened room snapshots in `backend/src/models/game.ts`
-- [ ] T004 [P] Add guess-submission request validation and any widened schema helpers in `backend/src/api/schemas.ts`
-- [ ] T005 [P] Extend frontend API types and add `submitGuess` client support in `frontend/src/services/api.ts`
-- [ ] T006 Implement foundational room-store helpers for guess normalization, score initialization, correctness checks, and result-state transitions in `backend/src/services/roomStore.ts`
-- [ ] T007 Implement backend room snapshot widening for shared guess history, score rows, winner identity, and continued drawer-only `secretWord` visibility in `backend/src/services/roomStore.ts`
-- [ ] T008 Add the `POST /rooms/:code/guesses` route and align existing room routes to the widened snapshot contract in `backend/src/api/rooms.ts`
-- [ ] T009 Extend frontend room-store state and derivations for active game polling, score/history data, winner data, and guess-submission permissions in `frontend/src/state/roomStore.ts`
+- [X] T003 Extend Phase 3 backend model types for `result`, `GuessEntry`, score state, winner metadata, and widened room snapshots in `backend/src/models/game.ts`
+- [X] T004 [P] Add guess-submission request validation and any widened schema helpers in `backend/src/api/schemas.ts`
+- [X] T005 [P] Extend frontend API types and add `submitGuess` client support in `frontend/src/services/api.ts`
+- [X] T006 Implement foundational room-store helpers for guess normalization, score initialization, correctness checks, and result-state transitions in `backend/src/services/roomStore.ts`
+- [X] T007 Implement backend room snapshot widening for shared guess history, score rows, winner identity, and continued drawer-only `secretWord` visibility in `backend/src/services/roomStore.ts`
+- [X] T008 Add the `POST /rooms/:code/guesses` route and align existing room routes to the widened snapshot contract in `backend/src/api/rooms.ts`
+- [X] T009 Extend frontend room-store state and derivations for active game polling, score/history data, winner data, and guess-submission permissions in `frontend/src/state/roomStore.ts`
 
 **Checkpoint**: Foundation ready - user story implementation can now begin
 
@@ -58,16 +58,16 @@
 
 ### Tests for User Story 1
 
-- [ ] T010 [US1] Add explicit manual validation steps for local drawer drawing and clear behavior in `specs/004-gameplay-interaction/quickstart.md`
+- [X] T010 [US1] Add explicit manual validation steps for local drawer drawing and clear behavior in `specs/004-gameplay-interaction/quickstart.md`
 
 ### Implementation for User Story 1
 
-- [ ] T011 [US1] Replace the placeholder canvas area with a real local drawing surface in `frontend/src/pages/GamePage.tsx`
-- [ ] T012 [US1] Add local drawing event handling and clear-canvas behavior in `frontend/src/pages/GamePage.tsx`
-- [ ] T013 [US1] Gate canvas interactivity and clear controls by viewer round role in `frontend/src/pages/GamePage.tsx`
-- [ ] T014 [P] [US1] Update `frontend/src/components/Scoreboard.tsx` to show room participants with zeroed scores during active rounds
-- [ ] T015 [P] [US1] Update `frontend/src/components/ResultPanel.tsx` to stop being a placeholder and prepare to show shared guess activity without Phase 4 result rendering
-- [ ] T016 [US1] Adjust game-page status copy and layout around the live canvas, drawer identity, and clear control in `frontend/src/pages/GamePage.tsx`
+- [X] T011 [US1] Replace the placeholder canvas area with a real local drawing surface in `frontend/src/pages/GamePage.tsx`
+- [X] T012 [US1] Add local drawing event handling and clear-canvas behavior in `frontend/src/pages/GamePage.tsx`
+- [X] T013 [US1] Gate canvas interactivity and clear controls by viewer round role in `frontend/src/pages/GamePage.tsx`
+- [X] T014 [P] [US1] Update `frontend/src/components/Scoreboard.tsx` to show room participants with zeroed scores during active rounds
+- [X] T015 [P] [US1] Update `frontend/src/components/ResultPanel.tsx` to stop being a placeholder and prepare to show shared guess activity without Phase 4 result rendering
+- [X] T016 [US1] Adjust game-page status copy and layout around the live canvas, drawer identity, and clear control in `frontend/src/pages/GamePage.tsx`
 
 **Checkpoint**: User Story 1 should now be independently testable as a local drawer-only interaction slice
 
@@ -81,18 +81,18 @@
 
 ### Tests for User Story 2
 
-- [ ] T017 [P] [US2] Extend backend unit tests for guess normalization and guesser-only submission guards in `backend/src/services/roomStore.test.ts`
-- [ ] T018 [US2] Add manual multiplayer validation steps for blank-guess rejection, trimmed storage, and guess-history sync in `specs/004-gameplay-interaction/quickstart.md`
+- [X] T017 [P] [US2] Extend backend unit tests for guess normalization and guesser-only submission guards in `backend/src/services/roomStore.test.ts`
+- [X] T018 [US2] Add manual multiplayer validation steps for blank-guess rejection, trimmed storage, and guess-history sync in `specs/004-gameplay-interaction/quickstart.md`
 
 ### Implementation for User Story 2
 
-- [ ] T019 [US2] Extend backend room state initialization and guess-history storage for active rooms in `backend/src/services/roomStore.ts`
-- [ ] T020 [US2] Implement Phase 3 guess submission service flow with trimmed storage and room-scoped history append in `backend/src/services/roomStore.ts`
-- [ ] T021 [US2] Wire `frontend/src/components/GuessForm.tsx` to local validation, disabled states, and actual room-store submission behavior
-- [ ] T022 [US2] Add guess submission and active game polling methods to `frontend/src/state/roomStore.ts`
-- [ ] T023 [US2] Adapt the existing 2-second visible-tab polling pattern for active game rooms from `frontend/src/state/roomStore.ts` into `frontend/src/pages/GamePage.tsx`
-- [ ] T024 [US2] Render shared guess history with player names and correct stale-data/error behavior in `frontend/src/components/ResultPanel.tsx`
-- [ ] T025 [US2] Surface guess-submission errors and loading states in `frontend/src/components/GuessForm.tsx` and `frontend/src/pages/GamePage.tsx`
+- [X] T019 [US2] Extend backend room state initialization and guess-history storage for active rooms in `backend/src/services/roomStore.ts`
+- [X] T020 [US2] Implement Phase 3 guess submission service flow with trimmed storage and room-scoped history append in `backend/src/services/roomStore.ts`
+- [X] T021 [US2] Wire `frontend/src/components/GuessForm.tsx` to local validation, disabled states, and actual room-store submission behavior
+- [X] T022 [US2] Add guess submission and active game polling methods to `frontend/src/state/roomStore.ts`, preserving last good guess-history and score state during transient polling failures
+- [X] T023 [US2] Adapt the existing 2-second visible-tab polling pattern for active game rooms from `frontend/src/state/roomStore.ts` into `frontend/src/pages/GamePage.tsx`
+- [X] T024 [US2] Render shared guess history with player names and correct stale-data/error behavior in `frontend/src/components/ResultPanel.tsx`
+- [X] T025 [US2] Surface guess-submission errors and loading states in `frontend/src/components/GuessForm.tsx` and `frontend/src/pages/GamePage.tsx`
 
 **Checkpoint**: User Stories 1 and 2 should both work independently; shared guesses should sync without affecting other rooms
 
@@ -106,18 +106,18 @@
 
 ### Tests for User Story 3
 
-- [ ] T026 [P] [US3] Extend backend unit tests for case-insensitive correctness checks, first-correct winner assignment, and `result` transition in `backend/src/services/roomStore.test.ts`
-- [ ] T027 [US3] Add manual multiplayer validation steps for winner scoring, `result` transition, refresh persistence, and room isolation in `specs/004-gameplay-interaction/quickstart.md`
+- [X] T026 [P] [US3] Extend backend unit tests for case-insensitive correctness checks, first-correct winner assignment, and `result` transition in `backend/src/services/roomStore.test.ts`
+- [X] T027 [US3] Add manual multiplayer validation steps for winner scoring, `result` transition, refresh persistence, and room isolation in `specs/004-gameplay-interaction/quickstart.md`
 
 ### Implementation for User Story 3
 
-- [ ] T028 [US3] Initialize and maintain per-participant score state, winner metadata, and `endedAt` on the backend in `backend/src/services/roomStore.ts`
-- [ ] T029 [US3] Implement case-insensitive secret-word comparison and first-correct scoring rules in `backend/src/services/roomStore.ts`
-- [ ] T030 [US3] Transition room status from `playing` to `result` on the first correct guess and keep guesser snapshots word-safe in `backend/src/services/roomStore.ts`
-- [ ] T031 [US3] Extend `frontend/src/state/roomStore.ts` derivations for result-state winner name, final scores, and continued refresh behavior after round end
-- [ ] T032 [US3] Update `frontend/src/components/Scoreboard.tsx` to render final scores and winner emphasis from derived room state
-- [ ] T033 [US3] Update `frontend/src/components/ResultPanel.tsx` to render ended-round winner/activity context without implementing Phase 4 restart flow
-- [ ] T034 [US3] Update `frontend/src/pages/GamePage.tsx` to preserve the game route in `result`, show ended-round status, and stop redirecting away from Phase 3 result state
+- [X] T028 [US3] Initialize and maintain per-participant score state, winner metadata, and `endedAt` on the backend in `backend/src/services/roomStore.ts`
+- [X] T029 [US3] Implement case-insensitive secret-word comparison and first-correct scoring rules in `backend/src/services/roomStore.ts`
+- [X] T030 [US3] Transition room status from `playing` to `result` on the first correct guess and keep guesser snapshots word-safe in both states in `backend/src/services/roomStore.ts`
+- [X] T031 [US3] Extend `frontend/src/state/roomStore.ts` derivations for result-state winner name, final scores, and continued refresh behavior after round end
+- [X] T032 [US3] Update `frontend/src/components/Scoreboard.tsx` to render final scores and winner emphasis from derived room state
+- [X] T033 [US3] Update `frontend/src/components/ResultPanel.tsx` to render ended-round winner/activity context without revealing the drawer secret word to guessers or implementing Phase 4 restart flow
+- [X] T034 [US3] Update `frontend/src/pages/GamePage.tsx` to preserve the game route in `result`, show ended-round status, and stop redirecting away from Phase 3 result state
 
 **Checkpoint**: All user stories should now be independently functional and refresh-safe
 
@@ -127,9 +127,9 @@
 
 **Purpose**: Final verification and cleanup across stories
 
-- [ ] T035 [P] Align Phase 3 contract and state wording across `specs/004-gameplay-interaction/plan.md`, `specs/004-gameplay-interaction/data-model.md`, and `specs/004-gameplay-interaction/contracts/rooms.yaml` if implementation details changed
-- [ ] T036 [P] Run required backend verification in `backend` with `npm run build` and `npm test`
-- [ ] T037 [P] Run required frontend verification in `frontend` with `npm run build`
+- [X] T035 [P] Align Phase 3 contract and state wording across `specs/004-gameplay-interaction/plan.md`, `specs/004-gameplay-interaction/data-model.md`, and `specs/004-gameplay-interaction/contracts/rooms.yaml` if implementation details changed
+- [X] T036 [P] Run required backend verification in `backend` with `npm run build` and `npm test`
+- [X] T037 [P] Run required frontend verification in `frontend` with `npm run build`
 - [ ] T038 Run the full manual validation flow from `specs/004-gameplay-interaction/quickstart.md` and record completion in `specs/004-gameplay-interaction/tasks.md`
 
 ---

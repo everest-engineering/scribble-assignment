@@ -9,9 +9,12 @@ import {
 } from "react";
 import {
   api,
+  type GuessEntry,
   type ParticipantRole,
+  type RoomStatus,
   type RoomSessionResponse,
-  type RoomSnapshot
+  type RoomSnapshot,
+  type ScoreEntry
 } from "../services/api";
 
 const ROOM_SESSION_STORAGE_KEY = "scribble-room-session";
@@ -19,6 +22,17 @@ const ROOM_SESSION_STORAGE_KEY = "scribble-room-session";
 interface StoredRoomSession {
   participantId: string;
   roomCode: string;
+}
+
+export interface GuessHistoryRow extends GuessEntry {
+  playerName: string;
+}
+
+export interface ScoreRow extends ScoreEntry {
+  name: string;
+  isDrawer: boolean;
+  isWinner: boolean;
+  isViewer: boolean;
 }
 
 export interface RoomState {
@@ -32,21 +46,49 @@ export interface RoomState {
   canStart: boolean;
   disabledReason: string | null;
   isDrawer: boolean;
+  isResult: boolean;
   viewerRoundRole: ParticipantRole | null;
   drawerName: string | null;
   visibleSecretWord: string | null;
+  canSubmitGuess: boolean;
+  guessHistoryRows: GuessHistoryRow[];
+  scoreRows: ScoreRow[];
+  winnerName: string | null;
 }
 
 type Listener = () => void;
 
-function deriveLobbyState(room: RoomSnapshot | null, participantId: string | null) {
+function isActiveGameStatus(status: RoomStatus) {
+  return status === "playing" || status === "result";
+}
+
+function deriveRoomState(room: RoomSnapshot | null, participantId: string | null) {
+  const participantById = new Map(room?.participants.map((participant) => [participant.id, participant]) ?? []);
   const drawerName =
     room?.drawerId
-      ? room.participants.find((participant) => participant.id === room.drawerId)?.name ?? null
+      ? participantById.get(room.drawerId)?.name ?? null
       : null;
   const viewerRoundRole =
-    room?.status === "playing" ? (room.viewerRole ?? (room.drawerId === participantId ? "drawer" : "guesser")) : null;
+    room && isActiveGameStatus(room.status)
+      ? (room.viewerRole ?? (room.drawerId === participantId ? "drawer" : "guesser"))
+      : null;
   const isDrawer = viewerRoundRole === "drawer";
+  const isResult = room?.status === "result";
+  const guessHistoryRows: GuessHistoryRow[] =
+    room?.guessHistory?.map((guessEntry) => ({
+      ...guessEntry,
+      playerName: participantById.get(guessEntry.participantId)?.name ?? "Unknown player"
+    })) ?? [];
+  const scoreRows: ScoreRow[] =
+    room?.scores?.map((scoreEntry) => ({
+      ...scoreEntry,
+      name: participantById.get(scoreEntry.participantId)?.name ?? "Unknown player",
+      isDrawer: room.drawerId === scoreEntry.participantId,
+      isWinner: room.winnerId === scoreEntry.participantId,
+      isViewer: participantId === scoreEntry.participantId
+    })) ?? [];
+  const winnerName = room?.winnerId ? participantById.get(room.winnerId)?.name ?? null : null;
+  const canSubmitGuess = room?.status === "playing" && viewerRoundRole === "guesser";
 
   if (!room || !participantId || room.status !== "lobby") {
     return {
@@ -54,9 +96,14 @@ function deriveLobbyState(room: RoomSnapshot | null, participantId: string | nul
       canStart: false,
       disabledReason: null,
       isDrawer,
+      isResult,
       viewerRoundRole,
       drawerName,
-      visibleSecretWord: isDrawer ? room?.secretWord ?? null : null
+      visibleSecretWord: isDrawer ? room?.secretWord ?? null : null,
+      canSubmitGuess,
+      guessHistoryRows,
+      scoreRows,
+      winnerName
     };
   }
 
@@ -75,9 +122,14 @@ function deriveLobbyState(room: RoomSnapshot | null, participantId: string | nul
     canStart: isHost && hasEnoughPlayers,
     disabledReason,
     isDrawer: false,
+    isResult: false,
     viewerRoundRole: null,
     drawerName: null,
-    visibleSecretWord: null
+    visibleSecretWord: null,
+    canSubmitGuess: false,
+    guessHistoryRows: [],
+    scoreRows: [],
+    winnerName: null
   };
 }
 
@@ -93,13 +145,19 @@ class RoomStore {
     canStart: false,
     disabledReason: null,
     isDrawer: false,
+    isResult: false,
     viewerRoundRole: null,
     drawerName: null,
-    visibleSecretWord: null
+    visibleSecretWord: null,
+    canSubmitGuess: false,
+    guessHistoryRows: [],
+    scoreRows: [],
+    winnerName: null
   };
 
   private listeners = new Set<Listener>();
   private pollingIntervalId: number | null = null;
+  private pollingMode: "lobby" | "game" | null = null;
 
   constructor() {
     void this.restoreSession();
@@ -121,7 +179,7 @@ class RoomStore {
     };
     this.state = {
       ...mergedState,
-      ...deriveLobbyState(mergedState.room, mergedState.participantId)
+      ...deriveRoomState(mergedState.room, mergedState.participantId)
     };
     this.listeners.forEach((listener) => listener());
   }
@@ -158,7 +216,7 @@ class RoomStore {
   }
 
   clearSession() {
-    this.stopLobbyPolling();
+    this.stopPolling();
     sessionStorage.removeItem(ROOM_SESSION_STORAGE_KEY);
     this.setState({
       room: null,
@@ -222,7 +280,7 @@ class RoomStore {
   }
 
   setRoomSession(response: RoomSessionResponse) {
-    this.stopLobbyPolling();
+    this.stopPolling();
     this.persistSession({
       participantId: response.participantId,
       roomCode: response.room.code
@@ -235,8 +293,12 @@ class RoomStore {
   }
 
   setRoomSnapshot(room: RoomSnapshot) {
-    if (room.status !== "lobby") {
-      this.stopLobbyPolling();
+    if (this.pollingMode === "lobby" && room.status !== "lobby") {
+      this.stopPolling();
+    }
+
+    if (this.pollingMode === "game" && !isActiveGameStatus(room.status)) {
+      this.stopPolling();
     }
 
     if (this.state.participantId) {
@@ -314,11 +376,24 @@ class RoomStore {
     return response.room;
   }
 
-  startLobbyPolling() {
-    if (this.pollingIntervalId !== null || !this.state.room || this.state.room.status !== "lobby") {
+  async submitGuess(guessText: string) {
+    if (!this.state.room || !this.state.participantId) {
+      throw new Error("Unable to submit guess");
+    }
+
+    const response = await this.withLoading(() =>
+      api.submitGuess(this.state.room!.code, this.state.participantId!, guessText)
+    );
+    this.setRoomSnapshot(response.room);
+    return response.room;
+  }
+
+  private startPolling(validStatuses: RoomStatus[], mode: "lobby" | "game") {
+    if (this.pollingIntervalId !== null || !this.state.room || !validStatuses.includes(this.state.room.status)) {
       return;
     }
 
+    this.pollingMode = mode;
     this.pollingIntervalId = window.setInterval(() => {
       if (document.visibilityState !== "visible") {
         return;
@@ -331,15 +406,33 @@ class RoomStore {
     }, 2000);
   }
 
-  stopLobbyPolling() {
+  startLobbyPolling() {
+    this.startPolling(["lobby"], "lobby");
+  }
+
+  startGamePolling() {
+    this.startPolling(["playing", "result"], "game");
+  }
+
+  private stopPolling() {
     if (this.pollingIntervalId !== null) {
       window.clearInterval(this.pollingIntervalId);
       this.pollingIntervalId = null;
     }
 
+    this.pollingMode = null;
+
     if (this.state.isPolling) {
       this.setState({ isPolling: false });
     }
+  }
+
+  stopLobbyPolling() {
+    this.stopPolling();
+  }
+
+  stopGamePolling() {
+    this.stopPolling();
   }
 }
 
