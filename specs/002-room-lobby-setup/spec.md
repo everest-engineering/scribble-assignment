@@ -36,6 +36,14 @@ Stay strictly within these features. Do not include drawer assignment, secret wo
 
 Out of scope (do not include in this spec): WebSockets, persistent storage, authentication, multiple rounds, timers, drawer rotation."
 
+## Clarifications
+
+### Session 2026-05-19
+
+- Q: What exact room-code format should validation enforce? → A: Exactly 4 uppercase characters using the existing easy-to-read character set.
+- Q: How should the lobby present start restrictions? → A: Show the Start Game control, disable it when the viewer is not the host or when fewer than two players are present, and show a clear reason.
+- Q: Are duplicate player names allowed in the same room? → A: Yes, duplicate trimmed non-empty player names are allowed.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Create and Join a Lobby (Priority: P1)
@@ -147,8 +155,10 @@ than two players.
 - A player enters a name made only of spaces on either entry flow.
 - A player enters a valid name with accidental outer spaces; the stored display name
   must not keep those spaces.
+- Two players in the same room choose the same trimmed non-empty display name.
 - A player submits a blank room code.
-- A player submits a room code with the wrong length or unsupported characters.
+- A player submits a room code with the wrong length or characters outside the
+  supported 4-character uppercase easy-to-read set.
 - A player submits a room code that looks valid but does not match any active room.
 - Two players create different rooms near the same time; each room must keep its own
   participants and subsequent updates.
@@ -158,6 +168,9 @@ than two players.
 - A non-host opens the lobby at the same time the host has start permission; start
   controls and messages must still reflect the correct role.
 - The host reaches the lobby with only one player present and attempts to start.
+- The lobby shows the Start Game control while it is disabled; the reason for the
+  disabled state must stay clear for both non-host players and the host waiting for
+  a second player.
 
 ## Constitution Alignment *(mandatory)*
 
@@ -187,26 +200,32 @@ than two players.
 - **FR-004 (G1)**: The system MUST reject empty or whitespace-only player names on
   both the create-room and join-room flows with clear feedback before the player
   enters a lobby.
-- **FR-005 (R2)**: The system MUST reject blank room codes with clear feedback.
-- **FR-006 (R2)**: The system MUST reject room codes that do not match the supported
-  room-code format with clear feedback.
-- **FR-007 (R2)**: The system MUST reject room codes that pass format checks but do
+- **FR-005 (G1)**: The system MUST allow duplicate player names within the same room
+  as long as each submitted name is non-empty after trimming.
+- **FR-006 (R2)**: The system MUST reject blank room codes with clear feedback.
+- **FR-007 (R2)**: The system MUST accept room codes only when they are exactly
+  4 uppercase characters from the supported easy-to-read room-code set, and MUST
+  reject all other formats with clear feedback.
+- **FR-008 (R2)**: The system MUST reject room codes that pass format checks but do
   not match an active room with clear feedback that the room was not found.
-- **FR-008 (R2)**: The system MUST allow a player with a valid trimmed name and a
+- **FR-009 (R2)**: The system MUST allow a player with a valid trimmed name and a
   valid existing room code to join that room successfully.
-- **FR-009 (R3)**: The system MUST keep each room's participants, lobby updates, and
+- **FR-010 (R3)**: The system MUST keep each room's participants, lobby updates, and
   start permissions isolated to that room only.
-- **FR-010 (R4)**: The lobby player list MUST refresh automatically while a player
+- **FR-011 (R4)**: The lobby player list MUST refresh automatically while a player
   remains in the lobby so that newly joined players appear within about two seconds.
-- **FR-011 (R4)**: The lobby MUST continue showing the most recent valid player list
+- **FR-012 (R4)**: The lobby MUST continue showing the most recent valid player list
   if a refresh attempt fails, while also providing clear refresh feedback.
-- **FR-012 (R5)**: The system MUST allow only the host to start the game from the
+- **FR-013 (R5)**: The system MUST allow only the host to start the game from the
   lobby.
-- **FR-013 (R5)**: The system MUST prevent the host from starting the game until at
+- **FR-014 (R5)**: The system MUST prevent the host from starting the game until at
   least two players are present in the room.
-- **FR-014 (R5)**: The system MUST reject or hide start attempts from non-host
+- **FR-015 (R5)**: The system MUST reject or hide start attempts from non-host
   players with clear feedback.
-- **FR-015 (R5)**: When the host starts the game successfully, the room MUST leave
+- **FR-016 (R5)**: The lobby MUST show the Start Game control to players in the
+  room, disable it whenever the viewer is not the host or the room has fewer than
+  two players, and show a clear reason for the disabled state.
+- **FR-017 (R5)**: When the host starts the game successfully, the room MUST leave
   the lobby state for all players in that room.
 
 ### Key Entities *(include if feature involves data)*
@@ -214,9 +233,11 @@ than two players.
 - **Room**: A joinable multiplayer session identified by a room code, with a host,
   a current phase, and a participant roster that stays isolated from other rooms.
 - **Participant**: A player identified within a room by a stored display name,
-  join order or join time, and host or non-host role.
+  join order or join time, host or non-host role, and room-scoped identity that
+  does not depend on the display name being unique.
 - **Lobby View**: The room-specific snapshot shown to a player while waiting in the
-  lobby, including participant list, start eligibility, and user-facing messages.
+  lobby, including participant list, start eligibility, disabled-start reasons, and
+  user-facing messages.
 
 ## Success Criteria *(mandatory)*
 
