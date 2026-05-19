@@ -83,7 +83,7 @@ game only when 2+ players are present.
 
 1. **Given** two players are in the same room lobby, **When** the second
    player joins, **Then** both players see the updated participant list with
-   both names within a few seconds.
+   both names within 3 seconds.
 2. **Given** only one player is in the room, **When** they attempt to start
    the game, **Then** they see a message that at least 2 players are needed.
 3. **Given** at least 2 players are in the room, **When** the host clicks
@@ -97,8 +97,8 @@ game only when 2+ players are present.
 
 - What happens when a player tries to join a room that has already started a
   game?
-- How does the system handle a player entering a room code with extra spaces
-  or different casing?
+- Room codes are trimmed of leading/trailing whitespace and matched
+  case-insensitively before lookup. Codes with internal spaces are invalid.
 - If the host (room creator) disconnects or closes their browser before anyone
   joins, the room becomes unstartable. Remaining players cannot assume host
   role.
@@ -111,33 +111,39 @@ game only when 2+ players are present.
 - **FR-001**: System MUST generate a unique room code when a player creates a
   room. Codes MUST not conflict with any active room.
 - **FR-002**: System MUST designate the room creator as the host.
-- **FR-003**: System MUST reject empty room codes with a clear message
-  indicating a code is required.
+- **FR-003**: System MUST reject empty room codes with an inline error
+  message stating "Room code is required".
 - **FR-004**: System MUST reject invalid room codes (codes that do not match
-  any active room) with a clear error message.
+  any active room) with an inline error message stating "Room not found".
 - **FR-005**: System MUST isolate rooms so that players in one room have no
   visibility into another room's participants, state, or activity.
 - **FR-006**: System MUST allow a player to join an active room by providing
-  a valid room code and a non-empty player name.
+  a valid room code and a player name meeting the constraints in FR-011.
 - **FR-007**: System MUST display the current participant list to all players
   in the lobby.
-- **FR-008**: System MUST automatically refresh the lobby state so that new
-  participants appear without manual page reload.
+- **FR-008**: System MUST automatically refresh the lobby state at
+  approximately 2-second intervals while the player is on the lobby screen.
+  Refresh MUST stop when the game starts or the room is destroyed. Network
+  errors during refresh MUST NOT crash the lobby — the last known state
+  remains visible and a non-intrusive indicator MAY indicate connectivity
+  issues.
 - **FR-009**: System MUST only allow the host to start the game.
 - **FR-010**: System MUST reject game start attempts when fewer than 2
-  players are in the room and display a clear message.
+  players are in the room and display the message "At least 2 players are needed to start".
 - **FR-011**: System MUST handle player names by trimming whitespace, limiting
   to 1-16 alphanumeric characters, and rejecting names outside those bounds.
 - **FR-012**: System MUST enforce a maximum of 8 participants per room and a
   maximum of 100 concurrent rooms.
 - **FR-013**: System MUST remove rooms when all participants have left. No
   automatic timeout or cleanup for inactive rooms with remaining players.
+- **FR-014**: System MUST match room codes case-insensitively and trim
+  leading/trailing whitespace before lookup.
 
 ### Key Entities *(include if feature involves data)*
 
 - **Room**: Represents a game session. Has a unique code, current status
-  (lobby/active/completed), host participant reference, creation timestamp,
-  and a list of participants.
+  (lobby, active), host participant ID, creation timestamp, and a list of
+  participants.
 - **Participant**: A player in a room. Has a unique identifier, display name,
   and joined-at timestamp.
 
@@ -152,7 +158,7 @@ game only when 2+ players are present.
 - **SC-003**: After a player joins a room, all other players in that room see
   the updated participant list within 3 seconds.
 - **SC-004**: The host can start the game when 2+ players are present;
-  attempts with fewer than 2 players show a clear message.
+  attempts with fewer than 2 players show "At least 2 players are needed to start".
 - **SC-005**: Non-host players cannot start the game — any attempt is
   rejected with an appropriate message.
 - **SC-006**: Two separate rooms operate independently — players in one room

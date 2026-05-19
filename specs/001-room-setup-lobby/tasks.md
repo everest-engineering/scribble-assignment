@@ -13,6 +13,22 @@ description: "Task list for Room Setup and Lobby feature"
 
 **Organization**: Tasks are grouped by user story to enable independent implementation and testing of each story.
 
+## Code Audit — Pre-Existing Scaffold State
+
+The following already exist in the starter scaffold and do NOT need tasks:
+
+| Feature | File | Status |
+|---------|------|--------|
+| Room code generation (4-char, unique, collision-safe) | `backend/src/services/roomStore.ts` | ✅ Exists (`generateUniqueCode`) |
+| Room isolation (Map-based, no cross-room visibility) | `backend/src/services/roomStore.ts` | ✅ Inherent |
+| Case-insensitive code matching on join/get routes | `backend/src/api/rooms.ts` | ✅ Exists (`code.toUpperCase()`) |
+| Basic create/join/fetch room endpoints | `backend/src/api/rooms.ts` | ✅ Scaffold |
+| Frontend store with createRoom/joinRoom/fetchRoom | `frontend/src/state/roomStore.ts` | ✅ Scaffold |
+| Lobby page with participant list display | `frontend/src/pages/LobbyPage.tsx` | ✅ Skeleton |
+| Create/Join room page forms | `frontend/src/pages/CreateRoomPage.tsx`, `JoinRoomPage.tsx` | ✅ Skeleton |
+
+All tasks below are fully PENDING — none are pre-implemented.
+
 ## Format: `[ID] [P?] [Story] Description`
 
 - **[P]**: Can run in parallel (different files, no dependencies)
@@ -116,8 +132,16 @@ distinct error messages.
       code required, name 1-16 alphanumeric; display server error messages
       from API responses
 - [ ] T013 [US2] Handle empty-code error on join route in
-      `backend/src/api/rooms.ts` — before calling service, validate that
-      code param is non-empty and return 400 with "Room code is required"
+      `backend/src/api/rooms.ts` — validate code param is non-empty and
+      return 400 with "Room code is required". Note: `code.toUpperCase()`
+      already exists for case-insensitivity; add `.trim()` before lookup
+
+- [ ] T014 [US2] Add whitespace trimming to code lookup in
+      `backend/src/api/rooms.ts` — apply `.trim()` to code param before
+      `.toUpperCase()` on both join and fetch routes (FR-014)
+- [ ] T015 [US2] Update `roomCodeParamsSchema` in
+      `backend/src/api/schemas.ts` — apply `z.string().trim().min(1)` to
+      reject empty codes at the schema level
 
 **Checkpoint**: At this point, User Stories 1 AND 2 should both work
 independently. Room creation and joining with proper validation are complete.
@@ -136,36 +160,37 @@ button. Starting with 1 player is rejected. Room disappears when all leave.
 
 ### Implementation for User Story 3
 
-- [ ] T014 [US3] Implement `startGame` in
+- [ ] T016 [US3] Implement `startGame` in
       `backend/src/services/roomStore.ts` — validate participant is host
       (match `hostId`), validate 2+ participants exist, transition status to
       "active", save and return snapshot
-- [ ] T015 [US3] Add start-game endpoint in
+- [ ] T017 [US3] Add start-game endpoint in
       `backend/src/api/rooms.ts` — `POST /rooms/:code/start` with
       `startGameSchema`, call `startGame`, return updated room snapshot
-- [ ] T016 [US3] Add `startGame` method to frontend API client in
+- [ ] T018 [US3] Add `startGame` method to frontend API client in
       `frontend/src/services/api.ts` — `POST /rooms/:code/start` with
       `participantId` in body, return `{ room: RoomSnapshot }`
-- [ ] T017 [US3] Add auto-polling to `RoomStore` in
+- [ ] T019 [US3] Add auto-polling to `RoomStore` in
       `frontend/src/state/roomStore.ts` — add `startPolling()` /
       `stopPolling()` methods using `setInterval` at ~2s; call
       `fetchRoom()` on each tick; start polling on `setRoomSession` and
       stop on cleanup
-- [ ] T018 [US3] Update `LobbyPage.tsx` in
+- [ ] T020 [US3] Update `LobbyPage.tsx` in
       `frontend/src/pages/LobbyPage.tsx` — integrate polling lifecycle
       (start on mount, stop on unmount); show "Start Game" button only when
       current participant is host; disable button and show message when
       fewer than 2 players; call `startGame` on click
-- [ ] T019 [US3] Handle game-start navigation in `LobbyPage.tsx` in
+- [ ] T021 [US3] Handle game-start navigation in `LobbyPage.tsx` in
       `frontend/src/pages/LobbyPage.tsx` — after successful start, navigate
       to `/game`; show error messages for failures (non-host attempt,
       insufficient players)
-- [ ] T020 [US3] Implement room cleanup in
+- [ ] T022 [US3] Implement room cleanup in
       `backend/src/services/roomStore.ts` — after removing a participant
       from the room, delete from rooms Map if participant list is empty
 
 **Checkpoint**: All user stories should now be independently functional. Room
-setup, joining, lobby polling, host-gated start, and room cleanup are complete.
+setup, joining, lobby polling, host-gated start, room cleanup, and
+case-insensitive code matching are complete.
 
 ---
 
@@ -173,12 +198,12 @@ setup, joining, lobby polling, host-gated start, and room cleanup are complete.
 
 **Purpose**: Improvements that affect multiple user stories.
 
-- [ ] T021 [P] Verify both builds pass — run `npm run build` in `backend/`
+- [ ] T023 [P] Verify both builds pass — run `npm run build` in `backend/`
       and `frontend/`
-- [ ] T022 Run through quickstart.md test scenarios in
+- [ ] T024 Run through quickstart.md test scenarios in
       `specs/001-room-setup-lobby/quickstart.md` — validate all 7 test
       flows pass with two browser tabs
-- [ ] T023 Commit all changes
+- [ ] T025 Commit all changes
 
 ---
 
@@ -214,8 +239,8 @@ setup, joining, lobby polling, host-gated start, and room cleanup are complete.
 
 - T002 and T003 can run in parallel (different files, no dependencies)
 - T004, T005, T006 can run in parallel (different files within same story)
-- T010 can be parallelized within US2 (no inter-dependencies)
-- T014, T015, T016, T020 can run in parallel within US3
+- T010, T014, T015 can run in parallel within US2 (different files, no inter-dependencies)
+- T016, T017, T018, T022 can run in parallel within US3
 
 ---
 
@@ -233,6 +258,11 @@ Task: "T007 Add max-rooms error handling in backend/src/api/rooms.ts"
 # After backend tasks complete:
 Task: "T008 Update CreateRoomPage in frontend/src/pages/CreateRoomPage.tsx"
 Task: "T009 Show host indicator in frontend/src/pages/LobbyPage.tsx"
+
+# User Story 2 parallel batch:
+Task: "T010 Update joinRoom with capacity/active checks in backend/src/services/roomStore.ts"
+Task: "T014 Add whitespace trimming to code lookup in backend/src/api/rooms.ts"
+Task: "T015 Update roomCodeParamsSchema in backend/src/api/schemas.ts"
 ```
 
 ---
