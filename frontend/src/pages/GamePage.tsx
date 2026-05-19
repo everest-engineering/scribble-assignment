@@ -24,6 +24,10 @@ export function GamePage() {
   const viewer = room.participants.find((participant) => participant.id === participantId) ?? null;
   const isDrawer = room.currentRound !== null && participantId !== null && participantId === room.currentRound.drawerId;
   const roundNumber = room.currentRound?.number ?? 1;
+  const currentRound = room.currentRound;
+  const drawerParticipant = currentRound
+    ? room.participants.find((p) => p.id === currentRound.drawerId) ?? null
+    : null;
 
   return (
     <section className="panel game-page">
@@ -60,6 +64,12 @@ export function GamePage() {
                 <dt>Role</dt>
                 <dd>{isDrawer ? <strong>Drawer</strong> : "Guesser"}</dd>
               </div>
+              {drawerParticipant && (
+                <div>
+                  <dt>Current Drawer</dt>
+                  <dd>{drawerParticipant.name} <strong>Drawer</strong></dd>
+                </div>
+              )}
             </dl>
           </Card>
 
