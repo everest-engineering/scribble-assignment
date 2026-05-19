@@ -58,12 +58,12 @@ installed. This phase is intentionally empty.
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete.
 
-- [ ] T001 Update Room model in `backend/src/models/game.ts` — add `hostId:
+- [x] T001 Update Room model in `backend/src/models/game.ts` — add `hostId:
       string` field to `Room`, `RoomSnapshot`, and expand `RoomStatus` to
       `"lobby" | "active"`
-- [ ] T002 [P] Add start-game Zod schema in `backend/src/api/schemas.ts` —
+- [x] T002 [P] Add start-game Zod schema in `backend/src/api/schemas.ts` —
       `startGameSchema` with required `participantId` field (string)
-- [ ] T003 [P] Update RoomSnapshot export type in
+- [x] T003 [P] Update RoomSnapshot export type in
       `frontend/src/services/api.ts` — add `hostId: string` and expand
       `status` to `"lobby" | "active"`
 
@@ -83,15 +83,15 @@ room code and a host indicator in the lobby. Creating a 101st room is rejected.
 
 ### Implementation for User Story 1
 
-- [ ] T004 [US1] Add host tracking and capacity enforcement to `createRoom` in
+- [x] T004 [US1] Add host tracking and capacity enforcement to `createRoom` in
       `backend/src/services/roomStore.ts` — set `hostId` to first
       participant's ID; reject if 100 rooms already exist
-- [ ] T005 [P] [US1] Update `toRoomSnapshot` in
+- [x] T005 [P] [US1] Update `toRoomSnapshot` in
       `backend/src/services/roomStore.ts` — include `hostId` in the returned
       snapshot
-- [ ] T006 [P] [US1] Add player name Zod validation in
+- [x] T006 [P] [US1] Add player name Zod validation in
       `backend/src/api/schemas.ts` — 1-16 alphanumeric chars, trimmed
-- [ ] T007 [US1] Add max-rooms error handling in
+- [x] T007 [US1] Add max-rooms error handling in
       `backend/src/api/rooms.ts` — return 503 with message when room
       creation hits the 100-room limit
 - [ ] T008 [US1] Update `CreateRoomPage.tsx` in
@@ -120,26 +120,26 @@ distinct error messages.
 
 ### Implementation for User Story 2
 
-- [ ] T010 [P] [US2] Update `joinRoom` in
+- [x] T010 [P] [US2] Update `joinRoom` in
       `backend/src/services/roomStore.ts` — add capacity check (max 8
       participants); add room-active check (reject if status is "active");
       return specific error types instead of generic null
-- [ ] T011 [US2] Update join endpoint in
+- [x] T011 [US2] Update join endpoint in
       `backend/src/api/rooms.ts` — map specific join errors to distinct HTTP
       status codes and messages (404 for not found, 403 for full/active)
 - [ ] T012 [US2] Update `JoinRoomPage.tsx` in
       `frontend/src/pages/JoinRoomPage.tsx` — add client-side validation:
       code required, name 1-16 alphanumeric; display server error messages
       from API responses
-- [ ] T013 [US2] Handle empty-code error on join route in
+- [x] T013 [US2] Handle empty-code error on join route in
       `backend/src/api/rooms.ts` — validate code param is non-empty and
       return 400 with "Room code is required". Note: `code.toUpperCase()`
       already exists for case-insensitivity; add `.trim()` before lookup
 
-- [ ] T014 [US2] Add whitespace trimming to code lookup in
+- [x] T014 [US2] Add whitespace trimming to code lookup in
       `backend/src/api/rooms.ts` — apply `.trim()` to code param before
       `.toUpperCase()` on both join and fetch routes (FR-014)
-- [ ] T015 [US2] Update `roomCodeParamsSchema` in
+- [x] T015 [US2] Update `roomCodeParamsSchema` in
       `backend/src/api/schemas.ts` — apply `z.string().trim().min(1)` to
       reject empty codes at the schema level
 
@@ -160,11 +160,11 @@ button. Starting with 1 player is rejected. Room disappears when all leave.
 
 ### Implementation for User Story 3
 
-- [ ] T016 [US3] Implement `startGame` in
+- [x] T016 [US3] Implement `startGame` in
       `backend/src/services/roomStore.ts` — validate participant is host
       (match `hostId`), validate 2+ participants exist, transition status to
       "active", save and return snapshot
-- [ ] T017 [US3] Add start-game endpoint in
+- [x] T017 [US3] Add start-game endpoint in
       `backend/src/api/rooms.ts` — `POST /rooms/:code/start` with
       `startGameSchema`, call `startGame`, return updated room snapshot
 - [ ] T018 [US3] Add `startGame` method to frontend API client in
@@ -184,7 +184,7 @@ button. Starting with 1 player is rejected. Room disappears when all leave.
       `frontend/src/pages/LobbyPage.tsx` — after successful start, navigate
       to `/game`; show error messages for failures (non-host attempt,
       insufficient players)
-- [ ] T022 [US3] Implement room cleanup in
+- [x] T022 [US3] Implement room cleanup in
       `backend/src/services/roomStore.ts` — after removing a participant
       from the room, delete from rooms Map if participant list is empty
 

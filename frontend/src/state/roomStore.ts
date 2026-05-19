@@ -9,6 +9,8 @@ import {
 } from "react";
 import { api, type RoomSessionResponse, type RoomSnapshot } from "../services/api";
 
+const POLL_INTERVAL = 2000;
+
 export interface RoomState {
   room: RoomSnapshot | null;
   participantId: string | null;
@@ -27,6 +29,7 @@ class RoomStore {
   };
 
   private listeners = new Set<Listener>();
+  private pollTimer: ReturnType<typeof setInterval> | null = null;
 
   subscribe = (listener: Listener) => {
     this.listeners.add(listener);
@@ -77,6 +80,20 @@ class RoomStore {
     });
   }
 
+  startPolling() {
+    this.stopPolling();
+    this.pollTimer = setInterval(() => {
+      this.fetchRoom().catch(() => undefined);
+    }, POLL_INTERVAL);
+  }
+
+  stopPolling() {
+    if (this.pollTimer !== null) {
+      clearInterval(this.pollTimer);
+      this.pollTimer = null;
+    }
+  }
+
   async createRoom(playerName: string) {
     const response = await this.withLoading(() => api.createRoom(playerName));
     this.setRoomSession(response);
@@ -87,6 +104,16 @@ class RoomStore {
     const response = await this.withLoading(() => api.joinRoom(code, playerName));
     this.setRoomSession(response);
     return response;
+  }
+
+  async startGame(participantId: string) {
+    if (!this.state.room) {
+      throw new Error("No active room");
+    }
+
+    const response = await this.withLoading(() => api.startGame(this.state.room!.code, participantId));
+    this.setRoomSnapshot(response.room);
+    return response.room;
   }
 
   async fetchRoom() {
