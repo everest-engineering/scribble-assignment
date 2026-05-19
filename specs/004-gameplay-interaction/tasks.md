@@ -17,6 +17,9 @@
 ## Current Starter Coverage
 
 - Phase 2 already provides `drawerId`, `guesserIds`, `secretWord`, viewer-specific room snapshots, room session restore, and the `/game` route shell.
+- `frontend/src/pages/GamePage.tsx` already shows drawer identity, viewer role, secret-word visibility, refresh, and leave-room behavior.
+- `frontend/src/state/roomStore.ts` already contains the 2-second polling pattern, but only for lobby rooms.
+- `backend/src/services/roomStore.test.ts` already exists from Phase 2 and should be extended instead of introducing a brand-new test harness.
 - The Phase 3 gaps are still open: real canvas interaction, clear-canvas action, guess submission endpoint and validation, shared guess history, score tracking, `result` status, and active game polling.
 - `frontend/src/components/GuessForm.tsx`, `frontend/src/components/Scoreboard.tsx`, and `frontend/src/components/ResultPanel.tsx` are present but still placeholder-level.
 
@@ -78,7 +81,7 @@
 
 ### Tests for User Story 2
 
-- [ ] T017 [P] [US2] Add backend unit tests for guess normalization and guesser-only submission guards in `backend/src/services/roomStore.test.ts`
+- [ ] T017 [P] [US2] Extend backend unit tests for guess normalization and guesser-only submission guards in `backend/src/services/roomStore.test.ts`
 - [ ] T018 [US2] Add manual multiplayer validation steps for blank-guess rejection, trimmed storage, and guess-history sync in `specs/004-gameplay-interaction/quickstart.md`
 
 ### Implementation for User Story 2
@@ -87,7 +90,7 @@
 - [ ] T020 [US2] Implement Phase 3 guess submission service flow with trimmed storage and room-scoped history append in `backend/src/services/roomStore.ts`
 - [ ] T021 [US2] Wire `frontend/src/components/GuessForm.tsx` to local validation, disabled states, and actual room-store submission behavior
 - [ ] T022 [US2] Add guess submission and active game polling methods to `frontend/src/state/roomStore.ts`
-- [ ] T023 [US2] Start and stop active game polling from `frontend/src/pages/GamePage.tsx` using the existing 2-second visible-tab pattern
+- [ ] T023 [US2] Adapt the existing 2-second visible-tab polling pattern for active game rooms from `frontend/src/state/roomStore.ts` into `frontend/src/pages/GamePage.tsx`
 - [ ] T024 [US2] Render shared guess history with player names and correct stale-data/error behavior in `frontend/src/components/ResultPanel.tsx`
 - [ ] T025 [US2] Surface guess-submission errors and loading states in `frontend/src/components/GuessForm.tsx` and `frontend/src/pages/GamePage.tsx`
 
@@ -103,7 +106,7 @@
 
 ### Tests for User Story 3
 
-- [ ] T026 [P] [US3] Add backend unit tests for case-insensitive correctness checks, first-correct winner assignment, and `result` transition in `backend/src/services/roomStore.test.ts`
+- [ ] T026 [P] [US3] Extend backend unit tests for case-insensitive correctness checks, first-correct winner assignment, and `result` transition in `backend/src/services/roomStore.test.ts`
 - [ ] T027 [US3] Add manual multiplayer validation steps for winner scoring, `result` transition, refresh persistence, and room isolation in `specs/004-gameplay-interaction/quickstart.md`
 
 ### Implementation for User Story 3
