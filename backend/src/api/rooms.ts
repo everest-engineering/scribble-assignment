@@ -1,6 +1,8 @@
 import { Router } from "express";
 import {
   createRoomSchema,
+  drawStrokesSchema,
+  guessSubmissionSchema,
   HttpError,
   joinRoomSchema,
   roomCodeParamsSchema,
@@ -11,7 +13,9 @@ import {
   createRoom,
   getRoom,
   joinRoom,
+  saveStrokes,
   startGame,
+  submitGuess,
   toRoomSnapshot
 } from "../services/roomStore.js";
 
@@ -108,9 +112,74 @@ export function createRoomsRouter() {
     }
   });
 
-  router.get("/:code", (request, response, next) => {
-    try {
-      const { code } = roomCodeParamsSchema.parse(request.params);
+router.post("/:code/draw", (request, response, next) => {
+  try {
+    const { code } = roomCodeParamsSchema.parse(request.params);
+    const { participantId, strokes } = drawStrokesSchema.parse(request.body);
+    const room = saveStrokes(normalizeCode(code), participantId, strokes);
+
+    if (!room) {
+      const existing = getRoom(normalizeCode(code));
+
+      if (!existing) {
+        throw new HttpError(404, "Room not found");
+      }
+
+      throw new HttpError(403, "Only the drawer can update the canvas");
+    }
+
+    response.json({
+      room: toRoomSnapshot(room, participantId)
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.post("/:code/guess", (request, response, next) => {
+  try {
+    const { code } = roomCodeParamsSchema.parse(request.params);
+    const { participantId, text } = guessSubmissionSchema.parse(request.body);
+    const result = submitGuess(normalizeCode(code), participantId, text);
+
+    if (!result) {
+      const existing = getRoom(normalizeCode(code));
+
+      if (!existing) {
+        throw new HttpError(404, "Room not found");
+      }
+
+      if (existing.currentRound?.drawerId === participantId) {
+        throw new HttpError(403, "Drawer cannot submit guesses");
+      }
+
+      if (existing.currentRound?.correctGuessers.includes(participantId)) {
+        throw new HttpError(403, "You have already guessed the word correctly");
+      }
+
+      throw new HttpError(403, "Cannot submit guess");
+    }
+
+    const guesserName = result.room.participants.find((p) => p.id === participantId)?.name ?? "Unknown";
+
+    response.json({
+      guess: {
+        participantId: result.guess.participantId,
+        guesserName,
+        text: result.guess.text,
+        submittedAt: result.guess.submittedAt,
+        isCorrect: result.guess.isCorrect
+      },
+      room: toRoomSnapshot(result.room, participantId)
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.get("/:code", (request, response, next) => {
+  try {
+    const { code } = roomCodeParamsSchema.parse(request.params);
       const { participantId } = roomViewerQuerySchema.parse(request.query);
       const room = getRoom(normalizeCode(code));
 

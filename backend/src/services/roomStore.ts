@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import type { Participant, Room, RoomSnapshot, Round } from "../models/game.js";
+import type { CanvasStroke, Guess, Participant, Room, RoomSnapshot, Round } from "../models/game.js";
 import { STARTER_ROLES, STARTER_WORDS } from "../seed/starterData.js";
 
 const MAX_ROOMS = 100;
@@ -150,7 +150,11 @@ export function startGame(code: string, participantId: string): Room | null {
     number: 1,
     drawerId: room.hostId,
     secretWord: word,
-    status: "drawing"
+    status: "drawing",
+    strokes: [],
+    guesses: [],
+    scores: {},
+    correctGuessers: []
   };
 
   room.currentRound = round;
@@ -178,6 +182,64 @@ export function removeParticipant(code: string, participantId: string) {
   }
 }
 
+export function saveStrokes(code: string, participantId: string, strokes: CanvasStroke[]): Room | null {
+  const room = rooms.get(code);
+
+  if (!room || !room.currentRound) {
+    return null;
+  }
+
+  if (room.currentRound.drawerId !== participantId) {
+    return null;
+  }
+
+  room.currentRound.strokes = strokes;
+  return saveRoom(room);
+}
+
+export function clearCanvas(code: string, participantId: string): Room | null {
+  return saveStrokes(code, participantId, []);
+}
+
+export function submitGuess(
+  code: string,
+  participantId: string,
+  text: string
+): { guess: Guess; room: Room } | null {
+  const room = rooms.get(code);
+
+  if (!room || !room.currentRound) {
+    return null;
+  }
+
+  if (room.currentRound.drawerId === participantId) {
+    return null;
+  }
+
+  if (room.currentRound.correctGuessers.includes(participantId)) {
+    return null;
+  }
+
+  const isCorrect = text.trim().toLowerCase() === room.currentRound.secretWord.trim().toLowerCase();
+  const guess: Guess = {
+    participantId,
+    text,
+    submittedAt: now(),
+    isCorrect
+  };
+
+  room.currentRound.guesses.push(guess);
+
+  if (isCorrect) {
+    room.currentRound.scores[participantId] = (room.currentRound.scores[participantId] ?? 0) + 100;
+    room.currentRound.correctGuessers.push(participantId);
+  }
+
+  const savedRoom = saveRoom(room);
+  if (!savedRoom) return null;
+  return { guess, room: savedRoom };
+}
+
 export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSnapshot {
   const isDrawer = room.currentRound !== null && viewerParticipantId !== undefined && viewerParticipantId === room.currentRound.drawerId;
 
@@ -186,14 +248,24 @@ export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSn
     status: room.status,
     hostId: room.hostId,
     participants: room.participants.map((participant) => ({ ...participant })),
-    currentRound: room.currentRound
-      ? {
-          number: room.currentRound.number,
-          drawerId: room.currentRound.drawerId,
-          secretWord: isDrawer ? room.currentRound.secretWord : undefined,
-          status: room.currentRound.status
-        }
-      : null,
+      currentRound: room.currentRound
+        ? {
+            number: room.currentRound.number,
+            drawerId: room.currentRound.drawerId,
+            secretWord: isDrawer ? room.currentRound.secretWord : undefined,
+            status: room.currentRound.status,
+            strokes: room.currentRound.strokes,
+            guesses: room.currentRound.guesses.map((g) => ({
+              participantId: g.participantId,
+              guesserName: room.participants.find((p) => p.id === g.participantId)?.name ?? "Unknown",
+              text: g.text,
+              submittedAt: g.submittedAt,
+              isCorrect: g.isCorrect
+            })),
+            scores: room.currentRound.scores,
+            correctGuessers: room.currentRound.correctGuessers
+          }
+        : null,
     availableWords: listWords(),
     roles: [...STARTER_ROLES]
   };

@@ -7,7 +7,7 @@ import {
   useSyncExternalStore,
   type PropsWithChildren
 } from "react";
-import { api, type RoomSessionResponse, type RoomSnapshot } from "../services/api";
+import { api, type CanvasStroke, type GuessSnapshot, type RoomSessionResponse, type RoomSnapshot } from "../services/api";
 
 const POLL_INTERVAL = 2000;
 
@@ -114,6 +114,42 @@ class RoomStore {
     const response = await this.withLoading(() => api.startGame(this.state.room!.code, participantId));
     this.setRoomSnapshot(response.room);
     return response.room;
+  }
+
+  async drawStroke(strokes: CanvasStroke[]) {
+    if (!this.state.room || !this.state.participantId) {
+      throw new Error("No active room");
+    }
+
+    const response = await this.withLoading(() =>
+      api.draw(this.state.room!.code, this.state.participantId!, strokes)
+    );
+    this.setRoomSnapshot(response.room);
+    return response.room;
+  }
+
+  async clearCanvas() {
+    if (!this.state.room || !this.state.participantId) {
+      throw new Error("No active room");
+    }
+
+    const response = await this.withLoading(() =>
+      api.clearCanvas(this.state.room!.code, this.state.participantId!)
+    );
+    this.setRoomSnapshot(response.room);
+    return response.room;
+  }
+
+  async submitGuess(text: string) {
+    if (!this.state.room || !this.state.participantId) {
+      throw new Error("No active room");
+    }
+
+    const response = await this.withLoading(() =>
+      api.submitGuess(this.state.room!.code, this.state.participantId!, text)
+    );
+    this.setRoomSnapshot(response.room);
+    return response.guess;
   }
 
   async fetchRoom() {
