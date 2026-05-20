@@ -13,6 +13,9 @@ interface ResultViewProps {
 
 export function ResultView({ room, participantId, isHost, onRestart }: ResultViewProps) {
   const secretWord = room.currentRound?.secretWord ?? "???";
+  const guesserCount = room.participants.length - 1;
+  const allCorrect = guesserCount > 0 && (room.currentRound?.correctGuessers.length ?? 0) >= guesserCount;
+  const roundEndLabel = allCorrect ? "Everyone Guessed It!" : "Time's Up!";
   const finalScores: Record<string, number> = {};
   for (const [pid, score] of Object.entries(room.cumulativeScores)) {
     finalScores[pid] = score;
@@ -27,8 +30,8 @@ export function ResultView({ room, participantId, isHost, onRestart }: ResultVie
     <section className="panel game-page">
       <div className="game-page__header">
         <div className="game-page__header-left">
-          <span className="section-kicker">Round {room.currentRound?.number ?? 1} — Complete</span>
-          <h1 className="game-page__title">Round Over!</h1>
+          <span className="section-kicker">Round {room.currentRound?.number ?? 1} — {allCorrect ? "All Correct" : "Timed Out"}</span>
+          <h1 className="game-page__title">{roundEndLabel}</h1>
         </div>
         <div className="room-code-badge">{room.code}</div>
       </div>
