@@ -1,10 +1,11 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card } from "../components/Card";
 import { Canvas } from "../components/Canvas";
 import type { CanvasStroke } from "../services/api";
 import { GuessForm } from "../components/GuessForm";
 import { ResultPanel } from "../components/ResultPanel";
+import { ResultView } from "../components/ResultView";
 import { RoomCodeBadge } from "../components/RoomCodeBadge";
 import { Scoreboard } from "../components/Scoreboard";
 import { useRoomState, useRoomStore } from "../state/roomStore";
@@ -22,12 +23,36 @@ export function GamePage() {
     }
 
     if (room) {
+      if (room.status === "lobby") {
+        navigate("/lobby", { replace: true });
+        return;
+      }
       store.startPolling();
     }
   }, [navigate, room, store, isLoading]);
 
+  const handleRestart = useCallback(async () => {
+    try {
+      await store.restartGame();
+    } catch {
+      // Error will be set in store
+    }
+  }, [store]);
+
   if (!room) {
     return null;
+  }
+
+  if (room.status === "result") {
+    const isHost = participantId !== null && participantId === room.hostId;
+    return (
+      <ResultView
+        room={room}
+        participantId={participantId}
+        isHost={isHost}
+        onRestart={handleRestart}
+      />
+    );
   }
 
   const viewer = room.participants.find((participant) => participant.id === participantId) ?? null;

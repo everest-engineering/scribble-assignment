@@ -35,6 +35,10 @@ export const drawStrokesSchema = z.object({
   )
 });
 
+export const restartGameSchema = z.object({
+  participantId: z.string()
+});
+
 export const guessSubmissionSchema = z.object({
   participantId: z.string().min(1, "Participant ID required"),
   text: z.string().trim().min(1, "Guess cannot be empty").max(50, "Guess must be 50 characters or fewer")

@@ -5,6 +5,7 @@ import {
   guessSubmissionSchema,
   HttpError,
   joinRoomSchema,
+  restartGameSchema,
   roomCodeParamsSchema,
   roomViewerQuerySchema,
   startGameSchema
@@ -13,6 +14,7 @@ import {
   createRoom,
   getRoom,
   joinRoom,
+  restartGame,
   saveStrokes,
   startGame,
   submitGuess,
@@ -176,6 +178,38 @@ router.post("/:code/guess", (request, response, next) => {
     next(error);
   }
 });
+
+router.post("/:code/restart", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId } = restartGameSchema.parse(request.body);
+      const room = restartGame(normalizeCode(code), participantId);
+
+      if (!room) {
+        const existing = getRoom(normalizeCode(code));
+
+        if (!existing) {
+          throw new HttpError(404, "Room not found");
+        }
+
+        if (existing.hostId !== participantId) {
+          throw new HttpError(403, "Only the host can restart the game");
+        }
+
+        if (existing.status !== "result") {
+          throw new HttpError(403, "Game is not in result state");
+        }
+
+        throw new HttpError(500, "Failed to restart game");
+      }
+
+      response.json({
+        room: toRoomSnapshot(room, participantId)
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
 
 router.get("/:code", (request, response, next) => {
   try {

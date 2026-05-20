@@ -69,6 +69,8 @@ export function createRoom(playerName?: string) {
     hostId: participant.id,
     participants: [participant],
     currentRound: null,
+    timerDuration: 300,
+    cumulativeScores: {},
     createdAt: now(),
     updatedAt: now()
   };
@@ -107,13 +109,50 @@ export function joinRoom(code: string, playerName?: string) {
   };
 }
 
+function checkRoundEnd(room: Room): boolean {
+  if (!room.currentRound) return false;
+
+  const guesserCount = room.participants.length - 1;
+  if (guesserCount <= 0) return false;
+
+  const round = room.currentRound;
+
+  if (round.correctGuessers.length >= guesserCount) {
+    return true;
+  }
+
+  if (room.timerDuration > 0) {
+    const elapsed = Date.now() - round.timerStartedAt;
+    if (elapsed >= room.timerDuration * 1000) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+function transitionToResultIfNeeded(room: Room): void {
+  if (room.status !== "active") return;
+  if (!room.currentRound) return;
+  if (!checkRoundEnd(room)) return;
+
+  room.status = "result";
+}
+
 export function getRoom(code: string) {
   const room = rooms.get(code);
-  return room ? cloneRoom(room) : null;
+  if (!room) return null;
+
+  transitionToResultIfNeeded(room);
+
+  return cloneRoom(room);
 }
 
 export function saveRoom(room: Room) {
   room.updatedAt = now();
+
+  transitionToResultIfNeeded(room);
+
   rooms.set(room.code, cloneRoom(room));
   return getRoom(room.code);
 }
@@ -154,11 +193,33 @@ export function startGame(code: string, participantId: string): Room | null {
     strokes: [],
     guesses: [],
     scores: {},
-    correctGuessers: []
+    correctGuessers: [],
+    timerStartedAt: Date.now()
   };
 
   room.currentRound = round;
   room.status = "active";
+  room.updatedAt = now();
+  rooms.set(room.code, room);
+
+  return cloneRoom(room);
+}
+
+export function restartGame(code: string, participantId: string): Room | null {
+  const room = rooms.get(code);
+
+  if (!room) return null;
+  if (room.hostId !== participantId) return null;
+  if (room.status !== "result") return null;
+
+  if (room.currentRound) {
+    for (const [pid, score] of Object.entries(room.currentRound.scores)) {
+      room.cumulativeScores[pid] = (room.cumulativeScores[pid] ?? 0) + score;
+    }
+  }
+
+  room.currentRound = null;
+  room.status = "lobby";
   room.updatedAt = now();
   rooms.set(room.code, room);
 
@@ -252,7 +313,7 @@ export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSn
       ? {
           number: room.currentRound.number,
           drawerId: room.currentRound.drawerId,
-          secretWord: isDrawer ? room.currentRound.secretWord : undefined,
+          secretWord: isDrawer || room.status === "result" ? room.currentRound.secretWord : undefined,
           status: room.currentRound.status,
           strokes: room.currentRound.strokes,
           guesses: room.currentRound.guesses.map((g) => ({
@@ -267,6 +328,7 @@ export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSn
         }
       : null,
     availableWords: listWords(),
-    roles: [...STARTER_ROLES]
+    roles: [...STARTER_ROLES],
+    cumulativeScores: room.cumulativeScores
   };
 }
