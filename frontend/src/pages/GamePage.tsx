@@ -49,7 +49,7 @@ export function GamePage() {
 
   const isCorrectGuesser =
     participantId !== null &&
-    room.currentRound?.correctGuessers.includes(participantId);
+    !!room.currentRound?.correctGuessers?.includes(participantId);
 
   async function handleGuessSubmit(text: string) {
     setGuessError(null);
