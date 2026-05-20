@@ -8,6 +8,7 @@ import { ResultPanel } from "../components/ResultPanel";
 import { ResultView } from "../components/ResultView";
 import { RoomCodeBadge } from "../components/RoomCodeBadge";
 import { Scoreboard } from "../components/Scoreboard";
+import { TimerDisplay } from "../components/TimerDisplay";
 import { useRoomState, useRoomStore } from "../state/roomStore";
 
 export function GamePage() {
@@ -133,6 +134,17 @@ export function GamePage() {
                 <div>
                   <dt>Current Drawer</dt>
                   <dd>{drawerParticipant.name} <strong>Drawer</strong></dd>
+                </div>
+              )}
+              {room.timerDuration > 0 && room.currentRound?.timerStartedAt && (
+                <div>
+                  <dt>Time Left</dt>
+                  <dd>
+                    <TimerDisplay
+                      timerDuration={room.timerDuration}
+                      timerStartedAt={room.currentRound.timerStartedAt}
+                    />
+                  </dd>
                 </div>
               )}
             </dl>

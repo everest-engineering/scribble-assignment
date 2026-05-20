@@ -324,9 +324,11 @@ export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSn
             isCorrect: g.isCorrect
           })),
           scores: room.currentRound.scores,
-          correctGuessers: room.currentRound.correctGuessers
+          correctGuessers: room.currentRound.correctGuessers,
+          timerStartedAt: room.currentRound.timerStartedAt
         }
       : null,
+    timerDuration: room.timerDuration,
     availableWords: listWords(),
     roles: [...STARTER_ROLES],
     cumulativeScores: room.cumulativeScores

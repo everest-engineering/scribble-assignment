@@ -29,6 +29,7 @@ export interface RoundSnapshot {
   guesses: GuessSnapshot[];
   scores: Record<string, number>;
   correctGuessers: string[];
+  timerStartedAt?: number;
 }
 
 export interface RoomSnapshot {
@@ -37,6 +38,7 @@ export interface RoomSnapshot {
   hostId: string;
   participants: Participant[];
   currentRound: RoundSnapshot | null;
+  timerDuration: number;
   availableWords: string[];
   roles: ParticipantRole[];
   cumulativeScores: Record<string, number>;
