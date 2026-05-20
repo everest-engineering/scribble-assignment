@@ -20,6 +20,7 @@ Host restarts the game, returning all players to the lobby.
     "hostId": "string",
     "participants": [ { "id": "string", "name": "string", "joinedAt": "string (ISO)" } ],
     "currentRound": null,
+    "cumulativeScores": { "playerId": "number" },
     "availableWords": ["string"],
     "roles": ["string"]
   }
@@ -44,5 +45,6 @@ The `status` field in `RoomSnapshot` now has three values:
 In `"result"` status:
 - `currentRound.secretWord` is visible to ALL viewers (not just drawer)
 - `currentRound.strokes`, `guesses`, `scores`, `correctGuessers` are all populated
+- `cumulativeScores` shows total scores across all completed rounds
 - Frontend shows `ResultView` instead of game UI
 - Restart button shown only if viewer is host

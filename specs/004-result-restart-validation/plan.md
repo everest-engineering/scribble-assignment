@@ -63,9 +63,9 @@ specs/004-result-restart-validation/
 backend/
 ├── src/
 │   ├── models/
-│   │   └── game.ts              # Add RoomStatus "result", add timerStartedAt/timerDuration to Round
+│   │   └── game.ts              # Add RoomStatus "result", add timerStartedAt to Round, timerDuration + cumulativeScores to Room
 │   ├── services/
-│   │   └── roomStore.ts         # Add endRound(), restartGame(), timer expiry check
+│   │   └── roomStore.ts         # Add checkRoundEnd(), restartGame(), timer expiry check in getRoom + submitGuess
 │   └── api/
 │       └── rooms.ts             # Add POST /:code/restart, GET /:code/room returns result state
 
@@ -77,7 +77,7 @@ frontend/
 │   ├── components/
 │   │   └── ResultView.tsx       # NEW: result display (correct word, scores, history, canvas, restart btn)
 │   └── state/
-│       └── roomStore.ts         # Add restartGame(), endRound detection in polling
+│       └── roomStore.ts         # Add restartGame(), expose cumulativeScores in snapshot
 ```
 
 **Structure Decision**: Web application with existing backend/frontend split. No new directories or services.

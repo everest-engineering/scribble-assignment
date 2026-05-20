@@ -33,10 +33,10 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete.
 
-- [ ] T001 [P] Add `"result"` to `RoomStatus` type union and `timerDuration` field to `Room` in `backend/src/models/game.ts`
-- [ ] T002 [P] Add `timerStartedAt` field to `Round` interface in `backend/src/models/game.ts`
+- [ ] T001 [P] Add `"result"` to `RoomStatus`, add `timerDuration` and `cumulativeScores` fields to `Room` and `RoomSnapshot` in `backend/src/models/game.ts`
+- [ ] T002 [P] Add `timerStartedAt` to `Round` interface in `backend/src/models/game.ts`; initialize it as `Date.now()` in the Round created by `startGame()` in `backend/src/services/roomStore.ts`
 
-**Checkpoint**: Foundation ready — data model extended for result state and timer.
+**Checkpoint**: Foundation ready — data model extended for result state, timer, and cumulative score preservation.
 
 ---
 
@@ -44,15 +44,15 @@
 
 **Goal**: When a round ends (all guessers correct OR timer expires), all players see the correct word, final scores, full guess history, and final canvas.
 
-**Independent Test**: Start a game as host, draw on canvas, submit guesses until all guessers are correct (or wait for timer). Confirm both tabs show: correct word, scores, guess history with correct/incorrect badges, and the final canvas.
+**Independent Test**: Start a game as host, draw on canvas, submit guesses until all guessers are correct. Confirm both tabs show: correct word, scores, guess history with correct/incorrect badges, and the final canvas.
 
 ### Implementation for User Story 1
 
-- [ ] T003 [US1] Implement `checkRoundEnd()` in `backend/src/services/roomStore.ts` — checks both all-guessers-correct and timer-expiry triggers; returns `true` if round should end
-- [ ] T004 [US1] Integrate `checkRoundEnd()` call into `submitGuess()` in `backend/src/services/roomStore.ts` — transition to result state when all guessers guess correctly
-- [ ] T005 [US1] Integrate `checkRoundEnd()` call into `getRoom()` in `backend/src/services/roomStore.ts` — transition to result state when timer expires (runs on every poll)
-- [ ] T006 [US1] Expose `secretWord` to all viewers in `toRoomSnapshot()` when room status is `"result"` in `backend/src/services/roomStore.ts`
-- [ ] T007 [US1] Create `ResultView` component in `frontend/src/components/ResultView.tsx` — displays correct word, final scores, full guess history, final canvas (read-only), and restart button (host only)
+- [ ] T003 [US1] Implement `checkRoundEnd()` in `backend/src/services/roomStore.ts` — checks both all-guessers-correct (correctGuessers.length === non-drawer participants) and timer-expiry (Date.now() - timerStartedAt >= timerDuration * 1000); returns `true` if round should end
+- [ ] T004 [US1] Call `checkRoundEnd()` after each guess in `submitGuess()` — catches all-guessers-correct trigger; also call timer expiry check in `saveStrokes()` so timer expiry is caught even if drawer is actively drawing
+- [ ] T005 [US1] Call `checkRoundEnd()` in `getRoom()` in `backend/src/services/roomStore.ts` — for timer expiry detection on every poll cycle; ensure `cumulativeScores` is populated in returned snapshot
+- [ ] T006 [US1] Expose `secretWord` to all viewers in `toRoomSnapshot()` when room status is `"result"`; include `room.cumulativeScores` in all snapshot responses in `backend/src/services/roomStore.ts`
+- [ ] T007 [US1] Create `ResultView` component in `frontend/src/components/ResultView.tsx` — displays correct word, final scores, full guess history, final canvas (read-only), and restart button (visible only if viewer is host, wired to `store.restartGame()`)
 - [ ] T008 [US1] Update `GamePage` in `frontend/src/pages/GamePage.tsx` — detect `room.status === "result"` and render `ResultView` instead of game UI
 
 **Checkpoint**: US1 complete — both tabs show result state after round ends.
@@ -61,37 +61,34 @@
 
 ## Phase 4: User Story 2 - Host restarts the game (Priority: P1)
 
-**Goal**: Host sees a restart button in the result state. On click, all players return to the lobby with players preserved and round state cleared.
+**Goal**: Host clicks restart button → all players return to lobby with players preserved and round state cleared.
 
-**Independent Test**: After round ends (result state), confirm host sees restart button and non-host does not. Click restart — both tabs should show lobby with same players.
+**Independent Test**: After round ends (result state), confirm host sees restart button and non-host does not. Click restart — both tabs show lobby with same players.
 
 ### Implementation for User Story 2
 
-- [ ] T009 [US2] Implement `restartGame()` in `backend/src/services/roomStore.ts` — host-only, clears `currentRound`, sets status to `"lobby"`, preserves `participants` and cumulative scores
-- [ ] T010 [US2] Add `POST /:code/restart` route in `backend/src/api/rooms.ts` — validate hostId, call `restartGame()`, return updated room snapshot
+- [ ] T009 [US2] Implement `restartGame()` in `backend/src/services/roomStore.ts` — host-only, merges current round scores into `room.cumulativeScores`, sets `currentRound = null`, sets status to `"lobby"`, preserves participants list
+- [ ] T010 [US2] Add `POST /:code/restart` route in `backend/src/api/rooms.ts` — validate hostId via Zod schema, call `restartGame()`, return updated room snapshot (including `cumulativeScores`)
 - [ ] T011 [US2] Add `restartGame()` method to frontend `roomStore` in `frontend/src/state/roomStore.ts` — calls `POST /:code/restart`, updates room state
-- [ ] T012 [US2] Add restart button to `ResultView` in `frontend/src/components/ResultView.tsx` — visible only if viewer is host, calls `store.restartGame()`
-- [ ] T013 [US2] Update `GamePage` in `frontend/src/pages/GamePage.tsx` — detect `room.status === "lobby"` during polling and navigate to `/lobby`
+- [ ] T012 [US2] Update `GamePage` in `frontend/src/pages/GamePage.tsx` — detect `room.status === "lobby"` during polling and navigate to `/lobby`
 
-**Checkpoint**: US2 complete — both tabs return to lobby with players preserved after restart.
+**Checkpoint**: US2 complete — both tabs return to lobby with players and scores preserved after restart.
 
 ---
 
 ## Phase 5: User Story 3 - Round state cleared on restart (Priority: P1)
 
-**Goal**: After restart, lobby shows no round data (no canvas, no guesses, no current round scores, no active drawer). Cumulative scores are preserved.
+**Goal**: After restart, lobby shows no round data. Cumulative scores are preserved.
 
-**Independent Test**: Take note of cumulative scores before round ends. After restart, verify lobby has no round data and cumulative scores match.
+**Independent Test**: Note scores before round ends. After restart, verify lobby has no round data and scores match.
 
-**Note**: Most of this is satisfied by `restartGame()` in T009. This phase adds verification and edge case handling.
+**Note**: Most of this is satisfied by `restartGame()` in T009. This phase adds verification.
 
 ### Implementation for User Story 3
 
-- [ ] T014 [US3] Add `currentRound: null` assertion in `restartGame()` in `backend/src/services/roomStore.ts` — verify round data is fully cleared (strokes, guesses, secretWord, drawerId all gone)
-- [ ] T015 [US3] Verify `toRoomSnapshot()` handles `"lobby"` status correctly — `currentRound` is null, `secretWord` not exposed in `frontend/src/services/api.ts` (or related types)
-- [ ] T016 [US3] Add cumulative scores preservation check in `restartGame()` — merge round scores into room-level cumulative scores in `backend/src/services/roomStore.ts`
+- [ ] T013 [US3] Verify `toRoomSnapshot()` handles `"lobby"` status — `currentRound` is null, no round fields leak; `cumulativeScores` visible in room snapshot and matches pre-restart value
 
-**Checkpoint**: US3 complete — lobby is clean, scores preserved, next game can start fresh.
+**Checkpoint**: US3 complete — lobby clean, scores preserved.
 
 ---
 
@@ -99,11 +96,11 @@
 
 **Purpose**: Verification and edge case hardening.
 
-- [ ] T017 [P] Add Zod schema for `restartSchema` in `backend/src/api/schemas.ts` — validates `participantId` on restart request
-- [ ] T018 Run `npm run build` in `backend/` — verify zero type errors
-- [ ] T019 Run `npm run build` in `frontend/` — verify zero type errors
-- [ ] T020 Run `quickstart.md` validation — walk through each checklist item
-- [ ] T021 Create `manual-test/manual-test-phase4.md` with step-by-step two-tab test scenarios
+- [ ] T014 [P] Add Zod schema for restart request in `backend/src/api/schemas.ts` — validates `participantId` on POST /:code/restart
+- [ ] T015 Run `npm run build` in `backend/` — verify zero type errors
+- [ ] T016 Run `npm run build` in `frontend/` — verify zero type errors
+- [ ] T017 Run `quickstart.md` validation — walk through each checklist item
+- [ ] T018 Create `manual-test/manual-test-phase4.md` with step-by-step two-tab test scenarios
 
 ---
 
@@ -134,12 +131,11 @@
 ### Parallel Opportunities
 
 - T001 and T002 can run in parallel (different model changes)
-- T003 and T006 can run in parallel (backend end-check + frontend component)
+- T003 and T007 can run in parallel (backend end-check + frontend component)
 - T004 and T005 can run in parallel (different integration points for checkRoundEnd)
-- T007 and T008 are sequential (create component, then use it)
 - T009 and T010 are sequential (service, then route)
-- T011 and T012 can run in parallel (roomStore method + UI component)
-- T017-T021 all independent
+- T011 is independent of other US2 tasks
+- T014-T018 all independent
 
 ---
 
@@ -168,7 +164,7 @@ Task: "T005 Integrate checkRoundEnd into getRoom()"
 
 ### Incremental Delivery
 
-1. Foundational models → data model extended
+1. Foundational models → data model extended with timer, cumulative scores, result status
 2. US1: Result state visible on round end → MVP!
 3. US2: Host can restart → full cycle complete
 4. US3: State cleared on restart → validated

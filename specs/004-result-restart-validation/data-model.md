@@ -6,19 +6,21 @@
 |-------|------|--------|
 | `status` | `"lobby" \| "active" \| "result"` | Added `"result"` to existing union |
 | `timerDuration` | `number` | NEW. Seconds (default 300). 0 = no timer. Set at game start. |
+| `cumulativeScores` | `Record<string, number>` | NEW. Preserved across restarts; merged from Round.scores on restart |
 
-## Round (unchanged, but new usage)
+## Round (extended)
 
-| Field | Type | Notes |
-|-------|------|-------|
-| `number` | `number` | Always 1 (no multi-round in v1) |
-| `drawerId` | `string` | |
+| Field | Type | Change |
+|-------|------|--------|
+| `number` | `number` | Unchanged |
+| `drawerId` | `string` | Unchanged |
 | `secretWord` | `string` | Visible to ALL in result state |
-| `status` | `"drawing"` | No new round statuses; endRound clears the round entirely |
-| `strokes` | `CanvasStroke[]` | Visible in result state |
-| `guesses` | `Guess[]` | Visible in result state |
-| `scores` | `Record<string, number>` | Cumulative scores preserved across rounds |
-| `correctGuessers` | `string[]` | Used to detect "all guessers correct" trigger |
+| `status` | `"drawing"` | Unchanged |
+| `strokes` | `CanvasStroke[]` | Unchanged |
+| `guesses` | `Guess[]` | Unchanged |
+| `scores` | `Record<string, number>` | Per-round scores; merged into cumulativeScores on restart |
+| `correctGuessers` | `string[]` | Unchanged |
+| `timerStartedAt` | `number` | NEW. `Date.now()` set when round starts; compared against timerDuration for expiry |
 
 ## Timer
 
@@ -49,3 +51,4 @@ result --[host.restart]--> lobby
 |-------|------|--------|
 | `status` | `"lobby" \| "active" \| "result"` | Added `"result"` |
 | `currentRound.secretWord` | `string` | Always visible in result state (not drawer-only) |
+| `cumulativeScores` | `Record<string, number>` | NEW. Always present; total scores across all completed rounds |
