@@ -18,8 +18,11 @@ export function GamePage() {
   useEffect(() => {
     if (!room) {
       navigate("/", { replace: true });
+      return;
     }
-  }, [navigate, room]);
+
+    store.startPolling();
+  }, [navigate, room, store]);
 
   if (!room) {
     return null;
