@@ -52,9 +52,8 @@ export function listWords() {
   return [...STARTER_WORDS];
 }
 
-export function selectWord(code: string, wordList: readonly string[]): string {
-  const hash = code.split("").reduce((sum, char) => sum + char.charCodeAt(0), 0);
-  return wordList[hash % wordList.length];
+export function selectWord(wordList: readonly string[]): string {
+  return wordList[Math.floor(Math.random() * wordList.length)];
 }
 
 export function createRoom(playerName?: string) {
@@ -184,7 +183,7 @@ export function startGame(code: string, participantId: string): Room | null {
     return null;
   }
 
-  const word = selectWord(room.code, STARTER_WORDS);
+  const word = selectWord(STARTER_WORDS);
   const round: Round = {
     number: 1,
     drawerId: room.hostId,
