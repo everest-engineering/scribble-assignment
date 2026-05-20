@@ -11,18 +11,20 @@ import { useRoomState, useRoomStore } from "../state/roomStore";
 
 export function GamePage() {
   const navigate = useNavigate();
-  const { room, participantId } = useRoomState();
+  const { room, participantId, isLoading } = useRoomState();
   const store = useRoomStore();
   const [guessError, setGuessError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!room) {
+    if (!room && !isLoading) {
       navigate("/", { replace: true });
       return;
     }
 
-    store.startPolling();
-  }, [navigate, room, store]);
+    if (room) {
+      store.startPolling();
+    }
+  }, [navigate, room, store, isLoading]);
 
   if (!room) {
     return null;
@@ -130,7 +132,7 @@ export function GamePage() {
       </div>
 
       <div className="button-row">
-        <button className="button button--secondary" onClick={() => navigate("/lobby")}>
+        <button className="button button--secondary" onClick={() => { store.clearSession(); navigate("/lobby"); }}>
           Exit Game
         </button>
       </div>

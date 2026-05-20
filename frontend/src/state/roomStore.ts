@@ -21,12 +21,18 @@ export interface RoomState {
 type Listener = () => void;
 
 class RoomStore {
-  private state: RoomState = {
-    room: null,
-    participantId: null,
-    error: null,
-    isLoading: false
-  };
+  private state: RoomState = RoomStore.initState();
+
+  private static initState(): RoomState {
+    const savedCode = sessionStorage.getItem("roomCode");
+    const savedPid = sessionStorage.getItem("participantId");
+    return {
+      room: null,
+      participantId: savedPid ?? null,
+      error: null,
+      isLoading: !!(savedCode && savedPid)
+    };
+  }
 
   private listeners = new Set<Listener>();
   private pollTimer: ReturnType<typeof setInterval> | null = null;
@@ -66,6 +72,8 @@ class RoomStore {
   }
 
   setRoomSession(response: RoomSessionResponse) {
+    sessionStorage.setItem("roomCode", response.room.code);
+    sessionStorage.setItem("participantId", response.participantId);
     this.setState({
       participantId: response.participantId,
       room: response.room,
@@ -77,6 +85,42 @@ class RoomStore {
     this.setState({
       room,
       error: null
+    });
+  }
+
+  async restoreSession() {
+    const savedCode = sessionStorage.getItem("roomCode");
+    const savedPid = sessionStorage.getItem("participantId");
+
+    if (!savedCode || !savedPid) {
+      this.setState({ isLoading: false });
+      return;
+    }
+
+    try {
+      const response = await api.fetchRoom(savedCode, savedPid);
+      this.setState({
+        room: response.room,
+        isLoading: false,
+        error: null
+      });
+      this.startPolling();
+    } catch {
+      sessionStorage.removeItem("roomCode");
+      sessionStorage.removeItem("participantId");
+      this.setState({ participantId: null, isLoading: false });
+    }
+  }
+
+  clearSession() {
+    sessionStorage.removeItem("roomCode");
+    sessionStorage.removeItem("participantId");
+    this.stopPolling();
+    this.setState({
+      room: null,
+      participantId: null,
+      error: null,
+      isLoading: false
     });
   }
 
@@ -172,7 +216,9 @@ export function RoomStoreProvider({ children }: PropsWithChildren) {
     storeRef.current = new RoomStore();
   }
 
-  useEffect(() => undefined, []);
+  useEffect(() => {
+    storeRef.current!.restoreSession();
+  }, []);
 
   return createElement(RoomStoreContext.Provider, { value: storeRef.current }, children);
 }
