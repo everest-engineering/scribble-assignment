@@ -36,7 +36,7 @@ Implement the core gameplay loop: drawer draws on a canvas (freehand strokes, cl
 |-----------|------------|
 | **I. TypeScript-First & Type Safety** | ✅ All new entities (CanvasStroke, Guess, Score) typed with interfaces; Zod for guess submission validation; `unknown` used if needed |
 | **II. Spec-Driven Workflow** | ✅ Following prescribed workflow; spec created with 2 clarifications incorporated |
-| **III. Immutability & Error Handling** | ✅ Guess submissions are append-only (no mutation of existing guesses); canvas strokes append-only; error states handled gracefully in UI |
+| **III. Immutability & Error Handling** | ✅ Guess submissions are append-only (no mutation of existing guesses); canvas strokes are saved as full-array replacement; error states handled gracefully in UI |
 | **IV. Incremental Delivery & Validation** | ✅ Scenario 3 (Gameplay) implemented after Scenario 2 (Game Start); two-tab testing; build before handoff |
 | **V. AI-Assisted Development Discipline** | ✅ All AI output human-reviewed before commit; no architectural decisions without approval |
 | **Additional Constraints** | ✅ No WebSockets/DB/auth; no new libraries; existing stack reused; polling-only sync |
@@ -64,9 +64,9 @@ specs/003-gameplay-interaction/
 backend/
 ├── src/
 │   ├── models/
-│   │   └── game.ts              # + CanvasStroke, Guess, GuessResult types; Round gains strokes, guesses
+│   │   └── game.ts              # + CanvasStroke, Guess, GuessSnapshot types; Round gains strokes, guesses
 │   ├── services/
-│   │   └── roomStore.ts         # + saveStroke(), clearCanvas(), submitGuess(), evaluateGuess(), toRoomSnapshot extended
+│   │   └── roomStore.ts         # + saveStrokes(), clearCanvas(), submitGuess(), toRoomSnapshot extended
 │   └── api/
 │       └── rooms.ts             # + POST /:code/draw stroke, POST /:code/guess, clearing (via draw)
 │       └── schemas.ts           # + guess submission schema (trim, max 50, reject empty)
@@ -75,11 +75,11 @@ frontend/
 ├── src/
 │   ├── components/
 │   │   └── Canvas.tsx           # + functional drawing canvas (mouse/touch, clear button)
-│   │   └── GuessInput.tsx       # + guess input field + submit (hidden for drawer, disabled after correct)
-│   │   └── GuessHistory.tsx     # + scrollable guess list with correct-guess highlighting
+ │   │   └── GuessForm.tsx        # + guess input field + submit (hidden for drawer, disabled after correct) — existing file, updated
+ │   │   └── ResultPanel.tsx      # + scrollable guess list with correct-guess highlighting — existing file, updated
 │   │   └── Scoreboard.tsx       # + per-player score display
 │   ├── pages/
-│   │   └── GamePage.tsx         # + integrate Canvas, GuessInput, GuessHistory, Scoreboard
+│   │   └── GamePage.tsx         # + integrate Canvas, GuessForm, ResultPanel, Scoreboard
 │   ├── services/
 │   │   └── api.ts               # + draw, clearCanvas, submitGuess API functions; extended snapshot types
 │   └── state/
