@@ -248,24 +248,24 @@ export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSn
     status: room.status,
     hostId: room.hostId,
     participants: room.participants.map((participant) => ({ ...participant })),
-      currentRound: room.currentRound
-        ? {
-            number: room.currentRound.number,
-            drawerId: room.currentRound.drawerId,
-            secretWord: isDrawer ? room.currentRound.secretWord : undefined,
-            status: room.currentRound.status,
-            strokes: room.currentRound.strokes,
-            guesses: room.currentRound.guesses.map((g) => ({
-              participantId: g.participantId,
-              guesserName: room.participants.find((p) => p.id === g.participantId)?.name ?? "Unknown",
-              text: g.text,
-              submittedAt: g.submittedAt,
-              isCorrect: g.isCorrect
-            })),
-            scores: room.currentRound.scores,
-            correctGuessers: room.currentRound.correctGuessers
-          }
-        : null,
+    currentRound: room.currentRound
+      ? {
+          number: room.currentRound.number,
+          drawerId: room.currentRound.drawerId,
+          secretWord: isDrawer ? room.currentRound.secretWord : undefined,
+          status: room.currentRound.status,
+          strokes: room.currentRound.strokes,
+          guesses: room.currentRound.guesses.map((g) => ({
+            participantId: g.participantId,
+            guesserName: room.participants.find((p) => p.id === g.participantId)?.name ?? "Unknown",
+            text: g.text,
+            submittedAt: g.submittedAt,
+            isCorrect: g.isCorrect
+          })),
+          scores: room.currentRound.scores,
+          correctGuessers: room.currentRound.correctGuessers
+        }
+      : null,
     availableWords: listWords(),
     roles: [...STARTER_ROLES]
   };

@@ -29,6 +29,9 @@ export function ResultPanel({ guesses }: ResultPanelProps) {
             >
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <span style={{ fontWeight: 500, fontSize: "0.875rem" }}>{guess.guesserName}</span>
+                <span style={{ fontSize: "0.75rem", color: "#9ca3af" }}>
+                  {new Date(guess.submittedAt).toLocaleTimeString()}
+                </span>
                 {guess.isCorrect && (
                   <span
                     style={{
