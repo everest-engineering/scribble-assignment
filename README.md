@@ -1,6 +1,6 @@
 # Scribble Starter
 
-This repository is a scaffold for the Scribble lab.
+This repository is a scaffold for the Scribble lab work.
 
 ## Overview
 
