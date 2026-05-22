@@ -101,6 +101,36 @@ jobs:
               });
             }
 
+      - name: Apply PR status label
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        continue-on-error: true
+        with:
+          script: |
+            const fs = require('fs');
+            const report = JSON.parse(fs.readFileSync('precheck-results/ai-precheck-report.json', 'utf8'));
+
+            const labelMap = {
+              blocked: 'precheck: blocked',
+              ready_for_ai_review: 'precheck: ready for review',
+            };
+            const allLabels = Object.values(labelMap);
+            const newLabel = labelMap[report.status] || `precheck: ${report.status}`;
+
+            const { owner, repo } = context.repo;
+            const issue_number = context.issue.number;
+
+            // Remove stale precheck labels
+            const current = await github.rest.issues.listLabelsOnIssue({ owner, repo, issue_number });
+            for (const label of current.data) {
+              if (allLabels.includes(label.name) && label.name !== newLabel) {
+                await github.rest.issues.removeLabel({ owner, repo, issue_number, name: label.name });
+              }
+            }
+
+            // Add the current label
+            await github.rest.issues.addLabels({ owner, repo, issue_number, labels: [newLabel] });
+
       - name: Fail on hard precheck blockers
         if: steps.precheck.outputs.exit_code != '0'
         run: |

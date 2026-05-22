@@ -529,19 +529,28 @@ function markdownTable(rows) {
   return rows.join("\n");
 }
 
+function formatStatus(status) {
+  const mapping = {
+    blocked: "🛑 Blocked: Action Required",
+    ready_for_ai_review: "✅ Ready for AI Review",
+    warning: "⚠️ Warning",
+  };
+  return mapping[status] || status;
+}
+
 function renderArtifactMarkdown(inventory) {
   const rows = [
     "| Item | Status | Details |",
     "|------|--------|---------|",
-    `| Constitution | ${inventory.constitution.exists ? "pass" : "fail"} | ${inventory.constitution.path} (${inventory.constitution.characters} chars) |`,
-    `| Feature folders | ${inventory.featureCount >= 4 ? "pass" : "fail"} | ${inventory.featureCount} specs/NNN-* folders, ${inventory.completeFeatureCount} complete |`,
-    `| Reflection | ${inventory.reflection.exists ? "pass" : "fail"} | ${inventory.reflection.path} (${inventory.reflection.characters} chars) |`,
+    `| Constitution | ${formatStatus(inventory.constitution.exists ? "pass" : "fail")} | ${inventory.constitution.path} (${inventory.constitution.characters} chars) |`,
+    `| Feature folders | ${formatStatus(inventory.featureCount >= 4 ? "pass" : "fail")} | ${inventory.featureCount} specs/NNN-* folders, ${inventory.completeFeatureCount} complete |`,
+    `| Reflection | ${formatStatus(inventory.reflection.exists ? "pass" : "fail")} | ${inventory.reflection.path} (${inventory.reflection.characters} chars) |`,
   ];
 
   for (const feature of inventory.features) {
     const missing = feature.files.filter((file) => !file.exists).map((file) => path.basename(file.path));
     rows.push(
-      `| ${feature.directory} | ${feature.complete ? "pass" : "fail"} | ${
+      `| ${feature.directory} | ${formatStatus(feature.complete ? "pass" : "fail")} | ${
         missing.length > 0 ? `Missing ${missing.join(", ")}` : "spec.md, plan.md, tasks.md present"
       } |`
     );
@@ -558,7 +567,7 @@ function renderArtifactMarkdown(inventory) {
 }
 
 function renderForbiddenMarkdown(scan) {
-  const lines = [`Status: ${scan.status}`];
+  const lines = [`Status: ${formatStatus(scan.status)}`];
 
   if (scan.implementationMatches.length > 0) {
     lines.push("\nImplementation matches:");
@@ -600,7 +609,7 @@ function renderScenarioMarkdown(coverage) {
   for (const scenario of coverage.scenarios) {
     for (const concept of scenario.concepts) {
       rows.push(
-        `| ${scenario.name} | ${concept.name} | ${concept.status} | ${compactEvidence(concept.artifactEvidence)} | ${compactEvidence(concept.codeEvidence)} |`
+        `| ${scenario.name} | ${concept.name} | ${formatStatus(concept.status)} | ${compactEvidence(concept.artifactEvidence)} | ${compactEvidence(concept.codeEvidence)} |`
       );
     }
   }
@@ -618,7 +627,7 @@ function renderBuildMarkdown(summary) {
     const details = command.reason
       ? command.reason
       : `exit ${command.exitCode}; ${Math.round((command.durationMs ?? 0) / 1000)}s`;
-    rows.push(`| ${command.project} | \`${command.command}\` | ${command.status} | ${details} |`);
+    rows.push(`| ${command.project} | \`${command.command}\` | ${formatStatus(command.status)} | ${details} |`);
   }
 
   const excerpts = summary.commands
@@ -653,7 +662,7 @@ const markdown = `# AI Pre-Evaluation Check
 
 Generated: ${report.generatedAt}
 
-Overall status: **${report.status}**
+Overall status: **${formatStatus(report.status)}**
 
 This report is automated evidence for AI review. It is not the final evaluation score. The AI reviewer should read this first, then verify independently against the repository.
 
@@ -671,13 +680,13 @@ ${renderForbiddenMarkdown(forbidden)}
 
 ## Scenario Coverage Heuristic
 
-Status: ${coverage.status}
+Status: ${formatStatus(coverage.status)}
 
 ${renderScenarioMarkdown(coverage)}
 
 ## Build/Test Summary
 
-Status: ${buildSummary.status}
+Status: ${formatStatus(buildSummary.status)}
 
 ${renderBuildMarkdown(buildSummary)}
 
