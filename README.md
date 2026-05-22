@@ -2,7 +2,7 @@
 
 This repository is a scaffold for the Scribble lab.
 
-## Overview
+## Overview test
 
 This lab starts from a runnable but intentionally incomplete Scribble-style guessing game with a minimal REST backend and an in-memory room system. The work is a brownfield enhancement: inspect the starter, produce Spec Kit artifacts, implement the missing behavior incrementally, validate against acceptance criteria, and reflect on the AI-assisted workflow.
 
