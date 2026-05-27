@@ -41,11 +41,11 @@ No setup tasks needed — project scaffolding, dependencies, and build tooling a
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T001 Add `hostId` field to `Room` interface and `RoomSnapshot` interface in `backend/src/models/game.ts`
-- [ ] T002 [P] Extend `RoomStatus` type to include `"playing"` in `backend/src/models/game.ts`
-- [ ] T003 Update `createRoom` in `backend/src/services/roomStore.ts` to set the creator's participant ID as `hostId` on the new room
-- [ ] T004 [P] Update `toRoomSnapshot` in `backend/src/services/roomStore.ts` to include `hostId` in the snapshot
-- [ ] T005 [P] Mirror updated `RoomSnapshot` type (add `hostId`, extend status to `"lobby" | "playing"`) in `frontend/src/services/api.ts`
+- [X] T001 Add `hostId` field to `Room` interface and `RoomSnapshot` interface in `backend/src/models/game.ts`
+- [X] T002 [P] Extend `RoomStatus` type to include `"playing"` in `backend/src/models/game.ts`
+- [X] T003 Update `createRoom` in `backend/src/services/roomStore.ts` to set the creator's participant ID as `hostId` on the new room
+- [X] T004 [P] Update `toRoomSnapshot` in `backend/src/services/roomStore.ts` to include `hostId` in the snapshot
+- [X] T005 [P] Mirror updated `RoomSnapshot` type (add `hostId`, extend status to `"lobby" | "playing"`) in `frontend/src/services/api.ts`
 
 **Checkpoint**: Foundation ready — user story implementation can now begin in parallel
 
@@ -68,8 +68,8 @@ No setup tasks needed — project scaffolding, dependencies, and build tooling a
 
 *Actually, T006 already works because RoomCodeBadge and participant list already exist. Let me re-scope US1 tasks properly:*
 
-- [ ] T006 [US1] Update `LobbyPage.tsx` in `frontend/src/pages/LobbyPage.tsx` to show "Host" label next to the room creator's name in the participant list (compare `participantId` from store with `room.hostId`)
-- [ ] T007 [US1] Verify the lobby header renders the room code correctly — the code is already displayed via `RoomCodeBadge` component in `frontend/src/pages/LobbyPage.tsx`
+- [X] T006 [US1] Update `LobbyPage.tsx` in `frontend/src/pages/LobbyPage.tsx` to show "Host" label next to the room creator's name in the participant list (compare `participantId` from store with `room.hostId`)
+- [X] T007 [US1] Verify the lobby header renders the room code correctly — the code is already displayed via `RoomCodeBadge` component in `frontend/src/pages/LobbyPage.tsx`
 
 **Checkpoint**: At this point, User Story 1 should be fully functional and testable independently
 
@@ -83,9 +83,9 @@ No setup tasks needed — project scaffolding, dependencies, and build tooling a
 
 ### Implementation for User Story 2
 
-- [ ] T008 [P] [US2] Add auto-polling via `setInterval(2000)` in a `useEffect` in `frontend/src/pages/LobbyPage.tsx` — call `roomStore.fetchRoom()` every 2 seconds, clear interval on unmount
-- [ ] T009 [P] [US2] Show all participants with host indicator in `frontend/src/pages/LobbyPage.tsx` — the list already renders, just needs host label from T006
-- [ ] T010 [US2] Add visual loading/refresh indicator during polling in `frontend/src/pages/LobbyPage.tsx` (already partially implemented with isLoading state)
+- [X] T008 [P] [US2] Add auto-polling via `setInterval(2000)` in a `useEffect` in `frontend/src/pages/LobbyPage.tsx` — call `roomStore.fetchRoom()` every 2 seconds, clear interval on unmount
+- [X] T009 [P] [US2] Show all participants with host indicator in `frontend/src/pages/LobbyPage.tsx` — the list already renders, just needs host label from T006
+- [X] T010 [US2] Add visual loading/refresh indicator during polling in `frontend/src/pages/LobbyPage.tsx` (already partially implemented with isLoading state)
 
 **Checkpoint**: At this point, User Stories 1 AND 2 should both work independently
 
@@ -115,12 +115,12 @@ No setup tasks needed — project scaffolding, dependencies, and build tooling a
 
 ### Implementation for User Story 4
 
-- [ ] T014 [P] [US4] Implement `startGame` service function in `backend/src/services/roomStore.ts` — validate that `participantId` matches `hostId` and that `participants.length >= 2`, then set `status = "playing"` and return updated room
-- [ ] T015 [P] [US4] Add `startRoomSchema` Zod schema in `backend/src/api/schemas.ts` — validate `{ participantId: z.string() }` body
-- [ ] T016 [US4] Add `POST /rooms/:code/start` endpoint in `backend/src/api/rooms.ts` — parse params/body, call `startGame`, return updated snapshot; handle 403 (not host) and 400 (not enough players) errors
-- [ ] T017 [US4] Add `startGame(code, participantId)` API method to the frontend API client in `frontend/src/services/api.ts`
-- [ ] T018 [P] [US4] Add `startGame` method to the `RoomStore` class in `frontend/src/state/roomStore.ts` — call API, update store with new room state
-- [ ] T019 [US4] Update `frontend/src/pages/LobbyPage.tsx` — disable "Start Game" button when user is not the host OR when `room.participants.length < 2`; show appropriate message ("Waiting for host to start" for non-hosts, "Need at least 2 players" if host but solo)
+- [X] T014 [P] [US4] Implement `startGame` service function in `backend/src/services/roomStore.ts` — validate that `participantId` matches `hostId` and that `participants.length >= 2`, then set `status = "playing"` and return updated room
+- [X] T015 [P] [US4] Add `startRoomSchema` Zod schema in `backend/src/api/schemas.ts` — validate `{ participantId: z.string() }` body
+- [X] T016 [US4] Add `POST /rooms/:code/start` endpoint in `backend/src/api/rooms.ts` — parse params/body, call `startGame`, return updated snapshot; handle 403 (not host) and 400 (not enough players) errors
+- [X] T017 [US4] Add `startGame(code, participantId)` API method to the frontend API client in `frontend/src/services/api.ts`
+- [X] T018 [P] [US4] Add `startGame` method to the `RoomStore` class in `frontend/src/state/roomStore.ts` — call API, update store with new room state
+- [X] T019 [US4] Update `frontend/src/pages/LobbyPage.tsx` — disable "Start Game" button when user is not the host OR when `room.participants.length < 2`; show appropriate message ("Waiting for host to start" for non-hosts, "Need at least 2 players" if host but solo)
 
 **Checkpoint**: All user stories should now be independently functional
 
@@ -130,9 +130,9 @@ No setup tasks needed — project scaffolding, dependencies, and build tooling a
 
 **Purpose**: Improvements that affect multiple user stories
 
-- [ ] T020 [P] Update `frontend/src/pages/LobbyPage.tsx` to navigate away if room status transitions to `"playing"` (redirect to `/game`)
-- [ ] T021 Update the existing manual "Refresh Room" button in `frontend/src/pages/LobbyPage.tsx` to work alongside auto-polling (remove manual refresh or keep as fallback)
-- [ ] T022 Run `quickstart.md` validation — manually test all scenarios documented in `specs/001-room-setup-lobby/quickstart.md`
+- [X] T020 [P] Update `frontend/src/pages/LobbyPage.tsx` to navigate away if room status transitions to `"playing"` (redirect to `/game`)
+- [X] T021 Update the existing manual "Refresh Room" button in `frontend/src/pages/LobbyPage.tsx` to work alongside auto-polling (remove manual refresh or keep as fallback)
+- [X] T022 Run `quickstart.md` validation — manually test all scenarios documented in `specs/001-room-setup-lobby/quickstart.md`
 
 ---
 
