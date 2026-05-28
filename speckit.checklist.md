@@ -40,43 +40,43 @@
 
 ### Backend State & Contracts
 
-- [ ] CHK027 Add typed drawing state to backend room models using bounded serializable stroke/path data.
-- [ ] CHK028 Add typed guess history entries with participant ID, participant name, guess text, submitted timestamp, correctness, and awarded points.
-- [ ] CHK029 Add score state keyed by participant ID and include scores in room snapshots.
-- [ ] CHK030 Initialize drawing, guesses, and all participant scores when the game starts.
-- [ ] CHK031 Ensure `toRoomSnapshot()` always returns drawing, guesses, and scores in a frontend-safe shape.
+- [x] CHK027 Add typed drawing state to backend room models using bounded serializable stroke/path data.
+- [x] CHK028 Add typed guess history entries with participant ID, participant name, guess text, submitted timestamp, correctness, and awarded points.
+- [x] CHK029 Add score state keyed by participant ID and include scores in room snapshots.
+- [x] CHK030 Initialize drawing, guesses, and all participant scores when the game starts.
+- [x] CHK031 Ensure `toRoomSnapshot()` always returns drawing, guesses, and scores in a frontend-safe shape.
 
 ### Backend Gameplay Rules
 
-- [ ] CHK032 Implement drawer-only drawing update behavior and reject non-drawer updates.
-- [ ] CHK033 Implement drawer-only clear canvas behavior and reject non-drawer clear attempts.
-- [ ] CHK034 Implement guess submission for non-drawer participants only.
-- [ ] CHK035 Trim guesses and reject empty or whitespace-only submissions before storing history.
-- [ ] CHK036 Compare guesses against the secret word case-insensitively.
-- [ ] CHK037 Award 100 points for a participant's first correct guess and 0 points for incorrect or repeated correct guesses.
-- [ ] CHK038 Preserve room isolation so drawing, guesses, and scores never leak across room codes.
+- [x] CHK032 Implement drawer-only drawing update behavior and reject non-drawer updates.
+- [x] CHK033 Implement drawer-only clear canvas behavior and reject non-drawer clear attempts.
+- [x] CHK034 Implement guess submission for non-drawer participants only.
+- [x] CHK035 Trim guesses and reject empty or whitespace-only submissions before storing history.
+- [x] CHK036 Compare guesses against the secret word case-insensitively.
+- [x] CHK037 Award 100 points for a participant's first correct guess and 0 points for incorrect or repeated correct guesses.
+- [x] CHK038 Preserve room isolation so drawing, guesses, and scores never leak across room codes.
 
 ### API & Validation
 
-- [ ] CHK039 Add Zod schemas for drawing strokes/points with payload bounds.
-- [ ] CHK040 Add Zod schema for clear canvas payload requiring `participantId`.
-- [ ] CHK041 Add Zod schema for guess submissions requiring `participantId` and trimmed non-empty `text`.
-- [ ] CHK042 Add HTTP endpoints for drawing update, clear canvas, and guess submission with clear 400/403/404 errors.
+- [x] CHK039 Add Zod schemas for drawing strokes/points with payload bounds.
+- [x] CHK040 Add Zod schema for clear canvas payload requiring `participantId`.
+- [x] CHK041 Add Zod schema for guess submissions requiring `participantId` and trimmed non-empty `text`.
+- [x] CHK042 Add HTTP endpoints for drawing update, clear canvas, and guess submission with clear 400/403/404 errors.
 
 ### Frontend Gameplay UI
 
-- [ ] CHK043 Update frontend API and store types/actions for drawing, guesses, and scores.
-- [ ] CHK044 Replace the static canvas placeholder with an interactive drawer canvas and read-only guesser view.
-- [ ] CHK045 Provide a drawer-only "Clear Canvas" control.
-- [ ] CHK046 Update `GuessForm` to trim, validate, submit, show errors, and clear after successful submission.
-- [ ] CHK047 Update `Scoreboard` to render room participants with current scores.
-- [ ] CHK048 Update `ResultPanel` or activity panel to render synced guess history for all players.
+- [x] CHK043 Update frontend API and store types/actions for drawing, guesses, and scores.
+- [x] CHK044 Replace the static canvas placeholder with an interactive drawer canvas and read-only guesser view.
+- [x] CHK045 Provide a drawer-only "Clear Canvas" control.
+- [x] CHK046 Update `GuessForm` to trim, validate, submit, show errors, and clear after successful submission.
+- [x] CHK047 Update `Scoreboard` to render room participants with current scores.
+- [x] CHK048 Update `ResultPanel` or activity panel to render synced guess history for all players.
 
 ### Verification
 
-- [ ] CHK049 Add backend tests for drawer-only drawing update and clear canvas.
-- [ ] CHK050 Add backend tests for empty guess rejection, incorrect guesses, case-insensitive correct scoring, and repeated correct guess scoring.
-- [ ] CHK051 Add schema tests for drawing and guess payload validation.
-- [ ] CHK052 Add frontend API tests for drawing update, clear canvas, and guess submission calls.
-- [ ] CHK053 Run backend and frontend tests and builds after implementation.
+- [x] CHK049 Add backend tests for drawer-only drawing update and clear canvas.
+- [x] CHK050 Add backend tests for empty guess rejection, incorrect guesses, case-insensitive correct scoring, and repeated correct guess scoring.
+- [x] CHK051 Add schema tests for drawing and guess payload validation.
+- [x] CHK052 Add frontend API tests for drawing update, clear canvas, and guess submission calls.
+- [x] CHK053 Run backend and frontend tests and builds after implementation.
 - [ ] CHK054 Manually verify two-tab Scenario 3 flow: drawer draws/clears, guesser submits guesses, history and scores sync through polling.

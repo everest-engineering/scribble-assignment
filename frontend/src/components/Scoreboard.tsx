@@ -1,14 +1,22 @@
 import { Card } from "./Card";
+import type { Participant } from "../services/api";
 
-export function Scoreboard() {
+interface ScoreboardProps {
+  participants: Participant[];
+  scores: Record<string, number>;
+}
+
+export function Scoreboard({ participants, scores }: ScoreboardProps) {
   return (
     <Card title="Scoreboard">
-      <div className="placeholder-block" style={{ backgroundColor: '#f9fafb' }}>
-        <div className="placeholder-row">
-          <span>Waiting for players...</span>
-          <strong>0</strong>
-        </div>
-      </div>
+      <ul className="score-list">
+        {participants.map((participant) => (
+          <li key={participant.id}>
+            <span>{participant.name}</span>
+            <strong>{scores[participant.id] ?? 0}</strong>
+          </li>
+        ))}
+      </ul>
     </Card>
   );
 }

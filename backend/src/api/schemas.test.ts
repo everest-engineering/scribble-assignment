@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createRoomSchema, roomCodeParamsSchema } from "./schemas.js";
+import { createRoomSchema, roomCodeParamsSchema, submitGuessSchema, updateDrawingSchema } from "./schemas.js";
 
 describe("schemas", () => {
   it("createRoomSchema accepts a valid body with playerName", () => {
@@ -26,5 +26,40 @@ describe("schemas", () => {
     expect(() => roomCodeParamsSchema.parse({ code: "" })).toThrow();
     expect(() => roomCodeParamsSchema.parse({ code: "ABC" })).toThrow();
     expect(() => roomCodeParamsSchema.parse({ code: "ABCDE" })).toThrow();
+  });
+
+  it("updateDrawingSchema accepts bounded drawing strokes", () => {
+    const result = updateDrawingSchema.parse({
+      participantId: "p1",
+      drawing: [
+        {
+          id: "stroke-1",
+          color: "#2563eb",
+          size: 6,
+          points: [
+            { x: 0, y: 0.5 },
+            { x: 1, y: 1 }
+          ]
+        }
+      ]
+    });
+
+    expect(result.drawing).toHaveLength(1);
+  });
+
+  it("updateDrawingSchema rejects invalid points and colors", () => {
+    expect(() =>
+      updateDrawingSchema.parse({
+        participantId: "p1",
+        drawing: [{ id: "stroke-1", color: "blue", size: 6, points: [{ x: 1.1, y: 0.5 }] }]
+      })
+    ).toThrow();
+  });
+
+  it("submitGuessSchema trims guesses and rejects empty guesses", () => {
+    const result = submitGuessSchema.parse({ participantId: "p1", text: "  Rocket  " });
+
+    expect(result.text).toBe("Rocket");
+    expect(() => submitGuessSchema.parse({ participantId: "p1", text: "   " })).toThrow();
   });
 });

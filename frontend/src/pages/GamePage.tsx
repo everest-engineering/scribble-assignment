@@ -1,16 +1,185 @@
-import { useEffect } from "react";
+import { useEffect, useRef, useState, type PointerEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card } from "../components/Card";
 import { GuessForm } from "../components/GuessForm";
 import { ResultPanel } from "../components/ResultPanel";
 import { RoomCodeBadge } from "../components/RoomCodeBadge";
 import { Scoreboard } from "../components/Scoreboard";
+import type { DrawingPoint, DrawingStroke } from "../services/api";
 import { useRoomState, useRoomStore } from "../state/roomStore";
+
+const CANVAS_HEIGHT = 520;
+const DRAWING_COLOR = "#111827";
+const DRAWING_SIZE = 5;
+
+interface DrawingBoardProps {
+  drawing: DrawingStroke[];
+  isDrawer: boolean;
+  drawerName: string | null;
+  onDrawingChange: (drawing: DrawingStroke[]) => Promise<void>;
+  onClear: () => Promise<void>;
+}
+
+function drawStrokes(canvas: HTMLCanvasElement, strokes: DrawingStroke[]) {
+  const context = canvas.getContext("2d");
+
+  if (!context) {
+    return;
+  }
+
+  const rect = canvas.getBoundingClientRect();
+  const pixelRatio = window.devicePixelRatio || 1;
+
+  context.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
+  context.clearRect(0, 0, rect.width, CANVAS_HEIGHT);
+  context.fillStyle = "#ffffff";
+  context.fillRect(0, 0, rect.width, CANVAS_HEIGHT);
+  context.lineCap = "round";
+  context.lineJoin = "round";
+
+  strokes.forEach((stroke) => {
+    if (stroke.points.length === 0) {
+      return;
+    }
+
+    context.beginPath();
+    context.strokeStyle = stroke.color;
+    context.lineWidth = stroke.size;
+    const [firstPoint, ...restPoints] = stroke.points;
+    context.moveTo(firstPoint.x * rect.width, firstPoint.y * CANVAS_HEIGHT);
+    restPoints.forEach((point) => {
+      context.lineTo(point.x * rect.width, point.y * CANVAS_HEIGHT);
+    });
+    context.stroke();
+  });
+}
+
+function DrawingBoard({ drawing, isDrawer, drawerName, onDrawingChange, onClear }: DrawingBoardProps) {
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const isDrawingRef = useRef(false);
+  const drawingRef = useRef<DrawingStroke[]>(drawing);
+  const [localDrawing, setLocalDrawing] = useState<DrawingStroke[]>(drawing);
+
+  function setDrawing(nextDrawing: DrawingStroke[]) {
+    drawingRef.current = nextDrawing;
+    setLocalDrawing(nextDrawing);
+  }
+
+  useEffect(() => {
+    if (!isDrawingRef.current) {
+      setDrawing(drawing);
+    }
+  }, [drawing]);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+
+    if (!canvas) {
+      return;
+    }
+
+    function resizeCanvas() {
+      if (!canvas) {
+        return;
+      }
+
+      const rect = canvas.getBoundingClientRect();
+      const pixelRatio = window.devicePixelRatio || 1;
+      canvas.width = Math.max(1, Math.floor(rect.width * pixelRatio));
+      canvas.height = Math.floor(CANVAS_HEIGHT * pixelRatio);
+      drawStrokes(canvas, drawingRef.current);
+    }
+
+    resizeCanvas();
+    const observer = new ResizeObserver(resizeCanvas);
+    observer.observe(canvas);
+
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+    if (canvasRef.current) {
+      drawStrokes(canvasRef.current, localDrawing);
+    }
+  }, [localDrawing]);
+
+  function pointFromEvent(event: PointerEvent<HTMLCanvasElement>): DrawingPoint {
+    const rect = event.currentTarget.getBoundingClientRect();
+    const x = Math.min(1, Math.max(0, (event.clientX - rect.left) / rect.width));
+    const y = Math.min(1, Math.max(0, (event.clientY - rect.top) / CANVAS_HEIGHT));
+    return { x, y };
+  }
+
+  function handlePointerDown(event: PointerEvent<HTMLCanvasElement>) {
+    if (!isDrawer) {
+      return;
+    }
+
+    event.currentTarget.setPointerCapture(event.pointerId);
+    isDrawingRef.current = true;
+    const stroke: DrawingStroke = {
+      id: crypto.randomUUID(),
+      color: DRAWING_COLOR,
+      size: DRAWING_SIZE,
+      points: [pointFromEvent(event)]
+    };
+    setDrawing([...drawingRef.current, stroke]);
+  }
+
+  function handlePointerMove(event: PointerEvent<HTMLCanvasElement>) {
+    if (!isDrawer || !isDrawingRef.current) {
+      return;
+    }
+
+    const point = pointFromEvent(event);
+    const nextDrawing = drawingRef.current.map((stroke, index) =>
+      index === drawingRef.current.length - 1 ? { ...stroke, points: [...stroke.points, point] } : stroke
+    );
+    setDrawing(nextDrawing);
+  }
+
+  async function handlePointerUp(event: PointerEvent<HTMLCanvasElement>) {
+    if (!isDrawer || !isDrawingRef.current) {
+      return;
+    }
+
+    event.currentTarget.releasePointerCapture(event.pointerId);
+    isDrawingRef.current = false;
+    await onDrawingChange(drawingRef.current);
+  }
+
+  async function handleClear() {
+    setDrawing([]);
+    await onClear();
+  }
+
+  return (
+    <div className="drawing-board">
+      <canvas
+        ref={canvasRef}
+        className={isDrawer ? "drawing-board__canvas" : "drawing-board__canvas drawing-board__canvas--readonly"}
+        style={{ height: CANVAS_HEIGHT }}
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
+      />
+      <div className="drawing-board__toolbar">
+        <span>{drawerName ? `${drawerName} is drawing now.` : "Assigning drawer..."}</span>
+        {isDrawer ? (
+          <button className="button button--secondary" type="button" onClick={handleClear}>
+            Clear Canvas
+          </button>
+        ) : null}
+      </div>
+    </div>
+  );
+}
 
 export function GamePage() {
   const navigate = useNavigate();
   const roomStore = useRoomStore();
-  const { room, participantId } = useRoomState();
+  const { room, participantId, isLoading, error } = useRoomState();
+  const [actionError, setActionError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!room) {
@@ -47,6 +216,29 @@ export function GamePage() {
   const drawer = room.participants.find((participant) => participant.id === room.drawerId) ?? null;
   const isDrawer = participantId !== null && participantId === room.drawerId;
 
+  async function handleDrawingChange(nextDrawing: DrawingStroke[]) {
+    try {
+      setActionError(null);
+      await roomStore.updateDrawing(nextDrawing);
+    } catch (caughtError) {
+      setActionError(caughtError instanceof Error ? caughtError.message : "Unable to update drawing");
+    }
+  }
+
+  async function handleClearDrawing() {
+    try {
+      setActionError(null);
+      await roomStore.clearDrawing();
+    } catch (caughtError) {
+      setActionError(caughtError instanceof Error ? caughtError.message : "Unable to clear canvas");
+    }
+  }
+
+  async function handleGuessSubmit(guess: string) {
+    setActionError(null);
+    await roomStore.submitGuess(guess);
+  }
+
   return (
     <section className="panel game-page">
       <div className="game-page__header">
@@ -59,16 +251,21 @@ export function GamePage() {
 
       <div className="game-page__layout">
         <aside className="game-page__sidebar game-page__sidebar--left">
-          <Scoreboard />
-          <ResultPanel />
+          <Scoreboard participants={room.participants} scores={room.scores} />
+          <ResultPanel guesses={room.guesses} />
         </aside>
 
         <div className="game-page__main">
           <Card title="Canvas">
-            <div className="canvas-placeholder" style={{ minHeight: '500px', backgroundColor: '#ffffff', border: '1px solid #e5e7eb' }}>
-              {drawer ? `${drawer.name} is drawing now.` : "Waiting for drawer..."}
-            </div>
+            <DrawingBoard
+              drawing={room.drawing}
+              isDrawer={isDrawer}
+              drawerName={drawer?.name ?? null}
+              onDrawingChange={handleDrawingChange}
+              onClear={handleClearDrawing}
+            />
           </Card>
+          {error ?? actionError ? <p className="form__error">{error ?? actionError}</p> : null}
         </div>
 
         <aside className="game-page__sidebar game-page__sidebar--right">
@@ -91,7 +288,7 @@ export function GamePage() {
 
           {!isDrawer ? (
             <Card title="Your Guess">
-              <GuessForm />
+              <GuessForm disabled={isLoading} onSubmit={handleGuessSubmit} />
             </Card>
           ) : null}
         </aside>
