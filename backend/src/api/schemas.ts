@@ -1,19 +1,28 @@
 import { z } from "zod";
 
+export const playerNameSchema = z.string()
+  .trim()
+  .min(1, "Name cannot be empty or whitespace")
+  .max(20, "Name must be 20 characters or less");
+
 export const createRoomSchema = z.object({
-  playerName: z.string().optional()
+  playerName: playerNameSchema
 });
 
 export const joinRoomSchema = z.object({
-  playerName: z.string().optional()
+  playerName: playerNameSchema
 });
 
 export const roomCodeParamsSchema = z.object({
-  code: z.string()
+  code: z.string().trim().min(1, "Room code cannot be empty")
 });
 
 export const roomViewerQuerySchema = z.object({
   participantId: z.string().optional()
+});
+
+export const startGameSchema = z.object({
+  participantId: z.string()
 });
 
 export class HttpError extends Error {

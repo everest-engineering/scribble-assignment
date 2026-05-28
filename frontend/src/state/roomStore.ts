@@ -7,11 +7,13 @@ import {
   useSyncExternalStore,
   type PropsWithChildren
 } from "react";
+import { useNavigate } from "react-router-dom";
 import { api, type RoomSessionResponse, type RoomSnapshot } from "../services/api";
 
 export interface RoomState {
   room: RoomSnapshot | null;
   participantId: string | null;
+  isHost: boolean;
   error: string | null;
   isLoading: boolean;
 }
@@ -22,6 +24,7 @@ class RoomStore {
   private state: RoomState = {
     room: null,
     participantId: null,
+    isHost: false,
     error: null,
     isLoading: false
   };
@@ -38,10 +41,10 @@ class RoomStore {
   getSnapshot = () => this.state;
 
   private setState(nextState: Partial<RoomState>) {
-    this.state = {
-      ...this.state,
-      ...nextState
-    };
+    const updatedState = { ...this.state, ...nextState };
+    updatedState.isHost = !!(updatedState.room && updatedState.participantId && updatedState.room.hostId === updatedState.participantId);
+    
+    this.state = updatedState;
     this.listeners.forEach((listener) => listener());
   }
 
@@ -98,6 +101,16 @@ class RoomStore {
     this.setRoomSnapshot(response.room);
     return response.room;
   }
+
+  async startGame() {
+    if (!this.state.room || !this.state.participantId) {
+      return null;
+    }
+
+    const response = await this.withLoading(() => api.startGame(this.state.room!.code, this.state.participantId!));
+    this.setRoomSnapshot(response.room);
+    return response.room;
+  }
 }
 
 const RoomStoreContext = createContext<RoomStore | null>(null);
@@ -127,4 +140,44 @@ export function useRoomStore() {
 export function useRoomState() {
   const store = useRoomStore();
   return useSyncExternalStore(store.subscribe, store.getSnapshot, store.getSnapshot);
+}
+
+export function useRoomPolling(intervalMs: number = 2000) {
+  const store = useRoomStore();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    let timeoutId: number;
+    let isActive = true;
+    let consecutiveFailures = 0;
+
+    async function poll() {
+      if (!isActive) return;
+      
+      try {
+        const room = await store.fetchRoom();
+        consecutiveFailures = 0;
+        
+        if (room && room.status === "playing") {
+          navigate("/game");
+        }
+      } catch (err) {
+        consecutiveFailures++;
+        if (consecutiveFailures >= 3) {
+          console.warn("Connection unstable...", err);
+        }
+      }
+      
+      if (isActive) {
+        timeoutId = window.setTimeout(poll, intervalMs);
+      }
+    }
+
+    poll();
+
+    return () => {
+      isActive = false;
+      window.clearTimeout(timeoutId);
+    };
+  }, [store, intervalMs, navigate]);
 }

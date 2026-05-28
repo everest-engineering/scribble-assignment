@@ -1,21 +1,26 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card } from "../components/Card";
 import { PageHeader } from "../components/PageHeader";
 import { RoomCodeBadge } from "../components/RoomCodeBadge";
-import { useRoomState, useRoomStore } from "../state/roomStore";
+import { useRoomState, useRoomStore, useRoomPolling } from "../state/roomStore";
 
 export function LobbyPage() {
   const navigate = useNavigate();
   const roomStore = useRoomStore();
-  const { room, error, isLoading } = useRoomState();
+  const { room, error, isLoading, isHost } = useRoomState();
   const [refreshError, setRefreshError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!room) {
-      navigate("/", { replace: true });
-    }
-  }, [navigate, room]);
+  useRoomPolling(2000);
+
+  if (!room) {
+    return (
+      <section className="panel placeholder-page">
+        <PageHeader kicker="Status" title="Lobby" description="Joining room..." />
+        <button className="button button--secondary" onClick={() => navigate("/")}>Go Back</button>
+      </section>
+    );
+  }
 
   async function handleRefresh() {
     try {
@@ -26,9 +31,16 @@ export function LobbyPage() {
     }
   }
 
-  if (!room) {
-    return null;
+  async function handleStartGame() {
+    try {
+      setRefreshError(null);
+      await roomStore.startGame();
+    } catch (caughtError) {
+      setRefreshError(caughtError instanceof Error ? caughtError.message : "Unable to start game");
+    }
   }
+
+  const canStartGame = isHost && room.participants.length >= 2;
 
   return (
     <section className="panel placeholder-page">
@@ -69,9 +81,13 @@ export function LobbyPage() {
         <button className="button button--secondary" disabled={isLoading} onClick={handleRefresh}>
           {isLoading ? "Refreshing..." : "Refresh Room"}
         </button>
-        <button className="button button--primary" onClick={() => navigate("/game")}>
-          Start Game
-        </button>
+        {isHost ? (
+          <button className="button button--primary" disabled={isLoading || !canStartGame} onClick={handleStartGame}>
+            Start Game
+          </button>
+        ) : (
+          <span style={{ fontSize: "14px", color: "#6b7280" }}>Waiting for host...</span>
+        )}
       </div>
     </section>
   );
