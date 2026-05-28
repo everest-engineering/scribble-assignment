@@ -42,11 +42,11 @@
 - [x] TSK039 Add route handlers in [backend/src/api/rooms.ts](file:///Users/manojprabhakarm/projects/work/scribble-assignment/backend/src/api/rooms.ts) for drawing update, clear canvas, and guess submission endpoints with permission checks.
 
 ### Scenario 4 — Result, Restart & Final Validation
-- [ ] TSK060 Update [backend/src/services/roomStore.ts](file:///Users/manojprabhakarm/projects/work/scribble-assignment/backend/src/services/roomStore.ts) to expose `secretWord` to all viewers when `room.status === "results"`.
-- [ ] TSK061 Add host-only `endRound()` service behavior that transitions an active game to `"results"` while preserving correct word, final scores, drawing, and full guess history.
-- [ ] TSK062 Add host-only `restartRoom()` service behavior that transitions results to `"lobby"`, preserves participants/host/code, and clears drawer, secret word, drawing, guesses, and scores.
-- [ ] TSK063 Add Zod schemas in [backend/src/api/schemas.ts](file:///Users/manojprabhakarm/projects/work/scribble-assignment/backend/src/api/schemas.ts) for end-round and restart payloads.
-- [ ] TSK064 Add route handlers in [backend/src/api/rooms.ts](file:///Users/manojprabhakarm/projects/work/scribble-assignment/backend/src/api/rooms.ts) for `POST /rooms/:code/end` and `POST /rooms/:code/restart` with host permission checks.
+- [x] TSK060 Update [backend/src/services/roomStore.ts](file:///Users/manojprabhakarm/projects/work/scribble-assignment/backend/src/services/roomStore.ts) to expose `secretWord` to all viewers when `room.status === "results"`.
+- [x] TSK061 Add host-only `endRound()` service behavior that transitions an active game to `"results"` while preserving correct word, final scores, drawing, and full guess history.
+- [x] TSK062 Add host-only `restartRoom()` service behavior that transitions results to `"lobby"`, preserves participants/host/code, and clears drawer, secret word, drawing, guesses, and scores.
+- [x] TSK063 Add Zod schemas in [backend/src/api/schemas.ts](file:///Users/manojprabhakarm/projects/work/scribble-assignment/backend/src/api/schemas.ts) for end-round and restart payloads.
+- [x] TSK064 Add route handlers in [backend/src/api/rooms.ts](file:///Users/manojprabhakarm/projects/work/scribble-assignment/backend/src/api/rooms.ts) for `POST /rooms/:code/end` and `POST /rooms/:code/restart` with host permission checks.
 
 ## 4. Frontend Implementation
 ### Scenario 1 — Room Setup & Lobby
@@ -79,13 +79,13 @@
 - [x] TSK048 Add or update styles in [frontend/src/styles/app.css](file:///Users/manojprabhakarm/projects/work/scribble-assignment/frontend/src/styles/app.css) for canvas controls, score rows, validation messages, and guess history.
 
 ### Scenario 4 — Result, Restart & Final Validation
-- [ ] TSK065 Add `api.endRound()` and `api.restartRoom()` methods in [frontend/src/services/api.ts](file:///Users/manojprabhakarm/projects/work/scribble-assignment/frontend/src/services/api.ts).
-- [ ] TSK066 Add room store actions for ending the round and restarting the room in [frontend/src/state/roomStore.ts](file:///Users/manojprabhakarm/projects/work/scribble-assignment/frontend/src/state/roomStore.ts).
-- [ ] TSK067 Update [frontend/src/pages/GamePage.tsx](file:///Users/manojprabhakarm/projects/work/scribble-assignment/frontend/src/pages/GamePage.tsx) with a host-only End Round action during active gameplay.
-- [ ] TSK068 Update [frontend/src/pages/GamePage.tsx](file:///Users/manojprabhakarm/projects/work/scribble-assignment/frontend/src/pages/GamePage.tsx) to render result mode with correct word, final scores, and full guess history for all participants.
-- [ ] TSK069 Update [frontend/src/pages/GamePage.tsx](file:///Users/manojprabhakarm/projects/work/scribble-assignment/frontend/src/pages/GamePage.tsx) with host-only Restart action in result mode and waiting messaging for non-hosts.
-- [ ] TSK070 Ensure game polling redirects all participants to `/lobby` after restart and that [frontend/src/pages/LobbyPage.tsx](file:///Users/manojprabhakarm/projects/work/scribble-assignment/frontend/src/pages/LobbyPage.tsx) handles restarted lobby snapshots cleanly.
-- [ ] TSK071 Add or update styles in [frontend/src/styles/app.css](file:///Users/manojprabhakarm/projects/work/scribble-assignment/frontend/src/styles/app.css) for result summary and restart controls.
+- [x] TSK065 Add `api.endRound()` and `api.restartRoom()` methods in [frontend/src/services/api.ts](file:///Users/manojprabhakarm/projects/work/scribble-assignment/frontend/src/services/api.ts).
+- [x] TSK066 Add room store actions for ending the round and restarting the room in [frontend/src/state/roomStore.ts](file:///Users/manojprabhakarm/projects/work/scribble-assignment/frontend/src/state/roomStore.ts).
+- [x] TSK067 Update [frontend/src/pages/GamePage.tsx](file:///Users/manojprabhakarm/projects/work/scribble-assignment/frontend/src/pages/GamePage.tsx) with a host-only End Round action during active gameplay.
+- [x] TSK068 Update [frontend/src/pages/GamePage.tsx](file:///Users/manojprabhakarm/projects/work/scribble-assignment/frontend/src/pages/GamePage.tsx) to render result mode with correct word, final scores, and full guess history for all participants.
+- [x] TSK069 Update [frontend/src/pages/GamePage.tsx](file:///Users/manojprabhakarm/projects/work/scribble-assignment/frontend/src/pages/GamePage.tsx) with host-only Restart action in result mode and waiting messaging for non-hosts.
+- [x] TSK070 Ensure game polling redirects all participants to `/lobby` after restart and that [frontend/src/pages/LobbyPage.tsx](file:///Users/manojprabhakarm/projects/work/scribble-assignment/frontend/src/pages/LobbyPage.tsx) handles restarted lobby snapshots cleanly.
+- [x] TSK071 Add or update styles in [frontend/src/styles/app.css](file:///Users/manojprabhakarm/projects/work/scribble-assignment/frontend/src/styles/app.css) for result summary and restart controls.
 
 ## 5. Verification & Testing
 - [x] TSK014 Verify backend tests pass via `npm run test` in the `backend/` directory.
@@ -99,9 +99,9 @@
 - [x] TSK052 Add frontend API tests for drawing update, clear canvas, and guess submission requests.
 - [x] TSK053 Run `npm run test` and `npm run build` in both backend and frontend after Scenario 3 implementation.
 - [ ] TSK054 Manually verify Scenario 3 with two tabs: drawer draws/clears, guesser submits guesses, history and scores sync by polling.
-- [ ] TSK072 Add backend tests for host-only end round, result status transition, and correct word visibility to guessers in result state.
-- [ ] TSK073 Add backend tests for host-only restart, participant preservation, and round-state clearing.
-- [ ] TSK074 Add schema tests for end-round and restart payload validation.
-- [ ] TSK075 Add frontend API tests for end-round and restart requests.
-- [ ] TSK076 Run `npm run test` and `npm run build` in both backend and frontend after Scenario 4 implementation.
+- [x] TSK072 Add backend tests for host-only end round, result status transition, and correct word visibility to guessers in result state.
+- [x] TSK073 Add backend tests for host-only restart, participant preservation, and round-state clearing.
+- [x] TSK074 Add schema tests for end-round and restart payload validation.
+- [x] TSK075 Add frontend API tests for end-round and restart requests.
+- [x] TSK076 Run `npm run test` and `npm run build` in both backend and frontend after Scenario 4 implementation.
 - [ ] TSK077 Manually verify Scenario 4 with two tabs: host ends round, all players see results, host restarts, all players return to lobby with players preserved and round state cleared.

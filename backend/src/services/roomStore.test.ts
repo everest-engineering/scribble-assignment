@@ -2,7 +2,9 @@ import { describe, expect, it } from "vitest";
 import {
   clearDrawing,
   createRoom,
+  endRound,
   joinRoom,
+  restartRoom,
   startGame,
   submitGuess,
   toRoomSnapshot,
@@ -149,5 +151,109 @@ describe("roomStore", () => {
       pointsAwarded: 0
     });
     expect(repeatGuess.room.scores[guestSession.participantId]).toBe(100);
+  });
+
+  it("ends the round for the host and reveals the secret word to guessers in results", () => {
+    const hostSession = createRoom("Alice");
+    const guestSession = joinRoom(hostSession.room.code, "Bob");
+
+    expect(guestSession).not.toBeNull();
+
+    const startResult = startGame(hostSession.room.code, hostSession.participantId);
+
+    expect(startResult.ok).toBe(true);
+
+    if (!startResult.ok || !guestSession) {
+      return;
+    }
+
+    const secretWord = toRoomSnapshot(startResult.room, hostSession.participantId).secretWord;
+
+    expect(secretWord).toBeTruthy();
+
+    if (!secretWord) {
+      return;
+    }
+
+    const nonHostEnd = endRound(hostSession.room.code, guestSession.participantId);
+    const hostEnd = endRound(hostSession.room.code, hostSession.participantId);
+
+    expect(nonHostEnd.ok).toBe(false);
+    expect(hostEnd.ok).toBe(true);
+
+    if (!hostEnd.ok) {
+      return;
+    }
+
+    const guesserResultSnapshot = toRoomSnapshot(hostEnd.room, guestSession.participantId);
+
+    expect(guesserResultSnapshot.status).toBe("results");
+    expect(guesserResultSnapshot.secretWord).toBe(secretWord);
+  });
+
+  it("restarts from results with participants preserved and round state cleared", () => {
+    const hostSession = createRoom("Alice");
+    const guestSession = joinRoom(hostSession.room.code, "Bob");
+
+    expect(guestSession).not.toBeNull();
+
+    const startResult = startGame(hostSession.room.code, hostSession.participantId);
+
+    expect(startResult.ok).toBe(true);
+
+    if (!startResult.ok || !guestSession) {
+      return;
+    }
+
+    const secretWord = toRoomSnapshot(startResult.room, hostSession.participantId).secretWord;
+
+    expect(secretWord).toBeTruthy();
+
+    if (!secretWord) {
+      return;
+    }
+
+    submitGuess(hostSession.room.code, guestSession.participantId, secretWord);
+    updateDrawing(hostSession.room.code, hostSession.participantId, [
+      {
+        id: "stroke-1",
+        color: "#111827",
+        size: 4,
+        points: [{ x: 0.1, y: 0.2 }]
+      }
+    ]);
+
+    const endResult = endRound(hostSession.room.code, hostSession.participantId);
+
+    expect(endResult.ok).toBe(true);
+
+    if (!endResult.ok) {
+      return;
+    }
+
+    const nonHostRestart = restartRoom(hostSession.room.code, guestSession.participantId);
+    const hostRestart = restartRoom(hostSession.room.code, hostSession.participantId);
+
+    expect(nonHostRestart.ok).toBe(false);
+    expect(hostRestart.ok).toBe(true);
+
+    if (!hostRestart.ok) {
+      return;
+    }
+
+    expect(hostRestart.room.status).toBe("lobby");
+    expect(hostRestart.room.participants.map((participant) => participant.id)).toEqual([
+      hostSession.participantId,
+      guestSession.participantId
+    ]);
+    expect(hostRestart.room.hostId).toBe(hostSession.participantId);
+    expect(hostRestart.room.drawerId).toBeNull();
+    expect(hostRestart.room.secretWord).toBeNull();
+    expect(hostRestart.room.drawing).toEqual([]);
+    expect(hostRestart.room.guesses).toEqual([]);
+    expect(hostRestart.room.scores).toEqual({
+      [hostSession.participantId]: 0,
+      [guestSession.participantId]: 0
+    });
   });
 });

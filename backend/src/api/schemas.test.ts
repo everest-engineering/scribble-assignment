@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { createRoomSchema, roomCodeParamsSchema, submitGuessSchema, updateDrawingSchema } from "./schemas.js";
+import {
+  createRoomSchema,
+  endRoundSchema,
+  restartRoomSchema,
+  roomCodeParamsSchema,
+  submitGuessSchema,
+  updateDrawingSchema
+} from "./schemas.js";
 
 describe("schemas", () => {
   it("createRoomSchema accepts a valid body with playerName", () => {
@@ -61,5 +68,12 @@ describe("schemas", () => {
 
     expect(result.text).toBe("Rocket");
     expect(() => submitGuessSchema.parse({ participantId: "p1", text: "   " })).toThrow();
+  });
+
+  it("endRoundSchema and restartRoomSchema require participant IDs", () => {
+    expect(endRoundSchema.parse({ participantId: "  p1  " }).participantId).toBe("p1");
+    expect(restartRoomSchema.parse({ participantId: "p1" }).participantId).toBe("p1");
+    expect(() => endRoundSchema.parse({ participantId: "   " })).toThrow();
+    expect(() => restartRoomSchema.parse({})).toThrow();
   });
 });

@@ -2,8 +2,10 @@ import { Router } from "express";
 import {
   clearDrawingSchema,
   createRoomSchema,
+  endRoundSchema,
   HttpError,
   joinRoomSchema,
+  restartRoomSchema,
   roomCodeParamsSchema,
   roomViewerQuerySchema,
   startGameSchema,
@@ -13,8 +15,10 @@ import {
 import {
   clearDrawing,
   createRoom,
+  endRound,
   getRoom,
   joinRoom,
+  restartRoom,
   startGame,
   submitGuess,
   toRoomSnapshot,
@@ -29,7 +33,8 @@ type GameplayFailureReason =
   | "drawer-required"
   | "participant-required"
   | "guesser-required"
-  | "guess-required";
+  | "guess-required"
+  | "results-required";
 
 function errorForReason(reason: GameplayFailureReason) {
   if (reason === "not-found") {
@@ -58,6 +63,10 @@ function errorForReason(reason: GameplayFailureReason) {
 
   if (reason === "guess-required") {
     return new HttpError(400, "Guess is required");
+  }
+
+  if (reason === "results-required") {
+    return new HttpError(400, "Room must be in results to restart");
   }
 
   return new HttpError(400, "Game must be active");
@@ -158,6 +167,42 @@ export function createRoomsRouter() {
       const { code } = roomCodeParamsSchema.parse(request.params);
       const { participantId, text } = submitGuessSchema.parse(request.body);
       const result = submitGuess(code, participantId, text);
+
+      if (!result.ok) {
+        throw errorForReason(result.reason);
+      }
+
+      response.json({
+        room: toRoomSnapshot(result.room, participantId)
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/:code/end", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId } = endRoundSchema.parse(request.body);
+      const result = endRound(code, participantId);
+
+      if (!result.ok) {
+        throw errorForReason(result.reason);
+      }
+
+      response.json({
+        room: toRoomSnapshot(result.room, participantId)
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/:code/restart", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId } = restartRoomSchema.parse(request.body);
+      const result = restartRoom(code, participantId);
 
       if (!result.ok) {
         throw errorForReason(result.reason);

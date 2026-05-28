@@ -97,4 +97,38 @@ describe("api service", () => {
       })
     );
   });
+
+  it("endRound sends POST to /rooms/:code/end", async () => {
+    vi.mocked(fetch).mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ room: { code: "ABCD", status: "results", participants: [] } }),
+    } as unknown as Response);
+
+    await api.endRound("ABCD", "p1");
+
+    expect(fetch).toHaveBeenCalledWith(
+      expect.stringContaining("/rooms/ABCD/end"),
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({ participantId: "p1" }),
+      })
+    );
+  });
+
+  it("restartRoom sends POST to /rooms/:code/restart", async () => {
+    vi.mocked(fetch).mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ room: { code: "ABCD", status: "lobby", participants: [] } }),
+    } as unknown as Response);
+
+    await api.restartRoom("ABCD", "p1");
+
+    expect(fetch).toHaveBeenCalledWith(
+      expect.stringContaining("/rooms/ABCD/restart"),
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({ participantId: "p1" }),
+      })
+    );
+  });
 });

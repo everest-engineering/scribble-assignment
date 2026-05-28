@@ -218,8 +218,58 @@ export function submitGuess(code: string, participantId: string, text: string) {
   return { ok: true as const, room: cloneRoom(room) };
 }
 
+export function endRound(code: string, participantId: string) {
+  const room = rooms.get(code);
+
+  if (!room) {
+    return { ok: false as const, reason: "not-found" as const };
+  }
+
+  if (room.hostId !== participantId) {
+    return { ok: false as const, reason: "host-required" as const };
+  }
+
+  if (room.status !== "game") {
+    return { ok: false as const, reason: "game-required" as const };
+  }
+
+  room.status = "results";
+  room.updatedAt = now();
+  rooms.set(room.code, room);
+
+  return { ok: true as const, room: cloneRoom(room) };
+}
+
+export function restartRoom(code: string, participantId: string) {
+  const room = rooms.get(code);
+
+  if (!room) {
+    return { ok: false as const, reason: "not-found" as const };
+  }
+
+  if (room.hostId !== participantId) {
+    return { ok: false as const, reason: "host-required" as const };
+  }
+
+  if (room.status !== "results") {
+    return { ok: false as const, reason: "results-required" as const };
+  }
+
+  room.status = "lobby";
+  room.drawerId = null;
+  room.secretWord = null;
+  room.drawing = [];
+  room.guesses = [];
+  room.scores = initialScores(room.participants);
+  room.updatedAt = now();
+  rooms.set(room.code, room);
+
+  return { ok: true as const, room: cloneRoom(room) };
+}
+
 export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSnapshot {
   const isDrawer = viewerParticipantId !== undefined && room.drawerId !== null && viewerParticipantId === room.drawerId;
+  const canSeeSecretWord = room.status === "results" || isDrawer;
 
   return {
     code: room.code,
@@ -229,7 +279,7 @@ export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSn
     roles: [...STARTER_ROLES],
     hostId: room.hostId,
     drawerId: room.drawerId,
-    secretWord: isDrawer ? room.secretWord : null,
+    secretWord: canSeeSecretWord ? room.secretWord : null,
     drawing: structuredClone(room.drawing),
     guesses: structuredClone(room.guesses),
     scores: { ...room.scores }

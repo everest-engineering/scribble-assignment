@@ -146,6 +146,30 @@ class RoomStore {
     this.setRoomSnapshot(response.room);
     return response.room;
   }
+
+  async endRound() {
+    const { room, participantId } = this.state;
+
+    if (!room || !participantId) {
+      throw new Error("Room session is required to end the round");
+    }
+
+    const response = await this.withLoading(() => api.endRound(room.code, participantId));
+    this.setRoomSnapshot(response.room);
+    return response.room;
+  }
+
+  async restartRoom() {
+    const { room, participantId } = this.state;
+
+    if (!room || !participantId) {
+      throw new Error("Room session is required to restart the room");
+    }
+
+    const response = await this.withLoading(() => api.restartRoom(room.code, participantId));
+    this.setRoomSnapshot(response.room);
+    return response.room;
+  }
 }
 
 const RoomStoreContext = createContext<RoomStore | null>(null);
