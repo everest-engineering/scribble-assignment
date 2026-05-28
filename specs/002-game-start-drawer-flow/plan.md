@@ -1,120 +1,81 @@
-# Implementation Plan: [FEATURE]
+# Implementation Plan: Game Start and Drawer Flow
 
-**Branch**: `[###-feature-name]` | **Date**: [DATE] | **Spec**: [link]
+**Branch**: `002-game-start-drawer-flow` | **Date**: 2026-05-28 | **Spec**: [specs/002-game-start-drawer-flow/spec.md](spec.md)
 
-**Input**: Feature specification from `/specs/[###-feature-name]/spec.md`
-
-**Note**: This template is filled in by the `/speckit.plan` command. See `.specify/templates/plan-template.md` for the execution workflow.
+**Input**: Feature specification from `specs/002-game-start-drawer-flow/spec.md`
 
 ## Summary
 
-[Extract from feature spec: primary requirement + technical approach from research]
+This phase implements the transition into active gameplay. When the host starts the game, the server will deterministically assign the host as the drawer and all other participants as guessers. The server will select the word "rocket" as the secret word. Crucially, the backend will conditionally mask this `secretWord` as `null` in the API payload for any user who is not the drawer to prevent network-tab cheating. Finally, late joins will be strictly rejected once a room is in the "playing" state.
 
 ## Technical Context
 
-<!--
-  ACTION REQUIRED: Replace the content in this section with the technical details
-  for the project. The structure here is presented in advisory capacity to guide
-  the iteration process.
--->
+**Language/Version**: TypeScript / Node.js 18+
 
-**Language/Version**: [e.g., Python 3.11, Swift 5.9, Rust 1.75 or NEEDS CLARIFICATION]
+**Primary Dependencies**: Express, React, Zod, Vitest
 
-**Primary Dependencies**: [e.g., FastAPI, UIKit, LLVM or NEEDS CLARIFICATION]
+**Storage**: In-memory `Map` (backend), React state + SyncExternalStore (frontend)
 
-**Storage**: [if applicable, e.g., PostgreSQL, CoreData, files or N/A]
+**Testing**: Vitest for backend service and frontend store tests.
 
-**Testing**: [e.g., pytest, XCTest, cargo test or NEEDS CLARIFICATION]
-
-**Target Platform**: [e.g., Linux server, iOS 15+, WASM or NEEDS CLARIFICATION]
-
-**Project Type**: [e.g., library/cli/web-service/mobile-app/compiler/desktop-app or NEEDS CLARIFICATION]
-
-**Performance Goals**: [domain-specific, e.g., 1000 req/s, 10k lines/sec, 60 fps or NEEDS CLARIFICATION]
-
-**Constraints**: [domain-specific, e.g., <200ms p95, <100MB memory, offline-capable or NEEDS CLARIFICATION]
-
-**Scale/Scope**: [domain-specific, e.g., 10k users, 1M LOC, 50 screens or NEEDS CLARIFICATION]
+**Project Type**: Web application (Frontend + Backend)
 
 ## Constitution Check
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-- [ ] **I. TypeScript Strict Mode** (No `any`, passing strict checks?)
-- [ ] **II. Testing Discipline** (Appropriate tests included?)
-- [ ] **III. Extend the Starter Application** (Respects existing architecture?)
-- [ ] **IV. Deterministic Gameplay** (Predictable word/scoring?)
-- [ ] **V. Simplicity First** (Minimal complexity?)
-- [ ] **VI. Room State Isolation** (Isolated per room code?)
-- [ ] **VII. Polling-Based Synchronization** (Strictly HTTP polling?)
-- [ ] **VIII. Validation Consistency** (Input trimmed/validated?)
-- [ ] **IX. Explicit Game States** (Lobby/Playing/Results clear?)
-- [ ] **X. Specification-Driven Development** (Discovery → Spec → Plan → Tasks?)
-- [ ] **XI. Incremental Feature Delivery** (Feature-group by feature-group?)
-- [ ] **XII. AI-Assisted but Human-Reviewed** (Manually verified?)
-- [ ] **XIII. Scope Discipline** (No out-of-scope features?)
-- [ ] **XIV. Traceable Implementation** (Maps to scenario/spec/tasks?)
+- [x] **I. TypeScript Strict Mode** (Strict mode active; masking utilizes explicit typing via `null`)
+- [x] **II. Testing Discipline** (Tests required for role assignment and payload masking logic)
+- [x] **III. Extend the Starter Application** (Preserving existing architecture)
+- [x] **IV. Deterministic Gameplay** (Word selection hardcoded to "rocket")
+- [x] **V. Simplicity First** (No timers or complex rounds)
+- [x] **VII. Polling-Based Synchronization** (Transitions rely on established 2s polling)
+- [x] **VIII. Validation Consistency** (Trimming enforced, 403 blocks implemented)
+- [x] **IX. Explicit Game States** (`playing` status gates behavior)
+- [x] **X. Specification-Driven Development** (Aligned with spec requirements)
+- [x] **XI. Incremental Feature Delivery** (Focus strictly on Game Start transition)
+- [x] **XII. AI-Assisted but Human-Reviewed** (Implementation plan follows spec)
+- [x] **XIII. Scope Discipline** (No WebSockets, no multi-round logic)
+- [x] **XIV. Traceable Implementation** (Maps to Scenario 2)
 
 ## Project Structure
 
 ### Documentation (this feature)
 
 ```text
-specs/[###-feature]/
-├── plan.md              # This file (/speckit.plan command output)
-├── research.md          # Phase 0 output (/speckit.plan command)
-├── data-model.md        # Phase 1 output (/speckit.plan command)
-├── quickstart.md        # Phase 1 output (/speckit.plan command)
-├── contracts/           # Phase 1 output (/speckit.plan command)
-└── tasks.md             # Phase 2 output (/speckit.tasks command - NOT created by /speckit.plan)
+specs/002-game-start-drawer-flow/
+├── plan.md              # This file
+├── research.md          # Research findings
+├── data-model.md        # Extended Room and Participant types
+├── quickstart.md        # Manual verification steps
+└── contracts/
+    └── api.md           # API signatures for conditional masking
 ```
 
 ### Source Code (repository root)
-<!--
-  ACTION REQUIRED: Replace the placeholder tree below with the concrete layout
-  for this feature. Delete unused options and expand the chosen structure with
-  real paths (e.g., apps/admin, packages/something). The delivered plan must
-  not include Option labels.
--->
 
 ```text
-# [REMOVE IF UNUSED] Option 1: Single project (DEFAULT)
-src/
-├── models/
-├── services/
-├── cli/
-└── lib/
-
-tests/
-├── contract/
-├── integration/
-└── unit/
-
-# [REMOVE IF UNUSED] Option 2: Web application (when "frontend" + "backend" detected)
 backend/
 ├── src/
+│   ├── api/
+│   │   ├── rooms.ts     # Update GET /:code logic to use participantId for masking
+│   │   └── schemas.ts   # Verify/ensure trimming is strict
 │   ├── models/
-│   ├── services/
-│   └── api/
-└── tests/
+│   │   └── game.ts      # Add role to Participant, secretWord to Room
+│   └── services/
+│       └── roomStore.ts # Implement assignRoles(), selectWord(), and conditional toRoomSnapshot()
+└── tests/               # Service unit tests for masking and roles
 
 frontend/
 ├── src/
-│   ├── components/
 │   ├── pages/
-│   └── services/
-└── tests/
-
-# [REMOVE IF UNUSED] Option 3: Mobile + API (when "iOS/Android" detected)
-api/
-└── [same as backend above]
-
-ios/ or android/
-└── [platform-specific structure: feature modules, UI flows, platform tests]
+│   │   └── GamePage.tsx # Update to show drawer tools vs guesser inputs based on role
+│   └── state/
+│       └── roomStore.ts # Verify store handles new Snapshot payload
+└── tests/               # Component tests
 ```
 
-**Structure Decision**: [Document the selected structure and reference the real
-directories captured above]
+**Structure Decision**: Web application structure. Backend changes focus heavily on data masking and state transition logic. Frontend changes focus on conditionally rendering the GamePage based on the assigned role.
 
 ## Complexity Tracking
 
@@ -122,5 +83,4 @@ directories captured above]
 
 | Violation | Why Needed | Simpler Alternative Rejected Because |
 |-----------|------------|-------------------------------------|
-| [e.g., 4th project] | [current need] | [why 3 projects insufficient] |
-| [e.g., Repository pattern] | [specific problem] | [why direct DB access insufficient] |
+| None | N/A | N/A |
