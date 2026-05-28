@@ -69,7 +69,8 @@
 - [ ] T012 [P] [US3] Create test suite block for late join blocking in backend/src/services/roomStore.test.ts
 - [ ] T013 [US3] Update `joinRoom` logic in backend/src/services/roomStore.ts to throw/return error if `status === "playing"`
 - [ ] T014 [US3] Update `/:code/join` endpoint in backend/src/api/rooms.ts to handle the late-join error and return 403
-- [ ] T015 [US3] Verify or add auto-navigation logic in frontend/src/state/roomStore.ts so polling clients navigate to `/game` when status changes to "playing"
+- [ ] T015 [P] [US3] Update frontend `JoinRoomPage.tsx` in frontend/src/pages/JoinRoomPage.tsx to properly catch and display the 403 "Room already in progress" error
+- [ ] T016 [US3] Verify or add auto-navigation logic in frontend/src/state/roomStore.ts so polling clients navigate to `/game` when status changes to "playing"
 
 **Checkpoint**: US3 complete - Transitions are seamless and late joins are prevented.
 
@@ -79,8 +80,8 @@
 
 **Purpose**: Final verification and cleanup
 
-- [ ] T016 [P] Run quickstart.md validation steps in multiple browser tabs
-- [ ] T017 [P] Verify no TypeScript errors (Rule I) in frontend and backend
+- [ ] T017 [P] Run quickstart.md validation steps in multiple browser tabs (ensuring "Name cannot be empty or whitespace" is tested)
+- [ ] T018 [P] Verify no TypeScript errors (Rule I) in frontend and backend
 
 ---
 
