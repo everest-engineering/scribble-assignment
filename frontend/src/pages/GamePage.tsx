@@ -23,7 +23,10 @@ export function GamePage() {
     if (!room) return;
     const interval = setInterval(async () => {
       try {
-        await roomStore.fetchRoom();
+        const updated = await roomStore.fetchRoom();
+        if (updated?.status === "result") {
+          navigate("/result");
+        }
       } catch {
         // non-fatal poll error
       }
@@ -34,10 +37,16 @@ export function GamePage() {
   if (!room) return null;
 
   const isDrawer = participantId === room.drawerId;
+  const isHost = participantId === room.hostId;
   const role = isDrawer ? "Drawer" : "Guesser";
 
   async function handleGuessSubmit(text: string) {
     await roomStore.submitGuess(text);
+  }
+
+  async function handleEndRound() {
+    await roomStore.endRoom();
+    navigate("/result");
   }
 
   return (
@@ -103,7 +112,12 @@ export function GamePage() {
         </aside>
       </div>
 
-      <div className="button-row">
+      <div className="button-row button-row--spread">
+        {isHost ? (
+          <button className="button button--primary" onClick={handleEndRound}>
+            End Round
+          </button>
+        ) : null}
         <button className="button button--secondary" onClick={() => navigate("/lobby")}>
           Exit Game
         </button>

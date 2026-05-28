@@ -112,11 +112,26 @@ class RoomStore {
   }
 
   async submitGuess(text: string) {
-    if (!this.state.room || !this.state.participantId) {
-      return null;
-    }
-
+    if (!this.state.room || !this.state.participantId) return null;
     const response = await api.submitGuess(this.state.room.code, this.state.participantId, text);
+    this.setRoomSnapshot(response.room);
+    return response.room;
+  }
+
+  async endRoom() {
+    if (!this.state.room || !this.state.participantId) return null;
+    const response = await this.withLoading(() =>
+      api.endRoom(this.state.room!.code, this.state.participantId!)
+    );
+    this.setRoomSnapshot(response.room);
+    return response.room;
+  }
+
+  async restartRoom() {
+    if (!this.state.room || !this.state.participantId) return null;
+    const response = await this.withLoading(() =>
+      api.restartRoom(this.state.room!.code, this.state.participantId!)
+    );
     this.setRoomSnapshot(response.room);
     return response.room;
   }

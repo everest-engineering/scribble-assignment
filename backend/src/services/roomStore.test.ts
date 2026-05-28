@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createRoom, joinRoom, startGame, submitGuess, toRoomSnapshot } from "./roomStore.js";
+import { createRoom, endGame, joinRoom, restartGame, startGame, submitGuess, toRoomSnapshot } from "./roomStore.js";
 
 describe("roomStore", () => {
   it("createRoom returns a room with a 4-character uppercase code", () => {
@@ -97,6 +97,56 @@ describe("roomStore", () => {
     const join = joinRoom(room.code, "Bob");
     startGame(room.code, participantId);
     expect(() => submitGuess(room.code, join!.participantId, "   ")).toThrow("Guess cannot be empty");
+  });
+
+  it("endGame sets status to result", () => {
+    const { room, participantId } = createRoom("Alice");
+    joinRoom(room.code, "Bob");
+    startGame(room.code, participantId);
+    expect(endGame(room.code, participantId).status).toBe("result");
+  });
+
+  it("endGame throws 403 for non-host", () => {
+    const { room, participantId } = createRoom("Alice");
+    const join = joinRoom(room.code, "Bob");
+    startGame(room.code, participantId);
+    expect(() => endGame(room.code, join!.participantId)).toThrow("Only the host can end the game");
+  });
+
+  it("endGame throws 400 when not in playing state", () => {
+    const { room, participantId } = createRoom("Alice");
+    joinRoom(room.code, "Bob");
+    expect(() => endGame(room.code, participantId)).toThrow("Game is not in playing state");
+  });
+
+  it("restartGame resets to lobby and clears round state", () => {
+    const { room, participantId } = createRoom("Alice");
+    joinRoom(room.code, "Bob");
+    startGame(room.code, participantId);
+    endGame(room.code, participantId);
+    const restarted = restartGame(room.code, participantId);
+    expect(restarted.status).toBe("lobby");
+    expect(restarted.guesses).toEqual([]);
+    expect(restarted.scores).toEqual({});
+    expect(restarted.drawerId).toBeUndefined();
+    expect(restarted.secretWord).toBeUndefined();
+  });
+
+  it("restartGame preserves participants", () => {
+    const { room, participantId } = createRoom("Alice");
+    joinRoom(room.code, "Bob");
+    startGame(room.code, participantId);
+    endGame(room.code, participantId);
+    const restarted = restartGame(room.code, participantId);
+    expect(restarted.participants).toHaveLength(2);
+  });
+
+  it("restartGame throws 403 for non-host", () => {
+    const { room, participantId } = createRoom("Alice");
+    const join = joinRoom(room.code, "Bob");
+    startGame(room.code, participantId);
+    endGame(room.code, participantId);
+    expect(() => restartGame(room.code, join!.participantId)).toThrow("Only the host can restart the game");
   });
 
   it("startGame throws 403 when non-host tries to start", () => {

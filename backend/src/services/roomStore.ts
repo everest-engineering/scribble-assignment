@@ -113,6 +113,38 @@ export function submitGuess(code: string, participantId: string, text: string) {
   return cloneRoom(room);
 }
 
+export function endGame(code: string, participantId: string) {
+  const room = rooms.get(code);
+
+  if (!room) throw new HttpError(404, "Unable to load room");
+  if (room.hostId !== participantId) throw new HttpError(403, "Only the host can end the game");
+  if (room.status !== "playing") throw new HttpError(400, "Game is not in playing state");
+
+  room.status = "result";
+  room.updatedAt = now();
+  rooms.set(room.code, room);
+
+  return cloneRoom(room);
+}
+
+export function restartGame(code: string, participantId: string) {
+  const room = rooms.get(code);
+
+  if (!room) throw new HttpError(404, "Unable to load room");
+  if (room.hostId !== participantId) throw new HttpError(403, "Only the host can restart the game");
+  if (room.status !== "result") throw new HttpError(400, "Game is not in result state");
+
+  room.status = "lobby";
+  room.guesses = [];
+  room.scores = {};
+  room.drawerId = undefined;
+  room.secretWord = undefined;
+  room.updatedAt = now();
+  rooms.set(room.code, room);
+
+  return cloneRoom(room);
+}
+
 export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSnapshot {
   const snapshot: RoomSnapshot = {
     code: room.code,
@@ -126,8 +158,12 @@ export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSn
     roles: [...STARTER_ROLES]
   };
 
-  if (room.drawerId && viewerParticipantId === room.drawerId) {
-    snapshot.secretWord = room.secretWord;
+  // During playing: only the drawer sees the secret word
+  // During result: everyone sees the correct word (round is over)
+  if (room.secretWord) {
+    if (room.status === "result" || viewerParticipantId === room.drawerId) {
+      snapshot.secretWord = room.secretWord;
+    }
   }
 
   return snapshot;
