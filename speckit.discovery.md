@@ -1,4 +1,4 @@
-# Spec Kit Discovery Notes: Room Setup, Game Start & Gameplay
+# Spec Kit Discovery Notes: Room Setup, Game Start, Gameplay & Results
 
 ## 1. Gaps (Incomplete Behaviors)
 
@@ -22,6 +22,14 @@
 *   **No Guess History or Scoreboard Data:** `ResultPanel` and `Scoreboard` are placeholders; the frontend cannot render synced guesses or scores because neither exists in room snapshots.
 *   **No Correct-Guess Scoring:** The backend does not compare guesses against the secret word, does not handle case-insensitive matches, and does not award 100 points for correct guesses.
 
+### Scenario 4 - Result, Restart & Final Validation
+*   **No Result Transition:** `RoomStatus` includes `"results"`, but there is no service function or endpoint to end the active round and move a room from `"game"` to `"results"`.
+*   **Secret Word Still Masked for Guessers:** `toRoomSnapshot()` only exposes `secretWord` to the drawer. In result state, all participants must see the correct word.
+*   **No Result Screen State:** `GamePage` always renders active gameplay controls. It does not switch into a read-only result view showing correct word, final scores, and full guess history.
+*   **No Restart Endpoint:** There is no host-only operation to restart after results and return all players to the lobby.
+*   **No Round-State Reset on Restart:** Drawing, guesses, scores, drawer assignment, and secret word need to be cleared while preserving room code, host, and participants.
+*   **No Polling Redirect Back to Lobby on Restart:** Existing game polling can fetch room state, but the frontend needs to handle `"results"` and return everyone to `/lobby` when the host restarts.
+
 ## 2. Assumptions
 
 *   **Host Assignment:** The creator of the room is defined as the host. If the host leaves the lobby (though host migration/leaving is out of scope for now), the backend memory retains the host ID as the first participant ID.
@@ -31,6 +39,9 @@
 *   **Drawing Representation:** For scenario 3, drawing can be stored as lightweight canvas path data in memory rather than binary images. The drawer's own screen must show the drawing immediately; guessers may receive it via the existing polling cadence unless the implementation can share the same snapshot flow more directly.
 *   **Scoring Rule:** Each correct guess awards 100 points. Incorrect guesses are still recorded with 0 points. If a player submits multiple correct guesses, only the first correct guess should award points to avoid repeated scoring from the same participant.
 *   **Round Completion:** Scenario 3 does not require automatically ending the round; result state and restart are reserved for Scenario 4.
+*   **Ending the Round:** Scenario 4 will use a host-only end-round action. This avoids adding timers or automatic round completion rules, which are outside the README scope.
+*   **Result Word Visibility:** The correct word is visible to everyone only after `status === "results"`.
+*   **Restart Reset:** Restart preserves participants, host ID, and room code, but clears active round state and sets `status` back to `"lobby"`.
 
 ## 3. Relevant Files
 
@@ -43,3 +54,5 @@
 *   **Frontend Pages:** [GamePage.tsx](file:///Users/manojprabhakarm/projects/work/scribble-assignment/frontend/src/pages/GamePage.tsx) (needs polling, drawer checks, and secret word display).
 *   **Frontend Components:** [GuessForm.tsx](file:///Users/manojprabhakarm/projects/work/scribble-assignment/frontend/src/components/GuessForm.tsx), [Scoreboard.tsx](file:///Users/manojprabhakarm/projects/work/scribble-assignment/frontend/src/components/Scoreboard.tsx), and [ResultPanel.tsx](file:///Users/manojprabhakarm/projects/work/scribble-assignment/frontend/src/components/ResultPanel.tsx) (need real submit handling and room-derived display).
 *   **Frontend Styling:** [app.css](file:///Users/manojprabhakarm/projects/work/scribble-assignment/frontend/src/styles/app.css) (may need canvas, toolbar, guess history, and scoreboard styles).
+*   **Scenario 4 Backend:** [roomStore.ts](file:///Users/manojprabhakarm/projects/work/scribble-assignment/backend/src/services/roomStore.ts), [schemas.ts](file:///Users/manojprabhakarm/projects/work/scribble-assignment/backend/src/api/schemas.ts), and [rooms.ts](file:///Users/manojprabhakarm/projects/work/scribble-assignment/backend/src/api/rooms.ts) need end-round and restart operations.
+*   **Scenario 4 Frontend:** [api.ts](file:///Users/manojprabhakarm/projects/work/scribble-assignment/frontend/src/services/api.ts), [roomStore.ts](file:///Users/manojprabhakarm/projects/work/scribble-assignment/frontend/src/state/roomStore.ts), [GamePage.tsx](file:///Users/manojprabhakarm/projects/work/scribble-assignment/frontend/src/pages/GamePage.tsx), and [LobbyPage.tsx](file:///Users/manojprabhakarm/projects/work/scribble-assignment/frontend/src/pages/LobbyPage.tsx) need result/restart flow support.

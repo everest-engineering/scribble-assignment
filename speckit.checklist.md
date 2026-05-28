@@ -1,6 +1,6 @@
-# Implementation Checklist: Room Setup, Game Start, & Gameplay Interaction
+# Implementation Checklist: Room Setup, Game Start, Gameplay Interaction, & Results
 
-**Purpose**: Verify and track implementation details for Scenarios 1, 2, and 3, ensuring all requirements, edge cases, and success criteria are met.
+**Purpose**: Verify and track implementation details for Scenarios 1, 2, 3, and 4, ensuring all requirements, edge cases, and success criteria are met.
 **Created**: 2026-05-28
 **Feature**: [speckit.specify.md](file:///Users/manojprabhakarm/projects/work/scribble-assignment/speckit.specify.md)
 
@@ -80,3 +80,44 @@
 - [x] CHK052 Add frontend API tests for drawing update, clear canvas, and guess submission calls.
 - [x] CHK053 Run backend and frontend tests and builds after implementation.
 - [ ] CHK054 Manually verify two-tab Scenario 3 flow: drawer draws/clears, guesser submits guesses, history and scores sync through polling.
+
+## 4. Scenario 4 — Result, Restart & Final Validation
+
+### Result State & Word Visibility
+
+- [ ] CHK055 Implement host-only round ending from active game state.
+- [ ] CHK056 Transition room status from `"game"` to `"results"` without clearing final scores or guess history.
+- [ ] CHK057 Reveal `secretWord` to every participant when `room.status === "results"`.
+- [ ] CHK058 Keep `secretWord` masked from guessers while `room.status === "game"`.
+- [ ] CHK059 Ensure result snapshots include final scores and full guess history for every viewer.
+
+### Restart State & Permissions
+
+- [ ] CHK060 Implement host-only restart from result state.
+- [ ] CHK061 Reject non-host end-round and restart attempts at the backend.
+- [ ] CHK062 Preserve room code, host ID, and participant list across restart.
+- [ ] CHK063 Clear `drawerId`, `secretWord`, drawing state, and guess history on restart.
+- [ ] CHK064 Reset active-round scores on restart so the lobby starts clean.
+- [ ] CHK065 Return room status to `"lobby"` after restart.
+
+### API & Validation
+
+- [ ] CHK066 Add Zod schemas for end-round and restart payloads requiring a trimmed `participantId`.
+- [ ] CHK067 Add `POST /rooms/:code/end` route with status and host checks.
+- [ ] CHK068 Add `POST /rooms/:code/restart` route with status and host checks.
+- [ ] CHK069 Return clear 400/403/404 errors for invalid state, permission failures, and unknown rooms.
+
+### Frontend Result & Restart UI
+
+- [ ] CHK070 Add frontend API and store actions for end-round and restart.
+- [ ] CHK071 Add host-only End Round control during active gameplay.
+- [ ] CHK072 Render result mode with correct word, final scores, and full guess history for all participants.
+- [ ] CHK073 Hide drawing and guess submission controls in result mode.
+- [ ] CHK074 Add host-only Restart control in result mode.
+- [ ] CHK075 Show non-host participants that they are waiting for the host to restart.
+- [ ] CHK076 Redirect all polling game clients to `/lobby` when restarted room status becomes `"lobby"`.
+
+### Verification
+
+- [ ] CHK077 Add automated tests for result transition, result word visibility, host-only restart, participant preservation, and round-state clearing.
+- [ ] CHK078 Manually verify two-tab Scenario 4 flow: end round, shared result state, restart to lobby, players preserved, round state cleared.

@@ -1,4 +1,4 @@
-# Feature Specification: Room Setup, Game Start, & Gameplay Interaction
+# Feature Specification: Room Setup, Game Start, Gameplay Interaction, & Results
 
 **Feature Branch**: `002-game-start-drawer-flow`
 
@@ -6,7 +6,7 @@
 
 **Status**: Draft
 
-**Input**: User description: "Scenario 1, 2 & 3"
+**Input**: User description: "Scenario 1, 2, 3 & 4"
 
 ## User Scenarios & Testing
 
@@ -130,6 +130,37 @@ As a player, I want correct guesses to update scores predictably so that everyon
 3. **Given** a guesser has already earned points for a correct guess in the active round, **When** they submit the correct word again, **Then** the later guess is recorded but no additional points are awarded.
 4. **Given** scores have changed, **When** any player polls the room snapshot, **Then** the scoreboard displays each participant with the current score.
 
+---
+
+### User Story 10 - Result State Visibility (Priority: P1)
+As a participant, I want the result state to show the correct word, final scores, and full guess history so that the round has a clear conclusion.
+
+**Why this priority**: Scenario 4 requires a shared result state before restart; without it, final validation cannot prove the round ended consistently for all players.
+
+**Independent Test**: Start a game with two players, submit guesses, end the round, and verify both tabs show the same correct word, final scores, and full guess history.
+
+**Acceptance Scenarios**:
+1. **Given** a room is in active game state, **When** the host ends the round, **Then** the backend transitions the room status to `"results"`.
+2. **Given** the room status is `"results"`, **When** any participant fetches the room snapshot, **Then** the correct word is visible to them.
+3. **Given** the room status is `"results"`, **When** any participant views the game screen, **Then** they see final scores and full guess history in a read-only result view.
+4. **Given** the room status is `"results"`, **When** participants continue polling, **Then** all players converge on the same result state within ~2 seconds.
+
+---
+
+### User Story 11 - Host Restart to Lobby (Priority: P1)
+As the host, I want to restart from the result state so that the same players can return to the lobby for another game setup.
+
+**Why this priority**: Restart is the final Scenario 4 behavior and validates that round state can be cleared without losing room membership.
+
+**Independent Test**: From result state, click Restart as the host. Verify all tabs return to `/lobby`, players are preserved, and round state is cleared.
+
+**Acceptance Scenarios**:
+1. **Given** a room is in result state and the viewer is the host, **When** they click Restart, **Then** the backend transitions the room status to `"lobby"`.
+2. **Given** a room is restarted, **When** any participant fetches the room snapshot, **Then** participants and host ID are preserved.
+3. **Given** a room is restarted, **When** any participant fetches the room snapshot, **Then** `drawerId`, `secretWord`, drawing, guesses, and scores are cleared/reset for a new lobby.
+4. **Given** non-host participants are in result state, **When** they view the restart controls, **Then** they cannot restart and see that they are waiting for the host.
+5. **Given** a restarted room is polled by participants still on the game screen, **When** `status === "lobby"`, **Then** clients navigate back to `/lobby`.
+
 ### Edge Cases
 - **Room Isolation:** Players in Room A must not see or sync state with Room B.
 - **Lowercase Code Input:** The room code is case-insensitive. Entering `abcd` should resolve to `ABCD`.
@@ -139,6 +170,9 @@ As a player, I want correct guesses to update scores predictably so that everyon
 - **Guesser Permissions:** Only non-drawer participants can submit guesses.
 - **Guess Normalization:** Guess text must be trimmed before storage and compared case-insensitively against the selected secret word.
 - **Repeated Correct Guesses:** A participant cannot repeatedly earn 100 points by resubmitting the correct word.
+- **Result Word Visibility:** Guessers cannot see the secret word during active play, but every participant can see the correct word in result state.
+- **Restart Permissions:** Only the host can restart from results.
+- **Restart Reset:** Restart clears round-specific state while preserving room code, host, and participants.
 
 ## Requirements
 
@@ -162,6 +196,13 @@ As a player, I want correct guesses to update scores predictably so that everyon
 - **FR-017**: The backend MUST maintain participant scores in the room snapshot; all active-round scores start at 0.
 - **FR-018**: The frontend MUST render an interactive canvas for the drawer and a read-only drawing view for guessers.
 - **FR-019**: The frontend MUST render synced guess history and scoreboard from the polled room snapshot.
+- **FR-020**: The backend MUST expose a host-only endpoint to end the active round and transition room status to `"results"`.
+- **FR-021**: The backend MUST expose the correct word to all participants when room status is `"results"`.
+- **FR-022**: The frontend MUST render a read-only result view with correct word, final scores, and full guess history.
+- **FR-023**: The backend MUST expose a host-only restart endpoint that transitions room status to `"lobby"`.
+- **FR-024**: Restart MUST preserve room code, host ID, and participants.
+- **FR-025**: Restart MUST clear `drawerId`, `secretWord`, drawing state, guess history, and active-round scores.
+- **FR-026**: The frontend MUST navigate participants back to `/lobby` when polling observes restarted lobby status.
 
 ## Success Criteria
 
@@ -176,6 +217,10 @@ As a player, I want correct guesses to update scores predictably so that everyon
 - **SC-008**: Correct guesses award exactly 100 points and incorrect guesses award 0 points.
 - **SC-009**: Guess history and scores appear for all players within the existing polling interval.
 - **SC-010**: Guessers cannot update or clear the room drawing state through the UI or API.
+- **SC-011**: Result state shows the same correct word, final scores, and full guess history to every participant.
+- **SC-012**: Non-host restart attempts are rejected by the backend and unavailable from the UI.
+- **SC-013**: Restart returns all polling participants to lobby within the existing polling interval.
+- **SC-014**: Restart preserves players and clears all round state deterministically.
 
 ## Assumptions
 - **Host Persistence:** Once a host is assigned, they remain the host for the duration of that lobby session.
@@ -183,3 +228,5 @@ As a player, I want correct guesses to update scores predictably so that everyon
 - **Deterministic Word Choice:** Choosing words deterministically via a hash of the room code guarantees that multiple players in the room agree on the word without storing random state changes.
 - **Canvas State Shape:** Drawing can be represented as serializable path/stroke data rather than binary image uploads.
 - **Single Correct Score:** A player receives the 100-point award once per round, even if they submit the correct word multiple times.
+- **Host Ends Round:** The host explicitly ends the round for Scenario 4; no timers or automatic round-end logic are introduced.
+- **Scores Reset on Restart:** Scores are considered active-round state and return to 0/empty when the room returns to lobby.
