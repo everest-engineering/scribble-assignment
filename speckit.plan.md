@@ -1,55 +1,93 @@
-# Spec Kit Tasks: Room Setup & Lobby
+# Technical Plan: Room Setup, Lobby, & Game Start
 
-## 1. Discovery & Analysis
-- [x] TSK001 Inspect current backend routes (`rooms.ts`), services (`roomStore.ts`), and models (`game.ts`).
-- [x] TSK002 Inspect current frontend routing, room state (`roomStore.ts`), and page screens (`LobbyPage.tsx` and `JoinRoomPage.tsx`).
-- [x] TSK003 Document gaps and assumptions in `speckit.discovery.md`.
+**Feature Branch**: `002-game-start-drawer-flow`
 
-## 2. Specification & Design
-- [x] TSK004 Create `speckit.specify.md` with prioritized user stories, acceptance criteria, and edge cases.
-- [x] TSK005 Create `speckit.plan.md` outlining state model changes, API routes, and file updates.
+**Created**: 2026-05-28
 
-## 3. Backend Implementation
-- [ ] TSK006 Update the backend `Room` and `RoomSnapshot` interfaces in [backend/src/models/game.ts](file:///Users/manojprabhakarm/projects/work/scribble-assignment/backend/src/models/game.ts) to include `hostId`.
-- [ ] TSK007 Update [backend/src/services/roomStore.ts](file:///Users/manojprabhakarm/projects/work/scribble-assignment/backend/src/services/roomStore.ts) to set `hostId` when creating a room, and include it in `toRoomSnapshot()`.
-- [ ] TSK008 Update [backend/src/api/schemas.ts](file:///Users/manojprabhakarm/projects/work/scribble-assignment/backend/src/api/schemas.ts) to validate that room codes match a 4-character uppercase alphanumeric regex, and trim/reject empty values.
-- [ ] TSK009 Update [backend/src/api/rooms.ts](file:///Users/manojprabhakarm/projects/work/scribble-assignment/backend/src/api/rooms.ts) to trim and uppercase code parameters, and handle schema validation errors gracefully.
+**Status**: Draft
 
-## 4. Frontend Implementation
-- [ ] TSK010 Add `hostId` to the frontend `RoomSnapshot` interface in [frontend/src/services/api.ts](file:///Users/manojprabhakarm/projects/work/scribble-assignment/frontend/src/services/api.ts).
-- [ ] TSK011 Implement Client-side validation in [frontend/src/pages/JoinRoomPage.tsx](file:///Users/manojprabhakarm/projects/work/scribble-assignment/frontend/src/pages/JoinRoomPage.tsx) to trim and reject empty or invalid room code patterns, displaying clear error feedback before sending a request.
-- [ ] TSK012 Implement polling (2000ms interval) in [frontend/src/pages/LobbyPage.tsx](file:///Users/manojprabhakarm/projects/work/scribble-assignment/frontend/src/pages/LobbyPage.tsx) to fetch the latest room status from the backend periodically.
-- [ ] TSK013 Restrict "Start Game" button in [frontend/src/pages/LobbyPage.tsx](file:///Users/manojprabhakarm/projects/work/scribble-assignment/frontend/src/pages/LobbyPage.tsx):
-  - Only show/enable if the user's `participantId` matches `room.hostId`.
-  - Disable it if the player count is less than 2.
-  - Show a message to non-hosts: "Waiting for host to start the game."
+## State Model Changes
 
-## 5. Verification & Testing
-- [ ] TSK014 Verify backend tests pass via `npm run test` in the `backend/` directory.
-- [ ] TSK015 Add unit tests in [backend/src/api/schemas.test.ts](file:///Users/manojprabhakarm/projects/work/scribble-assignment/backend/src/api/schemas.test.ts) for the new room code Zod validation.
-- [ ] TSK016 Manually test the full flow in a browser with two separate windows/tabs:
-  - Verify automatic lobby polling occurs every ~2s (confirm via Network tab).
-  - Verify host-only Start Game controls are enforced both in UI and API (try triggering start as non-host).
-lling mechanism inside `useEffect` that calls `roomStore.fetchRoom()` every 2000ms when the player is in the lobby status.
-- Add checks: `const isHost = room.hostId === participantId;`
-- Add checks: `const canStart = isHost && room.participants.length >= 2;`
-- Conditionally render/style or disable the "Start Game" button based on `isHost` and `canStart`. If not the host, disable the button and show a message "Waiting for host to start...".
+### Backend Changes
 
-#### 3. [pages/JoinRoomPage.tsx](file:///Users/manojprabhakarm/projects/work/scribble-assignment/frontend/src/pages/JoinRoomPage.tsx)
-- Perform client-side check that code is not empty before sending API request. Reject with clear feedback.
+1.  **Room Model (`Room` in [game.ts](file:///Users/manojprabhakarm/projects/work/scribble-assignment/backend/src/models/game.ts)):**
+    - Update `status: "lobby" | "game" | "results"`.
+    - Add `drawerId: string | null` (designates who is drawing).
+    - Add `secretWord: string | null` (designates secret word for the round).
+2.  **Room Snapshot (`RoomSnapshot` in [game.ts](file:///Users/manojprabhakarm/projects/work/scribble-assignment/backend/src/models/game.ts)):**
+    - Update `status: "lobby" | "game" | "results"`.
+    - Add `drawerId: string | null`.
+    - Add optional/nullable `secretWord: string | null` (exposed ONLY to the drawer).
+
+### Frontend Changes
+
+- `RoomSnapshot` in `api.ts` updated to match backend definition.
+
+---
+
+## API Design & Data Flow
+
+### 1. Start Game (`POST /rooms/:code/start`)
+- Request body: `{ participantId: string }`
+- Backend checks:
+  - Caller must exist and be the room's host (`participantId === room.hostId`).
+  - Room must have at least 2 participants.
+- Action:
+  - Transitions `status` to `"game"`.
+  - Sets `drawerId` to the host's ID.
+  - Deterministically selects secret word: `STARTER_WORDS[character_sum(code) % STARTER_WORDS.length]`.
+- Response: returns room snapshot.
+
+### 2. Fetch Room Snapshot (`GET /rooms/:code?participantId=...`)
+- Backend `toRoomSnapshot` masks `secretWord` unless `participantId === room.drawerId`.
+
+---
+
+## File-by-File Changes
+
+### Backend
+
+#### 1. [models/game.ts](file:///Users/manojprabhakarm/projects/work/scribble-assignment/backend/src/models/game.ts)
+- Update `RoomStatus` to `"lobby" | "game" | "results"`.
+- Update `Room` and `RoomSnapshot` interfaces to include `drawerId: string | null` and `secretWord: string | null`.
+
+#### 2. [services/roomStore.ts](file:///Users/manojprabhakarm/projects/work/scribble-assignment/backend/src/services/roomStore.ts)
+- Update `createRoom()` to initialize `drawerId: null` and `secretWord: null`.
+- Update `toRoomSnapshot()` to hide `secretWord` if the requesting `viewerParticipantId !== room.drawerId`.
+
+#### 3. [api/schemas.ts](file:///Users/manojprabhakarm/projects/work/scribble-assignment/backend/src/api/schemas.ts)
+- Add `startGameSchema` validating `{ participantId: z.string() }`.
+
+#### 4. [api/rooms.ts](file:///Users/manojprabhakarm/projects/work/scribble-assignment/backend/src/api/rooms.ts)
+- Add `POST /rooms/:code/start` route handler.
+
+### Frontend
+
+#### 1. [services/api.ts](file:///Users/manojprabhakarm/projects/work/scribble-assignment/frontend/src/services/api.ts)
+- Update `RoomSnapshot` interface.
+- Add `api.startGame()` method.
+
+#### 2. [state/roomStore.ts](file:///Users/manojprabhakarm/projects/work/scribble-assignment/frontend/src/state/roomStore.ts)
+- Add `startGame` action.
+
+#### 3. [pages/LobbyPage.tsx](file:///Users/manojprabhakarm/projects/work/scribble-assignment/frontend/src/pages/LobbyPage.tsx)
+- Call `roomStore.startGame()` on Start button click.
+- Add redirect `useEffect` navigating to `/game` if `room.status === "game"`.
+
+#### 4. [pages/GamePage.tsx](file:///Users/manojprabhakarm/projects/work/scribble-assignment/frontend/src/pages/GamePage.tsx)
+- Add 2s polling hook calling `roomStore.fetchRoom()`.
+- Add redirect `useEffect` navigating to `/lobby` if `room.status === "lobby"`.
+- Identify drawer and display secret word for drawer; show guesser view otherwise.
 
 ---
 
 ## Verification & Testing Plan
 
 ### Automated Tests
-- Run backend schema tests: `npm run test` (in `backend`).
-- Add tests in `backend/src/api/schemas.test.ts` to verify code format validation.
+- Run `npm run test` in backend.
+- Add a test in `roomStore.test.ts` to verify that `toRoomSnapshot` masks `secretWord` for guessers and reveals it to the drawer.
 
 ### Manual Verification
-- Start frontend and backend.
-- Open Tab A: Create room with name "Alice". Verify Alice's screen shows the "Start Game" button, but it is disabled.
-- Open Tab B: Join room code from Tab A with name "Bob".
-- Verify Tab A (Alice) automatically updates to show Bob in the list within 2 seconds without clicking manual refresh.
-- Verify Alice's "Start Game" button becomes enabled.
-- Verify Bob's screen shows a disabled "Start Game" button or hides it, with message "Waiting for host to start...".
+- Open two tabs.
+- Let Host Alice start the game. Verify Bob is redirected automatically.
+- Verify role assignments and word visibility match their status.
