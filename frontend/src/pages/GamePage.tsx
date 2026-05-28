@@ -21,14 +21,17 @@ export function GamePage() {
     return null;
   }
 
-  const viewer = room.participants.find((participant) => participant.id === participantId) ?? null;
+  const isDrawer = participantId === room.drawerId;
+  const role = isDrawer ? "Drawer" : "Guesser";
 
   return (
     <section className="panel game-page">
       <div className="game-page__header">
         <div className="game-page__header-left">
           <span className="section-kicker">Round 1</span>
-          <h1 className="game-page__title">Guess the Word!</h1>
+          <h1 className="game-page__title">
+            {isDrawer ? "Your turn to draw!" : "Guess the Word!"}
+          </h1>
         </div>
         <RoomCodeBadge code={room.code} />
       </div>
@@ -41,8 +44,11 @@ export function GamePage() {
 
         <div className="game-page__main">
           <Card title="Canvas">
-            <div className="canvas-placeholder" style={{ minHeight: '500px', backgroundColor: '#ffffff', border: '1px solid #e5e7eb' }}>
-              Waiting for drawer...
+            <div
+              className="canvas-placeholder"
+              style={{ minHeight: "500px", backgroundColor: "#ffffff", border: "1px solid #e5e7eb" }}
+            >
+              {isDrawer ? "Draw here! (coming soon)" : "Waiting for drawer..."}
             </div>
           </Card>
         </div>
@@ -52,18 +58,31 @@ export function GamePage() {
             <dl className="detail-list">
               <div>
                 <dt>Name</dt>
-                <dd>{viewer?.name ?? "Unknown player"}</dd>
+                <dd>{room.participants.find((p) => p.id === participantId)?.name ?? "Unknown"}</dd>
               </div>
               <div>
-                <dt>Status</dt>
-                <dd>Playing</dd>
+                <dt>Role</dt>
+                <dd>{role}</dd>
               </div>
             </dl>
           </Card>
 
-          <Card title="Your Guess">
-            <GuessForm />
-          </Card>
+          {isDrawer && room.secretWord ? (
+            <Card title="Secret Word">
+              <p style={{ fontSize: "1.5rem", fontWeight: "bold", textAlign: "center", padding: "1rem" }}>
+                {room.secretWord}
+              </p>
+              <p style={{ fontSize: "0.75rem", color: "#6b7280", textAlign: "center" }}>
+                Only you can see this
+              </p>
+            </Card>
+          ) : null}
+
+          {!isDrawer ? (
+            <Card title="Your Guess">
+              <GuessForm />
+            </Card>
+          ) : null}
         </aside>
       </div>
 

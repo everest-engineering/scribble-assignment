@@ -19,7 +19,7 @@ export function createRoomsRouter() {
 
       response.status(201).json({
         participantId: result.participantId,
-        room: toRoomSnapshot(result.room)
+        room: toRoomSnapshot(result.room, result.participantId)
       });
     } catch (error) {
       next(error);
@@ -38,7 +38,7 @@ export function createRoomsRouter() {
 
       response.json({
         participantId: result.participantId,
-        room: toRoomSnapshot(result.room)
+        room: toRoomSnapshot(result.room, result.participantId)
       });
     } catch (error) {
       next(error);
@@ -49,7 +49,6 @@ export function createRoomsRouter() {
     try {
       const { code } = roomCodeParamsSchema.parse(request.params);
       const { participantId } = roomViewerQuerySchema.parse(request.query);
-      void participantId;
       const room = getRoom(code.toUpperCase());
 
       if (!room) {
@@ -57,7 +56,7 @@ export function createRoomsRouter() {
       }
 
       response.json({
-        room: toRoomSnapshot(room)
+        room: toRoomSnapshot(room, participantId)
       });
     } catch (error) {
       next(error);
@@ -71,7 +70,7 @@ export function createRoomsRouter() {
       const room = startGame(code.toUpperCase(), participantId);
 
       response.json({
-        room: toRoomSnapshot(room)
+        room: toRoomSnapshot(room, participantId)
       });
     } catch (error) {
       next(error);

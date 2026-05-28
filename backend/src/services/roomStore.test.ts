@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createRoom, joinRoom, startGame } from "./roomStore.js";
+import { createRoom, joinRoom, startGame, toRoomSnapshot } from "./roomStore.js";
 
 describe("roomStore", () => {
   it("createRoom returns a room with a 4-character uppercase code", () => {
@@ -30,6 +30,44 @@ describe("roomStore", () => {
     const started = startGame(room.code, participantId);
 
     expect(started.status).toBe("playing");
+  });
+
+  it("startGame sets drawerId to hostId", () => {
+    const { room, participantId } = createRoom("Alice");
+    joinRoom(room.code, "Bob");
+
+    const started = startGame(room.code, participantId);
+
+    expect(started.drawerId).toBe(participantId);
+  });
+
+  it("startGame sets secretWord to 'rocket'", () => {
+    const { room, participantId } = createRoom("Alice");
+    joinRoom(room.code, "Bob");
+
+    const started = startGame(room.code, participantId);
+
+    expect(started.secretWord).toBe("rocket");
+  });
+
+  it("toRoomSnapshot includes secretWord for the drawer", () => {
+    const { room, participantId } = createRoom("Alice");
+    joinRoom(room.code, "Bob");
+    const started = startGame(room.code, participantId);
+
+    const snapshot = toRoomSnapshot(started, participantId);
+
+    expect(snapshot.secretWord).toBe("rocket");
+  });
+
+  it("toRoomSnapshot omits secretWord for a guesser", () => {
+    const { room, participantId } = createRoom("Alice");
+    const join = joinRoom(room.code, "Bob");
+    const started = startGame(room.code, participantId);
+
+    const snapshot = toRoomSnapshot(started, join!.participantId);
+
+    expect(snapshot.secretWord).toBeUndefined();
   });
 
   it("startGame throws 403 when non-host tries to start", () => {
