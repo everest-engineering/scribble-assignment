@@ -4,6 +4,13 @@
 
 Users should be able to create or join isolated game rooms using a room code. The creator of the room becomes the host, the lobby should automatically synchronize using polling, and only the host should be allowed to start the game when enough players are present.
 
+## Clarifications
+
+### Session 2026-05-28
+- Q: What happens when the host starts the game? → A: Navigate all players in the room to the Game page immediately.
+- Q: What happens to the polling interval when a player leaves the Lobby? → A: Clear the polling interval immediately when the user leaves the Lobby.
+- Q: What happens if the host leaves the room during the Lobby phase? → A: Transfer host status to the next player in the participant list.
+
 ### User Stories
 
 * US-01: As a player, I want to create a room so I can host a Scribble game
@@ -22,10 +29,11 @@ Users should be able to create or join isolated game rooms using a room code. Th
 * AC-05: Lobby automatically refreshes approximately every 2 seconds
 * AC-06: Newly joined participants appear automatically in the lobby
 * AC-07: Multiple rooms remain completely isolated from one another
-* AC-08: Only the host can start the game
+* AC-08: Only the host can start the game; upon start, all players are navigated to the Game page immediately
 * AC-09: Game start is blocked if fewer than 2 players are present
 * AC-10: Backend validates host permissions before allowing game start
-* AC-11: Polling intervals are cleaned up correctly during navigation
+* AC-11: Polling intervals are cleared immediately when the user leaves the Lobby or the component unmounts
+* AC-12: If the host leaves the room, host status is automatically transferred to the next player in the participant list
 
 ### Edge Cases
 
@@ -36,6 +44,7 @@ Users should be able to create or join isolated game rooms using a room code. Th
 * EC-05: Rapid polling requests should not create duplicate intervals
 * EC-06: Leaving and re-entering the lobby should not create memory leaks
 * EC-07: Starting a game with only one player should fail gracefully
+* EC-08: Host migration logic must ensure a room always has exactly one host as long as participants remain
 
 ### Data Requirements
 
