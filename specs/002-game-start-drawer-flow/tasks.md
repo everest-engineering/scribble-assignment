@@ -23,9 +23,9 @@
 
 **Purpose**: Core infrastructure updates that block all user stories
 
-- [ ] T002 Update Participant and Room types in backend/src/models/game.ts to include role and secretWord
-- [ ] T003 Update RoomSnapshot in backend/src/models/game.ts to include secretWord
-- [ ] T004 Update RoomSnapshot interface in frontend/src/services/api.ts to match the new backend signature
+- [x] T002 Update Participant and Room types in backend/src/models/game.ts to include role and secretWord
+- [x] T003 Update RoomSnapshot in backend/src/models/game.ts to include secretWord
+- [x] T004 Update RoomSnapshot interface in frontend/src/services/api.ts to match the new backend signature
 
 **Checkpoint**: Foundation ready - user story implementation can now begin
 
@@ -37,9 +37,9 @@
 
 **Independent Test**: Start the game with 2 players. Verify that the host's participant object has `role: "drawer"` and the guest has `role: "guesser"`.
 
-- [ ] T005 [P] [US1] Create a test suite block for role assignment in backend/src/services/roomStore.test.ts
-- [ ] T006 [US1] Update `startGame` logic in backend/src/services/roomStore.ts to assign roles to participants
-- [ ] T007 [P] [US1] Update `GamePage.tsx` in frontend/src/pages/GamePage.tsx to conditionally render drawer vs guesser UI based on local role
+- [x] T005 [P] [US1] Create a test suite block for role assignment in backend/src/services/roomStore.test.ts
+- [x] T006 [US1] Update `startGame` logic in backend/src/services/roomStore.ts to assign roles to participants
+- [x] T007 [P] [US1] Update `GamePage.tsx` in frontend/src/pages/GamePage.tsx to conditionally render drawer vs guesser UI based on local role
 
 **Checkpoint**: US1 complete - Roles are successfully assigned and utilized by the UI.
 
@@ -51,10 +51,10 @@
 
 **Independent Test**: Inspect the API response for the room. Verify `secretWord` is populated for the drawer and `null` for the guessers.
 
-- [ ] T008 [P] [US2] Create a test suite block for payload masking in backend/src/services/roomStore.test.ts
-- [ ] T009 [US2] Update `startGame` logic in backend/src/services/roomStore.ts to deterministically set `room.secretWord = "rocket"`
-- [ ] T010 [US2] Update `toRoomSnapshot` in backend/src/services/roomStore.ts to mask `secretWord` to `null` if the viewer is a guesser
-- [ ] T011 [US2] Update GET /rooms/:code endpoint in backend/src/api/rooms.ts to pass `participantId` to `toRoomSnapshot` for conditional masking
+- [x] T008 [P] [US2] Create a test suite block for payload masking in backend/src/services/roomStore.test.ts
+- [x] T009 [US2] Update `startGame` logic in backend/src/services/roomStore.ts to deterministically set `room.secretWord = "rocket"`
+- [x] T010 [US2] Update `toRoomSnapshot` in backend/src/services/roomStore.ts to mask `secretWord` to `null` if the viewer is a guesser
+- [x] T011 [US2] Update GET /rooms/:code endpoint in backend/src/api/rooms.ts to pass `participantId` to `toRoomSnapshot` for conditional masking
 
 **Checkpoint**: US2 complete - Secret word is deterministic and safely masked.
 
@@ -66,11 +66,11 @@
 
 **Independent Test**: Try to join a "playing" room and receive a 403. Start a game and verify clients navigate to the game board.
 
-- [ ] T012 [P] [US3] Create test suite block for late join blocking in backend/src/services/roomStore.test.ts
-- [ ] T013 [US3] Update `joinRoom` logic in backend/src/services/roomStore.ts to throw/return error if `status === "playing"`
-- [ ] T014 [US3] Update `/:code/join` endpoint in backend/src/api/rooms.ts to handle the late-join error and return 403
-- [ ] T015 [P] [US3] Update frontend `JoinRoomPage.tsx` in frontend/src/pages/JoinRoomPage.tsx to properly catch and display the 403 "Room already in progress" error
-- [ ] T016 [US3] Verify or add auto-navigation logic in frontend/src/state/roomStore.ts so polling clients navigate to `/game` when status changes to "playing"
+- [x] T012 [P] [US3] Create test suite block for late join blocking in backend/src/services/roomStore.test.ts
+- [x] T013 [US3] Update `joinRoom` logic in backend/src/services/roomStore.ts to throw/return error if `status === "playing"`
+- [x] T014 [US3] Update `/:code/join` endpoint in backend/src/api/rooms.ts to handle the late-join error and return 403
+- [x] T015 [P] [US3] Update frontend `JoinRoomPage.tsx` in frontend/src/pages/JoinRoomPage.tsx to properly catch and display the 403 "Room already in progress" error
+- [x] T016 [US3] Verify or add auto-navigation logic in frontend/src/state/roomStore.ts so polling clients navigate to `/game` when status changes to "playing"
 
 **Checkpoint**: US3 complete - Transitions are seamless and late joins are prevented.
 
@@ -80,8 +80,8 @@
 
 **Purpose**: Final verification and cleanup
 
-- [ ] T017 [P] Run quickstart.md validation steps in multiple browser tabs (ensuring "Name cannot be empty or whitespace" is tested)
-- [ ] T018 [P] Verify no TypeScript errors (Rule I) in frontend and backend
+- [x] T017 [P] Run quickstart.md validation steps in multiple browser tabs (ensuring "Name cannot be empty or whitespace" is tested)
+- [x] T018 [P] Verify no TypeScript errors (Rule I) in frontend and backend
 
 ---
 

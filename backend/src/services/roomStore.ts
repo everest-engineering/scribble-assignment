@@ -37,7 +37,8 @@ function createParticipant(name?: string): Participant {
   return {
     id: randomUUID(),
     name: displayName(name),
-    joinedAt: now()
+    joinedAt: now(),
+    role: null
   };
 }
 
@@ -56,6 +57,7 @@ export function createRoom(playerName: string) {
     status: "lobby",
     hostId: participant.id,
     participants: [participant],
+    secretWord: null,
     createdAt: now(),
     updatedAt: now()
   };
@@ -73,6 +75,10 @@ export function joinRoom(code: string, playerName: string) {
 
   if (!room) {
     return null;
+  }
+
+  if (room.status !== "lobby") {
+    throw new Error("Room already in progress");
   }
 
   const participant = createParticipant(playerName);
@@ -132,6 +138,11 @@ export function startGame(code: string, participantId: string) {
   }
 
   room.status = "playing";
+  room.secretWord = STARTER_WORDS[0];
+  room.participants.forEach(p => {
+    p.role = p.id === room.hostId ? "drawer" : "guesser";
+  });
+  
   room.updatedAt = now();
   rooms.set(room.code, room);
 
@@ -139,13 +150,15 @@ export function startGame(code: string, participantId: string) {
 }
 
 export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSnapshot {
-  void viewerParticipantId;
+  const viewer = room.participants.find(p => p.id === viewerParticipantId);
+  const canSeeWord = viewer?.role === "drawer";
 
   return {
     code: room.code,
     status: room.status,
     hostId: room.hostId,
     participants: room.participants.map((participant) => ({ ...participant })),
+    secretWord: canSeeWord ? room.secretWord : null,
     availableWords: listWords(),
     roles: [...STARTER_ROLES]
   };

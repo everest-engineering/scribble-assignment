@@ -5,6 +5,7 @@ export interface Participant {
   id: string;
   name: string;
   joinedAt: string;
+  role: ParticipantRole | null;
 }
 
 export interface Room {
@@ -12,6 +13,7 @@ export interface Room {
   status: RoomStatus;
   hostId: string;
   participants: Participant[];
+  secretWord: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -21,6 +23,7 @@ export interface RoomSnapshot {
   status: RoomStatus;
   hostId: string;
   participants: Participant[];
+  secretWord: string | null;
   availableWords: string[];
   roles: ParticipantRole[];
 }

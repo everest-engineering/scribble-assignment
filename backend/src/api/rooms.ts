@@ -53,16 +53,24 @@ export function createRoomsRouter() {
     try {
       const { code } = roomCodeParamsSchema.parse(request.params);
       const { playerName } = joinRoomSchema.parse(request.body);
-      const result = joinRoom(code.toUpperCase(), playerName);
+      
+      try {
+        const result = joinRoom(code.toUpperCase(), playerName);
 
-      if (!result) {
-        throw new HttpError(404, "Unable to join room");
+        if (!result) {
+          throw new HttpError(404, "Room not found");
+        }
+
+        response.json({
+          participantId: result.participantId,
+          room: toRoomSnapshot(result.room, result.participantId)
+        });
+      } catch (err) {
+        if (err instanceof Error && err.message === "Room already in progress") {
+          throw new HttpError(403, err.message);
+        }
+        throw err;
       }
-
-      response.json({
-        participantId: result.participantId,
-        room: toRoomSnapshot(result.room, result.participantId)
-      });
     } catch (error) {
       next(error);
     }
