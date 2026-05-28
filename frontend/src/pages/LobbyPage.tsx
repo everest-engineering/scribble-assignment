@@ -14,6 +14,11 @@ export function LobbyPage() {
   useEffect(() => {
     if (!room) {
       navigate("/", { replace: true });
+      return;
+    }
+
+    if (room.status === "game") {
+      navigate("/game", { replace: true });
     }
   }, [navigate, room]);
 
@@ -39,6 +44,16 @@ export function LobbyPage() {
       await roomStore.fetchRoom();
     } catch (caughtError) {
       setRefreshError(caughtError instanceof Error ? caughtError.message : "Unable to refresh room");
+    }
+  }
+
+  async function handleStartGame() {
+    try {
+      setRefreshError(null);
+      await roomStore.startGame();
+      navigate("/game");
+    } catch (caughtError) {
+      setRefreshError(caughtError instanceof Error ? caughtError.message : "Unable to start game");
     }
   }
 
@@ -96,7 +111,7 @@ export function LobbyPage() {
           {isLoading ? "Refreshing..." : "Refresh Room"}
         </button>
         {isHost ? (
-          <button className="button button--primary" disabled={!canStart} onClick={() => navigate("/game")}>
+          <button className="button button--primary" disabled={!canStart || isLoading} onClick={handleStartGame}>
             Start Game
           </button>
         ) : (

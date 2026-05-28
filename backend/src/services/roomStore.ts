@@ -49,6 +49,11 @@ export function listWords() {
   return [...STARTER_WORDS];
 }
 
+export function selectWordForRoom(code: string) {
+  const characterSum = [...code].reduce((sum, character) => sum + character.charCodeAt(0), 0);
+  return STARTER_WORDS[characterSum % STARTER_WORDS.length];
+}
+
 export function createRoom(playerName?: string) {
   const participant = createParticipant(playerName);
   const room: Room = {
@@ -56,6 +61,8 @@ export function createRoom(playerName?: string) {
     status: "lobby",
     participants: [participant],
     hostId: participant.id,
+    drawerId: null,
+    secretWord: null,
     createdAt: now(),
     updatedAt: now()
   };
@@ -97,8 +104,32 @@ export function saveRoom(room: Room) {
   return getRoom(room.code);
 }
 
+export function startGame(code: string, participantId: string) {
+  const room = rooms.get(code);
+
+  if (!room) {
+    return { ok: false as const, reason: "not-found" as const };
+  }
+
+  if (room.hostId !== participantId) {
+    return { ok: false as const, reason: "host-required" as const };
+  }
+
+  if (room.participants.length < 2) {
+    return { ok: false as const, reason: "minimum-players" as const };
+  }
+
+  room.status = "game";
+  room.drawerId = room.hostId;
+  room.secretWord = selectWordForRoom(room.code);
+  room.updatedAt = now();
+  rooms.set(room.code, room);
+
+  return { ok: true as const, room: cloneRoom(room) };
+}
+
 export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSnapshot {
-  void viewerParticipantId;
+  const isDrawer = viewerParticipantId !== undefined && room.drawerId !== null && viewerParticipantId === room.drawerId;
 
   return {
     code: room.code,
@@ -106,6 +137,8 @@ export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSn
     participants: room.participants.map((participant) => ({ ...participant })),
     availableWords: listWords(),
     roles: [...STARTER_ROLES],
-    hostId: room.hostId
+    hostId: room.hostId,
+    drawerId: room.drawerId,
+    secretWord: isDrawer ? room.secretWord : null
   };
 }
