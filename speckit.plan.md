@@ -1,81 +1,36 @@
-# Technical Plan: Room Setup & Lobby
+# Spec Kit Tasks: Room Setup & Lobby
 
-**Feature Branch**: `001-room-setup-lobby`
+## 1. Discovery & Analysis
+- [x] TSK001 Inspect current backend routes (`rooms.ts`), services (`roomStore.ts`), and models (`game.ts`).
+- [x] TSK002 Inspect current frontend routing, room state (`roomStore.ts`), and page screens (`LobbyPage.tsx` and `JoinRoomPage.tsx`).
+- [x] TSK003 Document gaps and assumptions in `speckit.discovery.md`.
 
-**Created**: 2026-05-28
+## 2. Specification & Design
+- [x] TSK004 Create `speckit.specify.md` with prioritized user stories, acceptance criteria, and edge cases.
+- [x] TSK005 Create `speckit.plan.md` outlining state model changes, API routes, and file updates.
 
-**Status**: Draft
+## 3. Backend Implementation
+- [ ] TSK006 Update the backend `Room` and `RoomSnapshot` interfaces in [backend/src/models/game.ts](file:///Users/manojprabhakarm/projects/work/scribble-assignment/backend/src/models/game.ts) to include `hostId`.
+- [ ] TSK007 Update [backend/src/services/roomStore.ts](file:///Users/manojprabhakarm/projects/work/scribble-assignment/backend/src/services/roomStore.ts) to set `hostId` when creating a room, and include it in `toRoomSnapshot()`.
+- [ ] TSK008 Update [backend/src/api/schemas.ts](file:///Users/manojprabhakarm/projects/work/scribble-assignment/backend/src/api/schemas.ts) to validate that room codes match a 4-character uppercase alphanumeric regex, and trim/reject empty values.
+- [ ] TSK009 Update [backend/src/api/rooms.ts](file:///Users/manojprabhakarm/projects/work/scribble-assignment/backend/src/api/rooms.ts) to trim and uppercase code parameters, and handle schema validation errors gracefully.
 
-## State Model Changes
+## 4. Frontend Implementation
+- [ ] TSK010 Add `hostId` to the frontend `RoomSnapshot` interface in [frontend/src/services/api.ts](file:///Users/manojprabhakarm/projects/work/scribble-assignment/frontend/src/services/api.ts).
+- [ ] TSK011 Implement Client-side validation in [frontend/src/pages/JoinRoomPage.tsx](file:///Users/manojprabhakarm/projects/work/scribble-assignment/frontend/src/pages/JoinRoomPage.tsx) to trim and reject empty or invalid room code patterns, displaying clear error feedback before sending a request.
+- [ ] TSK012 Implement polling (2000ms interval) in [frontend/src/pages/LobbyPage.tsx](file:///Users/manojprabhakarm/projects/work/scribble-assignment/frontend/src/pages/LobbyPage.tsx) to fetch the latest room status from the backend periodically.
+- [ ] TSK013 Restrict "Start Game" button in [frontend/src/pages/LobbyPage.tsx](file:///Users/manojprabhakarm/projects/work/scribble-assignment/frontend/src/pages/LobbyPage.tsx):
+  - Only show/enable if the user's `participantId` matches `room.hostId`.
+  - Disable it if the player count is less than 2.
+  - Show a message to non-hosts: "Waiting for host to start the game."
 
-### Backend Changes
-
-1.  **Room Model (`Room` in [game.ts](file:///Users/manojprabhakarm/projects/work/scribble-assignment/backend/src/models/game.ts)):**
-    - Add `hostId: string` to designate the ID of the participant who is the host.
-2.  **Room Snapshot (`RoomSnapshot` in [game.ts](file:///Users/manojprabhakarm/projects/work/scribble-assignment/backend/src/models/game.ts)):**
-    - Add `hostId: string` to expose the host's ID to the client.
-
-### Frontend Changes
-
-- None to the state representation, but `RoomState` inside `roomStore.ts` will automatically receive the updated `RoomSnapshot` from the API.
-
----
-
-## API Design & Data Flow
-
-### 1. Create Room (`POST /rooms`)
-- Request body: `{ playerName: string }`
-- Backend maps creator as the host:
-  - Generates `participantId` (UUID).
-  - Creates `Room` object where `hostId` is set to `participantId`.
-- Response:
-  ```json
-  {
-    "participantId": "creator-uuid",
-    "room": {
-      "code": "ABCD",
-      "status": "lobby",
-      "participants": [...],
-      "hostId": "creator-uuid",
-      ...
-    }
-  }
-  ```
-
-### 2. Join Room (`POST /rooms/:code/join`)
-- Backend validates the `:code` parameter (4-character uppercase letters/numbers).
-- Response returns the room snapshot, including `hostId`.
-
-### 3. Fetch Room (`GET /rooms/:code?participantId=...`)
-- Frontend polls this endpoint every 2 seconds.
-- Backend returns the latest room snapshot including the current `hostId`.
-
----
-
-## File-by-File Changes
-
-### Backend
-
-#### 1. [models/game.ts](file:///Users/manojprabhakarm/projects/work/scribble-assignment/backend/src/models/game.ts)
-- Update `Room` and `RoomSnapshot` interfaces to include `hostId: string`.
-
-#### 2. [services/roomStore.ts](file:///Users/manojprabhakarm/projects/work/scribble-assignment/backend/src/services/roomStore.ts)
-- Update `createRoom()` to set `hostId: participant.id`.
-- Update `toRoomSnapshot()` to include `hostId: room.hostId`.
-
-#### 3. [api/schemas.ts](file:///Users/manojprabhakarm/projects/work/scribble-assignment/backend/src/api/schemas.ts)
-- Update `roomCodeParamsSchema` to validate that the code is exactly 4 characters and matches our uppercase alphanumeric alphabet format (or basic alphanumeric string: `/^[A-Z0-9]{4}$/`).
-
-#### 4. [api/rooms.ts](file:///Users/manojprabhakarm/projects/work/scribble-assignment/backend/src/api/rooms.ts)
-- In the `POST /rooms/:code/join` and `GET /rooms/:code` route handlers, ensure code parameters are properly parsed, trimmed, and upper-cased.
-
-### Frontend
-
-#### 1. [state/roomStore.ts](file:///Users/manojprabhakarm/projects/work/scribble-assignment/frontend/src/state/roomStore.ts)
-- Keep state sync logic intact. Ensure the types for `RoomSnapshot` match the backend.
-
-#### 2. [pages/LobbyPage.tsx](file:///Users/manojprabhakarm/projects/work/scribble-assignment/frontend/src/pages/LobbyPage.tsx)
-- Add a polling mechanism inside `useEffect` that calls `roomStore.fetchRoom()` every 2000ms when the player is in the lobby status.
+## 5. Verification & Testing
+- [ ] TSK014 Verify backend tests pass via `npm run test` in the `backend/` directory.
+- [ ] TSK015 Add unit tests in [backend/src/api/schemas.test.ts](file:///Users/manojprabhakarm/projects/work/scribble-assignment/backend/src/api/schemas.test.ts) for the new room code Zod validation.
+- [ ] TSK016 Manually test the full flow in a browser with two separate windows/tabs:
+  - Verify automatic lobby polling occurs every ~2s (confirm via Network tab).
+  - Verify host-only Start Game controls are enforced both in UI and API (try triggering start as non-host).
+lling mechanism inside `useEffect` that calls `roomStore.fetchRoom()` every 2000ms when the player is in the lobby status.
 - Add checks: `const isHost = room.hostId === participantId;`
 - Add checks: `const canStart = isHost && room.participants.length >= 2;`
 - Conditionally render/style or disable the "Start Game" button based on `isHost` and `canStart`. If not the host, disable the button and show a message "Waiting for host to start...".
