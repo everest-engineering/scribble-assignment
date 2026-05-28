@@ -1,4 +1,4 @@
-# Spec Kit Discovery Notes: Room Setup & Lobby & Game Start
+# Spec Kit Discovery Notes: Room Setup, Game Start & Gameplay
 
 ## 1. Gaps (Incomplete Behaviors)
 
@@ -14,12 +14,23 @@
 *   **No Secret Word Logic:** The backend does not select a secret word deterministically from `STARTER_WORDS`.
 *   **No Secret Word Masking:** A guesser could inspect network snapshots to see the secret word. The backend `toRoomSnapshot` method must filter/nullify the secret word for all players except the designated drawer.
 
+### Scenario 3 - Gameplay Interaction
+*   **No Round Interaction State:** The backend `Room` model currently has no place to store drawing data, submitted guesses, or participant scores. Polling can only sync room status and participants.
+*   **No Drawing API or Permission Check:** There is no endpoint for the drawer to save drawing strokes/canvas state, and no backend rule preventing guessers from changing the drawing.
+*   **No Clear Canvas Action:** The UI has only a static canvas placeholder and no backend operation to reset the current drawing for all players.
+*   **Guess Form Does Not Submit:** `GuessForm` prevents default form submission but never calls an API or updates state, so guesses cannot be validated, stored, scored, or synced.
+*   **No Guess History or Scoreboard Data:** `ResultPanel` and `Scoreboard` are placeholders; the frontend cannot render synced guesses or scores because neither exists in room snapshots.
+*   **No Correct-Guess Scoring:** The backend does not compare guesses against the secret word, does not handle case-insensitive matches, and does not award 100 points for correct guesses.
+
 ## 2. Assumptions
 
 *   **Host Assignment:** The creator of the room is defined as the host. If the host leaves the lobby (though host migration/leaving is out of scope for now), the backend memory retains the host ID as the first participant ID.
 *   **State Persistence:** All room states are stored purely in memory using a Node `Map` (`rooms`). Restarting the server clears all rooms and active states.
 *   **Deterministic Word Selection:** We will select the secret word deterministically using the room code's character sum modulo the word list length.
 *   **Single-Round Scope:** In accordance with the out-of-scope rules, we will only handle starting a single round with one drawer and the selected secret word.
+*   **Drawing Representation:** For scenario 3, drawing can be stored as lightweight canvas path data in memory rather than binary images. The drawer's own screen must show the drawing immediately; guessers may receive it via the existing polling cadence unless the implementation can share the same snapshot flow more directly.
+*   **Scoring Rule:** Each correct guess awards 100 points. Incorrect guesses are still recorded with 0 points. If a player submits multiple correct guesses, only the first correct guess should award points to avoid repeated scoring from the same participant.
+*   **Round Completion:** Scenario 3 does not require automatically ending the round; result state and restart are reserved for Scenario 4.
 
 ## 3. Relevant Files
 
@@ -30,4 +41,5 @@
 *   **Frontend State:** [roomStore.ts](file:///Users/manojprabhakarm/projects/work/scribble-assignment/frontend/src/state/roomStore.ts) and [api.ts](file:///Users/manojprabhakarm/projects/work/scribble-assignment/frontend/src/services/api.ts) (needs to define start game API call).
 *   **Frontend Pages:** [LobbyPage.tsx](file:///Users/manojprabhakarm/projects/work/scribble-assignment/frontend/src/pages/LobbyPage.tsx) (needs to route players to `/game` when status updates).
 *   **Frontend Pages:** [GamePage.tsx](file:///Users/manojprabhakarm/projects/work/scribble-assignment/frontend/src/pages/GamePage.tsx) (needs polling, drawer checks, and secret word display).
-
+*   **Frontend Components:** [GuessForm.tsx](file:///Users/manojprabhakarm/projects/work/scribble-assignment/frontend/src/components/GuessForm.tsx), [Scoreboard.tsx](file:///Users/manojprabhakarm/projects/work/scribble-assignment/frontend/src/components/Scoreboard.tsx), and [ResultPanel.tsx](file:///Users/manojprabhakarm/projects/work/scribble-assignment/frontend/src/components/ResultPanel.tsx) (need real submit handling and room-derived display).
+*   **Frontend Styling:** [app.css](file:///Users/manojprabhakarm/projects/work/scribble-assignment/frontend/src/styles/app.css) (may need canvas, toolbar, guess history, and scoreboard styles).

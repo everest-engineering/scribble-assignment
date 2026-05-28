@@ -1,4 +1,4 @@
-# Feature Specification: Room Setup, Lobby, & Game Start
+# Feature Specification: Room Setup, Game Start, & Gameplay Interaction
 
 **Feature Branch**: `002-game-start-drawer-flow`
 
@@ -6,7 +6,7 @@
 
 **Status**: Draft
 
-**Input**: User description: "Scenario 1 & 2"
+**Input**: User description: "Scenario 1, 2 & 3"
 
 ## User Scenarios & Testing
 
@@ -86,11 +86,59 @@ As the designated drawer, I want to see the secret word so that I know what to d
 1. **Given** the game has started and a player is assigned the `drawer` role, **When** they view their game screen, **Then** the secret word is displayed.
 2. **Given** the game has started and a player is assigned the `guesser` role, **When** they view their game screen, **Then** they see "You are a Guesser" and the secret word is hidden.
 
+---
+
+### User Story 7 - Drawer Drawing and Clear Canvas (Priority: P1)
+As the drawer, I want to draw on the canvas and clear it so that I can communicate the secret word during the round.
+
+**Why this priority**: Drawing is the central gameplay interaction. Without it, guessers cannot play the round.
+
+**Independent Test**: Start a game as the host/drawer. Draw on the canvas and verify the drawing remains visible on the drawer's screen. Click Clear and verify the canvas resets.
+
+**Acceptance Scenarios**:
+1. **Given** the game is active and the viewer is the drawer, **When** they draw on the canvas, **Then** the drawing appears immediately on their screen and the backend stores the updated drawing state.
+2. **Given** the game is active and the viewer is the drawer, **When** they click "Clear Canvas", **Then** the canvas is cleared for the drawer and the cleared state is stored for the room.
+3. **Given** the game is active and the viewer is a guesser, **When** they view the game screen, **Then** they cannot draw or clear the canvas.
+
+---
+
+### User Story 8 - Guess Submission and Synced History (Priority: P1)
+As a guesser, I want to submit guesses and see the guess history update so that the round feels shared across players.
+
+**Why this priority**: Guessing is the second half of the drawing game loop and must be visible to all players through polling.
+
+**Independent Test**: In a two-tab game, submit a guess as the guesser. Verify empty guesses are rejected, valid guesses are recorded, and both tabs show the guess in history within the polling interval.
+
+**Acceptance Scenarios**:
+1. **Given** the game is active and the viewer is a guesser, **When** they submit an empty or whitespace-only guess, **Then** the UI rejects it with a clear validation message and no backend guess is recorded.
+2. **Given** the game is active and the viewer is a guesser, **When** they submit a non-empty guess, **Then** the backend stores the trimmed guess with the participant ID, participant name, timestamp, correctness, and awarded points.
+3. **Given** either the drawer or a guesser is polling the room snapshot, **When** a guess is submitted, **Then** the guess history appears for all players within ~2 seconds.
+4. **Given** the viewer is the drawer, **When** they view the guess form area, **Then** they cannot submit guesses for their own word.
+
+---
+
+### User Story 9 - Deterministic Scoring (Priority: P1)
+As a player, I want correct guesses to update scores predictably so that everyone can see who guessed the word.
+
+**Why this priority**: Scoring is required for Scenario 3 validation and establishes state needed by result screens in Scenario 4.
+
+**Independent Test**: Submit an incorrect guess and then a correctly cased or differently cased correct guess. Verify incorrect guesses award 0, correct guesses award 100, and the scoreboard updates for all players.
+
+**Acceptance Scenarios**:
+1. **Given** the game has a secret word, **When** a guesser submits a guess that does not match the word after trimming and case normalization, **Then** the guess is recorded as incorrect and the guesser receives 0 points.
+2. **Given** the game has a secret word, **When** a guesser submits a guess that matches the word regardless of letter casing, **Then** the guess is recorded as correct and the guesser receives 100 points.
+3. **Given** a guesser has already earned points for a correct guess in the active round, **When** they submit the correct word again, **Then** the later guess is recorded but no additional points are awarded.
+4. **Given** scores have changed, **When** any player polls the room snapshot, **Then** the scoreboard displays each participant with the current score.
+
 ### Edge Cases
 - **Room Isolation:** Players in Room A must not see or sync state with Room B.
 - **Lowercase Code Input:** The room code is case-insensitive. Entering `abcd` should resolve to `ABCD`.
 - **Extra Whitespace:** Room codes and names should have leading/trailing whitespaces trimmed.
 - **Securing Secret Word:** Under the hood, the backend MUST filter out the `secretWord` field from the API response unless the request matches the drawer's `participantId`.
+- **Drawer Permissions:** Only the assigned drawer can update or clear drawing state.
+- **Guesser Permissions:** Only non-drawer participants can submit guesses.
+- **Guess Normalization:** Guess text must be trimmed before storage and compared case-insensitively against the selected secret word.
+- **Repeated Correct Guesses:** A participant cannot repeatedly earn 100 points by resubmitting the correct word.
 
 ## Requirements
 
@@ -105,6 +153,15 @@ As the designated drawer, I want to see the secret word so that I know what to d
 - **FR-008**: The backend MUST transition the room status to `"game"`, assign `drawerId` to the host's participant ID, and choose a deterministic secret word when game starts.
 - **FR-009**: The backend MUST mask/omit the `secretWord` in the returned room snapshot unless `viewerParticipantId` is the `drawerId`.
 - **FR-010**: The frontend MUST poll the room status while on `/game` and automatically redirect to `/lobby` if status transitions back to lobby.
+- **FR-011**: The backend MUST store active round drawing state in memory as part of the room.
+- **FR-012**: The backend MUST expose a drawer-only drawing update endpoint and reject drawing updates from non-drawers.
+- **FR-013**: The backend MUST expose a drawer-only clear canvas endpoint that resets the room drawing state.
+- **FR-014**: The backend MUST expose a guess submission endpoint that validates participant ID and trimmed guess text.
+- **FR-015**: The backend MUST compare guesses with the secret word case-insensitively after trimming.
+- **FR-016**: The backend MUST store guess history with participant identity, text, timestamp, correctness, and awarded points.
+- **FR-017**: The backend MUST maintain participant scores in the room snapshot; all active-round scores start at 0.
+- **FR-018**: The frontend MUST render an interactive canvas for the drawer and a read-only drawing view for guessers.
+- **FR-019**: The frontend MUST render synced guess history and scoreboard from the polled room snapshot.
 
 ## Success Criteria
 
@@ -115,8 +172,14 @@ As the designated drawer, I want to see the secret word so that I know what to d
 - **SC-004**: Entering a blank room code returns immediate validation feedback.
 - **SC-005**: The secret word is 100% hidden from the network responses returned to guessing players.
 - **SC-006**: Transition from lobby to game screen happens automatically for all players within 2 seconds of the host starting the game.
+- **SC-007**: Empty or whitespace-only guesses are rejected before they create guess history entries.
+- **SC-008**: Correct guesses award exactly 100 points and incorrect guesses award 0 points.
+- **SC-009**: Guess history and scores appear for all players within the existing polling interval.
+- **SC-010**: Guessers cannot update or clear the room drawing state through the UI or API.
 
 ## Assumptions
 - **Host Persistence:** Once a host is assigned, they remain the host for the duration of that lobby session.
 - **In-Memory Store:** The server retains the lobby state in memory; any server restart resets all active rooms.
 - **Deterministic Word Choice:** Choosing words deterministically via a hash of the room code guarantees that multiple players in the room agree on the word without storing random state changes.
+- **Canvas State Shape:** Drawing can be represented as serializable path/stroke data rather than binary image uploads.
+- **Single Correct Score:** A player receives the 100-point award once per round, even if they submit the correct word multiple times.
