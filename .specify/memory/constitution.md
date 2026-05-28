@@ -1,50 +1,55 @@
-# [PROJECT_NAME] Constitution
-<!-- Example: Spec Constitution, TaskFlow Constitution, etc. -->
+<!--
+Sync Impact Report:
+- Version change: N/A → 1.0.0
+- List of modified principles: Placeholder Principles → TypeScript Excellence, Testing Discipline, Accessibility, Performance & Bundle Constraints, Architectural Simplicity & Scope Adherence.
+- Added sections: Explicitly Out of Scope, Development Workflow.
+- Removed sections: None.
+- Templates requiring updates: ✅ .specify/templates/plan-template.md, ✅ .specify/templates/spec-template.md, ✅ .specify/templates/tasks-template.md (Checked and aligned).
+- Follow-up TODOs: None.
+-->
+
+# Scribble Starter Constitution
 
 ## Core Principles
 
-### [PRINCIPLE_1_NAME]
-<!-- Example: I. Library-First -->
-[PRINCIPLE_1_DESCRIPTION]
-<!-- Example: Every feature starts as a standalone library; Libraries must be self-contained, independently testable, documented; Clear purpose required - no organizational-only libraries -->
+### I. TypeScript Excellence
+TypeScript strict mode must be enabled and enforced across both frontend and backend. The use of `any` or loose typing is strictly prohibited unless justified by external library constraints. React components must be functional and utilize hooks for state management.
 
-### [PRINCIPLE_2_NAME]
-<!-- Example: II. CLI Interface -->
-[PRINCIPLE_2_DESCRIPTION]
-<!-- Example: Every library exposes functionality via CLI; Text in/out protocol: stdin/args → stdout, errors → stderr; Support JSON + human-readable formats -->
+### II. Testing Discipline
+Vitest is the mandatory testing framework for both frontend and backend. A minimum of 80% code coverage is required for all new logic. Every feature must be accompanied by unit tests that verify behavioral correctness.
 
-### [PRINCIPLE_3_NAME]
-<!-- Example: III. Test-First (NON-NEGOTIABLE) -->
-[PRINCIPLE_3_DESCRIPTION]
-<!-- Example: TDD mandatory: Tests written → User approved → Tests fail → Then implement; Red-Green-Refactor cycle strictly enforced -->
+### III. Accessibility (WCAG 2.1 AA)
+The application MUST adhere to WCAG 2.1 AA standards. This includes ensuring proper color contrast, keyboard navigability for all interactive elements, and appropriate ARIA labels where semantic HTML is insufficient. Accessibility is a non-negotiable quality gate.
 
-### [PRINCIPLE_4_NAME]
-<!-- Example: IV. Integration Testing -->
-[PRINCIPLE_4_DESCRIPTION]
-<!-- Example: Focus areas requiring integration tests: New library contract tests, Contract changes, Inter-service communication, Shared schemas -->
+### IV. Performance & Bundle Constraints
+Maintain a lightweight application with a target frontend bundle size of ~150KB. Avoid introducing heavy top-level dependencies without explicit justification. Optimization should prioritize initial load time and responsiveness.
 
-### [PRINCIPLE_5_NAME]
-<!-- Example: V. Observability, VI. Versioning & Breaking Changes, VII. Simplicity -->
-[PRINCIPLE_5_DESCRIPTION]
-<!-- Example: Text I/O ensures debuggability; Structured logging required; Or: MAJOR.MINOR.BUILD format; Or: Start simple, YAGNI principles -->
+### V. Architectural Simplicity & Scope Adherence
+Adhere strictly to the "No real-time/persistent storage" constraint. Use polling (~2s) for state synchronization instead of WebSockets. Do not introduce new state-management or routing libraries beyond what the starter provides. Avoid "just-in-case" features or unrelated refactors.
 
-## [SECTION_2_NAME]
-<!-- Example: Additional Constraints, Security Requirements, Performance Standards, etc. -->
+## Explicitly Out of Scope
 
-[SECTION_2_CONTENT]
-<!-- Example: Technology stack requirements, compliance standards, deployment policies, etc. -->
+The following items are strictly out of scope and must NOT be implemented or planned:
+- WebSockets or real-time sync.
+- Databases or persistent storage.
+- Authentication, accounts, or sessions.
+- Deployment, hosting, CI, or Docker work.
+- Multiple rounds, drawer rotation, timers, countdowns, speed bonuses, or drawer bonuses.
+- Custom or random word packs.
+- Spectator mode or moderation features (kick/mute).
+- Room passwords or invite links.
+- Rewriting the starter from scratch.
 
-## [SECTION_3_NAME]
-<!-- Example: Development Workflow, Review Process, Quality Gates, etc. -->
+## Development Workflow
 
-[SECTION_3_CONTENT]
-<!-- Example: Code review requirements, testing gates, deployment approval process, etc. -->
+Follow the **Research -> Strategy -> Execution** lifecycle for every feature.
+1. **Research**: Document gaps, assumptions, and relevant files.
+2. **Strategy**: Update spec with acceptance criteria and resolve ambiguity.
+3. **Execution**: Implement incrementally (Plan -> Act -> Validate) and commit granularly.
+Validation MUST include testing against acceptance criteria using at least two browser tabs to simulate multi-player interaction.
 
 ## Governance
-<!-- Example: Constitution supersedes all other practices; Amendments require documentation, approval, migration plan -->
 
-[GOVERNANCE_RULES]
-<!-- Example: All PRs/reviews must verify compliance; Complexity must be justified; Use [GUIDANCE_FILE] for runtime development guidance -->
+This Constitution supersedes all other development practices within the Scribble Starter project. Any deviations or amendments must be documented, justified, and result in a version bump. All Pull Requests and reviews must verify compliance with these core principles.
 
-**Version**: [CONSTITUTION_VERSION] | **Ratified**: [RATIFICATION_DATE] | **Last Amended**: [LAST_AMENDED_DATE]
-<!-- Example: Version: 2.1.1 | Ratified: 2025-06-13 | Last Amended: 2025-07-16 -->
+**Version**: 1.0.0 | **Ratified**: 2026-05-28 | **Last Amended**: 2026-05-28
