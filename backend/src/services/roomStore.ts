@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import type { Participant, Room, RoomSnapshot } from "../models/game.js";
+import type { Guess, Participant, Room, RoomSnapshot } from "../models/game.js";
 import { STARTER_ROLES, STARTER_WORDS } from "../seed/starterData.js";
 import { HttpError } from "../api/schemas.js";
 
@@ -12,30 +12,22 @@ function now() {
 function generateCode() {
   const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
   let code = "";
-
   for (let index = 0; index < 4; index += 1) {
     code += alphabet[Math.floor(Math.random() * alphabet.length)];
   }
-
   return code;
 }
 
 function generateUniqueCode() {
   let code = generateCode();
-
   while (rooms.has(code)) {
     code = generateCode();
   }
-
   return code;
 }
 
 function createParticipant(name: string): Participant {
-  return {
-    id: randomUUID(),
-    name,
-    joinedAt: now()
-  };
+  return { id: randomUUID(), name, joinedAt: now() };
 }
 
 function cloneRoom(room: Room) {
@@ -52,35 +44,24 @@ export function createRoom(playerName: string) {
     code: generateUniqueCode(),
     status: "lobby",
     hostId: participant.id,
+    guesses: [],
+    scores: {},
     participants: [participant],
     createdAt: now(),
     updatedAt: now()
   };
-
   rooms.set(room.code, room);
-
-  return {
-    room: cloneRoom(room),
-    participantId: participant.id
-  };
+  return { room: cloneRoom(room), participantId: participant.id };
 }
 
 export function joinRoom(code: string, playerName: string) {
   const room = rooms.get(code);
-
-  if (!room) {
-    return null;
-  }
-
+  if (!room) return null;
   const participant = createParticipant(playerName);
   room.participants.push(participant);
   room.updatedAt = now();
   rooms.set(room.code, room);
-
-  return {
-    room: cloneRoom(room),
-    participantId: participant.id
-  };
+  return { room: cloneRoom(room), participantId: participant.id };
 }
 
 export function getRoom(code: string) {
@@ -97,21 +78,35 @@ export function saveRoom(room: Room) {
 export function startGame(code: string, participantId: string) {
   const room = rooms.get(code);
 
-  if (!room) {
-    throw new HttpError(404, "Unable to load room");
-  }
-
-  if (room.hostId !== participantId) {
-    throw new HttpError(403, "Only the host can start the game");
-  }
-
-  if (room.participants.length < 2) {
-    throw new HttpError(403, "Need at least 2 players to start");
-  }
+  if (!room) throw new HttpError(404, "Unable to load room");
+  if (room.hostId !== participantId) throw new HttpError(403, "Only the host can start the game");
+  if (room.participants.length < 2) throw new HttpError(403, "Need at least 2 players to start");
 
   room.status = "playing";
   room.drawerId = room.hostId;
   room.secretWord = STARTER_WORDS[0];
+  room.guesses = [];
+  room.scores = Object.fromEntries(room.participants.map((p) => [p.id, 0]));
+  room.updatedAt = now();
+  rooms.set(room.code, room);
+
+  return cloneRoom(room);
+}
+
+export function submitGuess(code: string, participantId: string, text: string) {
+  const room = rooms.get(code);
+
+  if (!room) throw new HttpError(404, "Unable to load room");
+
+  const trimmed = text.trim();
+  if (!trimmed) throw new HttpError(400, "Guess cannot be empty");
+
+  const correct = trimmed.toLowerCase() === (room.secretWord ?? "").toLowerCase();
+  const guess: Guess = { participantId, text: trimmed, correct, submittedAt: now() };
+
+  room.guesses.push(guess);
+  if (room.scores[participantId] === undefined) room.scores[participantId] = 0;
+  room.scores[participantId] += correct ? 100 : 0;
   room.updatedAt = now();
   rooms.set(room.code, room);
 
@@ -124,7 +119,9 @@ export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSn
     status: room.status,
     hostId: room.hostId,
     drawerId: room.drawerId,
-    participants: room.participants.map((participant) => ({ ...participant })),
+    guesses: room.guesses.map((g) => ({ ...g })),
+    scores: { ...room.scores },
+    participants: room.participants.map((p) => ({ ...p })),
     availableWords: listWords(),
     roles: [...STARTER_ROLES]
   };

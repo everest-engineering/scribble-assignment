@@ -7,12 +7,21 @@ export interface Participant {
   joinedAt: string;
 }
 
+export interface Guess {
+  participantId: string;
+  text: string;
+  correct: boolean;
+  submittedAt: string;
+}
+
 export interface Room {
   code: string;
   status: RoomStatus;
   hostId: string;
   drawerId?: string;
   secretWord?: string;
+  guesses: Guess[];
+  scores: Record<string, number>;
   participants: Participant[];
   createdAt: string;
   updatedAt: string;
@@ -24,6 +33,8 @@ export interface RoomSnapshot {
   hostId: string;
   drawerId?: string;
   secretWord?: string;
+  guesses: Guess[];
+  scores: Record<string, number>;
   participants: Participant[];
   availableWords: string[];
   roles: ParticipantRole[];

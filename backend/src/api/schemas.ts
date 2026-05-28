@@ -12,6 +12,11 @@ export const startRoomSchema = z.object({
   participantId: z.string().min(1)
 });
 
+export const guessSchema = z.object({
+  participantId: z.string().min(1),
+  text: z.string()
+});
+
 export const roomCodeParamsSchema = z.object({
   code: z.string()
 });
