@@ -103,6 +103,17 @@
 - **[Entity 1]**: [What it represents, key attributes without implementation]
 - **[Entity 2]**: [What it represents, relationships to other entities]
 
+## Explicitly Out Of Scope
+
+<!--
+  ACTION REQUIRED: List items that are explicitly NOT being built.
+  Refer to the Constitution for project-wide exclusions (e.g., WebSockets, persistent DB).
+-->
+
+- [ ] WebSockets or real-time sync (use HTTP polling)
+- [ ] Persistent storage (use in-memory store)
+- [ ] [Add feature-specific out-of-scope items]
+
 ## Success Criteria *(mandatory)*
 
 <!--

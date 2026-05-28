@@ -1,50 +1,82 @@
-# [PROJECT_NAME] Constitution
-<!-- Example: Spec Constitution, TaskFlow Constitution, etc. -->
+<!--
+SYNC IMPACT REPORT
+- Version change: 1.0.0 → 1.1.0
+- List of modified principles:
+    - Replaced initial 5 principles with 14 comprehensive rules (I-XIV).
+- Added sections: None
+- Removed sections: None
+- Templates requiring updates:
+    - ✅ updated: .specify/memory/constitution.md
+    - ✅ updated: .specify/templates/plan-template.md
+    - ⚠ pending: .specify/templates/spec-template.md
+    - ⚠ pending: .specify/templates/tasks-template.md
+- Follow-up TODOs: None
+-->
+
+# Scribble Starter Constitution
 
 ## Core Principles
 
-### [PRINCIPLE_1_NAME]
-<!-- Example: I. Library-First -->
-[PRINCIPLE_1_DESCRIPTION]
-<!-- Example: Every feature starts as a standalone library; Libraries must be self-contained, independently testable, documented; Clear purpose required - no organizational-only libraries -->
+### I. TypeScript Strict Mode
+All code must pass strict TypeScript checks, and usage of `any` types is not allowed without explicit justification.
 
-### [PRINCIPLE_2_NAME]
-<!-- Example: II. CLI Interface -->
-[PRINCIPLE_2_DESCRIPTION]
-<!-- Example: Every library exposes functionality via CLI; Text in/out protocol: stdin/args → stdout, errors → stderr; Support JSON + human-readable formats -->
+### II. Testing Discipline
+Every new feature and significant bug fix must include appropriate unit or integration tests to ensure reliability and maintainability.
 
-### [PRINCIPLE_3_NAME]
-<!-- Example: III. Test-First (NON-NEGOTIABLE) -->
-[PRINCIPLE_3_DESCRIPTION]
-<!-- Example: TDD mandatory: Tests written → User approved → Tests fail → Then implement; Red-Green-Refactor cycle strictly enforced -->
+### III. Extend the Starter Application
+The existing starter application must be extended incrementally without rewriting the provided architecture, routing, or room flow.
 
-### [PRINCIPLE_4_NAME]
-<!-- Example: IV. Integration Testing -->
-[PRINCIPLE_4_DESCRIPTION]
-<!-- Example: Focus areas requiring integration tests: New library contract tests, Contract changes, Inter-service communication, Shared schemas -->
+### IV. Deterministic Gameplay
+Game behavior such as word selection, scoring, and state transitions must remain deterministic and predictable.
 
-### [PRINCIPLE_5_NAME]
-<!-- Example: V. Observability, VI. Versioning & Breaking Changes, VII. Simplicity -->
-[PRINCIPLE_5_DESCRIPTION]
-<!-- Example: Text I/O ensures debuggability; Structured logging required; Or: MAJOR.MINOR.BUILD format; Or: Start simple, YAGNI principles -->
+### V. Simplicity First
+Implementation should prioritize clarity, maintainability, and minimal complexity over advanced architectural patterns.
 
-## [SECTION_2_NAME]
-<!-- Example: Additional Constraints, Security Requirements, Performance Standards, etc. -->
+### VII. Polling-Based Synchronization
+Application synchronization must use polling-based updates instead of WebSockets or real-time communication systems.
 
-[SECTION_2_CONTENT]
-<!-- Example: Technology stack requirements, compliance standards, deployment policies, etc. -->
+### VIII. Validation Consistency
+All user inputs must be trimmed, validated, and rejected gracefully if empty or invalid.
 
-## [SECTION_3_NAME]
-<!-- Example: Development Workflow, Review Process, Quality Gates, etc. -->
+### IX. Explicit Game States
+The application must maintain clear and traceable game states such as lobby, playing, and results.
 
-[SECTION_3_CONTENT]
-<!-- Example: Code review requirements, testing gates, deployment approval process, etc. -->
+### X. Specification-Driven Development
+All implementation work must follow the sequence of discovery, specification, planning, task breakdown, implementation, and validation.
+
+### XI. Incremental Feature Delivery
+Development must proceed feature-group by feature-group instead of implementing the entire game at once.
+
+### XII. AI-Assisted but Human-Reviewed Development
+All AI-generated specifications, plans, tasks, and code must be manually reviewed before acceptance or commit.
+
+### XIII. Scope Discipline
+Out-of-scope features such as WebSockets, authentication, databases, timers, and multi-round gameplay must not be introduced.
+
+### XIV. Traceable Implementation
+Every implemented feature must map back to a business scenario, specification item, plan entry, and task definition.
+
+## Technology & Scope Constraints
+
+- **Frontend**: Vite + React + TypeScript. Use existing styles and components; no new state-management or routing libraries.
+- **Backend**: Node.js + Express + TypeScript. All state is in-memory; restarting the backend clears all data.
+- **Sync Protocol**: HTTP Polling (~2s cadence) for state sync. WebSockets, real-time sync, and persistent databases are explicitly OUT OF SCOPE.
+- **Validation**: Vitest for unit and integration tests. Manual validation of scenarios in multiple browser tabs is mandatory.
+
+## Recommended Build Order
+
+1. **Discovery**: Read relevant starter files; document gaps, assumptions, and relevant files.
+2. **Specify**: Update the feature specification with detailed acceptance criteria and edge cases.
+3. **Clarify**: Resolve any ambiguity with the user or through research before moving to planning.
+4. **Plan**: Update the state model, file-level changes, and data flow in the implementation plan.
+5. **Tasks**: Decompose the plan into granular, ordered, and testable work items.
+6. **Implement & Validate**: Complete one slice at a time, commit it, and verify against acceptance criteria.
 
 ## Governance
-<!-- Example: Constitution supersedes all other practices; Amendments require documentation, approval, migration plan -->
 
-[GOVERNANCE_RULES]
-<!-- Example: All PRs/reviews must verify compliance; Complexity must be justified; Use [GUIDANCE_FILE] for runtime development guidance -->
+- The Constitution is the foundational mandate for all development and supersedes other practices.
+- Amendments require a version bump (Major/Minor/Patch) and a Sync Impact Report at the top of this file.
+- Every Pull Request and review must verify compliance with the Core Principles and relevant Specifications.
+- Complexity must be explicitly justified if it deviates from the simple REST/Polling architecture.
 
-**Version**: [CONSTITUTION_VERSION] | **Ratified**: [RATIFICATION_DATE] | **Last Amended**: [LAST_AMENDED_DATE]
-<!-- Example: Version: 2.1.1 | Ratified: 2025-06-13 | Last Amended: 2025-07-16 -->
+**Version**: 1.1.0 | **Ratified**: 2026-05-28 | **Last Amended**: 2026-05-28

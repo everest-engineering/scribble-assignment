@@ -45,6 +45,13 @@ description: "Task list template for feature implementation"
   ============================================================================
 -->
 
+## Phase 0: Discovery & Artifacts
+
+**Purpose**: Understanding existing code and aligning Spec Kit artifacts
+
+- [ ] T000 [P] Conduct discovery: document ≥3 gaps and ≥2 assumptions
+- [ ] T001 [P] Sync artifacts: verify Constitution, Spec, and Plan consistency
+
 ## Phase 1: Setup (Shared Infrastructure)
 
 **Purpose**: Project initialization and basic structure
@@ -78,7 +85,7 @@ Examples of foundational tasks (adjust based on your project):
 
 **Goal**: [Brief description of what this story delivers]
 
-**Independent Test**: [How to verify this story works on its own]
+**Independent Test**: [How to verify this story works on its own - e.g. multi-player validation with two browser tabs]
 
 ### Tests for User Story 1 (OPTIONAL - only if tests requested) ⚠️
 
@@ -104,7 +111,7 @@ Examples of foundational tasks (adjust based on your project):
 
 **Goal**: [Brief description of what this story delivers]
 
-**Independent Test**: [How to verify this story works on its own]
+**Independent Test**: [How to verify this story works on its own - e.g. multi-player validation with two browser tabs]
 
 ### Tests for User Story 2 (OPTIONAL - only if tests requested) ⚠️
 
@@ -126,7 +133,7 @@ Examples of foundational tasks (adjust based on your project):
 
 **Goal**: [Brief description of what this story delivers]
 
-**Independent Test**: [How to verify this story works on its own]
+**Independent Test**: [How to verify this story works on its own - e.g. multi-player validation with two browser tabs]
 
 ### Tests for User Story 3 (OPTIONAL - only if tests requested) ⚠️
 

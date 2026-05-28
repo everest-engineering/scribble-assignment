@@ -40,7 +40,20 @@
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-[Gates determined based on constitution file]
+- [ ] **I. TypeScript Strict Mode** (No `any`, passing strict checks?)
+- [ ] **II. Testing Discipline** (Appropriate tests included?)
+- [ ] **III. Extend the Starter Application** (Respects existing architecture?)
+- [ ] **IV. Deterministic Gameplay** (Predictable word/scoring?)
+- [ ] **V. Simplicity First** (Minimal complexity?)
+- [ ] **VI. Room State Isolation** (Isolated per room code?)
+- [ ] **VII. Polling-Based Synchronization** (Strictly HTTP polling?)
+- [ ] **VIII. Validation Consistency** (Input trimmed/validated?)
+- [ ] **IX. Explicit Game States** (Lobby/Playing/Results clear?)
+- [ ] **X. Specification-Driven Development** (Discovery → Spec → Plan → Tasks?)
+- [ ] **XI. Incremental Feature Delivery** (Feature-group by feature-group?)
+- [ ] **XII. AI-Assisted but Human-Reviewed** (Manually verified?)
+- [ ] **XIII. Scope Discipline** (No out-of-scope features?)
+- [ ] **XIV. Traceable Implementation** (Maps to scenario/spec/tasks?)
 
 ## Project Structure
 
