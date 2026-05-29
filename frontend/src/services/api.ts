@@ -17,6 +17,16 @@ export interface RoomSnapshot {
   roles: ParticipantRole[];
   currentDrawerId?: string;
   currentWord?: string;
+  guesses: {
+  id: string;
+  participantId: string;
+  playerName: string;
+  message: string;
+  isCorrect: boolean;
+  createdAt: string;
+}[];
+
+canvasLines: string[];
 }
 
 export interface RoomSessionResponse {
