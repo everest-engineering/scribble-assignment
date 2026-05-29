@@ -14,6 +14,11 @@ export function GamePage() {
   useEffect(() => {
     if (!room) {
       navigate("/", { replace: true });
+      return;
+    }
+
+    if (room.status === "lobby") {
+      navigate("/lobby", { replace: true });
     }
   }, [navigate, room]);
 
@@ -56,7 +61,7 @@ export function GamePage() {
               </div>
               <div>
                 <dt>Status</dt>
-                <dd>Playing</dd>
+                <dd>{room.viewerIsHost ? "Host" : "Player"}</dd>
               </div>
             </dl>
           </Card>

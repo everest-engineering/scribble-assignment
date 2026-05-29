@@ -1,5 +1,3 @@
-export type ParticipantRole = "drawer" | "guesser";
-
 export interface Participant {
   id: string;
   name: string;
@@ -8,10 +6,12 @@ export interface Participant {
 
 export interface RoomSnapshot {
   code: string;
-  status: "lobby";
+  status: "lobby" | "playing";
+  hostParticipantId: string;
   participants: Participant[];
-  availableWords: string[];
-  roles: ParticipantRole[];
+  viewerIsHost: boolean;
+  canStartGame: boolean;
+  minimumPlayersToStart: number;
 }
 
 export interface RoomSessionResponse {
@@ -19,7 +19,7 @@ export interface RoomSessionResponse {
   room: RoomSnapshot;
 }
 
-const API_BASE_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3001/bug";
+const API_BASE_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3001";
 
 async function request<T>(path: string, init?: RequestInit) {
   const response = await fetch(`${API_BASE_URL}${path}`, {
@@ -52,6 +52,12 @@ export const api = {
     return request<RoomSessionResponse>(`/rooms/${encodeURIComponent(code)}/join`, {
       method: "POST",
       body: JSON.stringify({ playerName })
+    });
+  },
+  startGame(code: string, participantId: string) {
+    return request<{ room: RoomSnapshot }>(`/rooms/${encodeURIComponent(code)}/start`, {
+      method: "POST",
+      body: JSON.stringify({ participantId })
     });
   },
   fetchRoom(code: string, participantId?: string) {

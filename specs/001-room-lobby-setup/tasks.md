@@ -29,9 +29,9 @@ description: "Task list for Scenario 1 room setup and lobby implementation"
 
 **Purpose**: Confirm the active Scenario 1 artifacts and validation targets before editing code
 
-- [ ] T001 Review implementation inputs in `specs/001-room-lobby-setup/spec.md`, `specs/001-room-lobby-setup/plan.md`, and `specs/001-room-lobby-setup/contracts/rooms-scenario1.openapi.yaml`
-- [ ] T002 Confirm manual and automated validation steps in `specs/001-room-lobby-setup/quickstart.md`, `backend/src/api/rooms.ts`, and `frontend/src/pages/LobbyPage.tsx`
-- [ ] T003 [P] Capture shared room-state expectations from `specs/001-room-lobby-setup/data-model.md` and `specs/001-room-lobby-setup/research.md`
+- [X] T001 Review implementation inputs in `specs/001-room-lobby-setup/spec.md`, `specs/001-room-lobby-setup/plan.md`, and `specs/001-room-lobby-setup/contracts/rooms-scenario1.openapi.yaml`
+- [X] T002 Confirm manual and automated validation steps in `specs/001-room-lobby-setup/quickstart.md`, `backend/src/api/rooms.ts`, and `frontend/src/pages/LobbyPage.tsx`
+- [X] T003 [P] Capture shared room-state expectations from `specs/001-room-lobby-setup/data-model.md` and `specs/001-room-lobby-setup/research.md`
 
 ---
 
@@ -41,11 +41,11 @@ description: "Task list for Scenario 1 room setup and lobby implementation"
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T004 Update shared room and snapshot types in `backend/src/models/game.ts`
-- [ ] T005 [P] Extend shared room API types and fix the default backend base URL in `frontend/src/services/api.ts`
-- [ ] T006 [P] Add reusable room-code normalization and start-request validation in `backend/src/api/schemas.ts`
-- [ ] T007 [P] Add shared room session and snapshot update support in `frontend/src/state/roomStore.ts`
-- [ ] T008 Implement shared room snapshot derivation helpers and status transitions in `backend/src/services/roomStore.ts`
+- [X] T004 Update shared room and snapshot types in `backend/src/models/game.ts`
+- [X] T005 [P] Extend shared room API types and fix the default backend base URL in `frontend/src/services/api.ts`
+- [X] T006 [P] Add reusable room-code normalization and start-request validation in `backend/src/api/schemas.ts`
+- [X] T007 [P] Add shared room session and snapshot update support in `frontend/src/state/roomStore.ts`
+- [X] T008 Implement shared room snapshot derivation helpers and status transitions in `backend/src/services/roomStore.ts`
 
 **Checkpoint**: Foundation ready - user story implementation can now begin in priority order
 
@@ -59,17 +59,17 @@ description: "Task list for Scenario 1 room setup and lobby implementation"
 
 ### Verification for User Story 1 ⚠️
 
-- [ ] T009 [P] [US1] Add host assignment and minimum-player start tests in `backend/src/services/roomStore.test.ts`
-- [ ] T010 [P] [US1] Add create-room and start-room request coverage in `frontend/src/services/api.test.ts`
+- [X] T009 [P] [US1] Add host assignment and minimum-player start tests in `backend/src/services/roomStore.test.ts`
+- [X] T010 [P] [US1] Add create-room and start-room request coverage in `frontend/src/services/api.test.ts`
 - [ ] T011 [US1] Validate host creation and two-player start gating with `specs/001-room-lobby-setup/quickstart.md`
 
 ### Implementation for User Story 1
 
-- [ ] T012 [P] [US1] Add `hostParticipantId`, `viewerIsHost`, `canStartGame`, and `minimumPlayersToStart` fields in `backend/src/models/game.ts`
-- [ ] T013 [US1] Implement creator host assignment and `startRoom()` enforcement in `backend/src/services/roomStore.ts`
-- [ ] T014 [US1] Add `POST /rooms/:code/start` handling and status/error mapping in `backend/src/api/rooms.ts`
-- [ ] T015 [P] [US1] Add `startGame()` request handling in `frontend/src/services/api.ts` and `frontend/src/state/roomStore.ts`
-- [ ] T016 [US1] Update host labeling, start gating, and started-room navigation in `frontend/src/pages/LobbyPage.tsx` and `frontend/src/pages/GamePage.tsx`
+- [X] T012 [P] [US1] Add `hostParticipantId`, `viewerIsHost`, `canStartGame`, and `minimumPlayersToStart` fields in `backend/src/models/game.ts`
+- [X] T013 [US1] Implement creator host assignment and `startRoom()` enforcement in `backend/src/services/roomStore.ts`
+- [X] T014 [US1] Add `POST /rooms/:code/start` handling and status/error mapping in `backend/src/api/rooms.ts`
+- [X] T015 [P] [US1] Add `startGame()` request handling in `frontend/src/services/api.ts` and `frontend/src/state/roomStore.ts`
+- [X] T016 [US1] Update host labeling, start gating, and started-room navigation in `frontend/src/pages/LobbyPage.tsx` and `frontend/src/pages/GamePage.tsx`
 
 **Checkpoint**: At this point, room creation, host designation, and host-only start should be functional and testable independently
 
@@ -83,16 +83,16 @@ description: "Task list for Scenario 1 room setup and lobby implementation"
 
 ### Verification for User Story 2 ⚠️
 
-- [ ] T017 [P] [US2] Add room-code validation and join failure coverage in `backend/src/api/schemas.test.ts` and `backend/src/services/roomStore.test.ts`
-- [ ] T018 [P] [US2] Add join-room and fetch-room request coverage in `frontend/src/services/api.test.ts`
+- [X] T017 [P] [US2] Add room-code validation and join failure coverage in `backend/src/api/schemas.test.ts` and `backend/src/services/roomStore.test.ts`
+- [X] T018 [P] [US2] Add join-room and fetch-room request coverage in `frontend/src/services/api.test.ts`
 - [ ] T019 [US2] Validate empty, invalid, and valid join flows with `specs/001-room-lobby-setup/quickstart.md`
 
 ### Implementation for User Story 2
 
-- [ ] T020 [US2] Tighten room-code parsing and malformed-request rejection in `backend/src/api/schemas.ts`
-- [ ] T021 [US2] Return clear join and room-load error messages in `backend/src/api/rooms.ts`
-- [ ] T022 [US2] Trim, uppercase, and block empty room-code submission in `frontend/src/pages/JoinRoomPage.tsx`
-- [ ] T023 [US2] Preserve join failure feedback and successful room-session updates in `frontend/src/state/roomStore.ts`
+- [X] T020 [US2] Tighten room-code parsing and malformed-request rejection in `backend/src/api/schemas.ts`
+- [X] T021 [US2] Return clear join and room-load error messages in `backend/src/api/rooms.ts`
+- [X] T022 [US2] Trim, uppercase, and block empty room-code submission in `frontend/src/pages/JoinRoomPage.tsx`
+- [X] T023 [US2] Preserve join failure feedback and successful room-session updates in `frontend/src/state/roomStore.ts`
 
 **Checkpoint**: At this point, users can join valid rooms and receive clear feedback for invalid room-code attempts without breaking User Story 1
 
@@ -106,15 +106,15 @@ description: "Task list for Scenario 1 room setup and lobby implementation"
 
 ### Verification for User Story 3 ⚠️
 
-- [ ] T024 [P] [US3] Add room-isolation and lobby-snapshot transition coverage in `backend/src/services/roomStore.test.ts`
-- [ ] T025 [P] [US3] Add polling fetch and started-room transition coverage in `frontend/src/services/api.test.ts`
+- [X] T024 [P] [US3] Add room-isolation and lobby-snapshot transition coverage in `backend/src/services/roomStore.test.ts`
+- [X] T025 [P] [US3] Add polling fetch and started-room transition coverage in `frontend/src/services/api.test.ts`
 - [ ] T026 [US3] Validate two-room isolation and 2-second lobby refresh with `specs/001-room-lobby-setup/quickstart.md`
 
 ### Implementation for User Story 3
 
-- [ ] T027 [US3] Ensure room-specific fetch and snapshot isolation in `backend/src/services/roomStore.ts` and `backend/src/api/rooms.ts`
-- [ ] T028 [US3] Implement 2-second lobby polling and refresh-state handling in `frontend/src/pages/LobbyPage.tsx` and `frontend/src/state/roomStore.ts`
-- [ ] T029 [US3] Add host markers and synced lobby status messaging in `frontend/src/styles/app.css` and `frontend/src/pages/LobbyPage.tsx`
+- [X] T027 [US3] Ensure room-specific fetch and snapshot isolation in `backend/src/services/roomStore.ts` and `backend/src/api/rooms.ts`
+- [X] T028 [US3] Implement 2-second lobby polling and refresh-state handling in `frontend/src/pages/LobbyPage.tsx` and `frontend/src/state/roomStore.ts`
+- [X] T029 [US3] Add host markers and synced lobby status messaging in `frontend/src/styles/app.css` and `frontend/src/pages/LobbyPage.tsx`
 
 **Checkpoint**: All Scenario 1 lobby synchronization and room isolation behavior should now be independently functional
 
@@ -125,8 +125,8 @@ description: "Task list for Scenario 1 room setup and lobby implementation"
 **Purpose**: Final validation and artifact alignment across the completed Scenario 1 slice
 
 - [ ] T030 [P] Refresh Scenario 1 behavior notes in `specs/001-room-lobby-setup/quickstart.md` and `specs/001-room-lobby-setup/contracts/rooms-scenario1.openapi.yaml` if implementation wording changed
-- [ ] T031 Run backend validation for `backend/src/models/game.ts`, `backend/src/services/roomStore.ts`, and `backend/src/api/rooms.ts` with `cd backend && npm test && npm run build`
-- [ ] T032 Run frontend validation for `frontend/src/services/api.ts`, `frontend/src/state/roomStore.ts`, `frontend/src/pages/JoinRoomPage.tsx`, and `frontend/src/pages/LobbyPage.tsx` with `cd frontend && npm test && npm run build`
+- [X] T031 Run backend validation for `backend/src/models/game.ts`, `backend/src/services/roomStore.ts`, and `backend/src/api/rooms.ts` with `cd backend && npm test && npm run build`
+- [X] T032 Run frontend validation for `frontend/src/services/api.ts`, `frontend/src/state/roomStore.ts`, `frontend/src/pages/JoinRoomPage.tsx`, and `frontend/src/pages/LobbyPage.tsx` with `cd frontend && npm test && npm run build`
 - [ ] T033 Run the final end-to-end multi-tab Scenario 1 checks in `specs/001-room-lobby-setup/quickstart.md`
 
 ---

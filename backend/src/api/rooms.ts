@@ -4,9 +4,10 @@ import {
   HttpError,
   joinRoomSchema,
   roomCodeParamsSchema,
-  roomViewerQuerySchema
+  roomViewerQuerySchema,
+  startRoomSchema
 } from "./schemas.js";
-import { createRoom, getRoom, joinRoom, toRoomSnapshot } from "../services/roomStore.js";
+import { createRoom, getRoom, joinRoom, startRoom, toRoomSnapshot } from "../services/roomStore.js";
 
 export function createRoomsRouter() {
   const router = Router();
@@ -29,10 +30,10 @@ export function createRoomsRouter() {
     try {
       const { code } = roomCodeParamsSchema.parse(request.params);
       const { playerName } = joinRoomSchema.parse(request.body);
-      const result = joinRoom(code.toUpperCase(), playerName);
+      const result = joinRoom(code, playerName);
 
       if (!result) {
-        throw new HttpError(404, "Unable to join room");
+        throw new HttpError(404, "Room code was not found");
       }
 
       response.json({
@@ -44,14 +45,38 @@ export function createRoomsRouter() {
     }
   });
 
+  router.post("/:code/start", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId } = startRoomSchema.parse(request.body);
+      const result = startRoom(code, participantId);
+
+      if (!result.ok) {
+        const statusCodeByReason = {
+          "not-found": 404,
+          forbidden: 403,
+          conflict: 409
+        } as const;
+
+        throw new HttpError(statusCodeByReason[result.reason], result.message);
+      }
+
+      response.json({
+        room: toRoomSnapshot(result.room, participantId)
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
+
   router.get("/:code", (request, response, next) => {
     try {
       const { code } = roomCodeParamsSchema.parse(request.params);
       const { participantId } = roomViewerQuerySchema.parse(request.query);
-      const room = getRoom(code.toUpperCase());
+      const room = getRoom(code);
 
       if (!room) {
-        throw new HttpError(404, "Unable to load room");
+        throw new HttpError(404, "Room code was not found");
       }
 
       response.json({

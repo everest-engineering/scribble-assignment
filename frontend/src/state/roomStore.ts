@@ -84,9 +84,22 @@ class RoomStore {
   }
 
   async joinRoom(code: string, playerName: string) {
-    const response = await this.withLoading(() => api.joinRoom(code, playerName));
+    const normalizedCode = code.trim().toUpperCase();
+    const response = await this.withLoading(() => api.joinRoom(normalizedCode, playerName));
     this.setRoomSession(response);
     return response;
+  }
+
+  async startGame() {
+    if (!this.state.room || !this.state.participantId) {
+      throw new Error("No active room session");
+    }
+
+    const response = await this.withLoading(() =>
+      api.startGame(this.state.room!.code, this.state.participantId!)
+    );
+    this.setRoomSnapshot(response.room);
+    return response.room;
   }
 
   async fetchRoom() {

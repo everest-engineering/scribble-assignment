@@ -416,6 +416,16 @@ input {
   font-weight: 600;
 }
 
+.status-line--info {
+  background: #e0e7ff;
+  color: #3730a3;
+}
+
+.status-line--loading {
+  background: #fef3c7;
+  color: #b45309;
+}
+
 .placeholder-block {
   display: grid;
   gap: 16px;
