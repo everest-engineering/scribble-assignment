@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import type { Participant, Room, RoomSnapshot } from "../models/game.js";
+import { STARTER_WORDS } from "../seed/starterData.js";
 
 const rooms = new Map<string, Room>();
 const MINIMUM_PLAYERS_TO_START = 2;
@@ -30,7 +31,8 @@ function generateUniqueCode() {
 }
 
 function displayName(name?: string) {
-  return name || "Player";
+  const trimmedName = name?.trim();
+  return trimmedName && trimmedName.length > 0 ? trimmedName : "Player";
 }
 
 function createParticipant(name?: string): Participant {
@@ -43,6 +45,26 @@ function createParticipant(name?: string): Participant {
 
 function cloneRoom(room: Room) {
   return structuredClone(room);
+}
+
+function getDrawer(room: Room) {
+  return room.participants.find((participant) => participant.id === room.hostParticipantId) ?? room.participants[0];
+}
+
+function hashSeed(value: string) {
+  let hash = 0;
+
+  for (let index = 0; index < value.length; index += 1) {
+    hash = (hash + value.charCodeAt(index) * (index + 1)) % 2_147_483_647;
+  }
+
+  return hash;
+}
+
+function getSecretWord(room: Room, drawer: Participant) {
+  const participantSeed = room.participants.map((participant) => participant.name).join("|");
+  const selectionSeed = `${participantSeed}:${drawer.name}:${room.participants.length}`;
+  return STARTER_WORDS[hashSeed(selectionSeed) % STARTER_WORDS.length];
 }
 
 type StartRoomResult =
@@ -134,7 +156,14 @@ export function startRoom(code: string, participantId: string): StartRoomResult 
     };
   }
 
+  const drawer = getDrawer(room);
+
   room.status = "playing";
+  room.round = {
+    drawerParticipantId: drawer.id,
+    secretWord: getSecretWord(room, drawer),
+    startedAt: now()
+  };
   room.updatedAt = now();
   rooms.set(room.code, room);
 
@@ -152,6 +181,7 @@ export function saveRoom(room: Room) {
 
 export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSnapshot {
   const viewerIsHost = room.hostParticipantId === viewerParticipantId;
+  const viewerIsDrawer = room.round?.drawerParticipantId === viewerParticipantId;
 
   return {
     code: room.code,
@@ -160,6 +190,10 @@ export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSn
     participants: room.participants.map((participant) => ({ ...participant })),
     viewerIsHost,
     canStartGame: canStartRoom(room, viewerParticipantId),
-    minimumPlayersToStart: MINIMUM_PLAYERS_TO_START
+    minimumPlayersToStart: MINIMUM_PLAYERS_TO_START,
+    drawerParticipantId: room.round?.drawerParticipantId,
+    viewerIsDrawer,
+    wordVisibility: room.round ? (viewerIsDrawer ? "visible" : "hidden") : undefined,
+    secretWord: viewerIsDrawer ? room.round?.secretWord : undefined
   };
 }

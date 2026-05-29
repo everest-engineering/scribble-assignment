@@ -19,7 +19,8 @@ describe("api service", () => {
             participants: [],
             viewerIsHost: true,
             canStartGame: false,
-            minimumPlayersToStart: 2
+            minimumPlayersToStart: 2,
+            viewerIsDrawer: false
           },
         }),
     };
@@ -48,7 +49,8 @@ describe("api service", () => {
             participants: [],
             viewerIsHost: true,
             canStartGame: false,
-            minimumPlayersToStart: 2
+            minimumPlayersToStart: 2,
+            viewerIsDrawer: false
           },
         }),
     };
@@ -75,7 +77,8 @@ describe("api service", () => {
             participants: [],
             viewerIsHost: false,
             canStartGame: false,
-            minimumPlayersToStart: 2
+            minimumPlayersToStart: 2,
+            viewerIsDrawer: false
           }
         }),
     };
@@ -104,7 +107,11 @@ describe("api service", () => {
             participants: [],
             viewerIsHost: true,
             canStartGame: false,
-            minimumPlayersToStart: 2
+            minimumPlayersToStart: 2,
+            drawerParticipantId: "p1",
+            viewerIsDrawer: true,
+            wordVisibility: "visible",
+            secretWord: "rocket"
           }
         }),
     };
@@ -121,7 +128,7 @@ describe("api service", () => {
     );
   });
 
-  it("fetchRoom supports polling a playing room snapshot", async () => {
+  it("fetchRoom supports polling a viewer-specific playing room snapshot", async () => {
     const mockResponse = {
       ok: true,
       json: () =>
@@ -133,7 +140,10 @@ describe("api service", () => {
             participants: [],
             viewerIsHost: false,
             canStartGame: false,
-            minimumPlayersToStart: 2
+            minimumPlayersToStart: 2,
+            drawerParticipantId: "p1",
+            viewerIsDrawer: false,
+            wordVisibility: "hidden"
           }
         }),
     };
@@ -142,5 +152,7 @@ describe("api service", () => {
     const response = await api.fetchRoom("ABCD", "p2");
 
     expect(response.room.status).toBe("playing");
+    expect(response.room.viewerIsDrawer).toBe(false);
+    expect(response.room.secretWord).toBeUndefined();
   });
 });

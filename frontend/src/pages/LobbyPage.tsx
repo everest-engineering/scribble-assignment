@@ -70,9 +70,9 @@ export function LobbyPage() {
   const viewer = room.participants.find((participant) => participant.id === participantId) ?? null;
   const startMessage = room.viewerIsHost
     ? room.canStartGame
-      ? "You can start the game as soon as everyone is ready."
-      : `You need at least ${room.minimumPlayersToStart} players to start the game.`
-    : "Only the host can start the game.";
+      ? "You can start the round as soon as everyone is ready."
+      : `You need at least ${room.minimumPlayersToStart} players to start the round.`
+    : "Only the host can start the round.";
   const statusMessage = startError ?? error ?? refreshError ?? startMessage;
 
   return (
@@ -132,7 +132,7 @@ export function LobbyPage() {
           disabled={!room.canStartGame || isLoading}
           onClick={handleStartGame}
         >
-          {room.viewerIsHost ? "Start Game" : "Host Can Start"}
+          {room.viewerIsHost ? "Start Round" : "Host Can Start"}
         </button>
       </div>
     </section>

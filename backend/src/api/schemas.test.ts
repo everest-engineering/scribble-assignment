@@ -1,11 +1,29 @@
 import { describe, expect, it } from "vitest";
-import { createRoomSchema, roomCodeParamsSchema, startRoomSchema } from "./schemas.js";
+import { createRoomSchema, joinRoomSchema, roomCodeParamsSchema, startRoomSchema } from "./schemas.js";
 
 describe("schemas", () => {
-  it("createRoomSchema accepts a valid body with playerName", () => {
-    const result = createRoomSchema.parse({ playerName: "Alice" });
+  it("createRoomSchema trims a valid playerName", () => {
+    const result = createRoomSchema.parse({ playerName: "  Alice  " });
 
     expect(result.playerName).toBe("Alice");
+  });
+
+  it("createRoomSchema rejects a whitespace-only playerName", () => {
+    expect(() => createRoomSchema.parse({ playerName: "   " })).toThrow(
+      "Player name must include at least one non-space character"
+    );
+  });
+
+  it("joinRoomSchema trims a valid playerName", () => {
+    const result = joinRoomSchema.parse({ playerName: "  Bob  " });
+
+    expect(result.playerName).toBe("Bob");
+  });
+
+  it("joinRoomSchema rejects a whitespace-only playerName", () => {
+    expect(() => joinRoomSchema.parse({ playerName: "   " })).toThrow(
+      "Player name must include at least one non-space character"
+    );
   });
 
   it("roomCodeParamsSchema rejects missing code", () => {

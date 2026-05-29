@@ -1,4 +1,5 @@
 import { Router } from "express";
+import type { Room } from "../models/game.js";
 import {
   createRoomSchema,
   HttpError,
@@ -9,6 +10,19 @@ import {
 } from "./schemas.js";
 import { createRoom, getRoom, joinRoom, startRoom, toRoomSnapshot } from "../services/roomStore.js";
 
+function createRoomSessionResponse(room: Room, participantId: string) {
+  return {
+    participantId,
+    room: toRoomSnapshot(room, participantId)
+  };
+}
+
+function createRoomSnapshotResponse(room: Room, participantId?: string) {
+  return {
+    room: toRoomSnapshot(room, participantId)
+  };
+}
+
 export function createRoomsRouter() {
   const router = Router();
 
@@ -17,10 +31,7 @@ export function createRoomsRouter() {
       const { playerName } = createRoomSchema.parse(request.body);
       const result = createRoom(playerName);
 
-      response.status(201).json({
-        participantId: result.participantId,
-        room: toRoomSnapshot(result.room, result.participantId)
-      });
+      response.status(201).json(createRoomSessionResponse(result.room, result.participantId));
     } catch (error) {
       next(error);
     }
@@ -36,10 +47,7 @@ export function createRoomsRouter() {
         throw new HttpError(404, "Room code was not found");
       }
 
-      response.json({
-        participantId: result.participantId,
-        room: toRoomSnapshot(result.room, result.participantId)
-      });
+      response.json(createRoomSessionResponse(result.room, result.participantId));
     } catch (error) {
       next(error);
     }
@@ -61,9 +69,7 @@ export function createRoomsRouter() {
         throw new HttpError(statusCodeByReason[result.reason], result.message);
       }
 
-      response.json({
-        room: toRoomSnapshot(result.room, participantId)
-      });
+      response.json(createRoomSnapshotResponse(result.room, participantId));
     } catch (error) {
       next(error);
     }
@@ -79,9 +85,7 @@ export function createRoomsRouter() {
         throw new HttpError(404, "Room code was not found");
       }
 
-      response.json({
-        room: toRoomSnapshot(room, participantId)
-      });
+      response.json(createRoomSnapshotResponse(room, participantId));
     } catch (error) {
       next(error);
     }

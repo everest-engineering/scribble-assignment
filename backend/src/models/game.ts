@@ -1,5 +1,6 @@
 export type ParticipantRole = "drawer" | "guesser";
 export type RoomStatus = "lobby" | "playing";
+export type WordVisibility = "visible" | "hidden";
 
 export interface Participant {
   id: string;
@@ -7,11 +8,18 @@ export interface Participant {
   joinedAt: string;
 }
 
+export interface RoundState {
+  drawerParticipantId: string;
+  secretWord: string;
+  startedAt: string;
+}
+
 export interface Room {
   code: string;
   status: RoomStatus;
   hostParticipantId: string;
   participants: Participant[];
+  round?: RoundState;
   createdAt: string;
   updatedAt: string;
 }
@@ -24,6 +32,10 @@ export interface RoomSnapshot {
   viewerIsHost: boolean;
   canStartGame: boolean;
   minimumPlayersToStart: number;
+  drawerParticipantId?: string;
+  viewerIsDrawer: boolean;
+  wordVisibility?: WordVisibility;
+  secretWord?: string;
 }
 
 export interface RoomSessionResponse {

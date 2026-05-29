@@ -8,12 +8,17 @@ const roomCodeSchema = z
     message: "Room code must be 4 uppercase letters or numbers"
   });
 
+const playerNameSchema = z
+  .string()
+  .trim()
+  .min(1, { message: "Player name must include at least one non-space character" });
+
 export const createRoomSchema = z.object({
-  playerName: z.string().optional()
+  playerName: playerNameSchema.optional()
 });
 
 export const joinRoomSchema = z.object({
-  playerName: z.string().optional()
+  playerName: playerNameSchema.optional()
 });
 
 export const roomCodeParamsSchema = z.object({

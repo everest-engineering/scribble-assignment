@@ -12,9 +12,15 @@ export function JoinRoomPage() {
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    const normalizedPlayerName = playerName.trim();
     const normalizedRoomCode = roomCode.trim().toUpperCase();
 
     try {
+      if (!normalizedPlayerName) {
+        setError("Enter a player name to continue.");
+        return;
+      }
+
       if (!normalizedRoomCode) {
         setError("Enter a room code to join a lobby.");
         return;

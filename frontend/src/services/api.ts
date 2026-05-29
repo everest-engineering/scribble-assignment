@@ -4,6 +4,8 @@ export interface Participant {
   joinedAt: string;
 }
 
+export type WordVisibility = "visible" | "hidden";
+
 export interface RoomSnapshot {
   code: string;
   status: "lobby" | "playing";
@@ -12,6 +14,10 @@ export interface RoomSnapshot {
   viewerIsHost: boolean;
   canStartGame: boolean;
   minimumPlayersToStart: number;
+  drawerParticipantId?: string;
+  viewerIsDrawer: boolean;
+  wordVisibility?: WordVisibility;
+  secretWord?: string;
 }
 
 export interface RoomSessionResponse {

@@ -107,7 +107,8 @@ class RoomStore {
       return null;
     }
 
-    const response = await api.fetchRoom(this.state.room.code, this.state.participantId ?? undefined);
+    const activeParticipantId = this.state.participantId ?? undefined;
+    const response = await api.fetchRoom(this.state.room.code, activeParticipantId);
     this.setRoomSnapshot(response.room);
     return response.room;
   }
