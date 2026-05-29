@@ -5,9 +5,10 @@ import {
   joinRoomSchema,
   submitGuessSchema,
   roomCodeParamsSchema,
-  roomViewerQuerySchema
+  roomViewerQuerySchema,
+  saveCanvasSchema
 } from "./schemas.js";
-import { createRoom, getRoom, joinRoom, submitGuess, toRoomSnapshot } from "../services/roomStore.js";
+import { createRoom, getRoom, joinRoom, submitGuess, toRoomSnapshot, saveCanvas } from "../services/roomStore.js";
 
 export function createRoomsRouter() {
   const router = Router();
@@ -117,5 +118,32 @@ export function createRoomsRouter() {
   }
 });
 
+router.post("/:code/canvas", (request, response, next) => {
+  try {
+    const { code } = roomCodeParamsSchema.parse(request.params);
+    const { participantId } = roomViewerQuerySchema.parse(request.query);
+    const { lines } = saveCanvasSchema.parse(request.body);
+
+    if (!participantId) {
+      throw new HttpError(400, "participantId is required");
+    }
+
+    const room = saveCanvas(
+      code.toUpperCase(),
+      participantId,
+      lines
+    );
+
+    if (!room) {
+      throw new HttpError(404, "Unable to save canvas");
+    }
+
+    response.json({
+      room: toRoomSnapshot(room, participantId)
+    });
+  } catch (error) {
+    next(error);
+  }
+});
   return router;
 }

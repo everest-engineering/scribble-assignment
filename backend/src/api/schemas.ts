@@ -18,6 +18,10 @@ export const submitGuessSchema = z.object({
   message: z.string()
 });
 
+export const saveCanvasSchema = z.object({
+  lines: z.array(z.string())
+});
+
 export const roomCodeParamsSchema = z.object({
   code: z
     .string()

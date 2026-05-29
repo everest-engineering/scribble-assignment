@@ -186,6 +186,30 @@ export function submitGuess(
   return cloneRoom(room);
 }
 
+export function saveCanvas(
+  code: string,
+  participantId: string,
+  lines: string[]
+) {
+  const room = rooms.get(code);
+
+  if (!room || room.status !== "playing") {
+    return null;
+  }
+
+  if (room.currentDrawerId !== participantId) {
+    throw new Error("Only drawer can draw");
+  }
+
+  room.canvasLines = lines;
+
+  room.updatedAt = now();
+
+  rooms.set(room.code, room);
+
+  return cloneRoom(room);
+}
+
 export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSnapshot {
   void viewerParticipantId;
 
