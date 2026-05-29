@@ -1,0 +1,206 @@
+openapi: 3.1.0
+info:
+  title: Scribble Scenario 1 Rooms API
+  version: 1.0.0
+  description: >
+    Contract for room setup and lobby behavior only. Drawer assignment, word
+    visibility, drawing, guesses, scoring, results, and restart are excluded.
+paths:
+  /rooms:
+    post:
+      summary: Create a room and return the creator's room session
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                playerName:
+                  type: string
+      responses:
+        "201":
+          description: Room created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RoomSessionResponse"
+  /rooms/{code}/join:
+    post:
+      summary: Join an existing room by room code
+      parameters:
+        - $ref: "#/components/parameters/RoomCode"
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                playerName:
+                  type: string
+      responses:
+        "200":
+          description: Room joined
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RoomSessionResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /rooms/{code}:
+    get:
+      summary: Fetch the latest room snapshot for a room
+      parameters:
+        - $ref: "#/components/parameters/RoomCode"
+        - name: participantId
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Room snapshot loaded
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [room]
+                properties:
+                  room:
+                    $ref: "#/components/schemas/RoomSnapshot"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /rooms/{code}/start:
+    post:
+      summary: Start the game for a room as the host
+      parameters:
+        - $ref: "#/components/parameters/RoomCode"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [participantId]
+              properties:
+                participantId:
+                  type: string
+      responses:
+        "200":
+          description: Room left the lobby and entered playing state
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [room]
+                properties:
+                  room:
+                    $ref: "#/components/schemas/RoomSnapshot"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "403":
+          description: Only the host may start the room
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          description: Room cannot start yet
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+components:
+  parameters:
+    RoomCode:
+      name: code
+      in: path
+      required: true
+      schema:
+        type: string
+        pattern: "^[A-Z0-9]{4}$"
+  responses:
+    BadRequest:
+      description: Invalid request payload or malformed room code
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    NotFound:
+      description: Room not found
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+  schemas:
+    Participant:
+      type: object
+      additionalProperties: false
+      required: [id, name, joinedAt]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        joinedAt:
+          type: string
+          format: date-time
+    RoomSnapshot:
+      type: object
+      additionalProperties: false
+      required:
+        - code
+        - status
+        - participants
+        - hostParticipantId
+        - viewerIsHost
+        - canStartGame
+        - minimumPlayersToStart
+      properties:
+        code:
+          type: string
+          pattern: "^[A-Z0-9]{4}$"
+        status:
+          type: string
+          enum: [lobby, playing]
+        participants:
+          type: array
+          items:
+            $ref: "#/components/schemas/Participant"
+        hostParticipantId:
+          type: string
+        viewerIsHost:
+          type: boolean
+        canStartGame:
+          type: boolean
+        minimumPlayersToStart:
+          type: integer
+          enum: [2]
+    RoomSessionResponse:
+      type: object
+      additionalProperties: false
+      required: [participantId, room]
+      properties:
+        participantId:
+          type: string
+        room:
+          $ref: "#/components/schemas/RoomSnapshot"
+    ErrorResponse:
+      type: object
+      additionalProperties: false
+      required: [message]
+      properties:
+        message:
+          type: string
