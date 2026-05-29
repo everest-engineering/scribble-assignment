@@ -59,7 +59,9 @@ export function createRoom(playerName?: string) {
     hostId: participant.id,
     participants: [participant],
     createdAt: now(),
-    updatedAt: now()
+    updatedAt: now(),
+    guesses: [],
+    canvasLines: [],
   };
 
   rooms.set(room.code, room);
@@ -143,10 +145,13 @@ export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSn
     availableWords: listWords(),
     roles: [...STARTER_ROLES],
     currentDrawerId: room.currentDrawerId,
-  currentWord:
-    viewerParticipantId === room.currentDrawerId
-      ? room.currentWord
-      : undefined
+    currentWord:
+      viewerParticipantId === room.currentDrawerId
+        ? room.currentWord
+        : undefined,  
+    guesses: room.guesses,
+    canvasLines: room.canvasLines 
+    
     
   };
 }
