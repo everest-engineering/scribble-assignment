@@ -19,6 +19,17 @@ export interface Room {
   currentWord?: string;
   createdAt: string;
   updatedAt: string;
+  guesses: Guess[];
+  canvasLines: string[];
+}
+
+export interface Guess {
+  id: string;
+  participantId: string;
+  playerName: string;
+  message: string;
+  isCorrect: boolean;
+  createdAt: string;
 }
 
 export interface RoomSnapshot {
@@ -29,6 +40,8 @@ export interface RoomSnapshot {
   roles: ParticipantRole[];
   currentDrawerId?: string;
   currentWord?: string;
+  guesses: Guess[];
+  canvasLines: string[];
 }
 
 export interface RoomSessionResponse {
