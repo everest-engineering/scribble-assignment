@@ -38,7 +38,8 @@ function createParticipant(name?: string, isHost = false): Participant {
     id: randomUUID(),
     name: displayName(name),
     joinedAt: now(),
-    isHost
+    isHost, 
+    score: 0
   };
 }
 
@@ -51,7 +52,7 @@ export function listWords() {
 }
 
 export function createRoom(playerName?: string) {
-  const participant = createParticipant(playerName);
+  const participant = createParticipant(playerName, true);
   const room: Room = {
     code: generateUniqueCode(),
     status: "lobby",
@@ -76,7 +77,7 @@ export function joinRoom(code: string, playerName?: string) {
     return null;
   }
 
-  const participant = createParticipant(playerName, true);
+  const participant = createParticipant(playerName);
   room.participants.push(participant);
   room.updatedAt = now();
   rooms.set(room.code, room);
@@ -96,6 +97,40 @@ export function saveRoom(room: Room) {
   room.updatedAt = now();
   rooms.set(room.code, cloneRoom(room));
   return getRoom(room.code);
+}
+
+export function startGame(code: string, participantId?: string) {
+  const room = rooms.get(code);
+
+  if (!room) {
+    return null;
+  }
+
+  if (room.hostId !== participantId) {
+    throw new Error("Only the host can start the game");
+  }
+
+  if (room.participants.length < 2) {
+    throw new Error("At least 2 players are required");
+  }
+
+  const drawer = room.participants[0];
+
+  room.status = "playing";
+  room.currentDrawerId = drawer.id;
+
+  room.currentWord = STARTER_WORDS[0];
+
+  room.participants = room.participants.map((participant) => ({
+    ...participant,
+    role: participant.id === drawer.id ? "drawer" : "guesser"
+  }));
+
+  room.updatedAt = now();
+
+  rooms.set(room.code, room);
+
+  return cloneRoom(room);
 }
 
 export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSnapshot {
