@@ -1,50 +1,74 @@
-# [PROJECT_NAME] Constitution
-<!-- Example: Spec Constitution, TaskFlow Constitution, etc. -->
+<!-- 
+SYNC IMPACT REPORT
+Version: 1.0.0 (new constitution, no prior version)
+Modified Principles: N/A (first version)
+Added Sections: Technology Constraints, Development & Code Quality
+Removed Sections: N/A
+Templates Updated: Pending review of plan-template.md, spec-template.md, tasks-template.md, and all command files
+Follow-up TODOs: None at this time
+-->
+
+# Scribble Constitution
 
 ## Core Principles
 
-### [PRINCIPLE_1_NAME]
-<!-- Example: I. Library-First -->
-[PRINCIPLE_1_DESCRIPTION]
-<!-- Example: Every feature starts as a standalone library; Libraries must be self-contained, independently testable, documented; Clear purpose required - no organizational-only libraries -->
+### I. TypeScript First (Non-Negotiable)
+All new code and refactors MUST be fully typed in TypeScript. Avoid `any`; use `unknown` only when a type is truly dynamic and cannot be inferred. TypeScript provides the foundation for maintainability, IDE support, and compile-time error catching essential to a distributed multiplayer game system.
 
-### [PRINCIPLE_2_NAME]
-<!-- Example: II. CLI Interface -->
-[PRINCIPLE_2_DESCRIPTION]
-<!-- Example: Every library exposes functionality via CLI; Text in/out protocol: stdin/args → stdout, errors → stderr; Support JSON + human-readable formats -->
+### II. Test-First Development (Non-Negotiable)
+Tests MUST be written before implementation (TDD). The Red-Green-Refactor cycle is strictly enforced:
+- User requirements and acceptance criteria documented
+- Test cases written and fail (Red)
+- Implementation code written to pass tests (Green)
+- Code refactored for clarity and consistency (Refactor)
 
-### [PRINCIPLE_3_NAME]
-<!-- Example: III. Test-First (NON-NEGOTIABLE) -->
-[PRINCIPLE_3_DESCRIPTION]
-<!-- Example: TDD mandatory: Tests written → User approved → Tests fail → Then implement; Red-Green-Refactor cycle strictly enforced -->
+This ensures correctness, reduces regressions, and provides a safety net for game logic modifications.
 
-### [PRINCIPLE_4_NAME]
-<!-- Example: IV. Integration Testing -->
-[PRINCIPLE_4_DESCRIPTION]
-<!-- Example: Focus areas requiring integration tests: New library contract tests, Contract changes, Inter-service communication, Shared schemas -->
+### III. Immutability & Pure Functions
+Prefer immutable data structures and pure functions. State mutations MUST be explicit and localized. This principle reduces side effects, makes reasoning about game state deterministic, and simplifies debugging of concurrent player interactions.
 
-### [PRINCIPLE_5_NAME]
-<!-- Example: V. Observability, VI. Versioning & Breaking Changes, VII. Simplicity -->
-[PRINCIPLE_5_DESCRIPTION]
-<!-- Example: Text I/O ensures debuggability; Structured logging required; Or: MAJOR.MINOR.BUILD format; Or: Start simple, YAGNI principles -->
+### IV. Error Handling: Fail Fast & Gracefully
+On the backend, errors MUST be caught at the earliest point and handled via centralized error handlers. On the frontend, the UI MUST NOT crash on API exceptions; instead, display user-friendly error messages. Game state consistency MUST be maintained even when network or server errors occur.
 
-## [SECTION_2_NAME]
-<!-- Example: Additional Constraints, Security Requirements, Performance Standards, etc. -->
+### V. Strict Backend & Frontend Architecture
+- **Backend** (`/backend`): Validation (Zod), Routes (api/), Business Logic (services/), Data Models (models/)
+- **Frontend** (`/frontend`): React functional components with strict hooks, routing via react-router-dom v6, state in `/state` (e.g., Zustand, Context API), styling in `app.css` or CSS modules
 
-[SECTION_2_CONTENT]
-<!-- Example: Technology stack requirements, compliance standards, deployment policies, etc. -->
+These separations ensure testability, maintainability, and clear responsibility boundaries.
 
-## [SECTION_3_NAME]
-<!-- Example: Development Workflow, Review Process, Quality Gates, etc. -->
+## Technology Constraints
 
-[SECTION_3_CONTENT]
-<!-- Example: Code review requirements, testing gates, deployment approval process, etc. -->
+The following are non-negotiable architectural constraints:
+
+- **No WebSockets**: All synchronization between players MUST use HTTP polling. No Socket.io, real-time push, or bidirectional streaming.
+- **No Databases**: All game state and room data MUST be stored in-memory only. No SQL, NoSQL, SQLite, or any persistent storage.
+- **No Authentication**: No authentication systems, sessions, JWT, or OAuth. All rooms are public and identified by code only.
+
+These constraints ensure the system remains lightweight, testable, and focused on game mechanics.
+
+## Development & Code Quality
+
+- **Validation**: Use Zod for all request payload and response validations on the backend.
+- **State Management**: Keep memory footprint for active game rooms minimal. Explicitly remove inactive rooms to prevent leaks.
+- **Code Organization**: Follow established patterns in `roomStore.ts`, `api.ts`, and component structure. No deviation without architectural review.
+- **Styling**: All CSS belongs in `app.css` or CSS modules; keep components structurally clean and presentation-agnostic.
+- **Imports**: Use standard relative and absolute ES module imports. In the backend, file extensions are omitted or handled via `.js` standard per Node.js convention.
 
 ## Governance
-<!-- Example: Constitution supersedes all other practices; Amendments require documentation, approval, migration plan -->
 
-[GOVERNANCE_RULES]
-<!-- Example: All PRs/reviews must verify compliance; Complexity must be justified; Use [GUIDANCE_FILE] for runtime development guidance -->
+This Constitution supersedes all other practices and guidelines. It is the source of truth for development decisions on the Scribble project.
 
-**Version**: [CONSTITUTION_VERSION] | **Ratified**: [RATIFICATION_DATE] | **Last Amended**: [LAST_AMENDED_DATE]
-<!-- Example: Version: 2.1.1 | Ratified: 2025-06-13 | Last Amended: 2025-07-16 -->
+**Amendment Process**: Changes to this document MUST be documented with rationale. Major principle changes require review of downstream templates (plan-template.md, spec-template.md, tasks-template.md) and all dependent guidance files to ensure consistency.
+
+**Compliance Review**: Before each release, all code MUST be verified against these principles. Pull requests MUST reference which principles they uphold or why they defer to practical constraints.
+
+**Version Semantics**:
+- MAJOR: Backward-incompatible principle removal or redefinition
+- MINOR: New principle, section, or materially expanded guidance
+- PATCH: Clarifications, wording, typo fixes, non-semantic refinements
+
+**Runtime Guidance**: Developers MUST consult [AGENTS.md](AGENTS.md) for specific implementation patterns, command references, and TypeScript/React idioms aligned with this Constitution.
+
+---
+
+**Version**: 1.0.0 | **Ratified**: 2026-05-29 | **Last Amended**: 2026-05-29
