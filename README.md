@@ -160,6 +160,7 @@ Within each feature group, follow this loop:
 Maintain these artifacts throughout the lab:
 
 - discovery notes with at least 3 incomplete behaviors, at least 2 assumptions, and relevant files
+  - consolidated in `discovery.md` at the repository root
 - `/speckit.constitution` covering engineering principles, AI usage rules, and review discipline
 - `/speckit.specify` files updated incrementally by feature group with acceptance criteria
 - `/speckit.plan` updated incrementally with state model, data flow, and file-level plan
