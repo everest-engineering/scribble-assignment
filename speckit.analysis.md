@@ -1,5 +1,7 @@
 # Spec Kit Analysis: Scenario 3 Gameplay Interaction
 
+> Scenario-specific analysis artifacts have been created in `spec/scenario-3-gameplay/analysis.md` and `spec/scenario-4-results/analysis.md`.
+
 **Created**: 2026-05-28
 **Scope**: Scenario 3 only
 **Inputs**: [speckit.discovery.md](file:///Users/manojprabhakarm/projects/work/scribble-assignment/speckit.discovery.md), [speckit.specify.md](file:///Users/manojprabhakarm/projects/work/scribble-assignment/speckit.specify.md), [speckit.plan.md](file:///Users/manojprabhakarm/projects/work/scribble-assignment/speckit.plan.md), [speckit.tasks.md](file:///Users/manojprabhakarm/projects/work/scribble-assignment/speckit.tasks.md)

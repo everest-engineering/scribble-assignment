@@ -1,5 +1,7 @@
 # Feature Specification: Room Setup, Game Start, Gameplay Interaction, & Results
 
+> Feature-specific spec artifacts are now organized under `spec/scenario-1-room-setup`, `spec/scenario-2-game-start`, `spec/scenario-3-gameplay`, and `spec/scenario-4-results`.
+
 **Feature Branch**: `002-game-start-drawer-flow`
 
 **Created**: 2026-05-28

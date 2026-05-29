@@ -1,5 +1,7 @@
 # Spec Kit Tasks: Room Setup, Game Start, Gameplay Interaction, & Results
 
+> Feature-specific task artifacts are also available under `spec/scenario-1-room-setup`, `spec/scenario-2-game-start`, `spec/scenario-3-gameplay`, and `spec/scenario-4-results`.
+
 ## 1. Discovery & Analysis
 - [x] TSK001 Inspect current backend routes (`rooms.ts`), services (`roomStore.ts`), and models (`game.ts`).
 - [x] TSK002 Inspect current frontend routing, room state (`roomStore.ts`), and page screens (`LobbyPage.tsx` and `JoinRoomPage.tsx`).

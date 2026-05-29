@@ -1,5 +1,7 @@
 # Technical Plan: Room Setup, Game Start, Gameplay Interaction, & Results
 
+> Feature-specific plan artifacts are also available under `spec/scenario-1-room-setup`, `spec/scenario-2-game-start`, `spec/scenario-3-gameplay`, and `spec/scenario-4-results`.
+
 **Feature Branch**: `002-game-start-drawer-flow`
 
 **Created**: 2026-05-28

@@ -1,5 +1,7 @@
 # Implementation Checklist: Room Setup, Game Start, Gameplay Interaction, & Results
 
+> Scenario-specific checklist artifacts have been created under `spec/scenario-1-room-setup`, `spec/scenario-2-game-start`, `spec/scenario-3-gameplay`, and `spec/scenario-4-results`.
+
 **Purpose**: Verify and track implementation details for Scenarios 1, 2, 3, and 4, ensuring all requirements, edge cases, and success criteria are met.
 **Created**: 2026-05-28
 **Feature**: [speckit.specify.md](file:///Users/manojprabhakarm/projects/work/scribble-assignment/speckit.specify.md)

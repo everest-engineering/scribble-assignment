@@ -1,5 +1,7 @@
 # Spec Kit Discovery Notes: Room Setup, Game Start, Gameplay & Results
 
+> Scenario-specific discovery files have been created under `spec/scenario-1-room-setup`, `spec/scenario-2-game-start`, `spec/scenario-3-gameplay`, and `spec/scenario-4-results`.
+
 ## 1. Gaps (Incomplete Behaviors)
 
 ### Scenario 1 - Room Setup & Lobby
