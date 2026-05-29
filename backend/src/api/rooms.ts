@@ -5,9 +5,11 @@ import {
   joinRoomSchema,
   roomCodeParamsSchema,
   roomViewerQuerySchema,
-  startGameSchema
+  startGameSchema,
+  strokeSchema,
+  guessSchema
 } from "./schemas.js";
-import { createRoom, getRoom, joinRoom, toRoomSnapshot, startGame } from "../services/roomStore.js";
+import { createRoom, getRoom, joinRoom, toRoomSnapshot, startGame, addStrokes, addGuess } from "../services/roomStore.js";
 
 export function createRoomsRouter() {
   const router = Router();
@@ -38,6 +40,48 @@ export function createRoomsRouter() {
           throw new HttpError(404, "Room not found");
         }
         
+        response.json({
+          room: toRoomSnapshot(room, participantId)
+        });
+      } catch (err) {
+        throw new HttpError(403, err instanceof Error ? err.message : "Forbidden");
+      }
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/:code/strokes", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId, strokes } = strokeSchema.parse(request.body);
+      
+      try {
+        const room = addStrokes(code.toUpperCase(), participantId, strokes);
+        if (!room) {
+          throw new HttpError(404, "Room not found");
+        }
+        response.json({
+          room: toRoomSnapshot(room, participantId)
+        });
+      } catch (err) {
+        throw new HttpError(403, err instanceof Error ? err.message : "Forbidden");
+      }
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/:code/guesses", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId, text } = guessSchema.parse(request.body);
+      
+      try {
+        const room = addGuess(code.toUpperCase(), participantId, text);
+        if (!room) {
+          throw new HttpError(404, "Room not found");
+        }
         response.json({
           room: toRoomSnapshot(room, participantId)
         });

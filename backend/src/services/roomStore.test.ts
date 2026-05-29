@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createRoom, joinRoom, removeParticipant, getRoom, startGame, toRoomSnapshot } from "./roomStore.js";
+import { createRoom, joinRoom, removeParticipant, getRoom, startGame, toRoomSnapshot, addGuess, addStrokes } from "./roomStore.js";
 
 describe("roomStore", () => {
   it("createRoom returns a room with a 4-character uppercase code and assigns host", () => {
@@ -74,5 +74,46 @@ describe("roomStore", () => {
     startGame(initialRoom.code, hostId);
 
     expect(() => joinRoom(initialRoom.code, "Charlie")).toThrow("Room already in progress");
+  });
+
+  it("addGuess awards points only for the first correct guess", () => {
+    const { room: initialRoom, participantId: hostId } = createRoom("Alice");
+    const { participantId: guestId } = joinRoom(initialRoom.code, "Bob")!;
+    startGame(initialRoom.code, hostId);
+
+    // Correct guess
+    let room = addGuess(initialRoom.code, guestId, "rocket")!;
+    let guest = room.participants.find(p => p.id === guestId)!;
+    expect(guest.score).toBe(100);
+    expect(room.guesses[0].isCorrect).toBe(true);
+
+    // Second correct guess should not award more points
+    room = addGuess(initialRoom.code, guestId, "ROCKET ")!;
+    guest = room.participants.find(p => p.id === guestId)!;
+    expect(guest.score).toBe(100);
+    expect(room.guesses).toHaveLength(2);
+  });
+
+  it("addGuess maintains a rolling history of 50 guesses", () => {
+    const { room: initialRoom, participantId: hostId } = createRoom("Alice");
+    const { participantId: guestId } = joinRoom(initialRoom.code, "Bob")!;
+    startGame(initialRoom.code, hostId);
+
+    for (let i = 0; i < 60; i++) {
+      addGuess(initialRoom.code, guestId, `guess ${i}`);
+    }
+
+    const room = getRoom(initialRoom.code)!;
+    expect(room.guesses).toHaveLength(50);
+    expect(room.guesses[0].text).toBe("guess 10");
+    expect(room.guesses[49].text).toBe("guess 59");
+  });
+
+  it("addStrokes blocks non-drawer updates", () => {
+    const { room: initialRoom, participantId: hostId } = createRoom("Alice");
+    const { participantId: guestId } = joinRoom(initialRoom.code, "Bob")!;
+    startGame(initialRoom.code, hostId);
+
+    expect(() => addStrokes(initialRoom.code, guestId, [])).toThrow("Only the drawer can update strokes");
   });
 });

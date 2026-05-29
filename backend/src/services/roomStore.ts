@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import type { Participant, Room, RoomSnapshot } from "../models/game.js";
+import type { Participant, Room, RoomSnapshot, Stroke, Guess } from "../models/game.js";
 import { STARTER_ROLES, STARTER_WORDS } from "../seed/starterData.js";
 
 const rooms = new Map<string, Room>();
@@ -38,7 +38,9 @@ function createParticipant(name?: string): Participant {
     id: randomUUID(),
     name: displayName(name),
     joinedAt: now(),
-    role: null
+    role: null,
+    score: 0,
+    hasGuessedCorrectly: false
   };
 }
 
@@ -58,6 +60,8 @@ export function createRoom(playerName: string) {
     hostId: participant.id,
     participants: [participant],
     secretWord: null,
+    strokes: [],
+    guesses: [],
     createdAt: now(),
     updatedAt: now()
   };
@@ -122,6 +126,58 @@ export function saveRoom(room: Room) {
   return getRoom(room.code);
 }
 
+export function addStrokes(code: string, participantId: string, strokes: Stroke[]) {
+  const room = rooms.get(code);
+  if (!room) return null;
+
+  const participant = room.participants.find(p => p.id === participantId);
+  if (participant?.role !== "drawer") {
+    throw new Error("Only the drawer can update strokes");
+  }
+
+  room.strokes = strokes;
+  room.updatedAt = now();
+  rooms.set(room.code, room);
+  return cloneRoom(room);
+}
+
+export function addGuess(code: string, participantId: string, text: string) {
+  const room = rooms.get(code);
+  if (!room) return null;
+
+  const participant = room.participants.find(p => p.id === participantId);
+  if (!participant) return null;
+
+  if (participant.role === "drawer") {
+    throw new Error("Drawers cannot submit guesses");
+  }
+
+  const normalizedGuess = text.trim().toLowerCase();
+  const isCorrect = normalizedGuess === room.secretWord?.toLowerCase();
+
+  if (isCorrect && !participant.hasGuessedCorrectly) {
+    participant.score += 100;
+    participant.hasGuessedCorrectly = true;
+  }
+
+  const guess: Guess = {
+    participantId,
+    playerName: participant.name,
+    text: text.trim(),
+    isCorrect,
+    timestamp: now()
+  };
+
+  room.guesses.push(guess);
+  if (room.guesses.length > 50) {
+    room.guesses.shift();
+  }
+
+  room.updatedAt = now();
+  rooms.set(room.code, room);
+  return cloneRoom(room);
+}
+
 export function startGame(code: string, participantId: string) {
   const room = rooms.get(code);
 
@@ -139,8 +195,12 @@ export function startGame(code: string, participantId: string) {
 
   room.status = "playing";
   room.secretWord = STARTER_WORDS[0];
+  room.strokes = [];
+  room.guesses = [];
   room.participants.forEach(p => {
     p.role = p.id === room.hostId ? "drawer" : "guesser";
+    p.score = 0;
+    p.hasGuessedCorrectly = false;
   });
   
   room.updatedAt = now();
@@ -159,6 +219,8 @@ export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSn
     hostId: room.hostId,
     participants: room.participants.map((participant) => ({ ...participant })),
     secretWord: canSeeWord ? room.secretWord : null,
+    strokes: room.strokes,
+    guesses: room.guesses,
     availableWords: listWords(),
     roles: [...STARTER_ROLES]
   };

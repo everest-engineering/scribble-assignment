@@ -25,6 +25,26 @@ export const startGameSchema = z.object({
   participantId: z.string()
 });
 
+export const strokeSchema = z.object({
+  participantId: z.string(),
+  strokes: z.array(z.object({
+    paths: z.array(z.object({
+      x: z.number(),
+      y: z.number()
+    })),
+    strokeColor: z.string(),
+    strokeWidth: z.number(),
+    drawMode: z.boolean(),
+    startTimestamp: z.number().optional(),
+    endTimestamp: z.number().optional()
+  }))
+});
+
+export const guessSchema = z.object({
+  participantId: z.string(),
+  text: z.string().trim().min(1, "Guess cannot be empty")
+});
+
 export class HttpError extends Error {
   statusCode: number;
 

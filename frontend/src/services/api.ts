@@ -1,10 +1,30 @@
 export type ParticipantRole = "drawer" | "guesser";
 
+// Aligned with react-sketch-canvas CanvasPath interface
+export interface Stroke {
+  paths: { x: number; y: number }[];
+  strokeColor: string;
+  strokeWidth: number;
+  drawMode: boolean;
+  startTimestamp?: number;
+  endTimestamp?: number;
+}
+
+export interface Guess {
+  participantId: string;
+  playerName: string;
+  text: string;
+  isCorrect: boolean;
+  timestamp: string;
+}
+
 export interface Participant {
   id: string;
   name: string;
   joinedAt: string;
   role: ParticipantRole | null;
+  score: number;
+  hasGuessedCorrectly: boolean;
 }
 
 export interface RoomSnapshot {
@@ -13,6 +33,8 @@ export interface RoomSnapshot {
   hostId: string;
   participants: Participant[];
   secretWord: string | null;
+  strokes: Stroke[];
+  guesses: Guess[];
   availableWords: string[];
   roles: ParticipantRole[];
 }
@@ -65,6 +87,18 @@ export const api = {
     return request<{ room: RoomSnapshot }>(`/rooms/${encodeURIComponent(code)}/start`, {
       method: "POST",
       body: JSON.stringify({ participantId })
+    });
+  },
+  submitStrokes(code: string, participantId: string, strokes: Stroke[]) {
+    return request<{ room: RoomSnapshot }>(`/rooms/${encodeURIComponent(code)}/strokes`, {
+      method: "POST",
+      body: JSON.stringify({ participantId, strokes })
+    });
+  },
+  submitGuess(code: string, participantId: string, text: string) {
+    return request<{ room: RoomSnapshot }>(`/rooms/${encodeURIComponent(code)}/guesses`, {
+      method: "POST",
+      body: JSON.stringify({ participantId, text })
     });
   }
 };
