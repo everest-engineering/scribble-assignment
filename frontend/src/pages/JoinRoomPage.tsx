@@ -46,12 +46,12 @@ export function JoinRoomPage() {
             className="form__input form__input--code"
             value={roomCode}
             onChange={(event) => setRoomCode(event.target.value.toUpperCase())}
-            placeholder="ABCD"
+            placeholder="A1B2C3"
           />
         </label>
         {error ? <p className="form__error">{error}</p> : null}
         <div className="button-row">
-          <button className="button button--primary" type="submit">
+          <button className="button button--primary" type="submit" disabled={playerName.trim().length === 0}>
             Join Lobby
           </button>
           <button className="button button--secondary" type="button" onClick={() => navigate("/")}>
