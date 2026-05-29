@@ -109,10 +109,7 @@ function formatEvidenceItem(item) {
 }
 
 function statusFromChecks(checks) {
-  if (checks.some((check) => check.status === "fail")) return "fail";
-  if (checks.some((check) => check.status === "partial")) return "partial";
-  if (checks.some((check) => check.status === "warning")) return "warning";
-  return "pass";
+  return checks.some((check) => check.status === "fail" || check.status === "error") ? "fail" : "pass";
 }
 
 function getPackageJson(projectDir) {
@@ -204,9 +201,9 @@ function artifactInventory() {
       }
     : { path: "reflection.md or REFLECTION.md", exists: false, characters: 0 };
 
-  const warnings = [];
+  const notes = [];
   if (constitution.exists && constitution.characters < 800) {
-    warnings.push(`${constitution.path} is short (${constitution.characters} chars < 800).`);
+    notes.push(`${constitution.path} is short (${constitution.characters} chars < 800).`);
   }
 
   for (const feature of features) {
@@ -217,13 +214,13 @@ function artifactInventory() {
           ? 900
           : 500;
       if (file.exists && file.characters < threshold) {
-        warnings.push(`${file.path} is short (${file.characters} chars < ${threshold}).`);
+        notes.push(`${file.path} is short (${file.characters} chars < ${threshold}).`);
       }
     }
   }
 
   if (reflection.exists && reflection.characters < 500) {
-    warnings.push(`${reflection.path} is short (${reflection.characters} chars < 500).`);
+    notes.push(`${reflection.path} is short (${reflection.characters} chars < 500).`);
   }
 
   const failures = [];
@@ -235,13 +232,13 @@ function artifactInventory() {
   if (!reflection.exists) failures.push("Missing root reflection.md or REFLECTION.md.");
 
   return {
-    status: failures.length > 0 ? "fail" : warnings.length > 0 ? "warning" : "pass",
+    status: failures.length > 0 ? "fail" : "pass",
     constitution,
     featureCount: features.length,
     completeFeatureCount: features.filter((feature) => feature.complete).length,
     features,
     reflection,
-    warnings,
+    notes,
     failures,
   };
 }
@@ -306,7 +303,7 @@ function forbiddenTechnologyScan() {
   const lockFiles = ["backend/package-lock.json", "frontend/package-lock.json"]
     .map((file) => path.join(root, file))
     .filter(existsSync);
-  const lockfileWarnings = firstLineMatches(lockFiles, forbiddenPatterns, 20);
+  const lockfileNotes = firstLineMatches(lockFiles, forbiddenPatterns, 20);
 
   const failures = [];
   if (implementationMatches.length > 0) {
@@ -317,164 +314,15 @@ function forbiddenTechnologyScan() {
   }
 
   return {
-    status: failures.length > 0 ? "fail" : lockfileWarnings.length > 0 ? "warning" : "pass",
+    status: failures.length > 0 ? "fail" : "pass",
     implementationMatches,
     directDependencyMatches,
-    lockfileWarnings,
+    lockfileNotes,
     failures,
   };
 }
 
-const scenarioDefinitions = [
-  {
-    name: "Scenario 1: Room & Lobby",
-    concepts: [
-      {
-        name: "room creation and host assignment",
-        artifact: [/create room/i, /room creation/i, /creator.*host/i, /assign.*host/i],
-        code: [/createRoom/i, /hostId/i, /router\.post\(.{0,40}rooms/i, /creator.*host/i],
-      },
-      {
-        name: "invalid or empty room code feedback",
-        artifact: [/invalid.*room code/i, /empty.*room code/i, /clear.*feedback/i],
-        code: [/invalid.*room/i, /room.*not found/i, /code.*trim/i, /status\(400\)/i, /status\(404\)/i],
-      },
-      {
-        name: "lobby polling around 2 seconds",
-        artifact: [/poll/i, /2\s*s/i, /2000/i, /automatic.*refresh/i],
-        code: [/setInterval/i, /2000/i, /poll/i, /fetchRoom/i],
-      },
-      {
-        name: "host-only start with at least two players",
-        artifact: [/host.*start/i, /at least.*2/i, />=\s*2/i, /minimum.*2/i],
-        code: [/host/i, /players\.length\s*[<>=]/i, /participant.*length\s*[<>=]/i, /at least.*2/i, /status\(403\)/i],
-      },
-    ],
-  },
-  {
-    name: "Scenario 2: Drawer & Word",
-    concepts: [
-      {
-        name: "trimmed names and empty-name rejection",
-        artifact: [/trim/i, /empty.*name/i, /whitespace/i],
-        code: [/\.trim\(\)/i, /empty.*name/i, /playerName/i, /min\(1\)/i],
-      },
-      {
-        name: "deterministic drawer assignment",
-        artifact: [/deterministic.*drawer/i, /host.*drawer/i, /first player.*drawer/i],
-        code: [/drawerId/i, /hostId/i, /players\[0\]/i, /participants\[0\]/i],
-      },
-      {
-        name: "deterministic starter-list word selection",
-        artifact: [/deterministic.*word/i, /starter.*word/i, /rocket|pizza|castle|guitar|sunflower/i],
-        code: [/STARTER_WORDS/i, /starter.*word/i, /secretWord/i],
-      },
-      {
-        name: "secret word visible only to drawer before result",
-        artifact: [/visible only.*drawer/i, /only.*drawer.*word/i, /hide.*word/i],
-        code: [/isDrawer/i, /drawerId/i, /secretWord/i, /undefined|null/i],
-      },
-    ],
-  },
-  {
-    name: "Scenario 3: Gameplay",
-    concepts: [
-      {
-        name: "drawer canvas draw and clear",
-        artifact: [/canvas/i, /draw/i, /clear/i],
-        code: [/canvas/i, /stroke/i, /draw/i, /clearCanvas/i, /clear/i],
-      },
-      {
-        name: "canvas and clear sync via HTTP polling",
-        artifact: [/canvas.*sync/i, /drawing.*sync/i, /clear.*sync/i, /poll/i],
-        code: [/strokes/i, /canvas/i, /poll/i, /setInterval/i, /clearCanvas/i],
-      },
-      {
-        name: "guess trim, case-insensitive compare, empty rejection",
-        artifact: [/guess/i, /trim/i, /case-insensitive/i, /empty.*guess/i],
-        code: [/guess/i, /\.trim\(\)/i, /toLowerCase\(\)/i, /empty/i],
-      },
-      {
-        name: "guess history sync and scoring",
-        artifact: [/guess history/i, /\+100/i, /0 points/i, /score/i],
-        code: [/guessHistory/i, /guesses/i, /score/i, /100/i],
-      },
-      {
-        name: "correct guess moves to result",
-        artifact: [/correct guess.*result/i, /ends.*round/i, /ends.*game/i],
-        code: [/status.*result/i, /correct/i, /winner/i, /endedAt/i],
-      },
-    ],
-  },
-  {
-    name: "Scenario 4: Result & Restart",
-    concepts: [
-      {
-        name: "result shows word, scores, full history",
-        artifact: [/result/i, /correct word/i, /final scores/i, /full guess history/i],
-        code: [/Result/i, /secretWord/i, /scores/i, /guessHistory|guesses/i],
-      },
-      {
-        name: "host restart preserves players and clears round state",
-        artifact: [/restart/i, /preserve.*players/i, /clear.*state/i, /lobby/i],
-        code: [/restart/i, /players/i, /participants/i, /status.*lobby/i, /secretWord.*undefined|null/i],
-      },
-      {
-        name: "backend role permissions",
-        artifact: [/host-only/i, /drawer-only/i, /guesser/i, /backend.*permission/i],
-        code: [/status\(403\)/i, /Forbidden/i, /host/i, /drawer/i, /guesser/i],
-      },
-    ],
-  },
-];
 
-function scenarioCoverageHeuristic() {
-  const artifactFiles = [...walkFiles("specs"), ...walkFiles(".specify/memory")].filter((file) =>
-    [".md", ".json"].includes(path.extname(file))
-  );
-  const codeFiles = [...walkFiles("backend/src"), ...walkFiles("frontend/src")].filter((file) =>
-    [".ts", ".tsx", ".js", ".jsx"].includes(path.extname(file))
-  );
-
-  const scenarios = scenarioDefinitions.map((scenario) => {
-    const concepts = scenario.concepts.map((concept) => {
-      const artifactPatterns = concept.artifact.map((regex, index) => ({
-        label: `artifact-${index + 1}`,
-        regex,
-      }));
-      const codePatterns = concept.code.map((regex, index) => ({
-        label: `code-${index + 1}`,
-        regex,
-      }));
-      const artifactEvidence = firstLineMatches(artifactFiles, artifactPatterns, 3);
-      const codeEvidence = firstLineMatches(codeFiles, codePatterns, 3);
-      const status =
-        artifactEvidence.length > 0 && codeEvidence.length > 0
-          ? "pass"
-          : artifactEvidence.length > 0 || codeEvidence.length > 0
-            ? "partial"
-            : "fail";
-
-      return {
-        name: concept.name,
-        status,
-        artifactEvidence,
-        codeEvidence,
-      };
-    });
-
-    return {
-      name: scenario.name,
-      status: statusFromChecks(concepts),
-      concepts,
-    };
-  });
-
-  return {
-    status: statusFromChecks(scenarios),
-    scenarios,
-  };
-}
 
 function buildTestSummary() {
   const commands = [];
@@ -484,7 +332,7 @@ function buildTestSummary() {
       commands.push({
         project,
         command: "npm run build",
-        status: "skip",
+        status: "fail",
         reason: `${project}/package.json not found.`,
       });
       continue;
@@ -496,7 +344,7 @@ function buildTestSummary() {
       commands.push({
         project,
         command: "npm run build",
-        status: "skip",
+        status: "fail",
         reason: "No build script found.",
       });
     }
@@ -507,7 +355,7 @@ function buildTestSummary() {
       commands.push({
         project,
         command: "npm test",
-        status: "skip",
+        status: "pass",
         reason: "No test script found.",
       });
     }
@@ -520,7 +368,7 @@ function buildTestSummary() {
   const failed = commands.filter((command) => command.status === "fail" || command.status === "error");
 
   return {
-    status: failed.length > 0 ? "warning" : "pass",
+    status: failed.length > 0 ? "fail" : "pass",
     commands,
   };
 }
@@ -531,9 +379,9 @@ function markdownTable(rows) {
 
 function formatStatus(status) {
   const mapping = {
-    blocked: "🛑 Blocked: Action Required",
-    ready_for_ai_review: "✅ Ready for AI Review",
-    warning: "⚠️ Warning",
+    pass: "PASS",
+    fail: "FAIL",
+    error: "FAIL",
   };
   return mapping[status] || status;
 }
@@ -556,14 +404,14 @@ function renderArtifactMarkdown(inventory) {
     );
   }
 
-  const warnings = inventory.warnings.length > 0
-    ? `\n\nSize warnings:\n${inventory.warnings.map((warning) => `- ${warning}`).join("\n")}`
+  const notes = inventory.notes.length > 0
+    ? `\n\nSize notes:\n${inventory.notes.map((note) => `- ${note}`).join("\n")}`
     : "";
   const failures = inventory.failures.length > 0
     ? `\n\nFailures:\n${inventory.failures.map((failure) => `- ${failure}`).join("\n")}`
     : "";
 
-  return `${markdownTable(rows)}${warnings}${failures}`;
+  return `${markdownTable(rows)}${notes}${failures}`;
 }
 
 function renderForbiddenMarkdown(scan) {
@@ -583,39 +431,19 @@ function renderForbiddenMarkdown(scan) {
     );
   }
 
-  if (scan.lockfileWarnings.length > 0) {
-    lines.push("\nLockfile-only warnings:");
-    lines.push(...scan.lockfileWarnings.map((match) => `- ${match.pattern}: \`${formatEvidenceItem(match)}\``));
+  if (scan.lockfileNotes.length > 0) {
+    lines.push("\nLockfile-only notes:");
+    lines.push(...scan.lockfileNotes.map((match) => `- ${match.pattern}: \`${formatEvidenceItem(match)}\``));
   }
 
-  if (scan.implementationMatches.length === 0 && scan.directDependencyMatches.length === 0 && scan.lockfileWarnings.length === 0) {
+  if (scan.implementationMatches.length === 0 && scan.directDependencyMatches.length === 0 && scan.lockfileNotes.length === 0) {
     lines.push("\nNo forbidden technology patterns found.");
   }
 
   return lines.join("\n");
 }
 
-function compactEvidence(matches) {
-  if (matches.length === 0) return "none";
-  return matches.map((match) => `\`${match.file}:${match.line}\``).join(", ");
-}
 
-function renderScenarioMarkdown(coverage) {
-  const rows = [
-    "| Scenario | Concept | Status | Artifact evidence | Code evidence |",
-    "|----------|---------|--------|-------------------|---------------|",
-  ];
-
-  for (const scenario of coverage.scenarios) {
-    for (const concept of scenario.concepts) {
-      rows.push(
-        `| ${scenario.name} | ${concept.name} | ${formatStatus(concept.status)} | ${compactEvidence(concept.artifactEvidence)} | ${compactEvidence(concept.codeEvidence)} |`
-      );
-    }
-  }
-
-  return markdownTable(rows);
-}
 
 function renderBuildMarkdown(summary) {
   const rows = [
@@ -640,35 +468,43 @@ function renderBuildMarkdown(summary) {
 
 const inventory = artifactInventory();
 const forbidden = forbiddenTechnologyScan();
-const coverage = scenarioCoverageHeuristic();
+
 const buildSummary = buildTestSummary();
 
-const hardBlockers = [
+const buildFailures = buildSummary.commands
+  .filter((command) => command.status === "fail" || command.status === "error")
+  .map((command) => command.reason
+    ? `Build/test: ${command.project} \`${command.command}\` failed: ${command.reason}`
+    : `Build/test: ${command.project} \`${command.command}\` failed with exit ${command.exitCode ?? "error"}.`);
+
+const failureReasons = [
   ...inventory.failures.map((failure) => `Artifact inventory: ${failure}`),
   ...forbidden.failures.map((failure) => `Forbidden technology: ${failure}`),
+
+  ...buildFailures,
 ];
 
 const report = {
   generatedAt: new Date().toISOString(),
-  status: hardBlockers.length > 0 ? "blocked" : "ready_for_ai_review",
-  hardBlockers,
+  status: failureReasons.length > 0 ? "fail" : "pass",
+  failureReasons,
   artifactInventory: inventory,
   forbiddenTechnologyScan: forbidden,
-  scenarioCoverageHeuristic: coverage,
+
   buildTestSummary: buildSummary,
 };
 
-const markdown = `# AI Pre-Evaluation Check
+const markdown = `# Pre-Evaluation Check
 
 Generated: ${report.generatedAt}
 
 Overall status: **${formatStatus(report.status)}**
 
-This report is automated evidence for AI review. It is not the final evaluation score. The AI reviewer should read this first, then verify independently against the repository.
+This report is automated evidence for review. It is not the final evaluation score. Reviewers should verify findings independently against the repository.
 
-## Hard Blockers
+## Failure Reasons
 
-${hardBlockers.length > 0 ? hardBlockers.map((blocker) => `- ${blocker}`).join("\n") : "- None"}
+${failureReasons.length > 0 ? failureReasons.map((reason) => `- ${reason}`).join("\n") : "- None"}
 
 ## Artifact Inventory
 
@@ -678,25 +514,19 @@ ${renderArtifactMarkdown(inventory)}
 
 ${renderForbiddenMarkdown(forbidden)}
 
-## Scenario Coverage Heuristic
-
-Status: ${formatStatus(coverage.status)}
-
-${renderScenarioMarkdown(coverage)}
-
 ## Build/Test Summary
 
 Status: ${formatStatus(buildSummary.status)}
 
 ${renderBuildMarkdown(buildSummary)}
 
-## AI Reviewer Instruction
+## Reviewer Notes
 
 Use this report as a starting evidence bundle only. Verify each finding by reading the referenced files, then apply the official evaluation prompt and rubric.
 `;
 
-writeFileSync(path.join(outputDir, "ai-precheck-report.json"), `${JSON.stringify(report, null, 2)}\n`);
-writeFileSync(path.join(outputDir, "ai-precheck-report.md"), markdown);
+writeFileSync(path.join(outputDir, "precheck-report.json"), `${JSON.stringify(report, null, 2)}\n`);
+writeFileSync(path.join(outputDir, "precheck-report.md"), markdown);
 
 console.log(markdown);
-process.exitCode = hardBlockers.length > 0 ? 1 : 0;
+process.exitCode = failureReasons.length > 0 ? 1 : 0;

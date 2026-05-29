@@ -9,12 +9,11 @@ This lab starts from a runnable but intentionally incomplete Scribble-style gues
 Granular, meaningful commits are encouraged so implementation decisions remain easy to assess.
 
 | Item | Details |
-| --- | --- |
+|------|---------|
 | Project type | Brownfield enhancement |
-| Tech model | Frontend plus minimal REST backend, in-memory store, manual room refresh in the starter, polling added during implementation |
+| Tech model | Frontend + minimal REST backend, in-memory store, manual room refresh in the starter; polling added by learners |
 | Difficulty | Intermediate |
-| Estimated effort | 4-6 focused hours across multiple sessions |
-| Prerequisites | Comfort reading an existing codebase |
+| Prerequisites | Comfort reading an existing codebase. |
 
 It already provides:
 
@@ -34,36 +33,39 @@ The current UI uses Scribble branding and presentational copy, but the supported
 
 Before starting, confirm the following are available:
 
-- Node.js 18+ and npm 9+
-- Git configured with your name and email
-- a modern browser for two-tab multiplayer testing
-- a code editor such as VS Code
-- access to a Spec Kit-compatible AI coding assistant
+- **Node.js 18+** and **npm 9+**
+- **Git** installed and configured
+- A modern browser for testing multi-player flows
+- A code editor (VS Code recommended)
+- Access to a Spec Kit-compatible AI coding assistant
 - Spec Kit CLI installed and verified
-- GitHub access to clone the starter and push your work
-- network access to the npm registry
 
-You should be comfortable with TypeScript, React components and hooks, REST APIs, command-line npm and git usage, and reading existing code before changing it.
+You should be comfortable with TypeScript, React components and hooks, REST APIs, command-line usage, and reading an existing codebase without immediately rewriting it.
 
 ## Repository Workflow
 
-Starter repository: `https://github.com/everest-engineering/scribble-assignment`
+1. **Fork** this repository to your own GitHub account
+2. Clone your fork locally and work from it
+3. Create a branch (e.g., `assignment`, `scribble-lab`, or similar)
+4. Commit your artifacts and implementation changes as you progress
+5. When the lab is complete, **raise a Pull Request** from your branch to `main` on your fork
+6. Include your **email**, **role**, and follow the PR template provided
 
-Clone the starter repository locally and work directly in it. Commit Spec Kit artifacts and implementation changes as you progress, then submit the completed work through the platform.
+> Keep commits granular and meaningful. The PR diff is what reviewers will assess.
 
 ## Learning Objectives
 
 By the end of this lab you should be able to:
 
-- inspect an existing codebase before writing code
-- write a constitution that constrains AI-assisted development
-- write a feature specification with acceptance criteria and edge cases
-- resolve ambiguity through structured clarification
-- produce a technical plan tied to real files and state models
-- decompose work into ordered, testable tasks
-- implement incrementally and validate each slice against the spec
-- critically review AI-generated output before committing it
-- produce a clear reflection report
+- Inspect an existing codebase before writing new code
+- Write a constitution that constrains AI-assisted development
+- Write a feature specification with explicit acceptance criteria and edge cases
+- Resolve ambiguity through structured clarification
+- Produce a technical plan tied to real files and a real state model
+- Decompose work into ordered, testable tasks
+- Implement incrementally and validate each slice against the spec
+- Critically review AI-generated output before committing it
+- Produce a clear reflection report
 
 ## Current Implementation
 
@@ -163,33 +165,33 @@ Maintain these artifacts throughout the lab:
 - `/speckit.plan` updated incrementally with state model, data flow, and file-level plan
 - `/speckit.tasks` updated incrementally with ordered tasks and dependencies
 
-## 6.2 Business Scenarios
+## Business Scenarios
 
-### Scenario 1: Room Setup And Lobby
+### Scenario 1 — Room Setup & Lobby
 
-Given a player wants to host or join a drawing game, when they create or join a room via a unique code, then the creator is automatically the host; invalid or empty codes are rejected with clear feedback; rooms are fully isolated; the lobby refreshes via polling at about 2 seconds; and only the host can start the game once at least 2 players are present.
+**Given** a player wants to host or join a drawing game, **When** they create or join a room via a unique code, **Then** the creator is automatically the host; invalid/empty codes are rejected with clear feedback; rooms are fully isolated; the lobby refreshes via polling (~2s); and only the host can start the game once at least 2 players are present.
 
-### Scenario 2: Game Start And Drawer Flow
+### Scenario 2 — Game Start & Drawer Flow
 
-Given a game is starting and player names are trimmed, when the first round begins, then empty or whitespace-only names are rejected with a message; the host or first player becomes the clearly identified drawer; and the secret word is deterministically selected from the starter list and visible only to the drawer.
+**Given** a game is starting and player names are trimmed (empty/whitespace-only rejected with a message), **When** the first round begins, **Then** the host (or first player) becomes the clearly-identified drawer, and the secret word (deterministically selected from the starter list) is visible only to the drawer.
 
-### Scenario 3: Gameplay Interaction
+### Scenario 3 — Gameplay Interaction
 
-Given a round is active with a drawer and guessers and all scores start at 0, when the drawer draws or clears the canvas and guessers submit their guesses, then the drawing is visible on the drawer's screen; guesses are trimmed, compared case-insensitively, and empty guesses are rejected; the guess history is synced to all players through polling; and correct guesses score 100 while incorrect guesses add 0.
+**Given** a round is active with a drawer and guessers (all scores start at 0), **When** the drawer draws/clears the canvas and guessers submit their guesses, **Then** the drawing is visible on the drawer's screen; guesses are trimmed, case-insensitively compared, and empty ones rejected; the guess history is synced to all players via polling; correct guesses score 100 (incorrect add 0).
 
-### Scenario 4: Result, Restart And Final Validation
+### Scenario 4 — Result, Restart & Final Validation
 
-Given a round has ended, when the result state is displayed and the host restarts, then all players see the correct word, final scores, and full guess history; and on restart everyone returns to the lobby with players preserved and all round state cleared.
+**Given** a round has ended, **When** the result state is displayed and the host restarts, **Then** all players see the correct word, final scores, and full guess history; on restart, everyone returns to the lobby with players preserved and all round state cleared.
 
 ## Phased Checkpoints
 
 Work through the scenarios in order and complete each checkpoint before moving to the next one.
 
-| Group | Scenario | What should exist by the end |
-| --- | --- | --- |
-| 1. Room setup and lobby | Scenario 1 | Host tracking on room creation, join validation with clear errors, multi-room isolation, automatic lobby polling within about 2 seconds, host-only start with a 2-player minimum |
-| 2. Game start and drawer flow | Scenario 2 | Player name validation, drawer assignment, deterministic secret word selection, drawer-only word visibility |
-| 3. Gameplay interaction | Scenario 3 | Interactive drawing canvas, clear canvas, guess submission with validation, synced guess history through polling, deterministic scoring |
+| Group | Scenario | What You Should Have By The End |
+|-------|----------|-------------------------------|
+| 1. Room setup and lobby | Scenario 1 | Host tracking on room creation, join validation with clear error messages, verified multi-room isolation, automatic lobby polling within about 2 seconds, host-only start with 2-player minimum |
+| 2. Game start and drawer flow | Scenario 2 | Player name validation (trim, reject empty), drawer assignment, deterministic secret word selection, drawer-only word visibility |
+| 3. Gameplay interaction | Scenario 3 | Interactive drawing canvas, clear canvas, guess submission with validation, synced guess history via polling, deterministic scoring |
 | 4. Result, restart, and final validation | Scenario 4 | Shared result state visible to all players, clean restart to lobby with players preserved and round state cleared |
 
 Complete a minimum of 4 specify iterations.
@@ -203,7 +205,9 @@ Complete a minimum of 4 specify iterations.
 
 ## Explicitly Out Of Scope
 
-These should stay out of the implementation:
+The following items are intentionally out of scope for this lab.
+
+**Do not build them, and do not include them in your spec, plan, or tasks.**
 
 - WebSockets or real-time sync
 - databases or persistent storage
@@ -219,40 +223,30 @@ These should stay out of the implementation:
 - unjustified top-level dependencies
 - unrelated refactors
 
-These boundaries keep the lab focused and reduce drift between the spec, plan, tasks, and implementation.
-
-## Submission Tracks
-
-Spec Kit keeps specs and source code in independent folders, connected by traceability rather than directory nesting.
-
-| Track | Submit | Why |
-| --- | --- | --- |
-| Dev | `specs/` plus `src/` | Full spec-to-implementation traceability with working code that matches the artifacts |
-| Specs-only | `specs/`, with `src/` optional | Focus on discovery, specification, planning, and task decomposition without local setup or debugging overhead |
-
-Both tracks are assessed on artifact quality. Source code is assessed only for Dev submissions and only for alignment with the submitted specs.
+**Why these boundaries matter:** They keep the lab at a focused, medium level of difficulty. Out-of-scope work rarely improves the outcome and often creates drift between the spec, plan, tasks, and implementation.
 
 ## Evaluation Rubric
 
-| Area | What good looks like |
-| --- | --- |
-| Discovery | At least 3 gaps, at least 2 assumptions, and relevant files documented |
-| Spec Kit artifacts | Constitution, spec, plan, and tasks committed and internally consistent |
-| Working game flow | Two browsers can join a room, play one round, see synced result, and restart |
-| Edge cases and validation | Empty or invalid inputs, case-insensitive guesses, and multi-room isolation handled |
-| Implementation alignment | Code behavior matches the spec, and deviations are documented |
-| Reflection | Reflection explains decisions, AI usage, and tradeoffs |
-| Submission clarity | Submission is easy to review |
+Artifacts are graded for internal consistency, traceability to implementation, and quality of reasoning, not for rigid wording or template mimicry.
+
+| Area | What Good Looks Like |
+|------|---------------------|
+| Discovery | ≥3 gaps + ≥2 assumptions documented; relevant files listed |
+| Spec Kit artifacts | Constitution, spec, plan, tasks committed and internally consistent |
+| Working game flow | Two browsers can join a room, play one round, see synced result, restart |
+| Edge cases & validation | Empty/invalid inputs, case-insensitive guess, multi-room isolation handled |
+| Implementation alignment | Code behavior matches the spec; deviations are documented |
+| Reflection | Reflection explains decisions, AI usage, tradeoffs |
+| Submission clarity (code optional for product roles) | Submission is easy to review |
 
 ## Reflection Report
 
-Provide a brief `.md` reflection report. Use these prompts as a starting point:
+Provide a brief reflection report in an `.md` file. Use these prompts as a starting point:
 
 - What did the starter app already have?
 - What did you add?
-- How did the Spec Kit artifacts guide implementation?
-- Where did AI assistance help, and where did you review or correct it?
-- What tradeoffs or risks remain?
+
+> Spec Kit is the focus of this lab. The game is the vehicle. Each commit should remain explainable and traceable to your spec.
 
 ## Build Validation
 
