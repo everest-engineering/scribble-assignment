@@ -12,7 +12,7 @@ function generateCode() {
   const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
   let code = "";
 
-  for (let index = 0; index < 4; index += 1) {
+  for (let index = 0; index < 6; index += 1) {
     code += alphabet[Math.floor(Math.random() * alphabet.length)];
   }
 
@@ -71,7 +71,16 @@ export function joinRoom(code: string, playerName?: string) {
   const room = rooms.get(code);
 
   if (!room) {
-    return null;
+    throw new Error("Room not found");
+  }
+
+  if (room.participants.length >= 20) {
+    throw new Error("Room is full");
+  }
+
+  const newName = displayName(playerName);
+  if (room.participants.some(p => p.name === newName)) {
+    throw new Error("Username already taken in this room");
   }
 
   const participant = createParticipant(playerName);
@@ -84,6 +93,18 @@ export function joinRoom(code: string, playerName?: string) {
     participantId: participant.id
   };
 }
+
+// Idle Room Cleanup (every 1 minute)
+setInterval(() => {
+    const timeNow = Date.now();
+    const FIVE_MINUTES = 5 * 60 * 1000;
+    for (const [code, room] of rooms.entries()) {
+        const lastActivity = new Date(room.updatedAt).getTime();
+        if (timeNow - lastActivity > FIVE_MINUTES) {
+            rooms.delete(code);
+        }
+    }
+}, 60 * 1000);
 
 export function getRoom(code: string) {
   const room = rooms.get(code);
