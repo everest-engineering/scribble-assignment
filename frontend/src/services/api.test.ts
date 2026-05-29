@@ -146,6 +146,77 @@ describe("api service", () => {
     await expect(api.joinRoom("ZZZZ", "Bob")).rejects.toThrow("Unable to join room");
   });
 
+  it("submitDrawingStroke sends POST to /rooms/:code/drawing with participantId and stroke", async () => {
+    const mockResponse = {
+      ok: true,
+      json: () => Promise.resolve({ room: { code: "ABCD", scores: [] } }),
+    };
+    vi.mocked(fetch).mockResolvedValue(mockResponse as unknown as Response);
+
+    await api.submitDrawingStroke("ABCD", "p1", {
+      color: "#111827",
+      size: 4,
+      points: [
+        { x: 0.1, y: 0.1 },
+        { x: 0.2, y: 0.2 }
+      ]
+    });
+
+    expect(fetch).toHaveBeenCalledWith(
+      expect.stringContaining("/rooms/ABCD/drawing"),
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({
+          participantId: "p1",
+          stroke: {
+            color: "#111827",
+            size: 4,
+            points: [
+              { x: 0.1, y: 0.1 },
+              { x: 0.2, y: 0.2 }
+            ]
+          }
+        }),
+      })
+    );
+  });
+
+  it("clearDrawing sends POST to /rooms/:code/drawing/clear with participantId", async () => {
+    const mockResponse = {
+      ok: true,
+      json: () => Promise.resolve({ room: { code: "ABCD", scores: [] } }),
+    };
+    vi.mocked(fetch).mockResolvedValue(mockResponse as unknown as Response);
+
+    await api.clearDrawing("ABCD", "p1");
+
+    expect(fetch).toHaveBeenCalledWith(
+      expect.stringContaining("/rooms/ABCD/drawing/clear"),
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({ participantId: "p1" }),
+      })
+    );
+  });
+
+  it("submitGuess trims guesses before sending POST to /rooms/:code/guesses", async () => {
+    const mockResponse = {
+      ok: true,
+      json: () => Promise.resolve({ room: { code: "ABCD", scores: [] } }),
+    };
+    vi.mocked(fetch).mockResolvedValue(mockResponse as unknown as Response);
+
+    await api.submitGuess("ABCD", "p2", " Rocket ");
+
+    expect(fetch).toHaveBeenCalledWith(
+      expect.stringContaining("/rooms/ABCD/guesses"),
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({ participantId: "p2", guess: "Rocket" }),
+      })
+    );
+  });
+
   it("accepts drawer snapshots with secretWord", async () => {
     const mockResponse = {
       ok: true,
@@ -210,6 +281,67 @@ describe("api service", () => {
     const response = await api.fetchRoom("ABCD", "p2");
 
     expect(response.room.isDrawer).toBe(false);
+    expect("secretWord" in response.room).toBe(false);
+  });
+
+  it("accepts gameplay snapshots with canvas, guesses, and scores", async () => {
+    const mockResponse = {
+      ok: true,
+      json: () =>
+        Promise.resolve({
+          room: {
+            code: "ABCD",
+            status: "playing",
+            participants: [],
+            hostParticipantId: "p1",
+            viewerParticipantId: "p2",
+            isHost: false,
+            canStart: false,
+            currentRound: {
+              roundNumber: 1,
+              drawerParticipantId: "p1",
+              drawerName: "Alice",
+              canvas: {
+                strokes: [
+                  {
+                    id: "s1",
+                    color: "#111827",
+                    size: 4,
+                    points: [
+                      { x: 0.1, y: 0.1 },
+                      { x: 0.2, y: 0.2 }
+                    ]
+                  }
+                ],
+                updatedAt: "2026-05-29T09:30:00.000Z"
+              },
+              guesses: [
+                {
+                  id: "g1",
+                  participantId: "p2",
+                  participantName: "Bob",
+                  text: "rocket",
+                  isCorrect: true,
+                  pointsAwarded: 100,
+                  createdAt: "2026-05-29T09:31:00.000Z"
+                }
+              ]
+            },
+            viewerRole: "guesser",
+            isDrawer: false,
+            scores: [{ participantId: "p2", participantName: "Bob", score: 100 }],
+            availableWords: [],
+            roles: []
+          },
+        }),
+    };
+    vi.mocked(fetch).mockResolvedValue(mockResponse as unknown as Response);
+
+    const response = await api.fetchRoom("ABCD", "p2");
+
+    expect(response.room.currentRound?.canvas.strokes).toHaveLength(1);
+    expect(response.room.currentRound?.guesses).toHaveLength(1);
+    expect(response.room.scores[0].score).toBe(100);
     expect("secretWord" in response.room).toBe(false);
   });
 });

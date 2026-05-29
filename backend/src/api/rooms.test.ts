@@ -185,4 +185,182 @@ describe("rooms API", () => {
     expect(joinResponse.status).toBe(400);
     expect(fetchBody.room.participants).toHaveLength(1);
   });
+
+  it("handles drawer drawing and clearing through gameplay endpoints", async () => {
+    const createResponse = await jsonRequest("/rooms", {
+      method: "POST",
+      body: JSON.stringify({ playerName: "Alice" })
+    });
+    const createBody = (await createResponse.json()) as { participantId: string; room: { code: string } };
+    const joinResponse = await jsonRequest(`/rooms/${createBody.room.code}/join`, {
+      method: "POST",
+      body: JSON.stringify({ playerName: "Bob" })
+    });
+    const joinBody = (await joinResponse.json()) as { participantId: string };
+
+    await jsonRequest(`/rooms/${createBody.room.code}/start`, {
+      method: "POST",
+      body: JSON.stringify({ participantId: createBody.participantId })
+    });
+
+    const nonDrawerDraw = await jsonRequest(`/rooms/${createBody.room.code}/drawing`, {
+      method: "POST",
+      body: JSON.stringify({
+        participantId: joinBody.participantId,
+        stroke: {
+          color: "#111827",
+          size: 4,
+          points: [
+            { x: 0.1, y: 0.1 },
+            { x: 0.2, y: 0.2 }
+          ]
+        }
+      })
+    });
+
+    expect(nonDrawerDraw.status).toBe(403);
+
+    const drawerDraw = await jsonRequest(`/rooms/${createBody.room.code}/drawing`, {
+      method: "POST",
+      body: JSON.stringify({
+        participantId: createBody.participantId,
+        stroke: {
+          color: "#111827",
+          size: 4,
+          points: [
+            { x: 0.1, y: 0.1 },
+            { x: 0.2, y: 0.2 }
+          ]
+        }
+      })
+    });
+    const drawerDrawBody = (await drawerDraw.json()) as { room: { currentRound: { canvas: { strokes: unknown[] } } } };
+
+    expect(drawerDraw.status).toBe(200);
+    expect(drawerDrawBody.room.currentRound.canvas.strokes).toHaveLength(1);
+
+    const clearResponse = await jsonRequest(`/rooms/${createBody.room.code}/drawing/clear`, {
+      method: "POST",
+      body: JSON.stringify({ participantId: createBody.participantId })
+    });
+    const clearBody = (await clearResponse.json()) as { room: { currentRound: { canvas: { strokes: unknown[] } } } };
+
+    expect(clearResponse.status).toBe(200);
+    expect(clearBody.room.currentRound.canvas.strokes).toEqual([]);
+  });
+
+  it("validates guess submissions and returns score snapshots", async () => {
+    const createResponse = await jsonRequest("/rooms", {
+      method: "POST",
+      body: JSON.stringify({ playerName: "Alice" })
+    });
+    const createBody = (await createResponse.json()) as { participantId: string; room: { code: string } };
+    const joinResponse = await jsonRequest(`/rooms/${createBody.room.code}/join`, {
+      method: "POST",
+      body: JSON.stringify({ playerName: "Bob" })
+    });
+    const joinBody = (await joinResponse.json()) as { participantId: string };
+
+    await jsonRequest(`/rooms/${createBody.room.code}/start`, {
+      method: "POST",
+      body: JSON.stringify({ participantId: createBody.participantId })
+    });
+
+    const emptyGuess = await jsonRequest(`/rooms/${createBody.room.code}/guesses`, {
+      method: "POST",
+      body: JSON.stringify({ participantId: joinBody.participantId, guess: "   " })
+    });
+    const drawerGuess = await jsonRequest(`/rooms/${createBody.room.code}/guesses`, {
+      method: "POST",
+      body: JSON.stringify({ participantId: createBody.participantId, guess: "rocket" })
+    });
+    const missingParticipant = await jsonRequest(`/rooms/${createBody.room.code}/guesses`, {
+      method: "POST",
+      body: JSON.stringify({ participantId: "missing", guess: "rocket" })
+    });
+
+    expect(emptyGuess.status).toBe(400);
+    expect(drawerGuess.status).toBe(403);
+    expect(missingParticipant.status).toBe(404);
+
+    const drawerFetch = await jsonRequest(`/rooms/${createBody.room.code}?participantId=${createBody.participantId}`);
+    const drawerBody = (await drawerFetch.json()) as { room: { secretWord?: string } };
+    const secretWord = drawerBody.room.secretWord;
+
+    expect(secretWord).toBeDefined();
+    if (!secretWord) {
+      return;
+    }
+
+    const correctGuess = await jsonRequest(`/rooms/${createBody.room.code}/guesses`, {
+      method: "POST",
+      body: JSON.stringify({ participantId: joinBody.participantId, guess: ` ${secretWord.toUpperCase()} ` })
+    });
+    const correctGuessBody = (await correctGuess.json()) as {
+      room: {
+        currentRound: { guesses: Array<{ text: string; isCorrect: boolean; pointsAwarded: number }> };
+        scores: Array<{ participantId: string; score: number }>;
+      };
+    };
+
+    expect(correctGuess.status).toBe(200);
+    expect(correctGuessBody.room.currentRound.guesses[0]).toMatchObject({
+      text: secretWord.toUpperCase(),
+      isCorrect: true,
+      pointsAwarded: 100
+    });
+    expect(correctGuessBody.room.scores.find((score) => score.participantId === joinBody.participantId)?.score).toBe(100);
+  });
+
+  it("polling snapshots include gameplay state without leaking guesser secretWord", async () => {
+    const createResponse = await jsonRequest("/rooms", {
+      method: "POST",
+      body: JSON.stringify({ playerName: "Alice" })
+    });
+    const createBody = (await createResponse.json()) as { participantId: string; room: { code: string } };
+    const joinResponse = await jsonRequest(`/rooms/${createBody.room.code}/join`, {
+      method: "POST",
+      body: JSON.stringify({ playerName: "Bob" })
+    });
+    const joinBody = (await joinResponse.json()) as { participantId: string };
+
+    await jsonRequest(`/rooms/${createBody.room.code}/start`, {
+      method: "POST",
+      body: JSON.stringify({ participantId: createBody.participantId })
+    });
+
+    await jsonRequest(`/rooms/${createBody.room.code}/drawing`, {
+      method: "POST",
+      body: JSON.stringify({
+        participantId: createBody.participantId,
+        stroke: {
+          color: "#111827",
+          size: 4,
+          points: [
+            { x: 0.1, y: 0.1 },
+            { x: 0.2, y: 0.2 }
+          ]
+        }
+      })
+    });
+    await jsonRequest(`/rooms/${createBody.room.code}/guesses`, {
+      method: "POST",
+      body: JSON.stringify({ participantId: joinBody.participantId, guess: "wrong" })
+    });
+
+    const guesserPoll = await jsonRequest(`/rooms/${createBody.room.code}?participantId=${joinBody.participantId}`);
+    const guesserBody = (await guesserPoll.json()) as {
+      room: {
+        currentRound: { canvas: { strokes: unknown[] }; guesses: unknown[] };
+        scores: unknown[];
+        secretWord?: string;
+      };
+    };
+
+    expect(guesserPoll.status).toBe(200);
+    expect(guesserBody.room.currentRound.canvas.strokes).toHaveLength(1);
+    expect(guesserBody.room.currentRound.guesses).toHaveLength(1);
+    expect(guesserBody.room.scores).toHaveLength(2);
+    expect("secretWord" in guesserBody.room).toBe(false);
+  });
 });

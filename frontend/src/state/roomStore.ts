@@ -7,7 +7,7 @@ import {
   useSyncExternalStore,
   type PropsWithChildren
 } from "react";
-import { api, type RoomSessionResponse, type RoomSnapshot } from "../services/api";
+import { api, type DrawingStrokeInput, type RoomSessionResponse, type RoomSnapshot } from "../services/api";
 
 export interface RoomState {
   room: RoomSnapshot | null;
@@ -94,9 +94,15 @@ class RoomStore {
       return null;
     }
 
-    const response = await api.fetchRoom(this.state.room.code, this.state.participantId ?? undefined);
-    this.setRoomSnapshot(response.room);
-    return response.room;
+    try {
+      const response = await api.fetchRoom(this.state.room.code, this.state.participantId ?? undefined);
+      this.setRoomSnapshot(response.room);
+      return response.room;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unable to refresh room";
+      this.setState({ error: message });
+      throw error;
+    }
   }
 
   async startGame() {
@@ -105,6 +111,36 @@ class RoomStore {
     }
 
     const response = await this.withLoading(() => api.startRoom(this.state.room!.code, this.state.participantId!));
+    this.setRoomSnapshot(response.room);
+    return response.room;
+  }
+
+  async submitDrawingStroke(stroke: DrawingStrokeInput) {
+    if (!this.state.room || !this.state.participantId) {
+      throw new Error("Unable to draw without an active room");
+    }
+
+    const response = await api.submitDrawingStroke(this.state.room.code, this.state.participantId, stroke);
+    this.setRoomSnapshot(response.room);
+    return response.room;
+  }
+
+  async clearDrawing() {
+    if (!this.state.room || !this.state.participantId) {
+      throw new Error("Unable to clear without an active room");
+    }
+
+    const response = await api.clearDrawing(this.state.room.code, this.state.participantId);
+    this.setRoomSnapshot(response.room);
+    return response.room;
+  }
+
+  async submitGuess(guess: string) {
+    if (!this.state.room || !this.state.participantId) {
+      throw new Error("Unable to guess without an active room");
+    }
+
+    const response = await api.submitGuess(this.state.room.code, this.state.participantId, guess);
     this.setRoomSnapshot(response.room);
     return response.room;
   }
