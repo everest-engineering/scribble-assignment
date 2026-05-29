@@ -1,14 +1,16 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card } from "../components/Card";
+import { DrawingCanvas } from "../components/DrawingCanvas";
 import { GuessForm } from "../components/GuessForm";
 import { ResultPanel } from "../components/ResultPanel";
 import { RoomCodeBadge } from "../components/RoomCodeBadge";
 import { Scoreboard } from "../components/Scoreboard";
-import { useRoomState } from "../state/roomStore";
+import { useRoomState, useRoomStore } from "../state/roomStore";
 
 export function GamePage() {
   const navigate = useNavigate();
+  const roomStore = useRoomStore();
   const { room, participantId } = useRoomState();
 
   useEffect(() => {
@@ -17,33 +19,63 @@ export function GamePage() {
     }
   }, [navigate, room]);
 
-  if (!room) {
-    return null;
+  useEffect(() => {
+    if (!room) return;
+    const interval = setInterval(async () => {
+      try {
+        const updated = await roomStore.fetchRoom();
+        if (updated?.status === "result") {
+          navigate("/result");
+        }
+      } catch {
+        // non-fatal poll error
+      }
+    }, 2000);
+    return () => clearInterval(interval);
+  }, [room?.code]);
+
+  if (!room) return null;
+
+  const isDrawer = participantId === room.drawerId;
+  const isHost = participantId === room.hostId;
+  const role = isDrawer ? "Drawer" : "Guesser";
+
+  async function handleGuessSubmit(text: string) {
+    await roomStore.submitGuess(text);
   }
 
-  const viewer = room.participants.find((participant) => participant.id === participantId) ?? null;
+  async function handleEndRound() {
+    await roomStore.endRoom();
+    navigate("/result");
+  }
 
   return (
     <section className="panel game-page">
       <div className="game-page__header">
         <div className="game-page__header-left">
           <span className="section-kicker">Round 1</span>
-          <h1 className="game-page__title">Guess the Word!</h1>
+          <h1 className="game-page__title">
+            {isDrawer ? "Your turn to draw!" : "Guess the Word!"}
+          </h1>
         </div>
         <RoomCodeBadge code={room.code} />
       </div>
 
       <div className="game-page__layout">
         <aside className="game-page__sidebar game-page__sidebar--left">
-          <Scoreboard />
-          <ResultPanel />
+          <Scoreboard participants={room.participants} scores={room.scores} />
+          <ResultPanel guesses={room.guesses} participants={room.participants} />
         </aside>
 
         <div className="game-page__main">
           <Card title="Canvas">
-            <div className="canvas-placeholder" style={{ minHeight: '500px', backgroundColor: '#ffffff', border: '1px solid #e5e7eb' }}>
-              Waiting for drawer...
-            </div>
+            {isDrawer ? (
+              <DrawingCanvas />
+            ) : (
+              <div style={{ minHeight: "500px", backgroundColor: "#f9fafb", display: "flex", alignItems: "center", justifyContent: "center", color: "#9ca3af" }}>
+                Waiting for drawer...
+              </div>
+            )}
           </Card>
         </div>
 
@@ -52,22 +84,40 @@ export function GamePage() {
             <dl className="detail-list">
               <div>
                 <dt>Name</dt>
-                <dd>{viewer?.name ?? "Unknown player"}</dd>
+                <dd>{room.participants.find((p) => p.id === participantId)?.name ?? "Unknown"}</dd>
               </div>
               <div>
-                <dt>Status</dt>
-                <dd>Playing</dd>
+                <dt>Role</dt>
+                <dd>{role}</dd>
               </div>
             </dl>
           </Card>
 
-          <Card title="Your Guess">
-            <GuessForm />
-          </Card>
+          {isDrawer && room.secretWord ? (
+            <Card title="Secret Word">
+              <p style={{ fontSize: "1.5rem", fontWeight: "bold", textAlign: "center", padding: "1rem" }}>
+                {room.secretWord}
+              </p>
+              <p style={{ fontSize: "0.75rem", color: "#6b7280", textAlign: "center" }}>
+                Only you can see this
+              </p>
+            </Card>
+          ) : null}
+
+          {!isDrawer ? (
+            <Card title="Your Guess">
+              <GuessForm onSubmit={handleGuessSubmit} />
+            </Card>
+          ) : null}
         </aside>
       </div>
 
-      <div className="button-row">
+      <div className="button-row button-row--spread">
+        {isHost ? (
+          <button className="button button--primary" onClick={handleEndRound}>
+            End Round
+          </button>
+        ) : null}
         <button className="button button--secondary" onClick={() => navigate("/lobby")}>
           Exit Game
         </button>
