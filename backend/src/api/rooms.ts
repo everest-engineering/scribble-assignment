@@ -3,10 +3,11 @@ import {
   createRoomSchema,
   HttpError,
   joinRoomSchema,
+  submitGuessSchema,
   roomCodeParamsSchema,
   roomViewerQuerySchema
 } from "./schemas.js";
-import { createRoom, getRoom, joinRoom, toRoomSnapshot } from "../services/roomStore.js";
+import { createRoom, getRoom, joinRoom, submitGuess, toRoomSnapshot } from "../services/roomStore.js";
 
 export function createRoomsRouter() {
   const router = Router();
@@ -61,6 +62,60 @@ export function createRoomsRouter() {
       next(error);
     }
   });
+
+  router.post("/:code/start", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId } = roomViewerQuerySchema.parse(request.query);
+      const room = getRoom(code.toUpperCase());
+
+      if (!room) {
+        throw new HttpError(404, "Unable to load room");
+      }
+
+      if (!participantId || participantId !== room.hostId) {
+        throw new HttpError(403, "Only the host can start the game");
+      }
+
+      if (room.participants.length < 2) {
+        throw new HttpError(400, "At least 2 players are required to start the game");
+      }
+
+      response.json({
+        room: toRoomSnapshot(room, participantId)
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/:code/guess", (request, response, next) => {
+  try {
+    const { code } = roomCodeParamsSchema.parse(request.params);
+    const { participantId } = roomViewerQuerySchema.parse(request.query);
+    const { message } = submitGuessSchema.parse(request.body);
+
+    if (!participantId) {
+      throw new HttpError(400, "participantId is required");
+    }
+
+    const room = submitGuess(
+      code.toUpperCase(),
+      participantId,
+      message
+    );
+
+    if (!room) {
+      throw new HttpError(404, "Unable to submit guess");
+    }
+
+    response.json({
+      room: toRoomSnapshot(room, participantId)
+    });
+  } catch (error) {
+    next(error);
+  }
+});
 
   return router;
 }
