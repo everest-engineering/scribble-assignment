@@ -14,11 +14,16 @@ export const joinRoomSchema = z.object({
     .min(1, "Player name is required")
 });
 
+export const submitGuessSchema = z.object({
+  message: z.string()
+});
+
 export const roomCodeParamsSchema = z.object({
   code: z
     .string()
     .trim()
-    .min(1, "Room code is required")
+    .toUpperCase()
+    .regex(/^[A-Z0-9]{4}$/, "Room code must be 4 letters or numbers")
 });
 
 export const roomViewerQuerySchema = z.object({
