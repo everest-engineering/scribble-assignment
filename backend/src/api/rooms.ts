@@ -31,16 +31,18 @@ export function createRoomsRouter() {
       const { playerName } = joinRoomSchema.parse(request.body);
       const result = joinRoom(code.toUpperCase(), playerName);
 
-      if (!result) {
-        throw new HttpError(404, "Unable to join room");
-      }
-
       response.json({
         participantId: result.participantId,
         room: toRoomSnapshot(result.room, result.participantId)
       });
-    } catch (error) {
-      next(error);
+    } catch (error: any) {
+      if (error.message === "Room not found") {
+        next(new HttpError(404, error.message));
+      } else if (error.message === "Room is full" || error.message === "Username already taken in this room") {
+        next(new HttpError(409, error.message));
+      } else {
+        next(error);
+      }
     }
   });
 
