@@ -1,20 +1,27 @@
-import { useState } from "react";
+import { useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { PageHeader } from "../components/PageHeader";
-import { useRoomStore } from "../state/roomStore";
+import { useRoomState, useRoomStore } from "../state/roomStore";
 
 export function CreateRoomPage() {
   const [playerName, setPlayerName] = useState("");
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
   const roomStore = useRoomStore();
+  const { isLoading } = useRoomState();
 
-  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    const trimmedName = playerName.trim();
+
+    if (!trimmedName) {
+      setError("Enter a player name to create a room.");
+      return;
+    }
 
     try {
       setError(null);
-      await roomStore.createRoom(playerName);
+      await roomStore.createRoom(trimmedName);
       navigate("/lobby");
     } catch (caughtError) {
       setError(caughtError instanceof Error ? caughtError.message : "Unable to create room");
@@ -40,8 +47,8 @@ export function CreateRoomPage() {
         </label>
         {error ? <p className="form__error">{error}</p> : null}
         <div className="button-row">
-          <button className="button button--primary" type="submit">
-            Create and Continue
+          <button className="button button--primary" type="submit" disabled={isLoading}>
+            {isLoading ? "Creating..." : "Create and Continue"}
           </button>
           <button className="button button--secondary" type="button" onClick={() => navigate("/")}>
             Back

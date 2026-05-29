@@ -9,9 +9,12 @@ You are working on a monolithic repository for a multiplayer drawing game ("Scri
 
 ## General Coding Guidelines
 -   **TypeScript First**: Ensure all new code and refactors are fully typed. Avoid `any`; use `unknown` if a type is truly dynamic.
+-   **Brownfield First**: Extend the existing starter code and preserve the current backend/frontend structure. Do not rewrite working flows or introduce unrelated refactors.
+-   **Spec Traceability**: Every feature, endpoint, UI state, and task must map back to a Spec Kit scenario, requirement, or acceptance criterion.
 -   **Imports**: Use standard relative and absolute ES module imports. In the backend, file extensions are omitted or handled via `.js` standard if necessary.
 -   **Immutability**: Prefer immutable data structures. Use pure functions where possible.
 -   **Error Handling**: Fail fast and gracefully. On the backend, use centralized error handlers. On the frontend, ensure UI does not crash on API exceptions.
+-   **Validation**: Validate user input in the frontend for clear feedback and again in the backend before mutating room or game state.
 
 ## Backend Guidelines (`/backend`)
 -   **Validation**: Use `Zod` for all request payload and response validations.
@@ -40,3 +43,4 @@ You are working on a monolithic repository for a multiplayer drawing game ("Scri
 -   Give concise, direct answers.
 -   Do not output large blocks of code if a small change suffices.
 -   When creating or editing files, ensure consistency with the existing directory structure detailed above.
+-   Review AI-generated code before accepting it; check scope, validation, polling-only synchronization, and TypeScript correctness.

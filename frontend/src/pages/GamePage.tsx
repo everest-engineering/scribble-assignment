@@ -1,34 +1,87 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { CanvasBoard } from "../components/CanvasBoard";
 import { Card } from "../components/Card";
 import { GuessForm } from "../components/GuessForm";
 import { ResultPanel } from "../components/ResultPanel";
 import { RoomCodeBadge } from "../components/RoomCodeBadge";
 import { Scoreboard } from "../components/Scoreboard";
-import { useRoomState } from "../state/roomStore";
+import { useRoomState, useRoomStore } from "../state/roomStore";
 
 export function GamePage() {
   const navigate = useNavigate();
-  const { room, participantId } = useRoomState();
+  const roomStore = useRoomStore();
+  const { room, participantId, error } = useRoomState();
+  const [refreshError, setRefreshError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!room) {
       navigate("/", { replace: true });
+      return;
+    }
+
+    if (room.status === "lobby") {
+      navigate("/lobby", { replace: true });
     }
   }, [navigate, room]);
+
+  useEffect(() => {
+    if (!room || (room.status !== "playing" && room.status !== "result")) {
+      return undefined;
+    }
+
+    let isActive = true;
+    const refreshGame = async () => {
+      try {
+        await roomStore.fetchRoom();
+        if (isActive) {
+          setRefreshError(null);
+        }
+      } catch (caughtError) {
+        if (isActive) {
+          setRefreshError(caughtError instanceof Error ? caughtError.message : "Unable to refresh game");
+        }
+      }
+    };
+
+    const intervalId = window.setInterval(() => {
+      void refreshGame();
+    }, 2000);
+
+    return () => {
+      isActive = false;
+      window.clearInterval(intervalId);
+    };
+  }, [room?.code, room?.status, roomStore]);
 
   if (!room) {
     return null;
   }
 
   const viewer = room.participants.find((participant) => participant.id === participantId) ?? null;
+  const drawer = room.currentRound
+    ? room.participants.find((participant) => participant.id === room.currentRound?.drawerParticipantId) ?? null
+    : null;
+  const isResult = room.status === "result" && Boolean(room.completedRound);
+  const roleLabel = isResult ? "Round complete" : room.viewerRole === "drawer" ? "Drawer" : "Guesser";
+  const canvasStrokes = room.currentRound?.canvas.strokes ?? room.completedRound?.canvas.strokes ?? [];
+
+  async function handleEndRound() {
+    try {
+      setActionError(null);
+      await roomStore.endRound();
+    } catch (caughtError) {
+      setActionError(caughtError instanceof Error ? caughtError.message : "Unable to end round");
+    }
+  }
 
   return (
     <section className="panel game-page">
       <div className="game-page__header">
         <div className="game-page__header-left">
-          <span className="section-kicker">Round 1</span>
-          <h1 className="game-page__title">Guess the Word!</h1>
+          <span className="section-kicker">Round {room.currentRound?.roundNumber ?? room.completedRound?.roundNumber ?? 1}</span>
+          <h1 className="game-page__title">{isResult ? "Round Results" : "Guess the Word!"}</h1>
         </div>
         <RoomCodeBadge code={room.code} />
       </div>
@@ -40,10 +93,13 @@ export function GamePage() {
         </aside>
 
         <div className="game-page__main">
-          <Card title="Canvas">
-            <div className="canvas-placeholder" style={{ minHeight: '500px', backgroundColor: '#ffffff', border: '1px solid #e5e7eb' }}>
-              Waiting for drawer...
-            </div>
+          <Card title={isResult ? "Final Canvas" : "Canvas"}>
+            <CanvasBoard
+              strokes={canvasStrokes}
+              isDrawer={room.status === "playing" && room.isDrawer}
+              onDraw={(stroke) => roomStore.submitDrawingStroke(stroke)}
+              onClear={() => roomStore.clearDrawing()}
+            />
           </Card>
         </div>
 
@@ -56,16 +112,58 @@ export function GamePage() {
               </div>
               <div>
                 <dt>Status</dt>
-                <dd>Playing</dd>
+                <dd>{isResult ? "Results" : "Playing"}</dd>
+              </div>
+              <div>
+                <dt>Your role</dt>
+                <dd>
+                  <span className={`role-badge ${room.isDrawer ? "role-badge--drawer" : "role-badge--guesser"}`}>
+                    {roleLabel}
+                  </span>
+                </dd>
+              </div>
+              <div>
+                <dt>Drawer</dt>
+                <dd>{room.currentRound?.drawerName ?? room.completedRound?.drawerName ?? drawer?.name ?? "Selecting drawer"}</dd>
               </div>
             </dl>
           </Card>
 
-          <Card title="Your Guess">
-            <GuessForm />
+          {isResult ? null : (
+          <Card title={room.isDrawer ? "Secret Word" : "Round Clue"}>
+            {room.isDrawer ? (
+              <div className="secret-word-panel">
+                <span className="secret-word-panel__label">Draw this word</span>
+                <strong>{room.secretWord ?? "Loading word..."}</strong>
+              </div>
+            ) : (
+              <p>Watch {room.currentRound?.drawerName ?? "the drawer"} and submit your best guess. The secret word is hidden from guessers.</p>
+            )}
           </Card>
+          )}
+
+          {isResult ? null : (
+            <Card title={room.isDrawer ? "Round Controls" : "Your Guess"}>
+              {room.isDrawer ? (
+                <div className="round-controls">
+                  <p>The host can end the round when everyone is ready to review results.</p>
+                  <button className="button button--primary" type="button" disabled={!room.isHost} onClick={() => void handleEndRound()}>
+                    End Round
+                  </button>
+                  {!room.isHost ? <p className="form__hint">Only the host can end the round.</p> : null}
+                  {actionError ? <p className="form__error">{actionError}</p> : null}
+                </div>
+              ) : (
+                <GuessForm disabled={room.isDrawer} onSubmit={(guess) => roomStore.submitGuess(guess)} />
+              )}
+            </Card>
+          )}
         </aside>
       </div>
+
+      <p className={`game-page__polling ${refreshError || error ? "game-page__polling--error" : ""}`}>
+        {refreshError ?? error ?? "Game refreshes automatically every 2 seconds."}
+      </p>
 
       <div className="button-row">
         <button className="button button--secondary" onClick={() => navigate("/lobby")}>

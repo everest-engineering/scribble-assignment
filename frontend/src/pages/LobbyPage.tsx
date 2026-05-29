@@ -26,6 +26,48 @@ export function LobbyPage() {
     }
   }
 
+  useEffect(() => {
+    if (!room || room.status !== "lobby") {
+      return undefined;
+    }
+
+    let isActive = true;
+    const refreshLobby = async () => {
+      try {
+        await roomStore.fetchRoom();
+        if (isActive) {
+          setRefreshError(null);
+        }
+      } catch (caughtError) {
+        if (isActive) {
+          setRefreshError(caughtError instanceof Error ? caughtError.message : "Unable to refresh room");
+        }
+      }
+    };
+
+    const intervalId = window.setInterval(() => {
+      void refreshLobby();
+    }, 2000);
+
+    return () => {
+      isActive = false;
+      window.clearInterval(intervalId);
+    };
+  }, [room?.code, room?.status, roomStore]);
+
+  async function handleStartGame() {
+    try {
+      setRefreshError(null);
+      const nextRoom = await roomStore.startGame();
+
+      if (nextRoom.status === "playing") {
+        navigate("/game");
+      }
+    } catch (caughtError) {
+      setRefreshError(caughtError instanceof Error ? caughtError.message : "Unable to start game");
+    }
+  }
+
   if (!room) {
     return null;
   }
@@ -50,7 +92,9 @@ export function LobbyPage() {
               {room.participants.map((participant) => (
                 <li key={participant.id}>
                   <span>{participant.name}</span>
-                  <span className="player-list__meta">joined</span>
+                  <span className="player-list__meta">
+                    {participant.id === room.hostParticipantId ? "Host" : "Joined"}
+                  </span>
                 </li>
               ))}
             </ul>
@@ -58,10 +102,19 @@ export function LobbyPage() {
         </Card>
 
         <Card title="Status">
-          <p className="status-line" style={{ backgroundColor: isLoading ? '#fef3c7' : '#e0e7ff', color: isLoading ? '#b45309' : '#3730a3' }}>
-            {isLoading ? "Refreshing players..." : "Ready to play"}
+          <p className={`status-line ${room.canStart ? "status-line--ready" : "status-line--waiting"}`}>
+            {isLoading ? "Working..." : room.canStart ? "Ready to start" : "Waiting for players"}
           </p>
-          <p style={{ marginTop: '8px' }}>{error ?? refreshError ?? "Waiting for the host to start the game."}</p>
+          <p className="lobby-status__message">
+            {error ??
+              refreshError ??
+              (room.isHost
+                ? room.canStart
+                  ? "You can start the game now."
+                  : "At least 2 players are required to start."
+                : "Waiting for the host to start the game.")}
+          </p>
+          <p className="lobby-status__polling">Lobby refreshes automatically every 2 seconds.</p>
         </Card>
       </div>
 
@@ -69,8 +122,8 @@ export function LobbyPage() {
         <button className="button button--secondary" disabled={isLoading} onClick={handleRefresh}>
           {isLoading ? "Refreshing..." : "Refresh Room"}
         </button>
-        <button className="button button--primary" onClick={() => navigate("/game")}>
-          Start Game
+        <button className="button button--primary" disabled={!room.isHost || !room.canStart || isLoading} onClick={handleStartGame}>
+          {room.isHost ? "Start Game" : "Host Starts Game"}
         </button>
       </div>
     </section>

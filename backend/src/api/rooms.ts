@@ -1,12 +1,18 @@
 import { Router } from "express";
 import {
+  clearDrawingSchema,
   createRoomSchema,
+  drawingSchema,
+  endRoundSchema,
+  guessSchema,
   HttpError,
   joinRoomSchema,
+  restartRoomSchema,
   roomCodeParamsSchema,
-  roomViewerQuerySchema
+  roomViewerQuerySchema,
+  startRoomSchema
 } from "./schemas.js";
-import { createRoom, getRoom, joinRoom, toRoomSnapshot } from "../services/roomStore.js";
+import { appendDrawingStroke, clearDrawing, createRoom, endRound, getRoom, joinRoom, restartRoom, startRoom, submitGuess, toRoomSnapshot } from "../services/roomStore.js";
 
 export function createRoomsRouter() {
   const router = Router();
@@ -29,7 +35,7 @@ export function createRoomsRouter() {
     try {
       const { code } = roomCodeParamsSchema.parse(request.params);
       const { playerName } = joinRoomSchema.parse(request.body);
-      const result = joinRoom(code.toUpperCase(), playerName);
+      const result = joinRoom(code, playerName);
 
       if (!result) {
         throw new HttpError(404, "Unable to join room");
@@ -44,11 +50,119 @@ export function createRoomsRouter() {
     }
   });
 
+  router.post("/:code/start", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId } = startRoomSchema.parse(request.body);
+      const result = startRoom(code, participantId);
+
+      if (!result.ok) {
+        throw new HttpError(result.statusCode, result.message);
+      }
+
+      response.json({
+        room: toRoomSnapshot(result.room, participantId)
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/:code/drawing", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId, stroke } = drawingSchema.parse(request.body);
+      const result = appendDrawingStroke(code, participantId, stroke);
+
+      if (!result.ok) {
+        throw new HttpError(result.statusCode, result.message);
+      }
+
+      response.json({
+        room: toRoomSnapshot(result.room, participantId)
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/:code/drawing/clear", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId } = clearDrawingSchema.parse(request.body);
+      const result = clearDrawing(code, participantId);
+
+      if (!result.ok) {
+        throw new HttpError(result.statusCode, result.message);
+      }
+
+      response.json({
+        room: toRoomSnapshot(result.room, participantId)
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/:code/guesses", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId, guess } = guessSchema.parse(request.body);
+      const result = submitGuess(code, participantId, guess);
+
+      if (!result.ok) {
+        throw new HttpError(result.statusCode, result.message);
+      }
+
+      response.json({
+        room: toRoomSnapshot(result.room, participantId)
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/:code/round/end", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId } = endRoundSchema.parse(request.body);
+      const result = endRound(code, participantId);
+
+      if (!result.ok) {
+        throw new HttpError(result.statusCode, result.message);
+      }
+
+      response.json({
+        room: toRoomSnapshot(result.room, participantId)
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/:code/restart", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId } = restartRoomSchema.parse(request.body);
+      const result = restartRoom(code, participantId);
+
+      if (!result.ok) {
+        throw new HttpError(result.statusCode, result.message);
+      }
+
+      response.json({
+        room: toRoomSnapshot(result.room, participantId)
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
+
   router.get("/:code", (request, response, next) => {
     try {
       const { code } = roomCodeParamsSchema.parse(request.params);
       const { participantId } = roomViewerQuerySchema.parse(request.query);
-      const room = getRoom(code.toUpperCase());
+      const room = getRoom(code);
 
       if (!room) {
         throw new HttpError(404, "Unable to load room");
