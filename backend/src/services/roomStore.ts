@@ -58,6 +58,18 @@ export function listWords() {
   return [...STARTER_WORDS];
 }
 
+export function selectSecretWord(roomCode: string, words = listWords()) {
+  if (words.length === 0) {
+    return null;
+  }
+
+  const checksum = normalizeRoomCode(roomCode)
+    .split("")
+    .reduce((total, character) => total + character.charCodeAt(0), 0);
+
+  return words[checksum % words.length];
+}
+
 export function clearRooms() {
   rooms.clear();
 }
@@ -127,6 +139,16 @@ export type StartRoomResult =
   | { ok: true; room: Room }
   | { ok: false; statusCode: 400 | 403 | 404; message: string };
 
+function selectDrawer(room: Room) {
+  const host = room.participants.find((participant) => participant.id === room.hostParticipantId);
+
+  if (host) {
+    return host;
+  }
+
+  return [...room.participants].sort((left, right) => left.joinedAt.localeCompare(right.joinedAt))[0] ?? null;
+}
+
 export function startRoom(code: string, participantId: string): StartRoomResult {
   const normalizedCode = normalizeRoomCode(code);
 
@@ -140,22 +162,45 @@ export function startRoom(code: string, participantId: string): StartRoomResult 
     return { ok: false, statusCode: 404, message: "Unable to load room" };
   }
 
+  if (room.status !== "lobby") {
+    return { ok: false, statusCode: 400, message: "Room is already playing" };
+  }
+
   const participant = room.participants.find((candidate) => candidate.id === participantId);
 
   if (!participant) {
     return { ok: false, statusCode: 404, message: "Participant not found in room" };
   }
 
-  if (room.hostParticipantId !== participant.id) {
-    return { ok: false, statusCode: 403, message: "Only the host can start the game" };
-  }
-
   if (room.participants.length < 2) {
     return { ok: false, statusCode: 400, message: "At least 2 players are required to start" };
   }
 
-  room.status = "inGame";
-  room.updatedAt = now();
+  const drawer = selectDrawer(room);
+
+  if (!drawer) {
+    return { ok: false, statusCode: 400, message: "Unable to assign drawer" };
+  }
+
+  if (drawer.id !== participant.id) {
+    return { ok: false, statusCode: 403, message: "Only the host can start the game" };
+  }
+
+  const secretWord = selectSecretWord(room.code);
+
+  if (!secretWord) {
+    return { ok: false, statusCode: 400, message: "No words are available to start" };
+  }
+
+  const startedAt = now();
+  room.status = "playing";
+  room.currentRound = {
+    roundNumber: 1,
+    drawerParticipantId: drawer.id,
+    secretWord,
+    startedAt
+  };
+  room.updatedAt = startedAt;
   rooms.set(room.code, room);
 
   return { ok: true, room: cloneRoom(room) };
@@ -163,8 +208,21 @@ export function startRoom(code: string, participantId: string): StartRoomResult 
 
 export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSnapshot {
   const isHost = Boolean(viewerParticipantId && viewerParticipantId === room.hostParticipantId);
+  const drawer = room.currentRound
+    ? room.participants.find((participant) => participant.id === room.currentRound?.drawerParticipantId)
+    : null;
+  const isDrawer = Boolean(viewerParticipantId && drawer && viewerParticipantId === drawer.id);
+  const currentRound =
+    room.currentRound && drawer
+      ? {
+          roundNumber: room.currentRound.roundNumber,
+          drawerParticipantId: drawer.id,
+          drawerName: drawer.name
+        }
+      : undefined;
+  const viewerRole = room.currentRound ? (isDrawer ? "drawer" : "guesser") : undefined;
 
-  return {
+  const snapshot: RoomSnapshot = {
     code: room.code,
     status: room.status,
     participants: room.participants.map((participant) => ({ ...participant })),
@@ -172,7 +230,16 @@ export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSn
     viewerParticipantId,
     isHost,
     canStart: room.status === "lobby" && isHost && room.participants.length >= 2,
-    availableWords: listWords(),
+    currentRound,
+    viewerRole,
+    isDrawer,
+    availableWords: room.status === "lobby" ? listWords() : [],
     roles: [...STARTER_ROLES]
   };
+
+  if (room.currentRound && isDrawer) {
+    snapshot.secretWord = room.currentRound.secretWord;
+  }
+
+  return snapshot;
 }

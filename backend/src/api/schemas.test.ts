@@ -35,4 +35,10 @@ describe("schemas", () => {
   it("startRoomSchema requires participantId", () => {
     expect(() => startRoomSchema.parse({ participantId: "" })).toThrow();
   });
+
+  it("startRoomSchema trims participantId", () => {
+    const result = startRoomSchema.parse({ participantId: " participant-1 " });
+
+    expect(result.participantId).toBe("participant-1");
+  });
 });

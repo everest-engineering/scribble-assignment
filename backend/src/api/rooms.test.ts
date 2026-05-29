@@ -92,11 +92,25 @@ describe("rooms API", () => {
       method: "POST",
       body: JSON.stringify({ participantId: createBody.participantId })
     });
-    const hostStartBody = (await hostStart.json()) as { room: { status: string; canStart: boolean } };
+    const hostStartBody = (await hostStart.json()) as {
+      room: {
+        status: string;
+        canStart: boolean;
+        currentRound: { drawerParticipantId: string; drawerName: string };
+        viewerRole: string;
+        isDrawer: boolean;
+        secretWord?: string;
+      };
+    };
 
     expect(hostStart.status).toBe(200);
-    expect(hostStartBody.room.status).toBe("inGame");
+    expect(hostStartBody.room.status).toBe("playing");
     expect(hostStartBody.room.canStart).toBe(false);
+    expect(hostStartBody.room.currentRound.drawerParticipantId).toBe(createBody.participantId);
+    expect(hostStartBody.room.currentRound.drawerName).toBe("Alice");
+    expect(hostStartBody.room.viewerRole).toBe("drawer");
+    expect(hostStartBody.room.isDrawer).toBe(true);
+    expect(hostStartBody.room.secretWord).toBeDefined();
   });
 
   it("rejects malformed and unknown join room codes", async () => {
@@ -111,5 +125,64 @@ describe("rooms API", () => {
 
     expect(malformed.status).toBe(400);
     expect(unknown.status).toBe(404);
+  });
+
+  it("returns viewer-specific secret word visibility after start", async () => {
+    const createResponse = await jsonRequest("/rooms", {
+      method: "POST",
+      body: JSON.stringify({ playerName: "Alice" })
+    });
+    const createBody = (await createResponse.json()) as { participantId: string; room: { code: string } };
+    const joinResponse = await jsonRequest(`/rooms/${createBody.room.code}/join`, {
+      method: "POST",
+      body: JSON.stringify({ playerName: "Bob" })
+    });
+    const joinBody = (await joinResponse.json()) as { participantId: string };
+
+    await jsonRequest(`/rooms/${createBody.room.code}/start`, {
+      method: "POST",
+      body: JSON.stringify({ participantId: createBody.participantId })
+    });
+
+    const drawerResponse = await jsonRequest(`/rooms/${createBody.room.code}?participantId=${createBody.participantId}`);
+    const guesserResponse = await jsonRequest(`/rooms/${createBody.room.code}?participantId=${joinBody.participantId}`);
+    const drawerBody = (await drawerResponse.json()) as {
+      room: { currentRound: { drawerParticipantId: string; drawerName: string }; viewerRole: string; isDrawer: boolean; secretWord?: string };
+    };
+    const guesserBody = (await guesserResponse.json()) as {
+      room: { currentRound: { drawerParticipantId: string; drawerName: string }; viewerRole: string; isDrawer: boolean; secretWord?: string };
+    };
+
+    expect(drawerBody.room.currentRound).toEqual(guesserBody.room.currentRound);
+    expect(drawerBody.room.viewerRole).toBe("drawer");
+    expect(drawerBody.room.isDrawer).toBe(true);
+    expect(drawerBody.room.secretWord).toBeDefined();
+    expect(guesserBody.room.viewerRole).toBe("guesser");
+    expect(guesserBody.room.isDrawer).toBe(false);
+    expect("secretWord" in guesserBody.room).toBe(false);
+  });
+
+  it("does not create or join rooms for blank player names", async () => {
+    const createResponse = await jsonRequest("/rooms", {
+      method: "POST",
+      body: JSON.stringify({ playerName: " " })
+    });
+
+    expect(createResponse.status).toBe(400);
+
+    const validCreateResponse = await jsonRequest("/rooms", {
+      method: "POST",
+      body: JSON.stringify({ playerName: "Alice" })
+    });
+    const validCreateBody = (await validCreateResponse.json()) as { room: { code: string; participants: unknown[] } };
+    const joinResponse = await jsonRequest(`/rooms/${validCreateBody.room.code}/join`, {
+      method: "POST",
+      body: JSON.stringify({ playerName: "\t" })
+    });
+    const fetchResponse = await jsonRequest(`/rooms/${validCreateBody.room.code}`);
+    const fetchBody = (await fetchResponse.json()) as { room: { participants: unknown[] } };
+
+    expect(joinResponse.status).toBe(400);
+    expect(fetchBody.room.participants).toHaveLength(1);
   });
 });

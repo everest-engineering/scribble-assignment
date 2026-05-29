@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { clearRooms, createRoom, getRoom, joinRoom, startRoom, toRoomSnapshot } from "./roomStore.js";
+import { clearRooms, createRoom, getRoom, joinRoom, saveRoom, selectSecretWord, startRoom, toRoomSnapshot } from "./roomStore.js";
 
 describe("roomStore", () => {
   beforeEach(() => {
@@ -96,8 +96,78 @@ describe("roomStore", () => {
     const result = startRoom(firstRoom.room.code, firstRoom.participantId);
 
     expect(result.ok).toBe(true);
-    expect(result.ok && result.room.status).toBe("inGame");
-    expect(getRoom(firstRoom.room.code)?.status).toBe("inGame");
+    expect(result.ok && result.room.status).toBe("playing");
+    expect(getRoom(firstRoom.room.code)?.status).toBe("playing");
     expect(getRoom(secondRoom.room.code)?.status).toBe("lobby");
+  });
+
+  it("startRoom assigns the host as first drawer", () => {
+    const room = createRoom("Alice");
+    joinRoom(room.room.code, "Bob");
+
+    const result = startRoom(room.room.code, room.participantId);
+
+    expect(result.ok).toBe(true);
+    expect(result.ok && result.room.currentRound?.drawerParticipantId).toBe(room.participantId);
+    expect(result.ok && result.room.currentRound?.roundNumber).toBe(1);
+  });
+
+  it("startRoom falls back to earliest joined player when host reference is stale", () => {
+    const room = createRoom("Alice");
+    joinRoom(room.room.code, "Bob");
+    const staleHostRoom = getRoom(room.room.code);
+
+    expect(staleHostRoom).not.toBeNull();
+    if (!staleHostRoom) {
+      return;
+    }
+
+    staleHostRoom.hostParticipantId = "missing-host";
+    saveRoom(staleHostRoom);
+
+    const result = startRoom(room.room.code, room.participantId);
+
+    expect(result.ok).toBe(true);
+    expect(result.ok && result.room.currentRound?.drawerParticipantId).toBe(room.participantId);
+  });
+
+  it("selectSecretWord is deterministic and returns null for empty word lists", () => {
+    expect(selectSecretWord("ABCD", ["rocket", "pizza", "castle"])).toBe(
+      selectSecretWord("ABCD", ["rocket", "pizza", "castle"])
+    );
+    expect(selectSecretWord("ABCD", [])).toBeNull();
+  });
+
+  it("startRoom stores the selected secret word on the current round", () => {
+    const room = createRoom("Alice");
+    joinRoom(room.room.code, "Bob");
+    const result = startRoom(room.room.code, room.participantId);
+
+    expect(result.ok).toBe(true);
+    expect(result.ok && result.room.currentRound?.secretWord).toBe(selectSecretWord(room.room.code));
+    expect(getRoom(room.room.code)?.currentRound?.secretWord).toBe(selectSecretWord(room.room.code));
+  });
+
+  it("toRoomSnapshot includes secretWord only for the drawer", () => {
+    const room = createRoom("Alice");
+    const bob = joinRoom(room.room.code, "Bob");
+    const result = startRoom(room.room.code, room.participantId);
+
+    expect(result.ok).toBe(true);
+    if (!result.ok || !bob) {
+      return;
+    }
+
+    const drawerSnapshot = toRoomSnapshot(result.room, room.participantId);
+    const guesserSnapshot = toRoomSnapshot(result.room, bob.participantId);
+    const unknownSnapshot = toRoomSnapshot(result.room, "missing-player");
+
+    expect(drawerSnapshot.isDrawer).toBe(true);
+    expect(drawerSnapshot.viewerRole).toBe("drawer");
+    expect(drawerSnapshot.secretWord).toBe(result.room.currentRound?.secretWord);
+    expect(guesserSnapshot.isDrawer).toBe(false);
+    expect(guesserSnapshot.viewerRole).toBe("guesser");
+    expect("secretWord" in guesserSnapshot).toBe(false);
+    expect("secretWord" in unknownSnapshot).toBe(false);
   });
 });

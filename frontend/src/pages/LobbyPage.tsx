@@ -60,7 +60,7 @@ export function LobbyPage() {
       setRefreshError(null);
       const nextRoom = await roomStore.startGame();
 
-      if (nextRoom.status === "inGame") {
+      if (nextRoom.status === "playing") {
         navigate("/game");
       }
     } catch (caughtError) {

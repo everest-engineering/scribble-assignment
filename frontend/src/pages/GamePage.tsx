@@ -14,6 +14,11 @@ export function GamePage() {
   useEffect(() => {
     if (!room) {
       navigate("/", { replace: true });
+      return;
+    }
+
+    if (room.status !== "playing") {
+      navigate("/lobby", { replace: true });
     }
   }, [navigate, room]);
 
@@ -22,12 +27,16 @@ export function GamePage() {
   }
 
   const viewer = room.participants.find((participant) => participant.id === participantId) ?? null;
+  const drawer = room.currentRound
+    ? room.participants.find((participant) => participant.id === room.currentRound?.drawerParticipantId) ?? null
+    : null;
+  const roleLabel = room.viewerRole === "drawer" ? "Drawer" : "Guesser";
 
   return (
     <section className="panel game-page">
       <div className="game-page__header">
         <div className="game-page__header-left">
-          <span className="section-kicker">Round 1</span>
+          <span className="section-kicker">Round {room.currentRound?.roundNumber ?? 1}</span>
           <h1 className="game-page__title">Guess the Word!</h1>
         </div>
         <RoomCodeBadge code={room.code} />
@@ -41,8 +50,8 @@ export function GamePage() {
 
         <div className="game-page__main">
           <Card title="Canvas">
-            <div className="canvas-placeholder" style={{ minHeight: '500px', backgroundColor: '#ffffff', border: '1px solid #e5e7eb' }}>
-              Waiting for drawer...
+            <div className="canvas-placeholder">
+              {drawer ? `${drawer.name} is drawing...` : "Waiting for drawer..."}
             </div>
           </Card>
         </div>
@@ -58,7 +67,30 @@ export function GamePage() {
                 <dt>Status</dt>
                 <dd>Playing</dd>
               </div>
+              <div>
+                <dt>Your role</dt>
+                <dd>
+                  <span className={`role-badge ${room.isDrawer ? "role-badge--drawer" : "role-badge--guesser"}`}>
+                    {roleLabel}
+                  </span>
+                </dd>
+              </div>
+              <div>
+                <dt>Drawer</dt>
+                <dd>{room.currentRound?.drawerName ?? drawer?.name ?? "Selecting drawer"}</dd>
+              </div>
             </dl>
+          </Card>
+
+          <Card title={room.isDrawer ? "Secret Word" : "Round Clue"}>
+            {room.isDrawer ? (
+              <div className="secret-word-panel">
+                <span className="secret-word-panel__label">Draw this word</span>
+                <strong>{room.secretWord ?? "Loading word..."}</strong>
+              </div>
+            ) : (
+              <p>Watch {room.currentRound?.drawerName ?? "the drawer"} and submit your best guess. The secret word is hidden from guessers.</p>
+            )}
           </Card>
 
           <Card title="Your Guess">
