@@ -1,5 +1,15 @@
 import { describe, expect, it } from "vitest";
-import { clearDrawingSchema, createRoomSchema, drawingSchema, guessSchema, joinRoomSchema, roomCodeParamsSchema, startRoomSchema } from "./schemas.js";
+import {
+  clearDrawingSchema,
+  createRoomSchema,
+  drawingSchema,
+  endRoundSchema,
+  guessSchema,
+  joinRoomSchema,
+  restartRoomSchema,
+  roomCodeParamsSchema,
+  startRoomSchema
+} from "./schemas.js";
 
 describe("schemas", () => {
   it("createRoomSchema trims a valid playerName", () => {
@@ -83,5 +93,15 @@ describe("schemas", () => {
 
     expect(result.guess).toBe("Rocket");
     expect(() => guessSchema.parse({ participantId: "guesser-1", guess: "   " })).toThrow();
+  });
+
+  it("endRoundSchema trims participantId", () => {
+    const result = endRoundSchema.parse({ participantId: " host-1 " });
+
+    expect(result.participantId).toBe("host-1");
+  });
+
+  it("restartRoomSchema requires participantId", () => {
+    expect(() => restartRoomSchema.parse({ participantId: "" })).toThrow();
   });
 });

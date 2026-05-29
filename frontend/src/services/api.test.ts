@@ -217,6 +217,42 @@ describe("api service", () => {
     );
   });
 
+  it("endRound sends POST to /rooms/:code/round/end with participantId", async () => {
+    const mockResponse = {
+      ok: true,
+      json: () => Promise.resolve({ room: { code: "ABCD", status: "result", scores: [] } }),
+    };
+    vi.mocked(fetch).mockResolvedValue(mockResponse as unknown as Response);
+
+    await api.endRound("ABCD", "p1");
+
+    expect(fetch).toHaveBeenCalledWith(
+      expect.stringContaining("/rooms/ABCD/round/end"),
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({ participantId: "p1" }),
+      })
+    );
+  });
+
+  it("restartRoom sends POST to /rooms/:code/restart with participantId", async () => {
+    const mockResponse = {
+      ok: true,
+      json: () => Promise.resolve({ room: { code: "ABCD", status: "lobby", scores: [] } }),
+    };
+    vi.mocked(fetch).mockResolvedValue(mockResponse as unknown as Response);
+
+    await api.restartRoom("ABCD", "p1");
+
+    expect(fetch).toHaveBeenCalledWith(
+      expect.stringContaining("/rooms/ABCD/restart"),
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({ participantId: "p1" }),
+      })
+    );
+  });
+
   it("accepts drawer snapshots with secretWord", async () => {
     const mockResponse = {
       ok: true,
@@ -342,6 +378,90 @@ describe("api service", () => {
     expect(response.room.currentRound?.canvas.strokes).toHaveLength(1);
     expect(response.room.currentRound?.guesses).toHaveLength(1);
     expect(response.room.scores[0].score).toBe(100);
+    expect("secretWord" in response.room).toBe(false);
+  });
+
+  it("accepts result snapshots with completed round data", async () => {
+    const mockResponse = {
+      ok: true,
+      json: () =>
+        Promise.resolve({
+          room: {
+            code: "ABCD",
+            status: "result",
+            participants: [],
+            hostParticipantId: "p1",
+            viewerParticipantId: "p2",
+            isHost: false,
+            canStart: false,
+            completedRound: {
+              roundNumber: 1,
+              drawerParticipantId: "p1",
+              drawerName: "Alice",
+              secretWord: "rocket",
+              startedAt: "2026-05-29T09:25:00.000Z",
+              endedAt: "2026-05-29T09:35:00.000Z",
+              canvas: {
+                strokes: [],
+                updatedAt: "2026-05-29T09:30:00.000Z"
+              },
+              guesses: [
+                {
+                  id: "g1",
+                  participantId: "p2",
+                  participantName: "Bob",
+                  text: "rocket",
+                  isCorrect: true,
+                  pointsAwarded: 100,
+                  createdAt: "2026-05-29T09:31:00.000Z"
+                }
+              ],
+              scores: [{ participantId: "p2", participantName: "Bob", score: 100 }]
+            },
+            isDrawer: false,
+            scores: [{ participantId: "p2", participantName: "Bob", score: 100 }],
+            availableWords: [],
+            roles: []
+          },
+        }),
+    };
+    vi.mocked(fetch).mockResolvedValue(mockResponse as unknown as Response);
+
+    const response = await api.fetchRoom("ABCD", "p2");
+
+    expect(response.room.status).toBe("result");
+    expect(response.room.completedRound?.secretWord).toBe("rocket");
+    expect(response.room.completedRound?.guesses).toHaveLength(1);
+    expect(response.room.completedRound?.scores[0].score).toBe(100);
+  });
+
+  it("accepts restarted lobby snapshots without completed round data", async () => {
+    const mockResponse = {
+      ok: true,
+      json: () =>
+        Promise.resolve({
+          room: {
+            code: "ABCD",
+            status: "lobby",
+            participants: [],
+            hostParticipantId: "p1",
+            viewerParticipantId: "p1",
+            isHost: true,
+            canStart: true,
+            isDrawer: false,
+            scores: [],
+            availableWords: [],
+            roles: []
+          },
+        }),
+    };
+    vi.mocked(fetch).mockResolvedValue(mockResponse as unknown as Response);
+
+    const response = await api.fetchRoom("ABCD", "p1");
+
+    expect(response.room.status).toBe("lobby");
+    expect(response.room.completedRound).toBeUndefined();
+    expect(response.room.currentRound).toBeUndefined();
     expect("secretWord" in response.room).toBe(false);
   });
 });

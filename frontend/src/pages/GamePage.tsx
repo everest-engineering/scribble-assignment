@@ -13,6 +13,7 @@ export function GamePage() {
   const roomStore = useRoomStore();
   const { room, participantId, error } = useRoomState();
   const [refreshError, setRefreshError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!room) {
@@ -20,13 +21,13 @@ export function GamePage() {
       return;
     }
 
-    if (room.status !== "playing") {
+    if (room.status === "lobby") {
       navigate("/lobby", { replace: true });
     }
   }, [navigate, room]);
 
   useEffect(() => {
-    if (!room || room.status !== "playing") {
+    if (!room || (room.status !== "playing" && room.status !== "result")) {
       return undefined;
     }
 
@@ -62,14 +63,25 @@ export function GamePage() {
   const drawer = room.currentRound
     ? room.participants.find((participant) => participant.id === room.currentRound?.drawerParticipantId) ?? null
     : null;
-  const roleLabel = room.viewerRole === "drawer" ? "Drawer" : "Guesser";
+  const isResult = room.status === "result" && Boolean(room.completedRound);
+  const roleLabel = isResult ? "Round complete" : room.viewerRole === "drawer" ? "Drawer" : "Guesser";
+  const canvasStrokes = room.currentRound?.canvas.strokes ?? room.completedRound?.canvas.strokes ?? [];
+
+  async function handleEndRound() {
+    try {
+      setActionError(null);
+      await roomStore.endRound();
+    } catch (caughtError) {
+      setActionError(caughtError instanceof Error ? caughtError.message : "Unable to end round");
+    }
+  }
 
   return (
     <section className="panel game-page">
       <div className="game-page__header">
         <div className="game-page__header-left">
-          <span className="section-kicker">Round {room.currentRound?.roundNumber ?? 1}</span>
-          <h1 className="game-page__title">Guess the Word!</h1>
+          <span className="section-kicker">Round {room.currentRound?.roundNumber ?? room.completedRound?.roundNumber ?? 1}</span>
+          <h1 className="game-page__title">{isResult ? "Round Results" : "Guess the Word!"}</h1>
         </div>
         <RoomCodeBadge code={room.code} />
       </div>
@@ -81,10 +93,10 @@ export function GamePage() {
         </aside>
 
         <div className="game-page__main">
-          <Card title="Canvas">
+          <Card title={isResult ? "Final Canvas" : "Canvas"}>
             <CanvasBoard
-              strokes={room.currentRound?.canvas.strokes ?? []}
-              isDrawer={room.isDrawer}
+              strokes={canvasStrokes}
+              isDrawer={room.status === "playing" && room.isDrawer}
               onDraw={(stroke) => roomStore.submitDrawingStroke(stroke)}
               onClear={() => roomStore.clearDrawing()}
             />
@@ -100,7 +112,7 @@ export function GamePage() {
               </div>
               <div>
                 <dt>Status</dt>
-                <dd>Playing</dd>
+                <dd>{isResult ? "Results" : "Playing"}</dd>
               </div>
               <div>
                 <dt>Your role</dt>
@@ -112,11 +124,12 @@ export function GamePage() {
               </div>
               <div>
                 <dt>Drawer</dt>
-                <dd>{room.currentRound?.drawerName ?? drawer?.name ?? "Selecting drawer"}</dd>
+                <dd>{room.currentRound?.drawerName ?? room.completedRound?.drawerName ?? drawer?.name ?? "Selecting drawer"}</dd>
               </div>
             </dl>
           </Card>
 
+          {isResult ? null : (
           <Card title={room.isDrawer ? "Secret Word" : "Round Clue"}>
             {room.isDrawer ? (
               <div className="secret-word-panel">
@@ -127,10 +140,24 @@ export function GamePage() {
               <p>Watch {room.currentRound?.drawerName ?? "the drawer"} and submit your best guess. The secret word is hidden from guessers.</p>
             )}
           </Card>
+          )}
 
-          <Card title={room.isDrawer ? "Guesses" : "Your Guess"}>
-            <GuessForm disabled={room.isDrawer} onSubmit={(guess) => roomStore.submitGuess(guess)} />
-          </Card>
+          {isResult ? null : (
+            <Card title={room.isDrawer ? "Round Controls" : "Your Guess"}>
+              {room.isDrawer ? (
+                <div className="round-controls">
+                  <p>The host can end the round when everyone is ready to review results.</p>
+                  <button className="button button--primary" type="button" disabled={!room.isHost} onClick={() => void handleEndRound()}>
+                    End Round
+                  </button>
+                  {!room.isHost ? <p className="form__hint">Only the host can end the round.</p> : null}
+                  {actionError ? <p className="form__error">{actionError}</p> : null}
+                </div>
+              ) : (
+                <GuessForm disabled={room.isDrawer} onSubmit={(guess) => roomStore.submitGuess(guess)} />
+              )}
+            </Card>
+          )}
         </aside>
       </div>
 

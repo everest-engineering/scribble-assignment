@@ -144,6 +144,26 @@ class RoomStore {
     this.setRoomSnapshot(response.room);
     return response.room;
   }
+
+  async endRound() {
+    if (!this.state.room || !this.state.participantId) {
+      throw new Error("Unable to end round without an active room");
+    }
+
+    const response = await this.withLoading(() => api.endRound(this.state.room!.code, this.state.participantId!));
+    this.setRoomSnapshot(response.room);
+    return response.room;
+  }
+
+  async restartRoom() {
+    if (!this.state.room || !this.state.participantId) {
+      throw new Error("Unable to restart without an active room");
+    }
+
+    const response = await this.withLoading(() => api.restartRoom(this.state.room!.code, this.state.participantId!));
+    this.setRoomSnapshot(response.room);
+    return response.room;
+  }
 }
 
 const RoomStoreContext = createContext<RoomStore | null>(null);

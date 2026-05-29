@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import type { DrawingStroke, Participant, Room, RoomSnapshot } from "../models/game.js";
+import type { CanvasState, CompletedRound, DrawingStroke, Guess, Participant, Room, RoomSnapshot, ScoreEntry } from "../models/game.js";
 import { STARTER_ROLES, STARTER_WORDS } from "../seed/starterData.js";
 
 const rooms = new Map<string, Room>();
@@ -69,6 +69,37 @@ function createBlankCanvas(timestamp = now()) {
 
 function createInitialScores(participants: Participant[]) {
   return Object.fromEntries(participants.map((participant) => [participant.id, 0]));
+}
+
+function createScoreEntries(room: Room): ScoreEntry[] {
+  return room.participants.map((participant) => ({
+    participantId: participant.id,
+    participantName: participant.name,
+    score: room.scores[participant.id] ?? 0
+  }));
+}
+
+function cloneCanvas(canvas: CanvasState): CanvasState {
+  return {
+    strokes: canvas.strokes.map((stroke) => ({
+      ...stroke,
+      points: stroke.points.map((point) => ({ ...point }))
+    })),
+    updatedAt: canvas.updatedAt
+  };
+}
+
+function cloneGuesses(guesses: Guess[]): Guess[] {
+  return guesses.map((guess) => ({ ...guess }));
+}
+
+function cloneCompletedRound(completedRound: CompletedRound): CompletedRound {
+  return {
+    ...completedRound,
+    canvas: cloneCanvas(completedRound.canvas),
+    guesses: cloneGuesses(completedRound.guesses),
+    scores: completedRound.scores.map((score) => ({ ...score }))
+  };
 }
 
 export function listWords() {
@@ -212,6 +243,7 @@ export function startRoom(code: string, participantId: string): StartRoomResult 
 
   const startedAt = now();
   room.status = "playing";
+  delete room.completedRound;
   room.currentRound = {
     roundNumber: 1,
     drawerParticipantId: drawer.id,
@@ -376,6 +408,83 @@ export function submitGuess(code: string, participantId: string, guess: string):
   return { ok: true, room: cloneRoom(room) };
 }
 
+export function endRound(code: string, participantId: string): GameplayMutationResult {
+  const result = getPlayingRoom(code, participantId);
+
+  if (!result.ok) {
+    return result;
+  }
+
+  const { room } = result;
+
+  if (!room.currentRound) {
+    return { ok: false, statusCode: 400, message: "Round is not active" };
+  }
+
+  const drawer = room.participants.find((participant) => participant.id === room.currentRound?.drawerParticipantId);
+
+  if (!drawer) {
+    return { ok: false, statusCode: 400, message: "Unable to resolve drawer" };
+  }
+
+  const endedAt = now();
+  room.completedRound = {
+    roundNumber: room.currentRound.roundNumber,
+    drawerParticipantId: drawer.id,
+    drawerName: drawer.name,
+    secretWord: room.currentRound.secretWord,
+    startedAt: room.currentRound.startedAt,
+    endedAt,
+    canvas: cloneCanvas(room.currentRound.canvas),
+    guesses: cloneGuesses(room.currentRound.guesses),
+    scores: createScoreEntries(room)
+  };
+  delete room.currentRound;
+  room.status = "result";
+  room.updatedAt = endedAt;
+  rooms.set(room.code, room);
+
+  return { ok: true, room: cloneRoom(room) };
+}
+
+export function restartRoom(code: string, participantId: string): GameplayMutationResult {
+  const normalizedCode = normalizeRoomCode(code);
+
+  if (!isValidRoomCode(normalizedCode)) {
+    return { ok: false, statusCode: 400, message: "Invalid room code" };
+  }
+
+  const room = rooms.get(normalizedCode);
+
+  if (!room) {
+    return { ok: false, statusCode: 404, message: "Unable to load room" };
+  }
+
+  const participant = room.participants.find((candidate) => candidate.id === participantId);
+
+  if (!participant) {
+    return { ok: false, statusCode: 404, message: "Participant not found in room" };
+  }
+
+  if (participant.id !== room.hostParticipantId) {
+    return { ok: false, statusCode: 403, message: "Only the host can restart the game" };
+  }
+
+  if (room.status !== "result") {
+    return { ok: false, statusCode: 400, message: "Room is not showing results" };
+  }
+
+  const restartedAt = now();
+  room.status = "lobby";
+  delete room.currentRound;
+  delete room.completedRound;
+  room.scores = {};
+  room.updatedAt = restartedAt;
+  rooms.set(room.code, room);
+
+  return { ok: true, room: cloneRoom(room) };
+}
+
 export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSnapshot {
   const isHost = Boolean(viewerParticipantId && viewerParticipantId === room.hostParticipantId);
   const drawer = room.currentRound
@@ -388,16 +497,11 @@ export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSn
           roundNumber: room.currentRound.roundNumber,
           drawerParticipantId: drawer.id,
           drawerName: drawer.name,
-          canvas: {
-            strokes: room.currentRound.canvas.strokes.map((stroke) => ({
-              ...stroke,
-              points: stroke.points.map((point) => ({ ...point }))
-            })),
-            updatedAt: room.currentRound.canvas.updatedAt
-          },
-          guesses: room.currentRound.guesses.map((guess) => ({ ...guess }))
+          canvas: cloneCanvas(room.currentRound.canvas),
+          guesses: cloneGuesses(room.currentRound.guesses)
         }
       : undefined;
+  const completedRound = room.completedRound ? cloneCompletedRound(room.completedRound) : undefined;
   const viewerRole = room.currentRound ? (isDrawer ? "drawer" : "guesser") : undefined;
 
   const snapshot: RoomSnapshot = {
@@ -409,13 +513,10 @@ export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSn
     isHost,
     canStart: room.status === "lobby" && isHost && room.participants.length >= 2,
     currentRound,
+    completedRound,
     viewerRole,
     isDrawer,
-    scores: room.participants.map((participant) => ({
-      participantId: participant.id,
-      participantName: participant.name,
-      score: room.scores[participant.id] ?? 0
-    })),
+    scores: createScoreEntries(room),
     availableWords: room.status === "lobby" ? listWords() : [],
     roles: [...STARTER_ROLES]
   };

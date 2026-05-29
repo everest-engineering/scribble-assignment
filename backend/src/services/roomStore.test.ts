@@ -4,8 +4,10 @@ import {
   clearDrawing,
   clearRooms,
   createRoom,
+  endRound,
   getRoom,
   joinRoom,
+  restartRoom,
   saveRoom,
   selectSecretWord,
   startRoom,
@@ -367,5 +369,143 @@ describe("roomStore", () => {
     expect(getRoom(secondRoom.room.code)?.currentRound?.canvas.strokes).toEqual([]);
     expect(getRoom(secondRoom.room.code)?.currentRound?.guesses).toEqual([]);
     expect(getRoom(secondRoom.room.code)?.scores[dana.participantId]).toBe(0);
+  });
+
+  it("endRound transitions playing rooms to result snapshots with revealed final state", () => {
+    const { room, bob } = createStartedRoom();
+    const secretWord = selectSecretWord(room.room.code);
+
+    appendDrawingStroke(room.room.code, room.participantId, testStroke);
+    submitGuess(room.room.code, bob.participantId, "wrong");
+    submitGuess(room.room.code, bob.participantId, secretWord ?? "");
+
+    const result = endRound(room.room.code, room.participantId);
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) {
+      return;
+    }
+
+    expect(result.room.status).toBe("result");
+    expect(result.room.currentRound).toBeUndefined();
+    expect(result.room.completedRound).toMatchObject({
+      drawerParticipantId: room.participantId,
+      drawerName: "Alice",
+      secretWord
+    });
+    expect(result.room.completedRound?.canvas.strokes).toHaveLength(1);
+    expect(result.room.completedRound?.guesses.map((guess) => guess.text)).toEqual(["wrong", secretWord]);
+    expect(result.room.completedRound?.scores.find((score) => score.participantId === bob.participantId)?.score).toBe(100);
+
+    const bobSnapshot = toRoomSnapshot(result.room, bob.participantId);
+
+    expect(bobSnapshot.status).toBe("result");
+    expect(bobSnapshot.completedRound?.secretWord).toBe(secretWord);
+    expect(bobSnapshot.completedRound?.guesses).toHaveLength(2);
+    expect(bobSnapshot.completedRound?.scores.find((score) => score.participantId === bob.participantId)?.score).toBe(100);
+  });
+
+  it("endRound rejects rooms that are not actively playing", () => {
+    const room = createRoom("Alice");
+
+    expect(endRound(room.room.code, room.participantId)).toEqual({
+      ok: false,
+      statusCode: 400,
+      message: "Round is not active"
+    });
+  });
+
+  it("gameplay mutations are rejected after result state", () => {
+    const { room, bob } = createStartedRoom();
+
+    const ended = endRound(room.room.code, room.participantId);
+
+    expect(ended.ok).toBe(true);
+    expect(appendDrawingStroke(room.room.code, room.participantId, testStroke)).toEqual({
+      ok: false,
+      statusCode: 400,
+      message: "Round is not active"
+    });
+    expect(clearDrawing(room.room.code, room.participantId)).toEqual({
+      ok: false,
+      statusCode: 400,
+      message: "Round is not active"
+    });
+    expect(submitGuess(room.room.code, bob.participantId, "rocket")).toEqual({
+      ok: false,
+      statusCode: 400,
+      message: "Round is not active"
+    });
+  });
+
+  it("restartRoom is host-only and requires result state", () => {
+    const { room, bob } = createStartedRoom();
+
+    expect(restartRoom(room.room.code, room.participantId)).toEqual({
+      ok: false,
+      statusCode: 400,
+      message: "Room is not showing results"
+    });
+
+    endRound(room.room.code, room.participantId);
+
+    expect(restartRoom(room.room.code, bob.participantId)).toEqual({
+      ok: false,
+      statusCode: 403,
+      message: "Only the host can restart the game"
+    });
+  });
+
+  it("restartRoom preserves room code and players while clearing round state", () => {
+    const { room, bob } = createStartedRoom();
+    const secretWord = selectSecretWord(room.room.code);
+
+    appendDrawingStroke(room.room.code, room.participantId, testStroke);
+    submitGuess(room.room.code, bob.participantId, secretWord ?? "");
+    endRound(room.room.code, room.participantId);
+
+    const restarted = restartRoom(room.room.code, room.participantId);
+
+    expect(restarted.ok).toBe(true);
+    if (!restarted.ok) {
+      return;
+    }
+
+    expect(restarted.room.code).toBe(room.room.code);
+    expect(restarted.room.status).toBe("lobby");
+    expect(restarted.room.participants.map((participant) => participant.id)).toEqual([room.participantId, bob.participantId]);
+    expect(restarted.room.currentRound).toBeUndefined();
+    expect(restarted.room.completedRound).toBeUndefined();
+    expect(restarted.room.scores).toEqual({});
+
+    const snapshot = toRoomSnapshot(restarted.room, room.participantId);
+
+    expect(snapshot.canStart).toBe(true);
+    expect(snapshot.currentRound).toBeUndefined();
+    expect(snapshot.completedRound).toBeUndefined();
+    expect(snapshot.scores.every((score) => score.score === 0)).toBe(true);
+    expect("secretWord" in snapshot).toBe(false);
+  });
+
+  it("restartRoom keeps rooms isolated", () => {
+    const first = createStartedRoom();
+    const secondRoom = createRoom("Charlie");
+    const dana = joinRoom(secondRoom.room.code, "Dana");
+
+    expect(dana).not.toBeNull();
+    if (!dana) {
+      return;
+    }
+
+    const secondStarted = startRoom(secondRoom.room.code, secondRoom.participantId);
+    expect(secondStarted.ok).toBe(true);
+
+    appendDrawingStroke(secondRoom.room.code, secondRoom.participantId, testStroke);
+    endRound(first.room.room.code, first.room.participantId);
+    restartRoom(first.room.room.code, first.room.participantId);
+
+    expect(getRoom(first.room.room.code)?.status).toBe("lobby");
+    expect(getRoom(secondRoom.room.code)?.status).toBe("playing");
+    expect(getRoom(secondRoom.room.code)?.currentRound?.canvas.strokes).toHaveLength(1);
   });
 });

@@ -562,6 +562,43 @@ input {
   font-weight: 700;
 }
 
+.result-summary {
+  display: grid;
+  gap: 8px;
+  padding: 20px;
+  border: 1px solid #bfdbfe;
+  border-radius: 12px;
+  background: #eff6ff;
+}
+
+.result-summary__label {
+  color: #1d4ed8;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.result-summary strong {
+  color: var(--ink);
+  font-size: 2rem;
+  text-transform: capitalize;
+}
+
+.result-actions,
+.round-controls {
+  display: grid;
+  gap: 12px;
+}
+
+.result-actions__waiting {
+  padding: 12px 16px;
+  border-radius: 8px;
+  background: var(--surface-muted);
+  color: var(--ink-soft);
+  font-weight: 600;
+}
+
 /* --- GAME PAGE LAYOUT --- */
 /* Changed layout structure to be much wider and utilize screen space */
 .game-page {
