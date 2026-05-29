@@ -15,6 +15,7 @@
 - Q: How is the 'Results' state triggered? → A: Manual Host Trigger; host clicks a "Finish Round" button.
 - Q: Should the guess history be cleared immediately upon entering the Results state or only upon Restart? → A: Only upon Restart (players can read history in the results screen).
 - Q: How should roles be handled for the next round? → A: Roles MUST rotate; if the first player was the drawer, the second player becomes the drawer for the next round.
+- Q: What is the sequence for the drawer rotation? → A: Joined Order (Seniority-based).
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -40,13 +41,13 @@ As the host, I want to restart the game with the current players and a new drawe
 
 **Why this priority**: Core retention and turn-based gameplay logic.
 
-**Independent Test**: Click "Restart Game" as the host. Verify all players return to the Lobby, scores are preserved, but a different player is designated to be the drawer for the next round.
+**Independent Test**: Click "Restart Game" as the host. Verify all players return to the Lobby, scores are preserved, but a different player is designated to be the drawer for the next round based on joined order.
 
 **Acceptance Scenarios**:
 
 1. **Given** the game is in the `results` state, **When** the host clicks "Restart Game", **Then** the room status returns to `lobby`.
 2. **Given** the game has been restarted, **When** I look at the Lobby, **Then** the participant list is preserved, and all strokes and guesses are cleared.
-3. **Given** the previous drawer was Player A, **When** the game starts again, **Then** Player B is assigned the `drawer` role (Round Rotation).
+3. **Given** the previous drawer was the participant who joined 1st, **When** the game starts again, **Then** the participant who joined 2nd is assigned the `drawer` role.
 
 ## Requirements *(mandatory)*
 
@@ -58,7 +59,7 @@ As the host, I want to restart the game with the current players and a new drawe
 - **FR-004**: System MUST provide a `Restart Game` action for the host to transition from `results` back to `lobby`.
 - **FR-005**: System MUST preserve participant scores across restarts; scores are only cleared if a user leaves the room or clicks "Exit Game".
 - **FR-006**: System MUST reset `strokes` and `guesses` ONLY when the `restart` action is executed.
-- **FR-007**: System MUST implement a round-robin rotation for the `drawer` role; upon restart/start, the `drawer` role must pass to the next participant in the list.
+- **FR-007**: System MUST implement a round-robin rotation for the `drawer` role based on joined order seniority.
 - **FR-008**: System MUST maintain the current list of participants across the transition.
 
 ### Key Entities
@@ -83,7 +84,7 @@ As the host, I want to restart the game with the current players and a new drawe
 
 - **SC-001**: Lobby reset happens within 3 seconds of host restart (sync via polling).
 - **SC-002**: 100% of participants and their scores are retained during the restart process.
-- **SC-003**: Role assignment follows a predictable sequential order (rotation).
+- **SC-003**: Role assignment follows a predictable sequential order (rotation based on join time).
 
 ## Assumptions
 
