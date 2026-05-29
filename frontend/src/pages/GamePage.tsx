@@ -23,6 +23,12 @@ export function GamePage() {
 
   const viewer = room.participants.find((participant) => participant.id === participantId) ?? null;
 
+  const isDrawer = viewer?.role === "drawer";
+
+  const drawer = room.participants.find(
+    (participant) => participant.id === room.currentDrawerId
+  );
+
   return (
     <section className="panel game-page">
       <div className="game-page__header">
@@ -39,8 +45,11 @@ export function GamePage() {
           <ResultPanel />
         </aside>
 
-        <div className="game-page__main">
+          <div className="game-page__main">
           <Card title="Canvas">
+            <p style={{ marginBottom: "12px", fontWeight: "bold" }}>
+              Drawer: {drawer?.name ?? "Unknown"}
+            </p>
             <div className="canvas-placeholder" style={{ minHeight: '500px', backgroundColor: '#ffffff', border: '1px solid #e5e7eb' }}>
               Waiting for drawer...
             </div>
@@ -56,7 +65,7 @@ export function GamePage() {
               </div>
               <div>
                 <dt>Status</dt>
-                <dd>Playing</dd>
+                <dd>{viewer?.role ?? "guesser"}</dd>
               </div>
             </dl>
           </Card>
