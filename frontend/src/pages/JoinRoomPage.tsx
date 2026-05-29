@@ -1,7 +1,9 @@
-import { useState } from "react";
+import { useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { PageHeader } from "../components/PageHeader";
-import { useRoomStore } from "../state/roomStore";
+import { useRoomState, useRoomStore } from "../state/roomStore";
+
+const ROOM_CODE_PATTERN = /^[A-Z0-9]{4}$/;
 
 export function JoinRoomPage() {
   const [playerName, setPlayerName] = useState("");
@@ -9,13 +11,26 @@ export function JoinRoomPage() {
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
   const roomStore = useRoomStore();
+  const { isLoading } = useRoomState();
 
-  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    const trimmedName = playerName.trim();
+    const normalizedRoomCode = roomCode.trim().toUpperCase();
+
+    if (!trimmedName) {
+      setError("Enter a player name to join a room.");
+      return;
+    }
+
+    if (!ROOM_CODE_PATTERN.test(normalizedRoomCode)) {
+      setError("Enter a valid 4-character room code.");
+      return;
+    }
 
     try {
       setError(null);
-      await roomStore.joinRoom(roomCode.toUpperCase(), playerName);
+      await roomStore.joinRoom(normalizedRoomCode, trimmedName);
       navigate("/lobby");
     } catch (caughtError) {
       setError(caughtError instanceof Error ? caughtError.message : "Unable to join room");
@@ -51,8 +66,8 @@ export function JoinRoomPage() {
         </label>
         {error ? <p className="form__error">{error}</p> : null}
         <div className="button-row">
-          <button className="button button--primary" type="submit">
-            Join Lobby
+          <button className="button button--primary" type="submit" disabled={isLoading}>
+            {isLoading ? "Joining..." : "Join Lobby"}
           </button>
           <button className="button button--secondary" type="button" onClick={() => navigate("/")}>
             Back

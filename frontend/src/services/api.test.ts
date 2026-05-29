@@ -12,7 +12,16 @@ describe("api service", () => {
       json: () =>
         Promise.resolve({
           participantId: "p1",
-          room: { code: "ABCD", status: "lobby", participants: [] },
+          room: {
+            code: "ABCD",
+            status: "lobby",
+            participants: [],
+            hostParticipantId: "p1",
+            isHost: true,
+            canStart: false,
+            availableWords: [],
+            roles: []
+          },
         }),
     };
     vi.mocked(fetch).mockResolvedValue(mockResponse as unknown as Response);
@@ -33,7 +42,16 @@ describe("api service", () => {
       ok: true,
       json: () =>
         Promise.resolve({
-          room: { code: "XYZW", status: "lobby", participants: [] },
+          room: {
+            code: "XYZW",
+            status: "lobby",
+            participants: [],
+            hostParticipantId: "p1",
+            isHost: true,
+            canStart: false,
+            availableWords: [],
+            roles: []
+          },
         }),
     };
     vi.mocked(fetch).mockResolvedValue(mockResponse as unknown as Response);
@@ -44,5 +62,76 @@ describe("api service", () => {
       expect.stringContaining("/rooms/XYZW?participantId=p1"),
       expect.anything()
     );
+  });
+
+  it("joinRoom sends normalized code path and playerName body", async () => {
+    const mockResponse = {
+      ok: true,
+      json: () =>
+        Promise.resolve({
+          participantId: "p2",
+          room: {
+            code: "ABCD",
+            status: "lobby",
+            participants: [],
+            hostParticipantId: "p1",
+            isHost: false,
+            canStart: false,
+            availableWords: [],
+            roles: []
+          },
+        }),
+    };
+    vi.mocked(fetch).mockResolvedValue(mockResponse as unknown as Response);
+
+    await api.joinRoom("ABCD", "Bob");
+
+    expect(fetch).toHaveBeenCalledWith(
+      expect.stringContaining("/rooms/ABCD/join"),
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({ playerName: "Bob" }),
+      })
+    );
+  });
+
+  it("startRoom sends POST to /rooms/:code/start with participantId", async () => {
+    const mockResponse = {
+      ok: true,
+      json: () =>
+        Promise.resolve({
+          room: {
+            code: "ABCD",
+            status: "inGame",
+            participants: [],
+            hostParticipantId: "p1",
+            isHost: true,
+            canStart: false,
+            availableWords: [],
+            roles: []
+          },
+        }),
+    };
+    vi.mocked(fetch).mockResolvedValue(mockResponse as unknown as Response);
+
+    await api.startRoom("ABCD", "p1");
+
+    expect(fetch).toHaveBeenCalledWith(
+      expect.stringContaining("/rooms/ABCD/start"),
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({ participantId: "p1" }),
+      })
+    );
+  });
+
+  it("throws clear API error messages for rejected requests", async () => {
+    const mockResponse = {
+      ok: false,
+      json: () => Promise.resolve({ message: "Unable to join room" }),
+    };
+    vi.mocked(fetch).mockResolvedValue(mockResponse as unknown as Response);
+
+    await expect(api.joinRoom("ZZZZ", "Bob")).rejects.toThrow("Unable to join room");
   });
 });

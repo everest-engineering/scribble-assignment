@@ -399,9 +399,10 @@ input {
 }
 
 .player-list__meta {
-  color: var(--ink-soft);
+  color: var(--brand-strong);
   font-size: 0.875rem;
-  font-weight: 400;
+  font-weight: 600;
+  text-transform: uppercase;
 }
 
 .status-line,
@@ -414,6 +415,25 @@ input {
   color: var(--ink-soft);
   font-size: 0.875rem;
   font-weight: 600;
+}
+
+.status-line--ready {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.status-line--waiting {
+  background: #e0e7ff;
+  color: #3730a3;
+}
+
+.lobby-status__message {
+  margin-top: 8px;
+}
+
+.lobby-status__polling {
+  color: var(--ink-soft);
+  font-size: 0.9rem;
 }
 
 .placeholder-block {
