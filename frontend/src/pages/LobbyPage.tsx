@@ -44,6 +44,12 @@ export function LobbyPage() {
     return () => window.clearInterval(intervalId);
   }, [room, roomStore]);
 
+  useEffect(() => {
+    if (room?.status === "playing") {
+      navigate("/game");
+    }
+  }, [navigate, room]);
+
   async function handleRefresh() {
     try {
       setRefreshError(null);
