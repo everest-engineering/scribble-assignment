@@ -89,6 +89,18 @@ export const api = {
       body: JSON.stringify({ participantId })
     });
   },
+  finishRound(code: string, participantId: string) {
+    return request<{ room: RoomSnapshot }>(`/rooms/${encodeURIComponent(code)}/finish`, {
+      method: "POST",
+      body: JSON.stringify({ participantId })
+    });
+  },
+  restartGame(code: string, participantId: string) {
+    return request<{ room: RoomSnapshot }>(`/rooms/${encodeURIComponent(code)}/restart`, {
+      method: "POST",
+      body: JSON.stringify({ participantId })
+    });
+  },
   submitStrokes(code: string, participantId: string, strokes: Stroke[]) {
     return request<{ room: RoomSnapshot }>(`/rooms/${encodeURIComponent(code)}/strokes`, {
       method: "POST",

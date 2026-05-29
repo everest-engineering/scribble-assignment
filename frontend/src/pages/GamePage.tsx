@@ -44,9 +44,11 @@ export function GamePage() {
 
   const viewer = room.participants.find((participant) => participant.id === participantId) ?? null;
   const isDrawer = viewer?.role === "drawer";
+  const isResults = room.status === "results";
+  const isHost = room.hostId === participantId;
 
   async function handleStroke() {
-    if (!isDrawer) return;
+    if (!isDrawer || isResults) return;
     const paths = await canvasRef.current?.exportPaths();
     if (paths) {
       await roomStore.submitStrokes(paths);
@@ -54,18 +56,37 @@ export function GamePage() {
   }
 
   async function handleClear() {
-    if (!isDrawer) return;
+    if (!isDrawer || isResults) return;
     canvasRef.current?.clearCanvas();
     await roomStore.submitStrokes([]);
+  }
+
+  async function handleFinishRound() {
+    try {
+      await roomStore.finishRound();
+    } catch (err) {
+      console.error("Failed to finish round", err);
+    }
+  }
+
+  async function handleRestartGame() {
+    try {
+      await roomStore.restartGame();
+      navigate("/lobby");
+    } catch (err) {
+      console.error("Failed to restart game", err);
+    }
   }
 
   return (
     <section className="panel game-page">
       <div className="game-page__header">
         <div className="game-page__header-left">
-          <span className="section-kicker">Round 1</span>
+          <span className="section-kicker">{isResults ? "Round Finished" : "Round 1"}</span>
           <h1 className="game-page__title">
-            {isDrawer ? (
+            {isResults ? (
+              <span>The word was: <strong style={{ color: '#2563eb' }}>{room.secretWord}</strong></span>
+            ) : isDrawer ? (
               <span>Draw: <strong style={{ color: '#059669' }}>{room.secretWord ?? "???"}</strong></span>
             ) : (
               "Guess the Word!"
@@ -82,8 +103,8 @@ export function GamePage() {
         </aside>
 
         <div className="game-page__main">
-          <Card title="Canvas">
-            {isDrawer && (
+          <Card title={isResults ? "Final Drawing" : "Canvas"}>
+            {isDrawer && !isResults && (
               <div className="canvas-tools" style={{ marginBottom: '1rem', display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                   <label htmlFor="strokeColor" style={{ fontSize: '0.875rem' }}>Color:</label>
@@ -117,7 +138,7 @@ export function GamePage() {
               strokeColor={strokeColor}
               strokeWidth={strokeWidth}
               onStroke={handleStroke}
-              readOnly={!isDrawer}
+              readOnly={!isDrawer || isResults}
             />
           </Card>
         </div>
@@ -140,7 +161,7 @@ export function GamePage() {
             </dl>
           </Card>
 
-          {!isDrawer && (
+          {!isDrawer && !isResults && (
             <Card title="Your Guess">
               <GuessForm disabled={viewer?.hasGuessedCorrectly} />
               {viewer?.hasGuessedCorrectly && (
@@ -150,10 +171,28 @@ export function GamePage() {
               )}
             </Card>
           )}
+
+          {isResults && (
+            <Card title="Game Over">
+              <div style={{ textAlign: 'center', padding: '1rem' }}>
+                <p style={{ marginBottom: '1rem', color: '#4b5563' }}>Round has ended!</p>
+                {isHost && (
+                  <button className="button button--primary" style={{ width: '100%' }} onClick={handleRestartGame}>
+                    Restart Game
+                  </button>
+                )}
+              </div>
+            </Card>
+          )}
         </aside>
       </div>
 
       <div className="button-row">
+        {!isResults && isHost && (
+          <button className="button button--primary" onClick={handleFinishRound}>
+            Finish Round
+          </button>
+        )}
         <button className="button button--secondary" onClick={() => navigate("/lobby")}>
           Exit Game
         </button>

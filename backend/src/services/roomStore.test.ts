@@ -1,5 +1,16 @@
 import { describe, expect, it } from "vitest";
-import { createRoom, joinRoom, removeParticipant, getRoom, startGame, toRoomSnapshot, addGuess, addStrokes } from "./roomStore.js";
+import { 
+  createRoom, 
+  joinRoom, 
+  removeParticipant, 
+  getRoom, 
+  startGame, 
+  toRoomSnapshot, 
+  addGuess, 
+  addStrokes,
+  finishRound,
+  restartGame
+} from "./roomStore.js";
 
 describe("roomStore", () => {
   it("createRoom returns a room with a 4-character uppercase code and assigns host", () => {
@@ -115,5 +126,59 @@ describe("roomStore", () => {
     startGame(initialRoom.code, hostId);
 
     expect(() => addStrokes(initialRoom.code, guestId, [])).toThrow("Only the drawer can update strokes");
+  });
+
+  it("lifecycle: finishRound and restartGame", () => {
+    const { room: initialRoom, participantId: hostId } = createRoom("Alice");
+    joinRoom(initialRoom.code, "Bob");
+    startGame(initialRoom.code, hostId);
+
+    // Finish round
+    const finishedRoom = finishRound(initialRoom.code, hostId)!;
+    expect(finishedRoom.status).toBe("results");
+    
+    const snapshot = toRoomSnapshot(finishedRoom, "any-id");
+    expect(snapshot.secretWord).toBe("rocket"); // Revealed to all
+
+    // Restart game
+    const restartedRoom = restartGame(initialRoom.code, hostId)!;
+    expect(restartedRoom.status).toBe("lobby");
+    expect(restartedRoom.secretWord).toBeNull();
+    expect(restartedRoom.strokes).toHaveLength(0);
+    expect(restartedRoom.guesses).toHaveLength(0);
+  });
+
+  it("seniority rotation for drawer role", () => {
+    const { room: r, participantId: p1 } = createRoom("1st");
+    const { participantId: p2 } = joinRoom(r.code, "2nd")!;
+    const { participantId: p3 } = joinRoom(r.code, "3rd")!;
+
+    // 1st Round: 1st player is drawer
+    let room = startGame(r.code, p1)!;
+    expect(room.participants.find(p => p.id === p1)!.role).toBe("drawer");
+    expect(room.secretWord).toBe("rocket");
+
+    finishRound(r.code, p1);
+    restartGame(r.code, p1);
+
+    // 2nd Round: 2nd player is drawer
+    room = startGame(r.code, p1)!;
+    expect(room.participants.find(p => p.id === p2)!.role).toBe("drawer");
+    expect(room.secretWord).toBe("pizza");
+
+    finishRound(r.code, p1);
+    restartGame(r.code, p1);
+
+    // 3rd Round: 3rd player is drawer
+    room = startGame(r.code, p1)!;
+    expect(room.participants.find(p => p.id === p3)!.role).toBe("drawer");
+    expect(room.secretWord).toBe("castle");
+
+    finishRound(r.code, p1);
+    restartGame(r.code, p1);
+
+    // 4th Round: back to 1st
+    room = startGame(r.code, p1)!;
+    expect(room.participants.find(p => p.id === p1)!.role).toBe("drawer");
   });
 });

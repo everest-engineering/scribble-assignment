@@ -62,6 +62,7 @@ export function createRoom(playerName: string) {
     secretWord: null,
     strokes: [],
     guesses: [],
+    lastDrawerId: null,
     createdAt: now(),
     updatedAt: now()
   };
@@ -148,6 +149,10 @@ export function addGuess(code: string, participantId: string, text: string) {
   const participant = room.participants.find(p => p.id === participantId);
   if (!participant) return null;
 
+  if (room.status !== "playing") {
+    throw new Error("Guesses are only allowed during active rounds");
+  }
+
   if (participant.role === "drawer") {
     throw new Error("Drawers cannot submit guesses");
   }
@@ -178,6 +183,45 @@ export function addGuess(code: string, participantId: string, text: string) {
   return cloneRoom(room);
 }
 
+export function finishRound(code: string, participantId: string) {
+  const room = rooms.get(code);
+  if (!room) return null;
+
+  if (room.hostId !== participantId) {
+    throw new Error("Only the host can finish the round");
+  }
+
+  room.status = "results";
+  room.updatedAt = now();
+  rooms.set(room.code, room);
+
+  return cloneRoom(room);
+}
+
+export function restartGame(code: string, participantId: string) {
+  const room = rooms.get(code);
+  if (!room) return null;
+
+  if (room.hostId !== participantId) {
+    throw new Error("Only the host can restart the game");
+  }
+
+  room.status = "lobby";
+  room.strokes = [];
+  room.guesses = [];
+  room.secretWord = null;
+  room.participants.forEach(p => {
+    p.role = null;
+    p.hasGuessedCorrectly = false;
+    // Score is preserved
+  });
+
+  room.updatedAt = now();
+  rooms.set(room.code, room);
+
+  return cloneRoom(room);
+}
+
 export function startGame(code: string, participantId: string) {
   const room = rooms.get(code);
 
@@ -193,14 +237,26 @@ export function startGame(code: string, participantId: string) {
     throw new Error("Not enough players to start");
   }
 
+  // Seniority-based round-robin rotation
+  let nextDrawerIndex = 0;
+  if (room.lastDrawerId) {
+    const lastIndex = room.participants.findIndex(p => p.id === room.lastDrawerId);
+    if (lastIndex !== -1) {
+      nextDrawerIndex = (lastIndex + 1) % room.participants.length;
+    }
+  }
+  const nextDrawerId = room.participants[nextDrawerIndex].id;
+
   room.status = "playing";
-  room.secretWord = STARTER_WORDS[0];
+  room.secretWord = STARTER_WORDS[nextDrawerIndex % STARTER_WORDS.length];
   room.strokes = [];
   room.guesses = [];
+  room.lastDrawerId = nextDrawerId;
+
   room.participants.forEach(p => {
-    p.role = p.id === room.hostId ? "drawer" : "guesser";
-    p.score = 0;
+    p.role = p.id === nextDrawerId ? "drawer" : "guesser";
     p.hasGuessedCorrectly = false;
+    // score is preserved (Rule FR-005)
   });
   
   room.updatedAt = now();
@@ -211,7 +267,8 @@ export function startGame(code: string, participantId: string) {
 
 export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSnapshot {
   const viewer = room.participants.find(p => p.id === viewerParticipantId);
-  const canSeeWord = viewer?.role === "drawer";
+  const isResults = room.status === "results";
+  const canSeeWord = isResults || viewer?.role === "drawer";
 
   return {
     code: room.code,

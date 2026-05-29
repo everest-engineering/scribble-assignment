@@ -25,6 +25,14 @@ export const startGameSchema = z.object({
   participantId: z.string()
 });
 
+export const finishRoundSchema = z.object({
+  participantId: z.string()
+});
+
+export const restartGameSchema = z.object({
+  participantId: z.string()
+});
+
 export const strokeSchema = z.object({
   participantId: z.string(),
   strokes: z.array(z.object({

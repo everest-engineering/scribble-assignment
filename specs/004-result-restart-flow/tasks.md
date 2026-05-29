@@ -23,17 +23,17 @@
 
 **Purpose**: Update validation schemas for new endpoints
 
-- [ ] T002 [P] Add `finishRoundSchema` and `restartGameSchema` to `backend/src/api/schemas.ts`
+- [x] T002 [P] Add `finishRoundSchema` and `restartGameSchema` to `backend/src/api/schemas.ts`
 
 ## Phase 2: Foundational (Blocking Prerequisites)
 
 **Purpose**: Core model and service updates for game lifecycle
 
-- [ ] T003 Update `Room` interface in `backend/src/models/game.ts` to include `lastDrawerId`
-- [ ] T004 Implement `finishRound` logic in `backend/src/services/roomStore.ts` (transition to results)
-- [ ] T005 Implement `restartGame` logic in `backend/src/services/roomStore.ts` (reset strokes/guesses, preserve scores)
-- [ ] T006 Update `startGame` in `backend/src/services/roomStore.ts` to implement seniority-based round-robin rotation, explicitly handling dynamic list changes (joins/leaves)
-- [ ] T007 [P] Create unit tests for rotation logic and lifecycle transitions in `backend/src/services/roomStore.test.ts`
+- [x] T003 Update `Room` interface in `backend/src/models/game.ts` to include `lastDrawerId`
+- [x] T004 Implement `finishRound` logic in `backend/src/services/roomStore.ts` (transition to results)
+- [x] T005 Implement `restartGame` logic in `backend/src/services/roomStore.ts` (reset strokes/guesses, preserve scores)
+- [x] T006 Update `startGame` in `backend/src/services/roomStore.ts` to implement seniority-based round-robin rotation, explicitly handling dynamic list changes (joins/leaves)
+- [x] T007 [P] Create unit tests for rotation logic and lifecycle transitions in `backend/src/services/roomStore.test.ts`
 
 **Checkpoint**: Foundation ready - result viewing implementation can now begin
 
@@ -45,11 +45,11 @@
 
 **Independent Test**: Alice (host) clicks "Finish Round"; Bob (guesser) immediately sees "Word: rocket" and final scores.
 
-- [ ] T008 [US1] Implement `POST /rooms/:code/finish` endpoint in `backend/src/api/rooms.ts`, including hostId validation
-- [ ] T009 [US1] Add `finishRound` method to `api` service in `frontend/src/services/api.ts`
-- [ ] T010 [US1] Update `toRoomSnapshot` in `backend/src/services/roomStore.ts` to reveal `secretWord` when status is `results`
-- [ ] T011 [US1] Update `GamePage.tsx` in `frontend/src/pages/GamePage.tsx` to display a "Finish Round" button for the host during `playing` state
-- [ ] T012 [US1] Add conditional rendering for `results` state UI components (reveal word, hide canvas tools) directly in `frontend/src/pages/GamePage.tsx`
+- [x] T008 [US1] Implement `POST /rooms/:code/finish` endpoint in `backend/src/api/rooms.ts`, including hostId validation
+- [x] T009 [US1] Add `finishRound` method to `api` service in `frontend/src/services/api.ts`
+- [x] T010 [US1] Update `toRoomSnapshot` in `backend/src/services/roomStore.ts` to reveal `secretWord` when status is `results`
+- [x] T011 [US1] Update `GamePage.tsx` in `frontend/src/pages/GamePage.tsx` to display a "Finish Round" button for the host during `playing` state
+- [x] T012 [US1] Add conditional rendering for `results` state UI components (reveal word, hide canvas tools) directly in `frontend/src/pages/GamePage.tsx`
 
 **Checkpoint**: US1 complete - Round ending and result viewing are functional.
 
@@ -61,10 +61,10 @@
 
 **Independent Test**: Alice restarts; everyone returns to lobby. Alice starts game again; Bob becomes the new drawer.
 
-- [ ] T013 [US2] Implement `POST /rooms/:code/restart` endpoint in `backend/src/api/rooms.ts`, including hostId validation
-- [ ] T014 [US2] Add `restartGame` method to `api` service in `frontend/src/services/api.ts`
-- [ ] T015 [US2] Add "Restart Game" button to the results view in `frontend/src/pages/GamePage.tsx` for the host only
-- [ ] T016 [US2] Update `addGuess` in `backend/src/services/roomStore.ts` to explicitly reject guesses if status is not `playing` (EC-03)
+- [x] T013 [US2] Implement `POST /rooms/:code/restart` endpoint in `backend/src/api/rooms.ts`, including hostId validation
+- [x] T014 [US2] Add `restartGame` method to `api` service in `frontend/src/services/api.ts`
+- [x] T015 [US2] Add "Restart Game" button to the results view in `frontend/src/pages/GamePage.tsx` for the host only
+- [x] T016 [US2] Update `addGuess` in `backend/src/services/roomStore.ts` to explicitly reject guesses if status is not `playing` (EC-03)
 
 **Checkpoint**: US2 complete - Full game lifecycle with rotation is active.
 
@@ -74,9 +74,9 @@
 
 **Purpose**: Final validation and integrity checks
 
-- [ ] T017 [P] Run quickstart.md validation steps with multiple browser tabs to verify seniority rotation
-- [ ] T018 [P] Verify no TypeScript errors (Rule I) across both packages
-- [ ] T019 [P] Verify no layout crashes during microsecond state shifts (EC-02)
+- [x] T017 [P] Run quickstart.md validation steps with multiple browser tabs to verify seniority rotation
+- [x] T018 [P] Verify no TypeScript errors (Rule I) across both packages
+- [x] T019 [P] Verify no layout crashes during microsecond state shifts (EC-02)
 
 ---
 

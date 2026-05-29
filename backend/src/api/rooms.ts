@@ -7,9 +7,21 @@ import {
   roomViewerQuerySchema,
   startGameSchema,
   strokeSchema,
-  guessSchema
+  guessSchema,
+  finishRoundSchema,
+  restartGameSchema
 } from "./schemas.js";
-import { createRoom, getRoom, joinRoom, toRoomSnapshot, startGame, addStrokes, addGuess } from "../services/roomStore.js";
+import { 
+  createRoom, 
+  getRoom, 
+  joinRoom, 
+  toRoomSnapshot, 
+  startGame, 
+  addStrokes, 
+  addGuess,
+  finishRound,
+  restartGame
+} from "../services/roomStore.js";
 
 export function createRoomsRouter() {
   const router = Router();
@@ -40,6 +52,48 @@ export function createRoomsRouter() {
           throw new HttpError(404, "Room not found");
         }
         
+        response.json({
+          room: toRoomSnapshot(room, participantId)
+        });
+      } catch (err) {
+        throw new HttpError(403, err instanceof Error ? err.message : "Forbidden");
+      }
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/:code/finish", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId } = finishRoundSchema.parse(request.body);
+      
+      try {
+        const room = finishRound(code.toUpperCase(), participantId);
+        if (!room) {
+          throw new HttpError(404, "Room not found");
+        }
+        response.json({
+          room: toRoomSnapshot(room, participantId)
+        });
+      } catch (err) {
+        throw new HttpError(403, err instanceof Error ? err.message : "Forbidden");
+      }
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/:code/restart", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId } = restartGameSchema.parse(request.body);
+      
+      try {
+        const room = restartGame(code.toUpperCase(), participantId);
+        if (!room) {
+          throw new HttpError(404, "Room not found");
+        }
         response.json({
           room: toRoomSnapshot(room, participantId)
         });

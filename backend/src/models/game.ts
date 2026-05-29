@@ -36,6 +36,7 @@ export interface Room {
   secretWord: string | null;
   strokes: Stroke[];
   guesses: Guess[];
+  lastDrawerId: string | null;
   createdAt: string;
   updatedAt: string;
 }
