@@ -1,0 +1,218 @@
+openapi: 3.1.0
+info:
+  title: Scribble Scenario 2 Rooms API
+  version: 1.0.0
+  description: >
+    Contract for deterministic game start, drawer assignment, trimmed player
+    names, and drawer-only secret word visibility. Drawing, guesses, scoring,
+    results, and restart are excluded.
+paths:
+  /rooms:
+    post:
+      summary: Create a room with a validated player name
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                playerName:
+                  type: string
+      responses:
+        "201":
+          description: Room created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RoomSessionResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+  /rooms/{code}/join:
+    post:
+      summary: Join an existing room with a validated player name
+      parameters:
+        - $ref: "#/components/parameters/RoomCode"
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                playerName:
+                  type: string
+      responses:
+        "200":
+          description: Room joined
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RoomSessionResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /rooms/{code}:
+    get:
+      summary: Fetch the latest viewer-specific room snapshot
+      parameters:
+        - $ref: "#/components/parameters/RoomCode"
+        - name: participantId
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Room snapshot loaded
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [room]
+                properties:
+                  room:
+                    $ref: "#/components/schemas/RoomSnapshot"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /rooms/{code}/start:
+    post:
+      summary: Start the room and initialize the first deterministic round
+      parameters:
+        - $ref: "#/components/parameters/RoomCode"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [participantId]
+              properties:
+                participantId:
+                  type: string
+      responses:
+        "200":
+          description: Room entered playing state with initialized round data
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [room]
+                properties:
+                  room:
+                    $ref: "#/components/schemas/RoomSnapshot"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "403":
+          description: Only the host may start the room
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          description: Room cannot start yet
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+components:
+  parameters:
+    RoomCode:
+      name: code
+      in: path
+      required: true
+      schema:
+        type: string
+        pattern: "^[A-Z0-9]{4}$"
+  responses:
+    BadRequest:
+      description: Invalid request payload or malformed room data
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    NotFound:
+      description: Room not found
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+  schemas:
+    Participant:
+      type: object
+      additionalProperties: false
+      required: [id, name, joinedAt]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        joinedAt:
+          type: string
+          format: date-time
+    RoomSnapshot:
+      type: object
+      additionalProperties: false
+      required:
+        - code
+        - status
+        - hostParticipantId
+        - participants
+        - viewerIsHost
+        - canStartGame
+        - minimumPlayersToStart
+      properties:
+        code:
+          type: string
+          pattern: "^[A-Z0-9]{4}$"
+        status:
+          type: string
+          enum: [lobby, playing]
+        hostParticipantId:
+          type: string
+        participants:
+          type: array
+          items:
+            $ref: "#/components/schemas/Participant"
+        viewerIsHost:
+          type: boolean
+        canStartGame:
+          type: boolean
+        minimumPlayersToStart:
+          type: integer
+          enum: [2]
+        drawerParticipantId:
+          type: string
+        viewerIsDrawer:
+          type: boolean
+        wordVisibility:
+          type: string
+          enum: [visible, hidden]
+        secretWord:
+          type: string
+    RoomSessionResponse:
+      type: object
+      additionalProperties: false
+      required: [participantId, room]
+      properties:
+        participantId:
+          type: string
+        room:
+          $ref: "#/components/schemas/RoomSnapshot"
+    ErrorResponse:
+      type: object
+      additionalProperties: false
+      required: [message]
+      properties:
+        message:
+          type: string
