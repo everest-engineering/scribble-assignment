@@ -14,6 +14,9 @@
 - Q: How should drawing data be represented for synchronization? → A: As a list of `Stroke` objects (points, color) for efficient polling.
 - Q: What is the scoring rule for a correct guess? → A: A correct guess awards exactly 100 points to the participant.
 - Q: How is a guess validated as "correct"? → A: Case-insensitive, trimmed string comparison against the room's `secretWord`.
+- Q: What drawing tools should be available? → A: Allow full RGB selection and slider-based width control.
+- Q: How should coordinates be handled for consistency across devices? → A: Use a fixed logical coordinate system (e.g., 800x600) scaled to fit the container.
+- Q: Should guess history be limited to prevent memory bloat? → A: Limit to the last 50 guesses.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -51,15 +54,16 @@ As a participant, I want to see the latest drawing and guess history automatical
 
 ### Functional Requirements
 
-- **FR-001**: System MUST render an interactive HTML5 canvas for the `drawer` with standard pixel tracking.
+- **FR-001**: System MUST render an interactive HTML5 canvas for the `drawer` with standard pixel tracking and a fixed logical coordinate system (800x600).
 - **FR-002**: System MUST allow the `drawer` to trigger a `clearRect` (or equivalent) to reset the visual grid.
 - **FR-003**: System MUST provide a text input for `guesser` roles that trims surrounding whitespace upon submission.
 - **FR-004**: System MUST validate guesses against `secretWord` using case-insensitive evaluation (`.toLowerCase()`).
 - **FR-005**: System MUST increase a player's score by exactly 100 points for their **first** correct guess of the round.
-- **FR-006**: System MUST maintain a sequential array of all valid guess attempts (logs) in the backend room memory.
+- **FR-006**: System MUST maintain a sequential array of the last 50 valid guess attempts in the backend room memory.
 - **FR-007**: System MUST sync `strokes` and `guesses` via the established ~2s auto-polling loop.
 - **FR-008**: System MUST reject any guess attempt from a participant assigned the `drawer` role with a `403 Forbidden` error.
 - **FR-009**: System MUST discard blank or empty guess submissions before writing to history logs.
+- **FR-010**: System MUST provide the `drawer` with full RGB color selection and slider-based stroke width control.
 
 ### Key Entities
 
@@ -73,6 +77,7 @@ As a participant, I want to see the latest drawing and guess history automatical
 - **EC-02: Repeated Correct Guesses**: Multiple score accumulation is prevented; only the first correct guess per player per round counts.
 - **EC-03: Drawer Submitting Guesses**: Backend validation blocks drawers from self-scoring.
 - **EC-04: Empty/Whitespace Triggers**: Submissions containing only whitespace do not write empty rows or trigger API errors.
+- **EC-05: Coordinates Consistency**: Physical canvas sizing (responsive) must scale logical 800x600 coordinates to ensure lines match for all players.
 
 ## Explicitly Out Of Scope
 
