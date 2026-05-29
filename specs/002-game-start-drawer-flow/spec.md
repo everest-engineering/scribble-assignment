@@ -6,95 +6,107 @@
 
 **Status**: Draft
 
-**Input**: User description: "Scenario 2"
+**Input**: User description: "Scenario 2 - Game Start & Drawer Flow"
 
 ## User Scenarios & Testing *(mandatory)*
 
-### User Story 1 - Start Game & Assign Drawer (Priority: P1)
+### User Story 1 - Validate Player Names Before Game Start (Priority: P1)
 
-A host (room creator) wants to start the first round after players have joined.
+Players need confidence that everyone in the room has a usable display name before a round begins. The system trims names and rejects empty or whitespace-only names with clear feedback before allowing a player into a room or an active round.
 
-**Why this priority**: Starting the game and assigning the drawer is the core interactive transition from lobby to gameplay.
+**Why this priority**: A drawer and guessers must be identifiable during gameplay. Empty names make the player list, drawer label, guesses, and results confusing.
 
-**Independent Test**: Create a room, join a second player, start the game as the host. Verify the room transitions to the in-progress state and a single participant is marked as the drawer.
+**Independent Test**: A player attempts to enter with a blank or whitespace-only name and receives a clear message without being added to the room. A player entering a name with extra spaces is added under the trimmed name.
 
 **Acceptance Scenarios**:
 
-1. **Given** a host is in the lobby with at least one other joined player, **When** the host starts the game, **Then** the room moves to `inProgress`, one participant is assigned the `drawer` role, and all clients see the updated `gameState` and `roles` on next poll.
-2. **Given** the host tries to start the game with fewer than 2 players, **When** they press Start, **Then** the UI shows a clear validation message and the game does not start.
-3. **Given** names were submitted with leading/trailing whitespace, **When** the player created/joined, **Then** names are trimmed and empty-only names are rejected.
+1. **Given** a player enters only spaces for their name, **When** they submit the name, **Then** the system rejects it with a clear message that a name is required.
+2. **Given** a player enters a name with leading or trailing spaces, **When** they submit the name, **Then** the system stores and displays the trimmed name.
+3. **Given** all players in a room have valid names, **When** the host starts the game, **Then** the game can proceed without requiring any additional name cleanup.
 
 ---
 
-### User Story 2 - Secret Word Visibility (Priority: P1)
+### User Story 2 - Start the First Round with a Clear Drawer (Priority: P1)
 
-The drawer needs to see the secret word, while guessers must not.
+When a room moves from lobby to gameplay, every player needs to know who is drawing. The host becomes the first drawer. If the host cannot be identified, the first player in the room becomes the drawer.
 
-**Why this priority**: Game play depends on the drawer knowing the word; secrecy ensures fair guessing.
+**Why this priority**: The game cannot begin unless the drawing role is assigned consistently for all players.
 
-**Independent Test**: Start a game and confirm the drawer's UI shows the secret word while other participants’ UI does not reveal the word in room snapshots.
+**Independent Test**: A room with at least two valid players starts a game, and all players see the same player identified as the drawer.
 
 **Acceptance Scenarios**:
 
-1. **Given** the game has just started and the drawer is assigned, **When** the next room snapshot is fetched, **Then** the drawer's client receives a response indicating the secret word is visible to them only (server-side or redacted by contract), and other participants do not see the secret word in their `RoomSnapshot`.
-2. **Given** the drawer disconnects and reconnects mid-round, **When** they re-enter, **Then** the server reassigns drawer role to the persisted drawer identity and provides the secret word to that participant only.
+1. **Given** a room has a host and at least one other player, **When** the host starts the game, **Then** the host is assigned as the drawer for the first round.
+2. **Given** a room's host cannot be identified but the room has players, **When** the game starts, **Then** the first player in the room is assigned as the drawer.
+3. **Given** the first round has started, **When** any player views the game screen, **Then** the drawer is clearly identified by name.
 
 ---
 
-### User Story 3 - Deterministic Word Selection (Priority: P2)
+### User Story 3 - Show the Secret Word Only to the Drawer (Priority: P1)
 
-When a round begins, the chosen word must be deterministic to make tests reproducible.
+The drawer needs to see the word they must draw, while guessers must not see it. The first secret word is selected deterministically from the starter word list so the round can be tested consistently.
 
-**Why this priority**: Determinism simplifies testing and evaluation of behavior in the lab.
+**Why this priority**: Drawer-only word visibility is the core fairness rule for the drawing game. Deterministic selection makes the first round predictable and easy to validate.
 
-**Independent Test**: For a given room code and seed behavior (e.g., round number and lexicographic order), the server selects the same word each time the round starts under identical state.
+**Independent Test**: Start a game with two players. The drawer sees the selected word, while every non-drawer sees only that they should guess from the drawing.
 
 **Acceptance Scenarios**:
 
-1. **Given** the starter word list, **When** the round begins for the first time in a room, **Then** the server deterministically selects one word from the list (algorithm documented in assumptions) and exposes it only to the drawer.
+1. **Given** the first round begins, **When** the secret word is selected, **Then** it is the first word from the starter word list.
+2. **Given** the drawer opens the game screen during the active round, **When** the game state is shown, **Then** the drawer can see the secret word.
+3. **Given** a guesser opens the game screen during the active round, **When** the game state is shown, **Then** the guesser cannot see the secret word.
+4. **Given** multiple guessers are in the same round, **When** each guesser views the game screen, **Then** none of them can see the secret word.
 
 ---
 
 ### Edge Cases
 
-- Starting game without a host (host left): host-only Start button should be disabled for non-hosts; if host disappears, the server must reject start attempts from non-hosts and preserve lobby state.
-- Duplicate player names: UI should show names as entered but participants identified by stable `participantId` for role assignment.
-- Empty/whitespace-only player names: server rejects join/create with a clear validation error.
-- Drawer disconnects mid-round: current round remains in-progress; reconnected drawer (same `participantId`) still receives word; if drawer cannot be reassociated, the server may keep round running without drawer word redistribution (documented under assumptions).
+- A whitespace-only name is rejected before the player is added to a room.
+- A name with leading or trailing spaces is trimmed consistently everywhere it is displayed.
+- If the host cannot be identified at game start, the first player in the room becomes the drawer.
+- If the starter word list is available, the first round always uses the first word for deterministic validation.
+- If a non-drawer refreshes or re-enters the game screen during the active round, the secret word remains hidden from that player.
+- If the drawer refreshes or re-enters the game screen during the active round, the secret word remains visible to that drawer.
+- If a room has fewer than two valid players, the game does not start as part of the existing lobby start rule.
 
 ## Requirements *(mandatory)*
 
 ### Functional Requirements
 
-- **FR-001**: System MUST trim leading/trailing whitespace from player names and reject empty-only names with a validation message.
-- **FR-002**: System MUST allow only the host to initiate game start; non-host start attempts MUST be rejected.
-- **FR-003**: System MUST transition `gameState` from `lobby` to `inProgress` when a valid host starts and at least 2 players are present.
-- **FR-004**: System MUST assign exactly one participant the role `drawer` when the game starts.
-- **FR-005**: System MUST select a secret word deterministically from the starter list on game start and ensure it is visible only to the `drawer` participant.
-- **FR-006**: System MUST include `participantId` in session responses so clients can determine whether they are the drawer and hence receive the secret word.
-- **FR-007**: System MUST represent roles and gameState in the `RoomSnapshot` contract in a way that prevents non-drawers from seeing the secret word.
+- **FR-001**: The system MUST trim leading and trailing whitespace from player names before accepting or displaying them.
+- **FR-002**: The system MUST reject empty or whitespace-only player names with a clear message that a name is required.
+- **FR-003**: The system MUST prevent a game from starting if any active player in the room lacks a valid trimmed name.
+- **FR-004**: When the first round starts, the system MUST assign the host as the drawer.
+- **FR-005**: If the host cannot be identified at first-round start, the system MUST assign the first player in the room as the drawer.
+- **FR-006**: The system MUST show the drawer's name clearly to all players during the active round.
+- **FR-007**: The system MUST select the first round's secret word deterministically from the starter word list.
+- **FR-008**: The system MUST make the secret word visible to the assigned drawer during the active round.
+- **FR-009**: The system MUST hide the secret word from every non-drawer during the active round.
+- **FR-010**: The system MUST preserve the same drawer and secret word for the duration of the active round, including after players refresh or re-enter the game screen.
+- **FR-011**: The system MUST communicate game-start errors with user-friendly messages and keep players in the lobby when the game cannot start.
 
-## Key Entities *(include if feature involves data)*
+### Key Entities
 
-- **Room**: `code`, `hostId`, `gameState` (`lobby` | `inProgress` | `finished`), `participants`, `round`
-- **Participant**: `id`, `name`, `joinedAt`, `isHost`, `role` (`drawer` | `guesser`)
-- **Round**: `secretWord` (server-side, only visible to drawer), `selectedAt`
+- **Room**: A shared game space containing players, a host, and the current phase of play.
+- **Player**: A participant with a trimmed display name and a role for the active round.
+- **Round**: The active gameplay period with one drawer and one secret word.
+- **Secret Word**: The word selected for the drawer to represent and for guessers to identify.
 
 ## Success Criteria *(mandatory)*
 
 ### Measurable Outcomes
 
-- **SC-001**: 100% of attempts to start a game by non-hosts are rejected (observable via API tests).
-- **SC-002**: When host starts with ≥2 players, room `gameState` is `inProgress` within one poll cycle (~2s) in 100% of test runs.
-- **SC-003**: The drawer sees the secret word and all other participants do not see the word in their `RoomSnapshot` (verified in integration test with two clients).
-- **SC-004**: Player names with surrounding whitespace are stored trimmed and empty-only names are rejected (unit tests).
+- **SC-001**: 100% of whitespace-only player names are rejected with a clear message before the player can join or start play.
+- **SC-002**: 100% of accepted player names are displayed without leading or trailing spaces.
+- **SC-003**: In a valid two-player room, the first round starts with the same drawer shown to every player within one screen refresh cycle.
+- **SC-004**: In 100% of first-round starts, the selected secret word matches the first word from the starter word list.
+- **SC-005**: In 100% of active round views, the drawer can see the secret word and non-drawers cannot.
+- **SC-006**: At least 90% of manual two-browser validation attempts can confirm drawer assignment and word visibility in under 2 minutes.
 
 ## Assumptions
 
-- Deterministic word selection: Choose the word by hashing the room `code` plus a round counter and mapping to the starter word list (documented algorithm), ensuring repeatability.
-- No persistent storage: All room and round state are in-memory and cleared on backend restart (starter constraint).
-- No WebSockets: Synchronization is achieved via client polling (~2s) per Scenario 1 constraints.
-- Drawer word exposure: The server will not include `secretWord` in the public `RoomSnapshot`; instead it will return the word as part of participant-specific session responses when appropriate.
-- If the host disconnects before starting, the first joined participant is NOT automatically promoted; host-only permissions remain enforced unless the spec is updated.
-
-
+- Scenario 1's room creation, joining, lobby, host tracking, and minimum two-player start rule are already available or planned as dependencies.
+- The host is the intended first drawer because the README states "host (or first player)" and host tracking is part of Scenario 1.
+- "Deterministically selected from the starter list" means the first round uses the first starter word.
+- The starter word list remains `rocket`, `pizza`, `castle`, `guitar`, and `sunflower` for this scenario.
+- The feature covers only the first round's start and role visibility; drawing, guessing, scoring, results, restart, multiple rounds, and drawer rotation remain out of scope for this scenario.

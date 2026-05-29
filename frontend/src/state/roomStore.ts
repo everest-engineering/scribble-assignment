@@ -115,6 +115,16 @@ export class RoomStore {
     }
   }
 
+  async startGame() {
+    if (!this.state.room || !this.state.participantId) {
+      throw new Error("Room session is required to start the game");
+    }
+
+    const response = await this.withLoading(() => api.startGame(this.state.room!.code, this.state.participantId!));
+    this.setRoomSnapshot(response.room);
+    return response.room;
+  }
+
   startPolling() {
     if (this.pollInterval || !this.state.room) {
       return;

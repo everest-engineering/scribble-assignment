@@ -543,6 +543,44 @@ input {
   font-weight: 500;
 }
 
+.round-status {
+  display: grid;
+  gap: 6px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #f8fafc;
+}
+
+.round-status--drawer {
+  border-color: #bfdbfe;
+  background: #eff6ff;
+}
+
+.round-status--guesser {
+  border-color: #fde68a;
+  background: #fffbeb;
+}
+
+.round-status__label {
+  color: var(--ink-soft);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.round-status__value,
+.secret-word {
+  color: var(--ink);
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.secret-word--hidden {
+  color: var(--ink-soft);
+  font-weight: 500;
+}
+
 @media (max-width: 720px) {
   .app-shell {
     padding: 24px 16px;

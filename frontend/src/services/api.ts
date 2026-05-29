@@ -1,10 +1,19 @@
 export type ParticipantRole = "drawer" | "guesser";
+export type RoundStatus = "active";
 
 export interface Participant {
   id: string;
   name: string;
   joinedAt: string;
   isHost: boolean;
+}
+
+export interface RoundSnapshot {
+  roundNumber: number;
+  status: RoundStatus;
+  drawerId: string;
+  drawerName: string;
+  secretWord?: string;
 }
 
 export interface RoomSnapshot {
@@ -14,6 +23,7 @@ export interface RoomSnapshot {
   participants: Participant[];
   availableWords: string[];
   roles: ParticipantRole[];
+  currentRound?: RoundSnapshot;
 }
 
 export interface RoomSessionResponse {
@@ -54,6 +64,12 @@ export const api = {
     return request<RoomSessionResponse>(`/rooms/${encodeURIComponent(code)}/join`, {
       method: "POST",
       body: JSON.stringify({ playerName })
+    });
+  },
+  startGame(code: string, participantId: string) {
+    return request<{ room: RoomSnapshot }>(`/rooms/${encodeURIComponent(code)}/start`, {
+      method: "POST",
+      body: JSON.stringify({ participantId })
     });
   },
   fetchRoom(code: string, participantId?: string) {

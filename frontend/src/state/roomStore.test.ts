@@ -6,6 +6,7 @@ vi.mock("../services/api", () => ({
   api: {
     createRoom: vi.fn(),
     joinRoom: vi.fn(),
+    startGame: vi.fn(),
     fetchRoom: vi.fn(),
   },
 }));
@@ -84,5 +85,60 @@ describe("RoomStore", () => {
 
     store.stopPolling();
     expect(store.getSnapshot().isPolling).toBe(false);
+  });
+
+  it("updates room snapshot after startGame succeeds", async () => {
+    const lobbySnapshot = {
+      code: "WXYZ",
+      hostId: "host-1",
+      gameState: "lobby" as const,
+      participants: [],
+      availableWords: [],
+      roles: [] as ParticipantRole[]
+    };
+    const activeSnapshot = {
+      ...lobbySnapshot,
+      gameState: "inProgress" as const,
+      currentRound: {
+        roundNumber: 1,
+        status: "active" as const,
+        drawerId: "host-1",
+        drawerName: "Alice"
+      }
+    };
+    vi.mocked(api.startGame).mockResolvedValue({ room: activeSnapshot });
+
+    const store = new RoomStore();
+    store.setRoomSession({ participantId: "host-1", room: lobbySnapshot });
+    await store.startGame();
+
+    expect(api.startGame).toHaveBeenCalledWith("WXYZ", "host-1");
+    expect(store.getSnapshot().room).toEqual(activeSnapshot);
+  });
+
+  it("preserves viewer-specific active round snapshots while polling", async () => {
+    const drawerSnapshot = {
+      code: "WXYZ",
+      hostId: "host-1",
+      gameState: "inProgress" as const,
+      participants: [],
+      availableWords: [],
+      roles: [] as ParticipantRole[],
+      currentRound: {
+        roundNumber: 1,
+        status: "active" as const,
+        drawerId: "host-1",
+        drawerName: "Alice",
+        secretWord: "rocket"
+      }
+    };
+    vi.mocked(api.fetchRoom).mockResolvedValue({ room: drawerSnapshot });
+
+    const store = new RoomStore();
+    store.setRoomSession({ participantId: "host-1", room: drawerSnapshot });
+    await store.fetchRoom();
+
+    expect(api.fetchRoom).toHaveBeenCalledWith("WXYZ", "host-1");
+    expect(store.getSnapshot().room?.currentRound?.secretWord).toBe("rocket");
   });
 });

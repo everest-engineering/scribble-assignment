@@ -12,6 +12,12 @@ export const joinRoomSchema = z.object({
   playerName: playerNameSchema
 });
 
+export const startGameSchema = z.object({
+  participantId: z.string().trim().min(1, {
+    message: "Participant is required"
+  })
+});
+
 export const roomCodeParamsSchema = z.object({
   code: z
     .string()

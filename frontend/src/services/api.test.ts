@@ -45,4 +45,35 @@ describe("api service", () => {
       expect.anything()
     );
   });
+
+  it("startGame sends POST to /rooms/:code/start with participantId in body", async () => {
+    const mockResponse = {
+      ok: true,
+      json: () =>
+        Promise.resolve({
+          room: { code: "ABCD", hostId: "p1", gameState: "inProgress", participants: [] },
+        }),
+    };
+    vi.mocked(fetch).mockResolvedValue(mockResponse as unknown as Response);
+
+    await api.startGame("ABCD", "p1");
+
+    expect(fetch).toHaveBeenCalledWith(
+      expect.stringContaining("/rooms/ABCD/start"),
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({ participantId: "p1" }),
+      })
+    );
+  });
+
+  it("throws response error messages for invalid player names", async () => {
+    const mockResponse = {
+      ok: false,
+      json: () => Promise.resolve({ message: "Player name is required" }),
+    };
+    vi.mocked(fetch).mockResolvedValue(mockResponse as unknown as Response);
+
+    await expect(api.createRoom("   ")).rejects.toThrow("Player name is required");
+  });
 });

@@ -22,6 +22,8 @@ export function GamePage() {
   }
 
   const viewer = room.participants.find((participant) => participant.id === participantId) ?? null;
+  const currentRound = room.currentRound;
+  const isDrawer = currentRound?.drawerId === participantId;
 
   return (
     <section className="panel game-page">
@@ -49,14 +51,30 @@ export function GamePage() {
 
         <aside className="game-page__sidebar game-page__sidebar--right">
           <Card title="Player Info">
+            <div className={isDrawer ? "round-status round-status--drawer" : "round-status round-status--guesser"}>
+              <span className="round-status__label">{isDrawer ? "You are drawing" : "You are guessing"}</span>
+              <strong className="round-status__value">
+                {currentRound?.secretWord ?? currentRound?.drawerName ?? "Waiting for round"}
+              </strong>
+            </div>
             <dl className="detail-list">
               <div>
                 <dt>Name</dt>
                 <dd>{viewer?.name ?? "Unknown player"}</dd>
               </div>
               <div>
+                <dt>Drawer</dt>
+                <dd>{currentRound?.drawerName ?? "Waiting for drawer"}</dd>
+              </div>
+              <div>
                 <dt>Status</dt>
-                <dd>Playing</dd>
+                <dd>{isDrawer ? "Drawing" : "Guessing"}</dd>
+              </div>
+              <div>
+                <dt>Secret word</dt>
+                <dd className={isDrawer ? "secret-word" : "secret-word secret-word--hidden"}>
+                  {currentRound?.secretWord ?? (isDrawer ? "Loading word..." : "Hidden from guessers")}
+                </dd>
               </div>
             </dl>
           </Card>

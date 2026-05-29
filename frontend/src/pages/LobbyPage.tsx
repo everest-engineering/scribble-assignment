@@ -18,6 +18,11 @@ export function LobbyPage() {
       return;
     }
 
+    if (room.gameState === "inProgress") {
+      navigate("/game", { replace: true });
+      return;
+    }
+
     roomStore.startPolling();
     return () => {
       roomStore.stopPolling();
@@ -33,7 +38,7 @@ export function LobbyPage() {
     }
   }
 
-  function handleStart() {
+  async function handleStart() {
     if (!room) {
       return;
     }
@@ -43,8 +48,13 @@ export function LobbyPage() {
       return;
     }
 
-    setStartError(null);
-    navigate("/game");
+    try {
+      setStartError(null);
+      await roomStore.startGame();
+      navigate("/game");
+    } catch (caughtError) {
+      setStartError(caughtError instanceof Error ? caughtError.message : "Unable to start game");
+    }
   }
 
   if (!room) {
