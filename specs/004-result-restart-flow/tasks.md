@@ -32,7 +32,7 @@
 - [ ] T003 Update `Room` interface in `backend/src/models/game.ts` to include `lastDrawerId`
 - [ ] T004 Implement `finishRound` logic in `backend/src/services/roomStore.ts` (transition to results)
 - [ ] T005 Implement `restartGame` logic in `backend/src/services/roomStore.ts` (reset strokes/guesses, preserve scores)
-- [ ] T006 Update `startGame` in `backend/src/services/roomStore.ts` to implement seniority-based round-robin rotation
+- [ ] T006 Update `startGame` in `backend/src/services/roomStore.ts` to implement seniority-based round-robin rotation, explicitly handling dynamic list changes (joins/leaves)
 - [ ] T007 [P] Create unit tests for rotation logic and lifecycle transitions in `backend/src/services/roomStore.test.ts`
 
 **Checkpoint**: Foundation ready - result viewing implementation can now begin
@@ -45,11 +45,11 @@
 
 **Independent Test**: Alice (host) clicks "Finish Round"; Bob (guesser) immediately sees "Word: rocket" and final scores.
 
-- [ ] T008 [US1] Implement `POST /rooms/:code/finish` endpoint in `backend/src/api/rooms.ts`
+- [ ] T008 [US1] Implement `POST /rooms/:code/finish` endpoint in `backend/src/api/rooms.ts`, including hostId validation
 - [ ] T009 [US1] Add `finishRound` method to `api` service in `frontend/src/services/api.ts`
 - [ ] T010 [US1] Update `toRoomSnapshot` in `backend/src/services/roomStore.ts` to reveal `secretWord` when status is `results`
 - [ ] T011 [US1] Update `GamePage.tsx` in `frontend/src/pages/GamePage.tsx` to display a "Finish Round" button for the host during `playing` state
-- [ ] T012 [US1] Add conditional rendering for `results` state in `frontend/src/pages/GamePage.tsx` (reveal word, hide canvas tools)
+- [ ] T012 [US1] Add conditional rendering for `results` state UI components (reveal word, hide canvas tools) directly in `frontend/src/pages/GamePage.tsx`
 
 **Checkpoint**: US1 complete - Round ending and result viewing are functional.
 
@@ -61,7 +61,7 @@
 
 **Independent Test**: Alice restarts; everyone returns to lobby. Alice starts game again; Bob becomes the new drawer.
 
-- [ ] T013 [US2] Implement `POST /rooms/:code/restart` endpoint in `backend/src/api/rooms.ts`
+- [ ] T013 [US2] Implement `POST /rooms/:code/restart` endpoint in `backend/src/api/rooms.ts`, including hostId validation
 - [ ] T014 [US2] Add `restartGame` method to `api` service in `frontend/src/services/api.ts`
 - [ ] T015 [US2] Add "Restart Game" button to the results view in `frontend/src/pages/GamePage.tsx` for the host only
 - [ ] T016 [US2] Update `addGuess` in `backend/src/services/roomStore.ts` to explicitly reject guesses if status is not `playing` (EC-03)

@@ -67,8 +67,7 @@ backend/
 frontend/
 ├── src/
 │   ├── pages/
-│   │   ├── GamePage.tsx # Add "Finish Round" button for host
-│   │   └── ResultPage.tsx # NEW: View for results status
+│   │   └── GamePage.tsx # Handle results state via conditional rendering
 │   ├── services/
 │   │   └── api.ts       # Add finishRound and restartGame methods
 │   └── state/
