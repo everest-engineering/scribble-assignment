@@ -60,7 +60,7 @@
 
 ### Implementation for User Story 2
 
-- [ ] T016 [US2] Implement `joinRoom` method in `backend/src/services/RoomService.ts` (with validation for max 20 players)
+- [ ] T016 [US2] Implement `joinRoom` method in `backend/src/services/RoomService.ts` (with validation for max 20 players and unique usernames)
 - [ ] T017 [US2] Implement `POST /api/rooms/:code/join` endpoint in `backend/src/api/roomRoutes.ts`
 - [ ] T018 [P] [US2] Add `joinRoom` API call to `frontend/src/services/api.ts`
 - [ ] T019 [US2] Update `roomStore.ts` with join room logic
@@ -94,7 +94,9 @@
 **Purpose**: Improvements that affect multiple user stories
 
 - [ ] T027 Code cleanup and refactoring (if needed)
-- [ ] T028 Run quickstart.md manual verification
+- [ ] T028 Verify XSS mitigation for user inputs and rendered usernames (ensure React default escaping is sufficient and payloads are sanitized)
+- [ ] T029 Run quickstart.md manual verification
+- [ ] T030 Add boundary condition unit tests for backend `RoomService` (e.g., max players, duplicate names)
 
 ---
 
