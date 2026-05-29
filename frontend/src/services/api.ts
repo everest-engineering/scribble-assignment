@@ -65,6 +65,15 @@ export const api = {
       method: "POST"
     });
   },
+  submitGuess(code: string, participantId: string, message: string) {
+  return request<{ room: RoomSnapshot }>(
+    `/rooms/${encodeURIComponent(code)}/guess?participantId=${encodeURIComponent(participantId)}`,
+    {
+      method: "POST",
+      body: JSON.stringify({ message })
+    }
+  );
+},
   fetchRoom(code: string, participantId?: string) {
     const query = participantId ? `?participantId=${encodeURIComponent(participantId)}` : "";
     return request<{ room: RoomSnapshot }>(`/rooms/${encodeURIComponent(code)}${query}`);
