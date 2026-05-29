@@ -1,6 +1,7 @@
 export type ParticipantRole = "drawer" | "guesser";
 
 export interface Participant {
+  isHost: import("react/jsx-runtime").JSX.Element;
   id: string;
   name: string;
   joinedAt: string;

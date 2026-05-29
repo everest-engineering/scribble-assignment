@@ -17,6 +17,21 @@ export function LobbyPage() {
     }
   }, [navigate, room]);
 
+  useEffect(() => {
+    if (!room) {
+      return;
+    }
+
+    const intervalId = window.setInterval(() => {
+      setRefreshError(null);
+      roomStore.fetchRoom().catch((caughtError) => {
+        setRefreshError(caughtError instanceof Error ? caughtError.message : "Unable to refresh room");
+      });
+    }, 2000);
+
+    return () => window.clearInterval(intervalId);
+  }, [room, roomStore]);
+
   async function handleRefresh() {
     try {
       setRefreshError(null);
@@ -49,8 +64,12 @@ export function LobbyPage() {
             <ul className="player-list">
               {room.participants.map((participant) => (
                 <li key={participant.id}>
-                  <span>{participant.name}</span>
-                  <span className="player-list__meta">joined</span>
+                  <span>
+                    {participant.name}
+                  </span>
+                  {participant.isHost && (
+                    <span className="player-list__meta">host</span>
+                  )}
                 </li>
               ))}
             </ul>
