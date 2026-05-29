@@ -135,6 +135,57 @@ export function startGame(code: string, participantId?: string) {
   return cloneRoom(room);
 }
 
+export function submitGuess(
+  code: string,
+  participantId: string,
+  message: string
+) {
+  const room = rooms.get(code);
+
+  if (!room || room.status !== "playing") {
+    return null;
+  }
+
+  const participant = room.participants.find(
+    (player) => player.id === participantId
+  );
+
+  if (!participant) {
+    return null;
+  }
+
+  const trimmedMessage = message.trim();
+
+  if (!trimmedMessage) {
+    throw new Error("Guess cannot be empty");
+  }
+
+  const isCorrect =
+    trimmedMessage.toLowerCase() ===
+    room.currentWord?.toLowerCase();
+
+  const guess = {
+    id: randomUUID(),
+    participantId,
+    playerName: participant.name,
+    message: trimmedMessage,
+    isCorrect,
+    createdAt: now()
+  };
+
+  room.guesses.push(guess);
+
+  if (isCorrect) {
+    participant.score += 100;
+  }
+
+  room.updatedAt = now();
+
+  rooms.set(room.code, room);
+
+  return cloneRoom(room);
+}
+
 export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSnapshot {
   void viewerParticipantId;
 
