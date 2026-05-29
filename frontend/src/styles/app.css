@@ -451,6 +451,92 @@ input {
   font-weight: 500;
 }
 
+.drawing-board {
+  display: grid;
+  gap: 16px;
+}
+
+.drawing-board__canvas {
+  width: 100%;
+  min-height: 520px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #ffffff;
+  cursor: crosshair;
+  touch-action: none;
+}
+
+.drawing-board__canvas--readonly {
+  cursor: default;
+}
+
+.drawing-board__toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  color: var(--ink-soft);
+  font-size: 0.95rem;
+  font-weight: 500;
+}
+
+.score-list,
+.guess-history {
+  display: grid;
+  gap: 10px;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.score-list li,
+.guess-history__item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-strong);
+  color: var(--ink);
+}
+
+.score-list strong {
+  font-size: 1.125rem;
+}
+
+.guess-history__item {
+  align-items: flex-start;
+  color: var(--ink-soft);
+  font-size: 0.9rem;
+}
+
+.guess-history__item--correct {
+  border-color: #86efac;
+  background: #f0fdf4;
+  color: #166534;
+}
+
+.result-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 24px;
+}
+
+.result-summary__word {
+  color: var(--ink);
+  font-size: 2rem;
+  font-weight: 800;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.result-summary__actions {
+  display: grid;
+  gap: 16px;
+}
+
 /* --- GAME PAGE LAYOUT --- */
 /* Changed layout structure to be much wider and utilize screen space */
 .game-page {

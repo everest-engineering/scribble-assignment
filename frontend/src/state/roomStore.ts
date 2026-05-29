@@ -7,7 +7,7 @@ import {
   useSyncExternalStore,
   type PropsWithChildren
 } from "react";
-import { api, type RoomSessionResponse, type RoomSnapshot } from "../services/api";
+import { api, type DrawingStroke, type RoomSessionResponse, type RoomSnapshot } from "../services/api";
 
 export interface RoomState {
   room: RoomSnapshot | null;
@@ -95,6 +95,78 @@ class RoomStore {
     }
 
     const response = await api.fetchRoom(this.state.room.code, this.state.participantId ?? undefined);
+    this.setRoomSnapshot(response.room);
+    return response.room;
+  }
+
+  async startGame() {
+    const { room, participantId } = this.state;
+
+    if (!room || !participantId) {
+      throw new Error("Room session is required to start the game");
+    }
+
+    const response = await this.withLoading(() => api.startGame(room.code, participantId));
+    this.setRoomSnapshot(response.room);
+    return response.room;
+  }
+
+  async updateDrawing(drawing: DrawingStroke[]) {
+    const { room, participantId } = this.state;
+
+    if (!room || !participantId) {
+      throw new Error("Room session is required to update the drawing");
+    }
+
+    const response = await api.updateDrawing(room.code, participantId, drawing);
+    this.setRoomSnapshot(response.room);
+    return response.room;
+  }
+
+  async clearDrawing() {
+    const { room, participantId } = this.state;
+
+    if (!room || !participantId) {
+      throw new Error("Room session is required to clear the drawing");
+    }
+
+    const response = await this.withLoading(() => api.clearDrawing(room.code, participantId));
+    this.setRoomSnapshot(response.room);
+    return response.room;
+  }
+
+  async submitGuess(text: string) {
+    const { room, participantId } = this.state;
+
+    if (!room || !participantId) {
+      throw new Error("Room session is required to submit a guess");
+    }
+
+    const response = await this.withLoading(() => api.submitGuess(room.code, participantId, text));
+    this.setRoomSnapshot(response.room);
+    return response.room;
+  }
+
+  async endRound() {
+    const { room, participantId } = this.state;
+
+    if (!room || !participantId) {
+      throw new Error("Room session is required to end the round");
+    }
+
+    const response = await this.withLoading(() => api.endRound(room.code, participantId));
+    this.setRoomSnapshot(response.room);
+    return response.room;
+  }
+
+  async restartRoom() {
+    const { room, participantId } = this.state;
+
+    if (!room || !participantId) {
+      throw new Error("Room session is required to restart the room");
+    }
+
+    const response = await this.withLoading(() => api.restartRoom(room.code, participantId));
     this.setRoomSnapshot(response.room);
     return response.room;
   }
