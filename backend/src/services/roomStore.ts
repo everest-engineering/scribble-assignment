@@ -141,6 +141,12 @@ export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSn
     status: room.status,
     participants: room.participants.map((participant) => ({ ...participant })),
     availableWords: listWords(),
-    roles: [...STARTER_ROLES]
+    roles: [...STARTER_ROLES],
+    currentDrawerId: room.currentDrawerId,
+  currentWord:
+    viewerParticipantId === room.currentDrawerId
+      ? room.currentWord
+      : undefined
+    
   };
 }
