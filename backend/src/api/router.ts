@@ -23,14 +23,22 @@ export function notFoundHandler(_request: Request, response: Response) {
   });
 }
 
+type ZodErrorLike = Error & {
+  name: string;
+  issues?: Array<{ message: string }>;
+};
+
 export function errorHandler(
   error: Error & { statusCode?: number },
   _request: Request,
   response: Response,
   _next: NextFunction
 ) {
-  if (error.name === "ZodError") {
-    response.status(400).json({ message: "Invalid request payload" });
+  const typedError = error as ZodErrorLike;
+
+  if (typedError.name === "ZodError") {
+    const message = typedError.issues?.[0]?.message ?? "Invalid request payload";
+    response.status(400).json({ message });
     return;
   }
 

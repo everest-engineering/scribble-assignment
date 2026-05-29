@@ -4,11 +4,13 @@ export interface Participant {
   id: string;
   name: string;
   joinedAt: string;
+  isHost: boolean;
 }
 
 export interface RoomSnapshot {
   code: string;
-  status: "lobby";
+  hostId: string;
+  gameState: "lobby" | "inProgress" | "finished";
   participants: Participant[];
   availableWords: string[];
   roles: ParticipantRole[];

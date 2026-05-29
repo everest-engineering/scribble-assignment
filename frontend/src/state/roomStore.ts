@@ -13,20 +13,27 @@ export interface RoomState {
   room: RoomSnapshot | null;
   participantId: string | null;
   error: string | null;
+  pollError: string | null;
   isLoading: boolean;
+  isPolling: boolean;
+  lastPollTime: number | null;
 }
 
 type Listener = () => void;
 
-class RoomStore {
+export class RoomStore {
   private state: RoomState = {
     room: null,
     participantId: null,
     error: null,
-    isLoading: false
+    pollError: null,
+    isLoading: false,
+    isPolling: false,
+    lastPollTime: null
   };
 
   private listeners = new Set<Listener>();
+  private pollInterval: ReturnType<typeof setInterval> | null = null;
 
   subscribe = (listener: Listener) => {
     this.listeners.add(listener);
@@ -66,14 +73,17 @@ class RoomStore {
     this.setState({
       participantId: response.participantId,
       room: response.room,
-      error: null
+      error: null,
+      pollError: null
     });
   }
 
   setRoomSnapshot(room: RoomSnapshot) {
     this.setState({
       room,
-      error: null
+      error: null,
+      pollError: null,
+      lastPollTime: Date.now()
     });
   }
 
@@ -94,9 +104,50 @@ class RoomStore {
       return null;
     }
 
-    const response = await api.fetchRoom(this.state.room.code, this.state.participantId ?? undefined);
-    this.setRoomSnapshot(response.room);
-    return response.room;
+    try {
+      const response = await api.fetchRoom(this.state.room.code, this.state.participantId ?? undefined);
+      this.setRoomSnapshot(response.room);
+      return response.room;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unexpected request failure";
+      this.setState({ pollError: message });
+      throw error;
+    }
+  }
+
+  startPolling() {
+    if (this.pollInterval || !this.state.room) {
+      return;
+    }
+
+    this.setState({ isPolling: true, pollError: null });
+    void this.fetchRoom().catch(() => undefined);
+
+    this.pollInterval = setInterval(() => {
+      void this.fetchRoom().catch(() => undefined);
+    }, 2000);
+  }
+
+  stopPolling() {
+    if (this.pollInterval) {
+      clearInterval(this.pollInterval);
+      this.pollInterval = null;
+    }
+
+    this.setState({ isPolling: false, pollError: null });
+  }
+
+  leaveRoom() {
+    this.stopPolling();
+    this.setState({
+      room: null,
+      participantId: null,
+      error: null,
+      pollError: null,
+      isLoading: false,
+      isPolling: false,
+      lastPollTime: null
+    });
   }
 }
 
