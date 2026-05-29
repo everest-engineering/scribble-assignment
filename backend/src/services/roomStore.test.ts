@@ -125,15 +125,13 @@ describe("roomStore", () => {
     const blankGuess = submitGuess(hostSession.room.code, guestSession.participantId, "   ");
     const incorrectGuess = submitGuess(hostSession.room.code, guestSession.participantId, "not it");
     const correctGuess = submitGuess(hostSession.room.code, guestSession.participantId, secretWord.toUpperCase());
-    const repeatGuess = submitGuess(hostSession.room.code, guestSession.participantId, secretWord);
 
     expect(drawerGuess.ok).toBe(false);
     expect(blankGuess.ok).toBe(false);
     expect(incorrectGuess.ok).toBe(true);
     expect(correctGuess.ok).toBe(true);
-    expect(repeatGuess.ok).toBe(true);
 
-    if (!incorrectGuess.ok || !correctGuess.ok || !repeatGuess.ok) {
+    if (!incorrectGuess.ok || !correctGuess.ok) {
       return;
     }
 
@@ -146,11 +144,42 @@ describe("roomStore", () => {
       isCorrect: true,
       pointsAwarded: 100
     });
-    expect(repeatGuess.room.guesses.at(-1)).toMatchObject({
-      isCorrect: true,
-      pointsAwarded: 0
-    });
-    expect(repeatGuess.room.scores[guestSession.participantId]).toBe(100);
+    expect(correctGuess.room.scores[guestSession.participantId]).toBe(100);
+    expect(correctGuess.room.status).toBe("results");
+  });
+
+  it("automatically ends the round when the first correct guess is submitted", () => {
+    const hostSession = createRoom("Alice");
+    const guestSession = joinRoom(hostSession.room.code, "Bob");
+
+    expect(guestSession).not.toBeNull();
+
+    const startResult = startGame(hostSession.room.code, hostSession.participantId);
+
+    expect(startResult.ok).toBe(true);
+
+    if (!startResult.ok || !guestSession) {
+      return;
+    }
+
+    const secretWord = toRoomSnapshot(startResult.room, hostSession.participantId).secretWord;
+
+    expect(secretWord).toBeTruthy();
+
+    if (!secretWord) {
+      return;
+    }
+
+    const result = submitGuess(hostSession.room.code, guestSession.participantId, secretWord);
+
+    expect(result.ok).toBe(true);
+
+    if (!result.ok) {
+      return;
+    }
+
+    expect(result.room.status).toBe("results");
+    expect(result.room.secretWord).toBe(secretWord);
   });
 
   it("ends the round for the host and reveals the secret word to guessers in results", () => {
@@ -213,23 +242,15 @@ describe("roomStore", () => {
       return;
     }
 
-    submitGuess(hostSession.room.code, guestSession.participantId, secretWord);
-    updateDrawing(hostSession.room.code, hostSession.participantId, [
-      {
-        id: "stroke-1",
-        color: "#111827",
-        size: 4,
-        points: [{ x: 0.1, y: 0.2 }]
-      }
-    ]);
+    const guessResult = submitGuess(hostSession.room.code, guestSession.participantId, secretWord);
 
-    const endResult = endRound(hostSession.room.code, hostSession.participantId);
+    expect(guessResult.ok).toBe(true);
 
-    expect(endResult.ok).toBe(true);
-
-    if (!endResult.ok) {
+    if (!guessResult.ok) {
       return;
     }
+
+    expect(guessResult.room.status).toBe("results");
 
     const nonHostRestart = restartRoom(hostSession.room.code, guestSession.participantId);
     const hostRestart = restartRoom(hostSession.room.code, hostSession.participantId);

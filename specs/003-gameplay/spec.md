@@ -26,6 +26,7 @@ Acceptance Criteria:
 - Empty/whitespace guesses are rejected.
 - Guesses are trimmed before storage.
 - Guess history is visible to all players within polling cadence.
+- The first correct guess ends the round and transitions the room to results.
 
 ### Deterministic Scoring
 As a player, I want correct guesses to score 100 points and incorrect guesses 0.
@@ -33,7 +34,7 @@ As a player, I want correct guesses to score 100 points and incorrect guesses 0.
 Acceptance Criteria:
 - Correct guesses are scored case-insensitively.
 - First correct guess by a participant awards 100 points.
-- Repeated correct guesses award 0 additional points.
+- The first correct guess transitions the room into results; the round ends immediately.
 - Scoreboard updates for both players.
 
 ## Edge Cases

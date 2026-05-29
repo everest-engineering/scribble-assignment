@@ -11,7 +11,8 @@
 
 ## Assumptions
 
-- The host is responsible for ending the round and restarting the room.
+- The host is responsible for restarting the room after results.
+- The first correct guess may also transition the room into `results`; host restart remains the mechanism for moving players back to `lobby`.
 - The result screen appears on the same game route.
 - Restart preserves participants, host ID, and room code, while clearing round state.
 - All clients should converge back to the lobby status via polling.

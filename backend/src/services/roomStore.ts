@@ -212,6 +212,11 @@ export function submitGuess(code: string, participantId: string, text: string) {
     pointsAwarded
   });
   room.scores[participantId] = (room.scores[participantId] ?? 0) + pointsAwarded;
+
+  if (isCorrect && !alreadyCorrect) {
+    room.status = "results";
+  }
+
   room.updatedAt = now();
   rooms.set(room.code, room);
 

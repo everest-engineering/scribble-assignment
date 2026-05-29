@@ -52,4 +52,10 @@ Validation MUST include testing against acceptance criteria using at least two b
 
 This Constitution supersedes all other development practices within the Scribble Starter project. Any deviations or amendments must be documented, justified, and result in a version bump. All Pull Requests and reviews must verify compliance with these core principles.
 
+## AI-assisted Development
+AI tools may be used to draft technical artifacts, generate ideas, and support refactoring, but all AI-generated code and content must be reviewed by a developer, verified by tests, and aligned to the project scope. AI is treated as an assistant, not an author. Do not rely on AI to make security or scope decisions without independent human validation.
+
+## Review Discipline
+All feature work must be validated with tests and reviewed by a second developer or through self-audited checkpoints. Any changes to the application behavior, architecture, or acceptance criteria must be captured in the spec artifacts before implementation.
+
 **Version**: 1.0.0 | **Ratified**: 2026-05-28 | **Last Amended**: 2026-05-28

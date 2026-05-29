@@ -40,7 +40,7 @@
 *   **Single-Round Scope:** In accordance with the out-of-scope rules, we will only handle starting a single round with one drawer and the selected secret word.
 *   **Drawing Representation:** For scenario 3, drawing can be stored as lightweight canvas path data in memory rather than binary images. The drawer's own screen must show the drawing immediately; guessers may receive it via the existing polling cadence unless the implementation can share the same snapshot flow more directly.
 *   **Scoring Rule:** Each correct guess awards 100 points. Incorrect guesses are still recorded with 0 points. If a player submits multiple correct guesses, only the first correct guess should award points to avoid repeated scoring from the same participant.
-*   **Round Completion:** Scenario 3 does not require automatically ending the round; result state and restart are reserved for Scenario 4.
+*   **Round Completion:** A first correct guess should move the room into `results` immediately, while host restart is still used to return everyone to the lobby.
 *   **Ending the Round:** Scenario 4 will use a host-only end-round action. This avoids adding timers or automatic round completion rules, which are outside the README scope.
 *   **Result Word Visibility:** The correct word is visible to everyone only after `status === "results"`.
 *   **Restart Reset:** Restart preserves participants, host ID, and room code, but clears active round state and sets `status` back to `"lobby"`.
