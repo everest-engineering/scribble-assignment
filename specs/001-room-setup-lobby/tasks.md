@@ -132,7 +132,7 @@ the other session; confirm only room B's participants appear.
 
 ### Implementation for User Story 5
 
-- [ ] T015 Verify room isolation manually: create two rooms in separate sessions, confirm participant lists are independent (no code changes needed — isolation is guaranteed by the existing `Map<string, Room>` keyed by unique code)
+- [x] T015 Verify room isolation manually: create two rooms in separate sessions, confirm participant lists are independent (no code changes needed — isolation is guaranteed by the existing `Map<string, Room>` keyed by unique code)
 
 **Checkpoint**: All five user stories independently functional and verified.
 
@@ -142,8 +142,8 @@ the other session; confirm only room B's participants appear.
 
 **Purpose**: TypeScript build checks and full Scenario 1 acceptance run.
 
-- [ ] T016 [P] Run `cd backend && npm run build` and confirm zero TypeScript errors
-- [ ] T017 [P] Run `cd frontend && npm run build` and confirm zero TypeScript errors
+- [x] T016 [P] Run `cd backend && npm run build` and confirm zero TypeScript errors
+- [x] T017 [P] Run `cd frontend && npm run build` and confirm zero TypeScript errors
 - [ ] T018 Two-tab manual acceptance run: create room → join → lobby polls → host starts → both tabs land on Game screen; verify all edge cases (empty name, empty code, non-existent code, non-host start blocked)
 
 ---
