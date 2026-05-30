@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import type { Participant, Room, RoomSnapshot } from "../models/game.js";
+import type { Guess, Participant, Room, RoomSnapshot } from "../models/game.js";
 import { STARTER_ROLES, STARTER_WORDS } from "../seed/starterData.js";
 
 const rooms = new Map<string, Room>();
@@ -37,7 +37,8 @@ function createParticipant(name?: string): Participant {
   return {
     id: randomUUID(),
     name: displayName(name),
-    joinedAt: now()
+    joinedAt: now(),
+    score: 0
   };
 }
 
@@ -57,6 +58,7 @@ export function createRoom(playerName?: string) {
     hostId: participant.id,
     drawerId: null,
     currentWord: null,
+    guesses: [],
     participants: [participant],
     createdAt: now(),
     updatedAt: now()
@@ -120,6 +122,38 @@ export function startGame(code: string, participantId: string) {
   return toRoomSnapshot(cloneRoom(room), participantId);
 }
 
+export function submitGuess(code: string, participantId: string, text: string) {
+  const room = rooms.get(code);
+
+  if (!room) return "room-not-found" as const;
+  if (room.status !== "playing") return "not-playing" as const;
+
+  const participant = room.participants.find((p) => p.id === participantId);
+  if (!participant) return "participant-not-found" as const;
+  if (participantId === room.drawerId) return "is-drawer" as const;
+
+  const trimmed = text.trim().toLowerCase();
+  const isCorrect = trimmed === room.currentWord!.trim().toLowerCase();
+
+  if (isCorrect && participant.score < 100) {
+    participant.score = 100;
+  }
+
+  const guess: Guess = {
+    participantId,
+    participantName: participant.name,
+    text: text.trim(),
+    isCorrect,
+    submittedAt: now()
+  };
+
+  room.guesses.push(guess);
+  room.updatedAt = now();
+  rooms.set(room.code, room);
+
+  return toRoomSnapshot(cloneRoom(room), participantId);
+}
+
 export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSnapshot {
   return {
     code: room.code,
@@ -127,6 +161,7 @@ export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSn
     hostId: room.hostId,
     drawerId: room.drawerId,
     currentWord: viewerParticipantId === room.drawerId ? room.currentWord : null,
+    guesses: room.guesses.map((g) => ({ ...g })),
     participants: room.participants.map((participant) => ({ ...participant })),
     availableWords: listWords(),
     roles: [...STARTER_ROLES]

@@ -108,6 +108,16 @@ class RoomStore {
     this.setRoomSnapshot(response.room);
     return response;
   }
+
+  async submitGuess(text: string) {
+    if (!this.state.room || !this.state.participantId) return;
+
+    const response = await this.withLoading(() =>
+      api.submitGuess(this.state.room!.code, this.state.participantId!, text)
+    );
+    this.setRoomSnapshot(response.room);
+    return response;
+  }
 }
 
 const RoomStoreContext = createContext<RoomStore | null>(null);
