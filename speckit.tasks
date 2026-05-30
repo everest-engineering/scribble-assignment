@@ -1,0 +1,91 @@
+# Speckit Tasks — Scribble Assignment
+
+> Updated incrementally by feature group. Tasks are ordered with dependencies.
+
+---
+
+## Scenario 1 — Room Setup & Lobby
+
+### Dependencies
+- None (starter is the base)
+
+### Task List
+
+| # | Task | File(s) | Depends On |
+|---|------|---------|------------|
+| 1.1 | Add `hostId` to `Room` and `RoomSnapshot` models; expand `RoomStatus` union | `backend/src/models/game.ts` | — |
+| 1.2 | Update `createRoom()` to store `hostId` = creator's participantId; trim and validate player name | `backend/src/services/roomStore.ts` | 1.1 |
+| 1.3 | Update request schemas to validate non-empty playerName | `backend/src/api/schemas.ts` | — |
+| 1.4 | Add `POST /rooms/:code/start` endpoint with host-only + min-2 validation | `backend/src/api/rooms.ts` | 1.1, 1.2 |
+| 1.5 | Update `toRoomSnapshot()` to include `hostId` | `backend/src/services/roomStore.ts` | 1.1 |
+| 1.6 | Update frontend `api.ts` types to include `hostId`, expanded `status`, and `startGame()` method | `frontend/src/services/api.ts` | 1.1 |
+| 1.7 | Add `startGame()` method to `RoomStore` | `frontend/src/state/roomStore.ts` | 1.6 |
+| 1.8 | Add auto-polling (2s interval) to LobbyPage | `frontend/src/pages/LobbyPage.tsx` | 1.7 |
+| 1.9 | Gate "Start Game" button to host only; disable until 2+ players; show host badge in participant list | `frontend/src/pages/LobbyPage.tsx` | 1.8 |
+| 1.10 | Add name validation to CreateRoomPage (trim, reject empty) | `frontend/src/pages/CreateRoomPage.tsx` | — |
+| 1.11 | Add name and code validation to JoinRoomPage | `frontend/src/pages/JoinRoomPage.tsx` | — |
+| 1.12 | Verify builds pass (`npm run build` in both directories) | — | 1.1–1.11 |
+
+---
+
+## Scenario 2 — Game Start & Drawer Flow
+
+### Dependencies
+- Scenario 1 complete (room has hostId, start endpoint exists)
+
+### Task List
+
+| # | Task | File(s) | Depends On |
+|---|------|---------|------------|
+| 2.1 | Add `drawerId`, `secretWord`, `round` to `Room` and `RoomSnapshot` models | `backend/src/models/game.ts` | 1.1 |
+| 2.2 | Update `startGame()` to assign host as drawer, pick deterministic word, set round=1 | `backend/src/services/roomStore.ts` | 2.1 |
+| 2.3 | Update `toRoomSnapshot()` to include word only when `viewerParticipantId === drawerId` | `backend/src/services/roomStore.ts` | 2.1, 2.2 |
+| 2.4 | Update frontend API types to include drawerId, secretWord, round | `frontend/src/services/api.ts` | 2.1 |
+| 2.5 | Add lobby name re-validation on start (trim all names, reject if empty) | `backend/src/services/roomStore.ts` | — |
+| 2.6 | Update GamePage to show role indicator, secret word for drawer, waiting state for guessers | `frontend/src/pages/GamePage.tsx` | 2.4 |
+| 2.7 | Verify builds pass | — | 2.1–2.6 |
+
+---
+
+## Scenario 3 — Gameplay Interaction
+
+### Dependencies
+- Scenario 2 complete (game can start, drawer assigned, word selected)
+
+### Task List
+
+| # | Task | File(s) | Depends On |
+|---|------|---------|------------|
+| 3.1 | Add `drawingData`, `guesses[]`, `scores` to Room model; add `Guess` interface | `backend/src/models/game.ts` | 2.1 |
+| 3.2 | Add `saveDrawing()`, `clearDrawing()`, `submitGuess()`, scoring logic to roomStore | `backend/src/services/roomStore.ts` | 3.1 |
+| 3.3 | Add Zod schemas for draw/guess/clear requests | `backend/src/api/schemas.ts` | — |
+| 3.4 | Add POST /rooms/:code/draw, POST /rooms/:code/guess, POST /rooms/:code/clear routes | `backend/src/api/rooms.ts` | 3.2, 3.3 |
+| 3.5 | Update `toRoomSnapshot()` to include drawingData, guesses, scores | `backend/src/services/roomStore.ts` | 3.1 |
+| 3.6 | Update frontend API types and add draw/guess/clear methods | `frontend/src/services/api.ts` | 3.1 |
+| 3.7 | Add draw/guess/clear actions to RoomStore | `frontend/src/state/roomStore.ts` | 3.6 |
+| 3.8 | Replace canvas placeholder with interactive `<canvas>`, wire drawing + clear | `frontend/src/pages/GamePage.tsx` | 3.7 |
+| 3.9 | Wire GuessForm to submit guesses via API, add validation | `frontend/src/components/GuessForm.tsx` | 3.7 |
+| 3.10 | Update Scoreboard to render real scores from snapshot | `frontend/src/components/Scoreboard.tsx` | 3.6 |
+| 3.11 | Update ResultPanel to render guess history | `frontend/src/components/ResultPanel.tsx` | 3.6 |
+| 3.12 | Add auto-polling to GamePage for drawing/guesses/scores sync | `frontend/src/pages/GamePage.tsx` | 3.7 |
+| 3.13 | Verify builds pass | — | 3.1–3.12 |
+
+---
+
+## Scenario 4 — Result, Restart & Final Validation
+
+### Dependencies
+- Scenario 3 complete (gameplay loop works, correct guess detected)
+
+### Task List
+
+| # | Task | File(s) | Depends On |
+|---|------|---------|------------|
+| 4.1 | Add `restartGame()` to roomStore (reset round state, preserve participants + host) | `backend/src/services/roomStore.ts` | 3.2 |
+| 4.2 | Add POST /rooms/:code/restart route with host-only validation | `backend/src/api/rooms.ts` | 4.1 |
+| 4.3 | Update frontend API with restart method | `frontend/src/services/api.ts` | 4.2 |
+| 4.4 | Add restart action to RoomStore | `frontend/src/state/roomStore.ts` | 4.3 |
+| 4.5 | Show result state (word, scores, guess history) when status === "finished" | `frontend/src/pages/GamePage.tsx` | 3.10, 3.11 |
+| 4.6 | Show restart button for host, waiting message for guessers | `frontend/src/pages/GamePage.tsx` | 4.4 |
+| 4.7 | Handle restart redirect back to lobby | `frontend/src/pages/GamePage.tsx` | 4.6 |
+| 4.8 | Verify builds pass and two-tab validation | — | 4.1–4.7 |

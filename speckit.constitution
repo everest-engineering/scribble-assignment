@@ -1,0 +1,35 @@
+# Speckit Constitution — Scribble Assignment
+
+## Engineering Principles
+
+1. **Spec-First.** Every code change must trace to a spec entry. No speculative or untracked work.
+2. **Brownfield, not greenfield.** Extend existing files and patterns. Do not rewrite the starter.
+3. **Minimal dependencies.** No new npm packages unless the spec explicitly justifies them.
+4. **Deterministic rules.** All game rules (word selection, scoring, role assignment) must be deterministic — no randomness after room creation.
+5. **Stateless API endpoints.** Each request carries enough context (participantId, roomCode) to be self-describing. Server holds state in memory only.
+6. **Fail fast.** Invalid inputs must be rejected at the API boundary with clear error messages. No silent defaults.
+7. **Polling, not pushing.** All sync uses HTTP polling (~2s interval). No WebSockets, no real-time push.
+8. **Typed everywhere.** No `any` types. Use Zod for backend validation. Frontend types mirror backend types exactly.
+
+## AI Usage Rules
+
+1. **Review before apply.** Every AI-suggested change must be reviewed before being written. Understand what it does.
+2. **Small, focused prompts.** Each prompt addresses one concern (one backend model change, one route, one component).
+3. **No blind acceptance.** If AI output introduces patterns inconsistent with the starter (different state management, different error handling, new libraries), reject it.
+4. **Traceable output.** All AI-generated code must include inline comments only if the starter uses them. Follow starter conventions exactly.
+
+## Review Discipline
+
+1. **Run builds after each scenario.** `npm run build` in both backend and frontend before marking a scenario done.
+2. **Run tests.** `npm test` in both directories. Existing tests must continue passing.
+3. **Two-tab validation.** After each scenario, test with two browser tabs to confirm multi-player behavior.
+4. **One concern per commit.** Granular, meaningful commits with clear messages. No "WIP" or "fix stuff" commits.
+5. **Spec drift.** If implementation deviates from spec, update the spec first, then the code.
+
+## Game Rule Constraints
+
+- Word selection: `STARTER_WORDS[hostIndex % STARTER_WORDS.length]`
+- Drawer: the creator/host of the room (first participant)
+- Scoring: exactly 100 for a correct guess, 0 otherwise
+- Guess comparison: case-insensitive trim on both sides
+- Single round only: no drawer rotation, no multiple rounds
