@@ -123,6 +123,57 @@ export function startRoom(
   return { room: toRoomSnapshot(cloneRoom(room)) };
 }
 
+export function endRound(
+  code: string,
+  requestingParticipantId: string
+): { error: "not_found" | "forbidden" | "not_active" } | { room: RoomSnapshot } {
+  const room = rooms.get(code);
+
+  if (!room) {
+    return { error: "not_found" };
+  }
+
+  if (room.hostId !== requestingParticipantId) {
+    return { error: "forbidden" };
+  }
+
+  if (room.status !== "active") {
+    return { error: "not_active" };
+  }
+
+  room.status = "ended";
+  room.updatedAt = now();
+  rooms.set(room.code, room);
+
+  return { room: toRoomSnapshot(cloneRoom(room)) };
+}
+
+export function restartRoom(
+  code: string,
+  requestingParticipantId: string
+): { error: "not_found" | "forbidden" | "not_ended" } | { room: RoomSnapshot } {
+  const room = rooms.get(code);
+
+  if (!room) {
+    return { error: "not_found" };
+  }
+
+  if (room.hostId !== requestingParticipantId) {
+    return { error: "forbidden" };
+  }
+
+  if (room.status !== "ended") {
+    return { error: "not_ended" };
+  }
+
+  room.status = "lobby";
+  room.guesses = [];
+  room.updatedAt = now();
+  rooms.set(room.code, room);
+
+  return { room: toRoomSnapshot(cloneRoom(room)) };
+}
+
 export function submitGuess(
   code: string,
   guesserId: string,

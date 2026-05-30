@@ -1,14 +1,16 @@
 import { Router } from "express";
 import {
   createRoomSchema,
+  endRoundBodySchema,
   HttpError,
   joinRoomSchema,
+  restartRoomBodySchema,
   roomCodeParamsSchema,
   roomViewerQuerySchema,
   startRoomBodySchema,
   submitGuessSchema
 } from "./schemas.js";
-import { createRoom, getRoom, joinRoom, startRoom, submitGuess, toRoomSnapshot } from "../services/roomStore.js";
+import { createRoom, endRound, getRoom, joinRoom, restartRoom, startRoom, submitGuess, toRoomSnapshot } from "../services/roomStore.js";
 
 export function createRoomsRouter() {
   const router = Router();
@@ -94,6 +96,42 @@ export function createRoomsRouter() {
       }
 
       response.status(201).json({ guess: result.guess });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/:code/end", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId } = endRoundBodySchema.parse(request.body);
+      const result = endRound(code.toUpperCase(), participantId);
+
+      if ("error" in result) {
+        if (result.error === "not_found") throw new HttpError(404, "Room not found");
+        if (result.error === "forbidden") throw new HttpError(403, "Only the host can end the round");
+        throw new HttpError(409, "Round is not active");
+      }
+
+      response.json({ room: result.room });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/:code/restart", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId } = restartRoomBodySchema.parse(request.body);
+      const result = restartRoom(code.toUpperCase(), participantId);
+
+      if ("error" in result) {
+        if (result.error === "not_found") throw new HttpError(404, "Room not found");
+        if (result.error === "forbidden") throw new HttpError(403, "Only the host can restart the game");
+        throw new HttpError(409, "Round is not ended");
+      }
+
+      response.json({ room: result.room });
     } catch (error) {
       next(error);
     }

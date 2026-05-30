@@ -25,6 +25,14 @@ export const submitGuessSchema = z.object({
   text: z.string().trim().min(1, "Guess text is required")
 });
 
+export const endRoundBodySchema = z.object({
+  participantId: z.string().uuid("participantId must be a valid UUID")
+});
+
+export const restartRoomBodySchema = z.object({
+  participantId: z.string().uuid("participantId must be a valid UUID")
+});
+
 export class HttpError extends Error {
   statusCode: number;
 

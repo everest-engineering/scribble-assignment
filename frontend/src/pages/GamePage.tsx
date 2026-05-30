@@ -26,6 +26,12 @@ export function GamePage() {
     return () => clearInterval(id);
   }, [store]);
 
+  useEffect(() => {
+    if (room?.status === "lobby") {
+      navigate("/lobby", { replace: true });
+    }
+  }, [room?.status, navigate]);
+
   if (!room) {
     return null;
   }
@@ -34,6 +40,81 @@ export function GamePage() {
   const drawerParticipant = room.participants.find((p) => p.id === room.hostId) ?? null;
   const secretWord = room.availableWords[0] ?? "";
   const viewer = room.participants.find((participant) => participant.id === participantId) ?? null;
+
+  if (room.status === "ended") {
+    const sortedScores = [...room.scores].sort((a, b) => b.score - a.score);
+    return (
+      <section className="panel game-page">
+        <div className="game-page__header">
+          <div className="game-page__header-left">
+            <span className="section-kicker">Round Over</span>
+            <h1 className="game-page__title">The word was: <strong>{secretWord}</strong></h1>
+          </div>
+          <RoomCodeBadge code={room.code} />
+        </div>
+
+        <div className="game-page__layout">
+          <aside className="game-page__sidebar game-page__sidebar--left">
+            <Card title="Final Scores">
+              <div className="placeholder-block" style={{ backgroundColor: '#f9fafb' }}>
+                {sortedScores.map(({ participantId: pid, score }) => {
+                  const name = room.participants.find((p) => p.id === pid)?.name ?? "Unknown";
+                  return (
+                    <div key={pid} className="placeholder-row">
+                      <span>{name}</span>
+                      <strong>{score}</strong>
+                    </div>
+                  );
+                })}
+              </div>
+            </Card>
+          </aside>
+
+          <div className="game-page__main">
+            <Card title="Guess History">
+              <div className="placeholder-block" style={{ backgroundColor: '#f9fafb' }}>
+                {room.guesses.length === 0 ? (
+                  <p style={{ color: '#6b7280', fontSize: '0.875rem' }}>No guesses submitted.</p>
+                ) : (
+                  room.guesses.map((guess) => {
+                    const name = room.participants.find((p) => p.id === guess.guesserId)?.name ?? "Unknown player";
+                    return (
+                      <div key={guess.id} className="placeholder-row">
+                        <span><strong>{name}</strong>: {guess.text}</span>
+                        <span style={{ color: guess.isCorrect ? '#16a34a' : '#dc2626', fontWeight: 700 }}>
+                          {guess.isCorrect ? '✓' : '✗'}
+                        </span>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            </Card>
+          </div>
+
+          <aside className="game-page__sidebar game-page__sidebar--right">
+            <Card title="Next Round">
+              {isDrawer ? (
+                <div>
+                  <button
+                    className="button button--primary"
+                    style={{ width: '100%' }}
+                    onClick={() => store.restartRoom()}
+                  >
+                    Play Again
+                  </button>
+                </div>
+              ) : (
+                <p style={{ color: '#6b7280', fontSize: '0.875rem', textAlign: 'center' }}>
+                  Waiting for host to start a new round…
+                </p>
+              )}
+            </Card>
+          </aside>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section className="panel game-page">
@@ -103,6 +184,11 @@ export function GamePage() {
       </div>
 
       <div className="button-row">
+        {isDrawer && room.status === "active" && (
+          <button className="button button--primary" onClick={() => store.endRound()}>
+            End Round
+          </button>
+        )}
         <button className="button button--secondary" onClick={() => navigate("/lobby")}>
           Exit Game
         </button>
