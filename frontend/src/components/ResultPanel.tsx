@@ -1,11 +1,15 @@
 import { Card } from "./Card";
+import { GuessHistory } from "./GuessHistory";
+import type { Guess } from "../services/api";
 
-export function ResultPanel() {
+interface ResultPanelProps {
+  guesses: Guess[];
+}
+
+export function ResultPanel({ guesses }: ResultPanelProps) {
   return (
     <Card title="Activity">
-      <div className="placeholder-block" style={{ backgroundColor: '#f9fafb' }}>
-        <p style={{ fontSize: '0.875rem', color: '#6b7280' }}>Game activity and guesses will appear here.</p>
-      </div>
+      <GuessHistory guesses={guesses} />
     </Card>
   );
 }
