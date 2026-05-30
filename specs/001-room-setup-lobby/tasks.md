@@ -90,7 +90,7 @@ within approximately 2 seconds without clicking anything.
 
 ### Implementation for User Story 3
 
-- [ ] T008 Replace manual-only refresh with `setInterval(poll, 2000)` in a `useEffect` with `clearInterval` cleanup on unmount in `frontend/src/pages/LobbyPage.tsx`; keep existing "Refresh Room" manual button
+- [x] T008 Replace manual-only refresh with `setInterval(poll, 2000)` in a `useEffect` with `clearInterval` cleanup on unmount in `frontend/src/pages/LobbyPage.tsx`; keep existing "Refresh Room" manual button
 
 **Checkpoint**: Lobby auto-refreshes every 2 seconds. Manual refresh still works.
 

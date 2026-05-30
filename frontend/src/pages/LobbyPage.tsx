@@ -17,6 +17,16 @@ export function LobbyPage() {
     }
   }, [navigate, room]);
 
+  useEffect(() => {
+    const intervalId = setInterval(() => {
+      roomStore.fetchRoom().catch(() => {
+        // Silent: polling recovers on next interval
+      });
+    }, 2000);
+
+    return () => clearInterval(intervalId);
+  }, [roomStore]);
+
   async function handleRefresh() {
     try {
       setRefreshError(null);
