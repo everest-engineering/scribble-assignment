@@ -245,6 +245,15 @@ export function DrawingCanvas({ readOnly, drawingData, onChange }: DrawingCanvas
     }
   };
 
+  const handleUndo = () => {
+    if (readOnly || strokes.length === 0) return;
+    const updatedStrokes = strokes.slice(0, -1);
+    setStrokes(updatedStrokes);
+    if (onChange) {
+      onChange(JSON.stringify(updatedStrokes));
+    }
+  };
+
   const handleClear = () => {
     if (readOnly) return;
     setStrokes([]);
@@ -252,6 +261,33 @@ export function DrawingCanvas({ readOnly, drawingData, onChange }: DrawingCanvas
       onChange("[]");
     }
   };
+
+  // Keyboard shortcut for Undo (Ctrl+Z / Cmd+Z)
+  useEffect(() => {
+    if (readOnly) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z") {
+        const active = document.activeElement;
+        if (active && (active.tagName === "INPUT" || active.tagName === "TEXTAREA")) {
+          return;
+        }
+        e.preventDefault();
+        
+        const currentStrokes = strokesRef.current;
+        if (currentStrokes.length > 0) {
+          const updatedStrokes = currentStrokes.slice(0, -1);
+          setStrokes(updatedStrokes);
+          if (onChange) {
+            onChange(JSON.stringify(updatedStrokes));
+          }
+        }
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [readOnly, onChange]);
 
   return (
     <div
@@ -281,7 +317,14 @@ export function DrawingCanvas({ readOnly, drawingData, onChange }: DrawingCanvas
         }}
       />
       {!readOnly && (
-        <div style={{ display: "flex", justifyContent: "flex-end" }}>
+        <div style={{ display: "flex", justifyContent: "flex-end", gap: "8px" }}>
+          <button
+            className="button button--secondary"
+            onClick={handleUndo}
+            disabled={strokes.length === 0}
+          >
+            Undo Last Stroke
+          </button>
           <button className="button button--secondary" onClick={handleClear}>
             Clear Canvas
           </button>
