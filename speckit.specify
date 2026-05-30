@@ -1,0 +1,367 @@
+# Specification
+
+---
+
+## Scenario 1 — Room Setup & Lobby
+
+### Problem
+
+Players need a reliable way to create and join a game room before play begins.
+The current scaffold lets players create and join rooms but treats every player identically — there is no host, no start action, and the lobby only updates on manual refresh.
+A player has no way to know who else is waiting, and nobody can actually begin the game.
+
+---
+
+### Requirements
+
+#### Host Tracking
+- The player who creates a room is automatically the host.
+- Host status must be stored on the backend and included in every room snapshot.
+- The frontend must visually distinguish the host from other participants in the lobby.
+- Host status does not transfer if the host leaves (out of scope for this scenario).
+
+#### Room Validation
+- A player name must be non-empty after trimming whitespace. Empty or whitespace-only names are rejected with a clear error message before any API call is made.
+- Joining with an unknown or missing room code returns a clear error message ("Room not found" or equivalent). The player stays on the join screen.
+- Joining with an empty room code is rejected on the frontend before any API call is made.
+- Each room is isolated: participants, state, and game data from one room never appear in another.
+
+#### Lobby Polling
+- While a player is on the lobby screen, the room snapshot is fetched automatically at approximately 2-second intervals.
+- Polling starts when the lobby mounts and stops when the player navigates away.
+- The participant list updates without any manual user action.
+- Polling uses the existing `GET /rooms/:code` endpoint — no new endpoint is needed.
+
+#### Host-Only Start
+- Only the host sees the "Start Game" button in the lobby.
+- The button is disabled (and shows why) when fewer than 2 players are present.
+- The button is enabled when at least 2 players have joined.
+- Non-host players see a waiting message instead of the button.
+
+#### Minimum 2 Players
+- The game cannot be started with fewer than 2 participants.
+- This rule is enforced on the backend: a start request with only 1 participant returns an error.
+- The frontend reflects this state by disabling the start button until the count is met.
+
+---
+
+### Acceptance Criteria
+
+**Host tracking**
+- [ ] Creating a room returns a snapshot where one participant is marked as host.
+- [ ] Joining a room returns a snapshot that still correctly identifies the original creator as host.
+- [ ] The host participant is visually marked in the lobby (e.g. a "Host" badge).
+- [ ] A non-host participant does not have the host marker.
+
+**Room validation**
+- [ ] Submitting an empty player name on Create Room shows an inline error and does not call the API.
+- [ ] Submitting an empty player name on Join Room shows an inline error and does not call the API.
+- [ ] Submitting a whitespace-only player name is treated as empty and rejected with the same message.
+- [ ] Joining with a code that does not match any room shows "Room not found" (or equivalent) and keeps the player on the join screen.
+- [ ] Joining with an empty code shows an inline error and does not call the API.
+- [ ] Two rooms created in the same session have independent participant lists — joining room A does not affect room B.
+
+**Lobby polling**
+- [ ] Opening the lobby screen starts automatic polling; the participant list updates within ~2 seconds when a second browser tab joins the same room.
+- [ ] Navigating away from the lobby stops polling (no further requests fired after leaving).
+- [ ] Polling does not require any manual user interaction.
+
+**Host-only start**
+- [ ] The host sees a "Start Game" button; a non-host player does not.
+- [ ] The button is disabled when only 1 player is in the room.
+- [ ] The button is enabled when 2 or more players are in the room.
+- [ ] Clicking the enabled button by the host triggers the start game action (transitions to game screen — full game start behavior is specified in Scenario 2).
+
+**Minimum 2 players**
+- [ ] A start request sent with only 1 participant in the room returns a 4xx error from the backend.
+- [ ] The frontend does not allow the host to trigger the start request when fewer than 2 players are present.
+
+---
+
+## Scenario 2 — Game Start & Drawer Flow
+
+### Problem
+
+When the host starts the game, two things must happen that currently do not: a drawer must be assigned, and a secret word must be chosen. The game screen is a placeholder — it shows the same static content to every player regardless of their role. Players have no way to know who is drawing, and the drawer has no word to draw. The backend transitions the room to `"playing"` but assigns no drawer and selects no word. The `toRoomSnapshot` function returns the same data to everyone, meaning sensitive information (the secret word) cannot be hidden from guessers even once it exists. Additionally, player names are accepted without trimming or emptiness checks, so whitespace-only names can enter the game.
+
+---
+
+### Requirements
+
+#### Player Name Validation
+- Player names must be trimmed of leading and trailing whitespace before being stored.
+- A name that is empty or whitespace-only after trimming must be rejected with a clear inline error message.
+- Rejection happens on the frontend before any API call is made.
+- The backend also enforces the rule: a request with an empty or whitespace-only name returns a 400 error.
+- Both Create Room and Join Room enforce this rule identically.
+
+#### Drawer Assignment
+- When a game starts, the host is assigned as the drawer for the first round.
+- Drawer assignment is recorded on the backend in the room's state.
+- The drawer identity (`drawerId`) is included in every room snapshot and is visible to all players — everyone needs to know who is drawing.
+- Only one player can be the drawer at a time.
+
+#### Secret Word Selection
+- A secret word is selected when the game starts, at the same moment the drawer is assigned.
+- The word is chosen deterministically from the starter word list using the room code as the seed — the same room code always produces the same word.
+- The word is stored on the backend in the room's state.
+- The word is never randomly selected; the selection rule must be reproducible.
+
+#### Secret Word Visibility
+- The secret word is visible only to the drawer.
+- All other players receive `null` (or no value) for the current word in their snapshot.
+- The backend enforces this rule in `toRoomSnapshot` by comparing the requesting participant's id to the drawer's id.
+- The frontend renders the word only when the viewer is the drawer; guessers never see it.
+
+#### Drawer Identification in the UI
+- The game screen clearly identifies who the drawer is by name.
+- The drawer's own view shows their role ("You are drawing") and their secret word.
+- A guesser's view shows who is drawing ("Waiting for [name] to draw...") and does not show the word.
+- The Player Info panel on the game screen shows the viewer's role as "Drawer" or "Guesser".
+
+---
+
+### Edge Cases
+
+- A whitespace-only name (e.g. `"   "`) must be rejected the same way as a fully empty name — after trimming, the result is empty.
+- A name that is only spaces on one side (e.g. `"  Alice"`) must be accepted after trimming and stored as `"Alice"`.
+- If a player joins with a valid name that has surrounding spaces, the stored name must be trimmed; the raw input must not be persisted.
+- The drawer is assigned at the moment of game start — joining the room after the game has started does not change the drawer.
+- The secret word must not change between polls. Once assigned, `currentWord` is fixed until the game is restarted.
+- The same viewer id used in the polling query (`GET /rooms/:code?participantId=...`) is what determines word visibility — if `participantId` is missing or does not match the drawer, the word is hidden.
+- If a player opens the game URL directly without a room in state, they are redirected to the start screen (existing behavior, unchanged).
+
+---
+
+### Acceptance Criteria
+
+**Player name validation**
+- [ ] Submitting an empty name on Create Room shows "Player name is required" and does not call the API.
+- [ ] Submitting a whitespace-only name on Create Room shows the same error and does not call the API.
+- [ ] Submitting an empty name on Join Room shows "Player name is required" and does not call the API.
+- [ ] Submitting a whitespace-only name on Join Room shows the same error and does not call the API.
+- [ ] A name with surrounding spaces (e.g. `"  Alice  "`) is accepted and stored as `"Alice"` — the trimmed value is displayed in the lobby and game screen.
+- [ ] Sending an empty or whitespace-only name directly to the backend returns a 400 error.
+
+**Drawer assignment**
+- [ ] After the host starts the game, the room snapshot includes a `drawerId` matching the host's participant id.
+- [ ] Every player's snapshot (fetched via polling) includes the same `drawerId`.
+- [ ] The drawer is the host — no other participant is ever assigned as drawer in this scenario.
+
+**Secret word selection**
+- [ ] After the host starts the game, a `currentWord` is set on the backend.
+- [ ] The selected word is one of the five starter words (`rocket`, `pizza`, `castle`, `guitar`, `sunflower`).
+- [ ] Starting a game with the same room code always selects the same word (deterministic).
+- [ ] Different room codes produce different words (at least across the range of the starter list).
+
+**Secret word visibility**
+- [ ] The drawer's snapshot includes the secret word as a non-null string.
+- [ ] A guesser's snapshot returns `null` (or no value) for `currentWord`.
+- [ ] Calling `GET /rooms/:code` without a `participantId` does not expose the word.
+- [ ] Calling `GET /rooms/:code?participantId=<guesser-id>` does not expose the word.
+- [ ] Calling `GET /rooms/:code?participantId=<drawer-id>` returns the word.
+
+**Drawer identification in the UI**
+- [ ] The drawer's game screen shows their role as "Drawer" (or equivalent) in the Player Info panel.
+- [ ] The drawer's game screen shows the secret word clearly.
+- [ ] A guesser's game screen shows their role as "Guesser" in the Player Info panel.
+- [ ] A guesser's game screen shows the drawer's name in the canvas area (e.g. "Waiting for Alice to draw...").
+- [ ] The guesser's game screen does not show the secret word anywhere.
+
+---
+
+## Scenario 3 — Gameplay Interaction
+
+### Problem
+
+The game screen currently has no real interactivity. The canvas is a static placeholder — neither the drawer nor any guesser can do anything on it. There is no mechanism for submitting a guess, no backend storage for guesses, and no way for players to see what others have guessed. Scores do not exist on any player record. The game is in a running state but nothing actually happens once it starts.
+
+---
+
+### Requirements
+
+#### Drawing Canvas
+- The game screen must provide an interactive drawing surface for the drawer.
+- The drawer can draw freely on the canvas using pointer or mouse events.
+- The canvas is visible to all players on the game screen.
+- Only the drawer can draw; guessers see the canvas as read-only.
+- The canvas renders the same drawing for the drawer and guessers (drawing state is not synced via WebSockets — the canvas is local to the drawer's screen; guessers see a static or placeholder view until Scenario 3 polling is wired).
+
+#### Clear Canvas
+- The drawer has access to a "Clear Canvas" button.
+- Clicking it wipes the canvas back to a blank state.
+- Guessers do not see the clear button.
+- Clearing is a local action on the drawer's canvas — it does not sync to other players.
+
+#### Guess Submission
+- Guessers can submit a guess using the existing `GuessForm` component.
+- The drawer cannot submit a guess — the guess form is not shown or is disabled for the drawer.
+- A submitted guess is sent to the backend and stored against the room.
+- The backend stores the guesser's participant id, their name, the submitted text, whether it was correct, and the timestamp.
+
+#### Guess Validation
+- A guess must be trimmed of leading and trailing whitespace before processing.
+- A guess that is empty or whitespace-only after trimming is rejected with a clear inline error. No API call is made.
+- These rules are enforced on both the frontend (before the API call) and the backend (schema validation).
+
+#### Guess Comparison
+- The backend compares the trimmed, lowercased guess against the trimmed, lowercased `currentWord`.
+- Comparison is case-insensitive: `"PIZZA"`, `"pizza"`, and `"Pizza"` all match if the word is `"pizza"`.
+- The correct/incorrect result is determined by the backend — the frontend does not apply any comparison logic.
+
+#### Scoring
+- Every participant starts with a score of zero.
+- A correct guess awards the guesser 100 points.
+- An incorrect guess awards the guesser 0 points (score unchanged).
+- Scores are stored on each participant on the backend.
+- The drawer does not receive points for this scenario.
+- A player who guesses correctly can still submit further guesses; additional correct guesses do not award additional points (score stays at 100 once reached).
+
+#### Guess History Synchronisation
+- All players (drawer and guessers) see a live guess history on the game screen.
+- The guess history is fetched via the existing polling mechanism on the game screen (same ~2-second cadence as the lobby).
+- Each entry in the history shows the guesser's name, their guess text, and whether it was correct or incorrect.
+- The history is ordered by submission time, oldest first.
+- All players see the same complete history — there is no per-viewer filtering of guesses.
+
+---
+
+### Edge Cases
+
+- A whitespace-only guess (e.g. `"   "`) must be rejected the same way as an empty guess — after trimming the result is empty.
+- A guess with surrounding spaces (e.g. `"  pizza  "`) must be trimmed before comparison; `"  pizza  "` must match `"pizza"`.
+- Guess comparison is case-insensitive in both directions: the guess is lowercased, the stored word is lowercased, and only then compared.
+- A guesser who has already guessed correctly may continue submitting guesses. Subsequent correct guesses do not increase their score beyond 100.
+- The drawer must not be able to submit a guess — the guess form must not be present or must be disabled on the drawer's view.
+- An empty canvas cleared by the drawer remains blank — it does not restore any previous drawing state.
+- If the backend is temporarily unavailable during polling, the guess history does not disappear — it retains the last successfully fetched state until the next successful poll.
+- Scores shown in the Scoreboard are read from the room snapshot, not computed on the frontend — the backend is the single source of truth for scores.
+- Submitting a guess after the game has ended (Scenario 4 state) is out of scope for this scenario.
+
+---
+
+### Acceptance Criteria
+
+**Drawing canvas**
+- [ ] The drawer's game screen shows an interactive canvas element (not a static placeholder).
+- [ ] The drawer can draw on the canvas using a mouse or pointer device.
+- [ ] The guesser's game screen shows the canvas area but cannot interact with it.
+
+**Clear canvas**
+- [ ] The drawer's game screen has a "Clear Canvas" button.
+- [ ] Clicking "Clear Canvas" resets the canvas to a blank state.
+- [ ] The clear button is not visible on a guesser's game screen.
+
+**Guess submission**
+- [ ] The guess form is visible and active for guessers.
+- [ ] The guess form is not shown (or is disabled) for the drawer.
+- [ ] Submitting a valid guess sends a request to the backend.
+- [ ] After a successful submission, the guess appears in the guess history.
+
+**Guess validation**
+- [ ] Submitting an empty guess shows an inline error and does not call the API.
+- [ ] Submitting a whitespace-only guess shows the same error and does not call the API.
+- [ ] A guess with surrounding spaces is trimmed and submitted as the trimmed value.
+- [ ] Sending an empty or whitespace-only guess directly to the backend returns a 400 error.
+
+**Guess comparison**
+- [ ] Submitting the exact secret word (same case) is marked as correct by the backend.
+- [ ] Submitting the secret word in a different case (e.g. all caps) is also marked as correct.
+- [ ] Submitting a wrong word is marked as incorrect.
+- [ ] The correct/incorrect result is determined by the backend, not the frontend.
+
+**Scoring**
+- [ ] All participants start with a score of 0 visible in the Scoreboard.
+- [ ] A correct guess updates the guesser's score to 100.
+- [ ] An incorrect guess does not change the guesser's score.
+- [ ] Scores are visible in the Scoreboard for all players after each poll.
+- [ ] A second correct guess by the same player does not increase their score beyond 100.
+
+**Guess history synchronisation**
+- [ ] The guess history on the game screen updates within ~2 seconds of a guess being submitted by any player.
+- [ ] Each history entry shows the guesser's name, their guess, and whether it was correct or incorrect.
+- [ ] All players (drawer and guessers) see the same history.
+- [ ] The history is ordered oldest-first.
+
+---
+
+## Scenario 4 — Result, Restart & Final Validation
+
+### Problem
+
+There is currently no way to end a round. The game screen stays in the playing state indefinitely — no player ever sees a summary of what happened, and there is no path back to the lobby. The host has no mechanism to declare the round over or to reset the game for another session. The correct word, which the drawer knew throughout the round, is never revealed to guessers. Scores accumulated during the round are visible in the scoreboard, but there is no dedicated result view that brings all information together after the round ends. Without a restart flow, the only way to play again is to create a brand new room, losing all players.
+
+---
+
+### Requirements
+
+#### End-of-Round State
+- The host triggers the end of the round by clicking an "End Round" button on the game screen.
+- Ending the round transitions the room status from `"playing"` to `"finished"` on the backend.
+- Only the host can end the round; other players do not see the button.
+- Once the room is in `"finished"` status, no further guesses can be submitted.
+
+#### Result Display
+- When the room status is `"finished"`, all players see a result screen in place of the game screen.
+- The result screen shows the correct word that was being drawn.
+- The result screen shows the final scores for all participants.
+- The result screen shows the complete guess history from the round, in submission order.
+- The correct word is visible to all players on the result screen — the per-viewer filtering used during the round does not apply in `"finished"` status.
+- The result state is fetched via the existing polling mechanism; players transition to the result view automatically when the status changes.
+
+#### Restart Flow
+- The host sees a "Play Again" button on the result screen.
+- Non-host players see a waiting message instead of the button.
+- Clicking "Play Again" calls a backend endpoint that resets the room to lobby state.
+- On restart, all current participants are preserved with their names and ids intact.
+- On restart, all round-specific state is cleared: `status` returns to `"lobby"`, `drawerId`, `currentWord`, and `guesses` are reset, and all participant scores are reset to zero.
+- After a successful restart, all players are navigated back to the lobby screen.
+- The lobby resumes automatic polling so players see the participant list without manual action.
+
+---
+
+### Edge Cases
+
+- A non-host player must never see the "End Round" or "Play Again" buttons, even if they inspect the page source or make direct API calls — the backend enforces host-only permission on both endpoints.
+- A guess submitted after the round ends must be rejected by the backend with a clear error. The game screen's guess form should become disabled or hidden once the status is `"finished"`.
+- If a non-host player's polling tick fires while the host is mid-restart, the player may briefly see stale `"playing"` data before the status transitions — this is acceptable and resolves on the next poll.
+- The correct word on the result screen must be visible to all players, including guessers who never saw it during the round. The backend must return `currentWord` without filtering when the room is `"finished"`.
+- Scores shown on the result screen must match the scores recorded at the moment the round ended — they must not change after the round is over.
+- After a restart, participants that were in the room continue to exist; no player is removed. A player who left the browser during the round but still has a valid `participantId` remains in the room after restart.
+- Restarting clears scores to zero — the scores from the previous round do not carry over.
+- The room code does not change on restart — players who were in the room can still identify it by the same code.
+
+---
+
+### Acceptance Criteria
+
+**End-of-round state**
+- [ ] The host's game screen shows an "End Round" button.
+- [ ] A non-host player's game screen does not show the "End Round" button.
+- [ ] Clicking "End Round" transitions the room status to `"finished"` on the backend.
+- [ ] After status is `"finished"`, a direct call to the guess endpoint returns an error.
+
+**Result display**
+- [ ] All players' screens transition to a result view when the room status becomes `"finished"` (via polling, within ~2 seconds of the host ending the round).
+- [ ] The result view shows the correct word that was being drawn.
+- [ ] The correct word is visible to all players on the result view, including guessers.
+- [ ] The result view shows the final score for every participant.
+- [ ] The result view shows the complete guess history in submission order.
+- [ ] The result view matches what was in the scoreboard and activity panel at the moment the round ended.
+
+**Restart flow**
+- [ ] The host sees a "Play Again" button on the result screen.
+- [ ] A non-host player does not see the "Play Again" button.
+- [ ] Clicking "Play Again" calls a backend restart endpoint.
+- [ ] After a successful restart, the host is navigated back to the lobby.
+- [ ] After the next polling tick, non-host players are also navigated back to the lobby.
+- [ ] The lobby shows the same set of participants that were in the room before the restart.
+- [ ] All participant scores are reset to zero after restart.
+- [ ] The room code is unchanged after restart.
+
+**Round state cleared**
+- [ ] After restart, `status` is `"lobby"`.
+- [ ] After restart, `drawerId` is `null`.
+- [ ] After restart, `currentWord` is `null`.
+- [ ] After restart, `guesses` is an empty array.
+- [ ] After restart, every participant's score is `0`.

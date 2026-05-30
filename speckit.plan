@@ -1,0 +1,1252 @@
+# Plan — Scenario 1: Room Setup & Lobby
+
+---
+
+## Findings
+
+### What exists and is relevant
+
+| Area | File | Observation |
+|---|---|---|
+| Room model | `backend/src/models/game.ts` | `Room` has `code`, `status`, `participants`, `createdAt`, `updatedAt`. No `hostId`. `RoomStatus` is the literal `"lobby"` only. |
+| Participant model | `backend/src/models/game.ts` | `Participant` has `id`, `name`, `joinedAt`. No role or host marker. |
+| Room snapshot | `backend/src/models/game.ts` | `RoomSnapshot` has `participants`, `availableWords`, `roles`. No `hostId`. |
+| Room store | `backend/src/services/roomStore.ts` | `createRoom` creates the first participant but never records them as host. `toRoomSnapshot` receives `viewerParticipantId` but immediately voids it — no filtering applied. |
+| Schemas | `backend/src/api/schemas.ts` | `createRoomSchema` and `joinRoomSchema` both mark `playerName` as `z.string().optional()` — empty and whitespace-only names pass validation. `roomCodeParamsSchema` accepts any string with no minimum length. |
+| Rooms router | `backend/src/api/rooms.ts` | Three endpoints exist: `POST /rooms`, `POST /rooms/:code/join`, `GET /rooms/:code`. No start endpoint. |
+| API router | `backend/src/api/router.ts` | Mounts `/rooms` router. Global error handler handles `ZodError` (400), `HttpError` (statusCode), and generic (500). Pattern is reusable. |
+| Frontend types | `frontend/src/services/api.ts` | `RoomSnapshot` interface mirrors backend but has no `hostId`. No `startGame` client method. |
+| Create Room | `frontend/src/pages/CreateRoomPage.tsx` | Calls `roomStore.createRoom(playerName)` directly — no client-side validation. Empty name is sent to the API. |
+| Join Room | `frontend/src/pages/JoinRoomPage.tsx` | Calls `roomStore.joinRoom(roomCode, playerName)` directly — no client-side validation. Empty name and empty code are sent to the API. |
+| Lobby | `frontend/src/pages/LobbyPage.tsx` | Only manual refresh via `handleRefresh`. No polling interval. "Start Game" button is visible to all players and navigates to `/game` without any API call or host/player-count check. |
+| Room store (frontend) | `frontend/src/state/roomStore.ts` | Has `createRoom`, `joinRoom`, `fetchRoom` actions. No `startGame` action. No polling helper. |
+
+### What is missing
+
+1. `Room.hostId` — no field records which participant created the room.
+2. `RoomSnapshot.hostId` — not surfaced to the frontend.
+3. Name validation — empty and whitespace-only names are accepted by schemas and forms.
+4. Code validation — empty room code is accepted by the join form.
+5. Lobby polling — no `setInterval` anywhere in the frontend lobby flow.
+6. Host-only start button — button is shown to everyone and is always enabled.
+7. Start game endpoint — no `POST /rooms/:code/start` exists.
+8. Start game minimum player guard — no check that at least 2 participants are present before starting.
+
+---
+
+## State Model Changes
+
+### Backend — `backend/src/models/game.ts`
+
+```
+Room (before)                     Room (after)
+─────────────────────────         ────────────────────────────
+code: string                      code: string
+status: "lobby"                   status: "lobby" | "playing"
+participants: Participant[]        participants: Participant[]
+createdAt: string                 createdAt: string
+updatedAt: string                 updatedAt: string
+                                  hostId: string              ← NEW
+```
+
+```
+RoomSnapshot (before)             RoomSnapshot (after)
+─────────────────────────         ────────────────────────────
+code: string                      code: string
+status: "lobby"                   status: "lobby" | "playing"
+participants: Participant[]        participants: Participant[]
+availableWords: string[]          availableWords: string[]
+roles: ParticipantRole[]          roles: ParticipantRole[]
+                                  hostId: string              ← NEW
+```
+
+### Frontend — `frontend/src/services/api.ts`
+
+```
+RoomSnapshot interface (before)   RoomSnapshot interface (after)
+─────────────────────────         ────────────────────────────
+code: string                      code: string
+status: "lobby"                   status: "lobby" | "playing"
+participants: Participant[]        participants: Participant[]
+availableWords: string[]          availableWords: string[]
+roles: ParticipantRole[]          roles: ParticipantRole[]
+                                  hostId: string              ← NEW
+```
+
+---
+
+## Required API Changes
+
+### Modified: `POST /rooms`
+- Schema change: `playerName` becomes required, trimmed, minimum 1 character after trim.
+- Service change: `createRoom` writes `hostId: participant.id` on the new `Room`.
+- Snapshot change: `toRoomSnapshot` includes `hostId` in the returned object.
+- No change to route handler or response shape beyond the snapshot addition.
+
+### Modified: `POST /rooms/:code/join`
+- Schema change: `playerName` becomes required, trimmed, minimum 1 character after trim.
+- No other changes to handler or service.
+
+### Modified: Zod schemas — `backend/src/api/schemas.ts`
+```
+createRoomSchema.playerName:  z.string().optional()
+                           →  z.string().min(1, "Player name is required").transform(s => s.trim()).refine(s => s.length > 0, "Player name cannot be blank")
+
+joinRoomSchema.playerName:    z.string().optional()
+                           →  same as above
+```
+
+### New endpoint: `POST /rooms/:code/start`
+- **Purpose:** Transition a room from `"lobby"` to `"playing"` with host and player-count guards.
+- **Request:** Body `{ participantId: string }` — identifies the caller.
+- **Validations (in order):**
+  1. Room must exist → 404 if not.
+  2. `participantId` must match `room.hostId` → 403 "Only the host can start the game" if not.
+  3. Room must have at least 2 participants → 422 "Need at least 2 players to start" if not.
+- **Success:** Sets `room.status = "playing"`, saves, returns `{ room: RoomSnapshot }` with status 200.
+- **Schema needed:** `startGameSchema = z.object({ participantId: z.string().min(1) })`
+
+---
+
+## Data Flow
+
+### Create Room
+```
+CreateRoomPage
+  → [validate name client-side, reject if blank]
+  → POST /rooms  { playerName }
+  → backend validates name (Zod, trimmed, non-empty)
+  → createRoom() sets hostId = participant.id
+  → toRoomSnapshot() includes hostId
+  → response { participantId, room: { ...hostId } }
+  → roomStore.setRoomSession()
+  → navigate("/lobby")
+```
+
+### Join Room
+```
+JoinRoomPage
+  → [validate name client-side, reject if blank]
+  → [validate code client-side, reject if blank]
+  → POST /rooms/:code/join  { playerName }
+  → backend validates name (Zod, trimmed, non-empty)
+  → joinRoom() adds participant, hostId unchanged
+  → response { participantId, room: { ...hostId } }
+  → roomStore.setRoomSession()
+  → navigate("/lobby")
+```
+
+### Lobby Polling
+```
+LobbyPage mounts
+  → useEffect starts setInterval(~2000ms)
+    → GET /rooms/:code?participantId=...
+    → roomStore.setRoomSnapshot(room)
+    → participant list re-renders
+  → useEffect cleanup clears interval on unmount
+```
+
+### Start Game
+```
+LobbyPage (host only, ≥2 players)
+  → click "Start Game"
+  → POST /rooms/:code/start  { participantId }
+  → backend checks hostId, checks participant count
+  → sets status = "playing"
+  → response { room }
+  → roomStore.setRoomSnapshot(room)
+  → navigate("/game")
+```
+
+---
+
+## Implementation Sequence
+
+Steps are ordered so each one is independently testable before moving to the next.
+
+### Step 1 — Backend: extend the Room model
+- **File:** `backend/src/models/game.ts`
+- Add `hostId: string` to the `Room` interface.
+- Expand `RoomStatus` to `"lobby" | "playing"`.
+- Add `hostId: string` to the `RoomSnapshot` interface.
+
+### Step 2 — Backend: tighten validation schemas
+- **File:** `backend/src/api/schemas.ts`
+- Update `createRoomSchema.playerName` to required, trimmed, non-empty.
+- Update `joinRoomSchema.playerName` to required, trimmed, non-empty.
+- Add `startGameSchema` for the new endpoint.
+
+### Step 3 — Backend: set hostId in the room service
+- **File:** `backend/src/services/roomStore.ts`
+- In `createRoom`: assign `room.hostId = participant.id`.
+- In `toRoomSnapshot`: include `hostId: room.hostId` in the returned object.
+
+### Step 4 — Backend: add the start game endpoint
+- **File:** `backend/src/api/rooms.ts`
+- Add `POST /:code/start` handler using `startGameSchema`.
+- Add a `startGame(code, participantId)` function to `roomStore.ts` that enforces host check, player count, and status transition.
+
+### Step 5 — Frontend: update RoomSnapshot type
+- **File:** `frontend/src/services/api.ts`
+- Add `hostId: string` to the `RoomSnapshot` interface.
+- Add `status: "lobby" | "playing"` to the `RoomSnapshot` interface.
+- Add `startGame(code: string, participantId: string)` client method calling `POST /rooms/:code/start`.
+
+### Step 6 — Frontend: add name and code validation to forms
+- **File:** `frontend/src/pages/CreateRoomPage.tsx`
+- Before calling the store, trim the name and reject if empty with an inline error message.
+- **File:** `frontend/src/pages/JoinRoomPage.tsx`
+- Trim name and reject if empty; trim code and reject if empty. Both show distinct inline errors.
+
+### Step 7 — Frontend: add startGame action to the store
+- **File:** `frontend/src/state/roomStore.ts`
+- Add `startGame()` method that calls `api.startGame` and updates the snapshot on success.
+
+### Step 8 — Frontend: replace manual refresh with polling and add host UI
+- **File:** `frontend/src/pages/LobbyPage.tsx`
+- Replace the manual refresh `useEffect`/button with a `setInterval` polling loop (~2000ms) that calls `roomStore.fetchRoom()`.
+- Derive `isHost = room.hostId === participantId`.
+- Show "Host" badge next to the host's name in the participant list.
+- Show "Start Game" button only when `isHost` is true.
+- Disable the button and show a reason when `room.participants.length < 2`.
+- On success, navigate to `/game`.
+
+---
+
+## Files Touched
+
+| File | Change type |
+|---|---|
+| `backend/src/models/game.ts` | Modify — add `hostId`, expand `RoomStatus` |
+| `backend/src/api/schemas.ts` | Modify — tighten name schemas, add `startGameSchema` |
+| `backend/src/services/roomStore.ts` | Modify — set `hostId` in `createRoom`, include in `toRoomSnapshot`, add `startGame` function |
+| `backend/src/api/rooms.ts` | Modify — add `POST /:code/start` handler |
+| `frontend/src/services/api.ts` | Modify — add `hostId` + `status` to `RoomSnapshot`, add `startGame` client method |
+| `frontend/src/pages/CreateRoomPage.tsx` | Modify — add client-side name validation |
+| `frontend/src/pages/JoinRoomPage.tsx` | Modify — add client-side name and code validation |
+| `frontend/src/state/roomStore.ts` | Modify — add `startGame` action |
+| `frontend/src/pages/LobbyPage.tsx` | Modify — replace manual refresh with polling, add host UI, add conditional start button |
+
+No new files need to be created. No new libraries are required.
+
+---
+
+## Risks
+
+| Risk | Mitigation |
+|---|---|
+| Polling fires after component unmounts (memory leak / stale state update) | Clear the interval in the `useEffect` cleanup function |
+| Backend name validation rejects names that were previously accepted | Acceptable — the spec requires it; existing in-memory rooms are cleared on restart anyway |
+| `hostId` missing from old rooms if the backend restarts during testing | Not a concern — in-memory store is wiped on restart; all rooms are fresh |
+| Start game navigates to `/game` before game state (drawer, word) is ready | Acceptable for Scenario 1; game screen displays placeholder until Scenario 2 is implemented |
+| Two players simultaneously click "Start Game" | Only one will win the host check; second gets 403 — handled by the error path in the store |
+
+---
+
+---
+
+# Plan — Scenario 2: Game Start & Drawer Flow
+
+---
+
+## Findings
+
+### What exists and is relevant (post Scenario 1)
+
+| Area | File | Current behavior |
+|---|---|---|
+| Room model | `backend/src/models/game.ts` | `Room` has `code`, `status` (`"lobby" \| "playing"`), `hostId`, `participants`, `createdAt`, `updatedAt`. No `drawerId`. No `currentWord`. |
+| RoomSnapshot model | `backend/src/models/game.ts` | `RoomSnapshot` has `code`, `status`, `hostId`, `participants`, `availableWords`, `roles`. No `drawerId`. No `currentWord`. |
+| Name schemas | `backend/src/api/schemas.ts` | `createRoomSchema.playerName` is `z.string().optional()`. `joinRoomSchema.playerName` is `z.string().optional()`. Neither trims nor enforces a minimum length. |
+| displayName helper | `backend/src/services/roomStore.ts` | `displayName(name?)` returns `name \|\| "Player"`. Falsy check passes empty strings to the `"Player"` fallback, but `"   "` (spaces only) is truthy and would be stored as-is. |
+| startGame service | `backend/src/services/roomStore.ts` | Sets `room.status = "playing"` and saves. Returns the snapshot. Does not assign a drawer. Does not select a word. |
+| toRoomSnapshot | `backend/src/services/roomStore.ts` | Receives `viewerParticipantId` as a parameter but immediately voids it (`void viewerParticipantId`). Returns identical data to every caller — no per-viewer filtering of any kind. |
+| Rooms router | `backend/src/api/rooms.ts` | Four endpoints: `POST /rooms`, `POST /rooms/:code/join`, `POST /rooms/:code/start`, `GET /rooms/:code`. The `GET` endpoint already passes `participantId` from the query string into `toRoomSnapshot` — the wiring is there, the filtering logic is not. |
+| Frontend snapshot type | `frontend/src/services/api.ts` | `RoomSnapshot` interface has `code`, `status`, `hostId`, `participants`, `availableWords`, `roles`. No `drawerId`. No `currentWord`. |
+| CreateRoomPage | `frontend/src/pages/CreateRoomPage.tsx` | Calls `roomStore.createRoom(playerName)` with no prior validation. An empty or whitespace-only name is sent directly to the API. Backend accepts it and stores `"Player"` (empty) or the raw whitespace (spaces-only). |
+| JoinRoomPage | `frontend/src/pages/JoinRoomPage.tsx` | Has client-side code validation (empty code rejected). No name validation. Empty or whitespace-only names are sent to the API without error. |
+| GamePage | `frontend/src/pages/GamePage.tsx` | Canvas area contains a static `<div>` with `"Waiting for drawer..."`. Player Info card shows hardcoded `"Playing"` status. No drawer is identified. No word is shown. No role-aware branching exists anywhere in the component. |
+| Frontend store | `frontend/src/state/roomStore.ts` | Has `createRoom`, `joinRoom`, `fetchRoom`, `startGame` actions. No game-screen polling. |
+
+### What is missing
+
+1. **Name trimming and rejection (schemas)** — `playerName` in both create and join schemas accepts any string including empty and whitespace-only. The `displayName` fallback masks empty strings with `"Player"` but cannot reject them or trim them.
+2. **Name validation (frontend forms)** — `CreateRoomPage` has no client-side name check. `JoinRoomPage` has code validation but no name check. Both must reject before making an API call.
+3. **Drawer field on Room** — `Room` has no `drawerId` field. `startGame` transitions status but assigns no drawer.
+4. **Current word field on Room** — `Room` has no `currentWord` field. `startGame` selects no word.
+5. **Drawer and word in RoomSnapshot** — `RoomSnapshot` has no `drawerId` or `currentWord`. Even if the fields existed on `Room`, they would not be returned to the frontend.
+6. **Per-viewer filtering in toRoomSnapshot** — `viewerParticipantId` is received but voided. The secret word must be returned only when the viewer is the drawer. The infrastructure (the parameter, the query-string wiring in `GET /rooms/:code`) already exists; only the conditional logic is missing.
+7. **Role-aware GamePage** — the game screen renders identically for every player. It must branch on whether the viewer is the drawer or a guesser and display accordingly.
+
+---
+
+## State Model Changes
+
+### Backend — `backend/src/models/game.ts`
+
+```
+Room (before)                      Room (after)
+──────────────────────────         ─────────────────────────────
+code: string                       code: string
+status: RoomStatus                 status: RoomStatus
+hostId: string                     hostId: string
+participants: Participant[]         participants: Participant[]
+createdAt: string                  createdAt: string
+updatedAt: string                  updatedAt: string
+                                   drawerId: string | null      ← NEW
+                                   currentWord: string | null   ← NEW
+```
+
+Both fields are `null` when the room is in `"lobby"` status and are set at the moment `startGame` transitions the room to `"playing"`.
+
+```
+RoomSnapshot (before)              RoomSnapshot (after)
+──────────────────────────         ─────────────────────────────
+code: string                       code: string
+status: RoomStatus                 status: RoomStatus
+hostId: string                     hostId: string
+participants: Participant[]         participants: Participant[]
+availableWords: string[]           availableWords: string[]
+roles: ParticipantRole[]           roles: ParticipantRole[]
+                                   drawerId: string | null      ← NEW (visible to all)
+                                   currentWord: string | null   ← NEW (visible only to drawer)
+```
+
+`drawerId` is always included — every player needs to know who is drawing.
+`currentWord` is conditionally populated: non-null only when `viewerParticipantId === drawerId`.
+
+### Frontend — `frontend/src/services/api.ts`
+
+```
+RoomSnapshot interface (before)    RoomSnapshot interface (after)
+──────────────────────────         ─────────────────────────────
+code: string                       code: string
+status: "lobby" | "playing"        status: "lobby" | "playing"
+hostId: string                     hostId: string
+participants: Participant[]         participants: Participant[]
+availableWords: string[]           availableWords: string[]
+roles: ParticipantRole[]           roles: ParticipantRole[]
+                                   drawerId: string | null      ← NEW
+                                   currentWord: string | null   ← NEW
+```
+
+---
+
+## Required API Changes
+
+### Modified: Zod schemas — `backend/src/api/schemas.ts`
+
+```
+createRoomSchema.playerName:  z.string().optional()
+                           →  z.string().trim().min(1, "Player name is required")
+
+joinRoomSchema.playerName:    z.string().optional()
+                           →  z.string().trim().min(1, "Player name is required")
+```
+
+`z.string().trim()` runs before `.min(1)` is evaluated. A whitespace-only string trims to `""` and fails the length check, returning a 400. No `.refine()` is needed.
+
+### Modified: `createRoom` service — `backend/src/services/roomStore.ts`
+
+Initialise the two new fields on every new room:
+```
+drawerId: null
+currentWord: null
+```
+No other logic change. The schema now guarantees the name is trimmed before reaching the service.
+
+### Modified: `startGame` service — `backend/src/services/roomStore.ts`
+
+Add two assignments before saving:
+```
+room.drawerId   = room.hostId
+room.currentWord = selectWord(room.code)
+```
+
+`selectWord` is a private pure function that derives a stable index from the room code:
+```
+index = sum of char codes of room.code  %  STARTER_WORDS.length
+```
+The same room code always yields the same index. The function has no side effects and requires no new dependencies.
+
+### Modified: `toRoomSnapshot` — `backend/src/services/roomStore.ts`
+
+Remove `void viewerParticipantId`. Add two fields to the returned object:
+```
+drawerId:    room.drawerId
+currentWord: viewerParticipantId === room.drawerId ? room.currentWord : null
+```
+
+The word is `null` for any caller whose id does not match the drawer, including callers who omit `participantId` entirely.
+
+### No new endpoints
+
+The existing four endpoints are sufficient.
+- `POST /rooms` — benefits automatically from schema change (name trimmed + validated).
+- `POST /rooms/:code/join` — same.
+- `POST /rooms/:code/start` — calls `startGame` which will gain drawer + word assignment.
+- `GET /rooms/:code` — already passes `participantId` to `toRoomSnapshot`; filtering logic slots in there with no handler change.
+
+---
+
+## Data Flow
+
+### Create Room (name validation enforced)
+```
+CreateRoomPage
+  → [trim name client-side; if empty → "Player name is required", stop]
+  → POST /rooms  { playerName }
+  → Zod: z.string().trim().min(1) — rejects whitespace-only with 400
+  → createRoom(trimmedName): room.drawerId = null, room.currentWord = null
+  → toRoomSnapshot(room, participantId): drawerId null, currentWord null
+  → response unchanged shape
+```
+
+### Join Room (name validation added)
+```
+JoinRoomPage
+  → [trim name client-side; if empty → "Player name is required", stop]   ← NEW
+  → [trim code client-side; if empty → "Room code is required"]            (exists)
+  → POST /rooms/:code/join  { playerName }
+  → Zod: z.string().trim().min(1) — rejects whitespace-only with 400
+  → joinRoom(code, trimmedName)
+  → response unchanged shape
+```
+
+### Start Game (drawer + word assigned)
+```
+LobbyPage (host, ≥2 players)
+  → POST /rooms/:code/start  { participantId: hostId }
+  → startGame(code, hostId):
+      room.drawerId    = room.hostId
+      room.currentWord = selectWord(room.code)
+      room.status      = "playing"
+  → toRoomSnapshot(room, hostId):
+      drawerId:    hostId                  ← non-null
+      currentWord: room.currentWord        ← visible: viewer IS the drawer
+  → response { room } — host's snapshot includes the word
+  → roomStore.setRoomSnapshot(room)
+  → navigate("/game")
+```
+
+### Polling from game screen (per-viewer word filtering)
+```
+GamePage (every ~2s)
+  → GET /rooms/:code?participantId=<viewerId>
+  → toRoomSnapshot(room, viewerId):
+      drawerId:    room.drawerId           (always included)
+      currentWord: room.currentWord        if viewerId === room.drawerId
+      currentWord: null                    otherwise
+  → roomStore.setRoomSnapshot(room)
+  → GamePage re-renders: drawer sees word, guessers see null
+```
+
+---
+
+## Implementation Sequence
+
+### Step 1 — Backend: tighten name schemas
+- **File:** `backend/src/api/schemas.ts`
+- Change `createRoomSchema.playerName` to `z.string().trim().min(1, "Player name is required")`.
+- Change `joinRoomSchema.playerName` to the same.
+- Verify: `npm run build` in `backend/` passes.
+
+### Step 2 — Backend: extend Room and RoomSnapshot models
+- **File:** `backend/src/models/game.ts`
+- Add `drawerId: string | null` and `currentWord: string | null` to `Room`.
+- Add `drawerId: string | null` and `currentWord: string | null` to `RoomSnapshot`.
+- Verify: `npm run build` in `backend/` passes (type errors in the service are expected — fixed in Step 3).
+
+### Step 3 — Backend: update createRoom and startGame in the room service
+- **File:** `backend/src/services/roomStore.ts`
+- In `createRoom`: add `drawerId: null` and `currentWord: null` to the new room literal.
+- Add private `selectWord(code: string)` function using char-code-sum mod word-list-length.
+- In `startGame`: assign `room.drawerId = room.hostId` and `room.currentWord = selectWord(room.code)` before saving.
+- Verify: `npm run build` in `backend/` passes.
+
+### Step 4 — Backend: add per-viewer filtering to toRoomSnapshot
+- **File:** `backend/src/services/roomStore.ts`
+- Remove `void viewerParticipantId`.
+- Add `drawerId: room.drawerId` to the returned object.
+- Add `currentWord: viewerParticipantId === room.drawerId ? room.currentWord : null` to the returned object.
+- Verify: `npm run build` in `backend/` passes.
+
+### Step 5 — Frontend: update RoomSnapshot interface
+- **File:** `frontend/src/services/api.ts`
+- Add `drawerId: string | null` and `currentWord: string | null` to the `RoomSnapshot` interface.
+- Verify: `npm run build` in `frontend/` passes (type errors in pages expected — fixed in Step 7).
+
+### Step 6 — Frontend: add name validation to forms
+- **File:** `frontend/src/pages/CreateRoomPage.tsx`
+  - Trim name before submitting. If empty after trim, show "Player name is required" inline and return without calling the API.
+- **File:** `frontend/src/pages/JoinRoomPage.tsx`
+  - Apply the same name check before the existing code check. Show "Player name is required" inline and return.
+- Verify: `npm run build` in `frontend/` passes.
+
+### Step 7 — Frontend: update GamePage for role-aware rendering
+- **File:** `frontend/src/pages/GamePage.tsx`
+- Derive `isDrawer = room.drawerId === participantId`.
+- Derive `drawerName` by finding the participant whose id matches `room.drawerId`.
+- Player Info card: show role as `"Drawer"` or `"Guesser"` based on `isDrawer`.
+- Canvas area:
+  - Drawer: show their secret word (`room.currentWord`) and a label indicating they are drawing.
+  - Guesser: show `"Waiting for [drawerName] to draw..."`.
+- Verify: `npm run build` in `frontend/` passes.
+
+---
+
+## Files Touched
+
+| File | Change type |
+|---|---|
+| `backend/src/api/schemas.ts` | Modify — tighten `playerName` in create and join schemas |
+| `backend/src/models/game.ts` | Modify — add `drawerId` and `currentWord` to `Room` and `RoomSnapshot` |
+| `backend/src/services/roomStore.ts` | Modify — initialise fields in `createRoom`, add `selectWord`, assign in `startGame`, filter in `toRoomSnapshot` |
+| `frontend/src/services/api.ts` | Modify — add `drawerId` and `currentWord` to `RoomSnapshot` interface |
+| `frontend/src/pages/CreateRoomPage.tsx` | Modify — add client-side name validation |
+| `frontend/src/pages/JoinRoomPage.tsx` | Modify — add client-side name validation |
+| `frontend/src/pages/GamePage.tsx` | Modify — role-aware layout, drawer identity, conditional word display |
+
+No new files. No new libraries.
+
+---
+
+## Risks
+
+| Risk | Mitigation |
+|---|---|
+| `displayName` fallback can still mask a name that slips through if a caller bypasses the schema | Schema now validates before `displayName` is reached in normal flows. `displayName` can be simplified to a direct passthrough since the schema guarantees a non-empty trimmed value. |
+| `selectWord` result must be stable across calls for the same code | The function is a pure deterministic computation with no randomness — same input always returns same output. |
+| `toRoomSnapshot` change affects all four endpoints simultaneously | Intended. All endpoints call `toRoomSnapshot`. The lobby-phase snapshot gains `drawerId: null` and `currentWord: null` which is correct for the lobby state. |
+| GamePage has no polling of its own yet | Not required for Scenario 2. The start-game snapshot already delivers the drawer and word. Polling is needed in Scenario 3 for guess sync. |
+| A guesser navigating directly to `/game` via URL without going through the lobby | The existing redirect guard (`if (!room) navigate("/")`) already handles this. Room state is only set by create/join flows. |
+
+---
+
+---
+
+# Plan — Scenario 3: Gameplay Interaction
+
+---
+
+## Findings
+
+### What exists and is relevant (post Scenario 2)
+
+| Area | File | Current behavior |
+|---|---|---|
+| Participant model | `backend/src/models/game.ts` | Has `id`, `name`, `joinedAt`. No `score` field. |
+| Room model | `backend/src/models/game.ts` | Has `code`, `status`, `hostId`, `drawerId`, `currentWord`, `participants`, `createdAt`, `updatedAt`. No `guesses` field. |
+| RoomSnapshot model | `backend/src/models/game.ts` | Has `code`, `status`, `hostId`, `drawerId`, `currentWord`, `participants`, `availableWords`, `roles`. No `guesses`. |
+| Schemas | `backend/src/api/schemas.ts` | Has `createRoomSchema`, `joinRoomSchema`, `startGameSchema`, `roomCodeParamsSchema`, `roomViewerQuerySchema`. No `submitGuessSchema`. |
+| Room service | `backend/src/services/roomStore.ts` | `createRoom` and `joinRoom` do not initialise a `guesses` array or participant `score`. `toRoomSnapshot` returns participants without scores and no guess history. No `submitGuess` function. |
+| Rooms router | `backend/src/api/rooms.ts` | Four endpoints: `POST /rooms`, `POST /rooms/:code/join`, `POST /rooms/:code/start`, `GET /rooms/:code`. No guess endpoint. |
+| Frontend snapshot type | `frontend/src/services/api.ts` | `Participant` has `id`, `name`, `joinedAt` — no `score`. `RoomSnapshot` has no `guesses` field. No `submitGuess` client method. |
+| Frontend store | `frontend/src/state/roomStore.ts` | Has `createRoom`, `joinRoom`, `fetchRoom`, `startGame`. No `submitGuess` action. No polling on the game screen. |
+| GamePage | `frontend/src/pages/GamePage.tsx` | Has role-aware canvas text. `GuessForm` is rendered for all players regardless of role — the drawer also sees it. No polling `useEffect`. No drawing canvas element. |
+| GuessForm | `frontend/src/components/GuessForm.tsx` | Has local `guessText` state and a `disabled` prop. `handleSubmit` prevents default but makes no API call — the form is wired to nothing. |
+| Scoreboard | `frontend/src/components/Scoreboard.tsx` | Static placeholder showing hardcoded `"Waiting for players..."` and `0`. Reads no data from the store. |
+| ResultPanel | `frontend/src/components/ResultPanel.tsx` | Renamed "Activity". Shows static placeholder text. Reads no data from the store. |
+
+### What is missing
+
+1. **`score` on `Participant`** — no score field exists anywhere in the model. All participants are scoreless.
+2. **`Guess` type** — no type definition for a guess record (participant id, name, text, result, timestamp).
+3. **`guesses` on `Room`** — no array to hold submitted guesses.
+4. **`guesses` in `RoomSnapshot`** — guess history is never surfaced to the frontend.
+5. **`submitGuessSchema`** — no Zod schema to validate guess submissions.
+6. **`submitGuess` service function** — no backend logic to trim/compare/score/store a guess.
+7. **`POST /rooms/:code/guess` endpoint** — no route to receive guesses.
+8. **Frontend `Participant.score`** — type missing from the interface.
+9. **Frontend `Guess` type and `RoomSnapshot.guesses`** — type missing from the interface.
+10. **Frontend `submitGuess` client method** — not in `api.ts`.
+11. **Frontend `submitGuess` store action** — not in `roomStore.ts`.
+12. **GamePage polling** — `GamePage` has no `setInterval`. The game screen never refreshes after the start snapshot.
+13. **GuessForm wiring** — form submits nothing; no validation, no store call, no feedback.
+14. **Drawer exclusion from guessing** — `GuessForm` is always rendered; the drawer sees and can interact with it.
+15. **Drawing canvas** — the canvas area is a `<div>` placeholder. The drawer has no interactive surface.
+16. **Clear canvas button** — does not exist.
+17. **Scoreboard real data** — component reads nothing from the store.
+18. **ResultPanel real data** — component reads nothing from the store.
+
+---
+
+## State Model Changes
+
+### Backend — `backend/src/models/game.ts`
+
+```
+Participant (before)               Participant (after)
+──────────────────────────         ─────────────────────────────
+id: string                         id: string
+name: string                       name: string
+joinedAt: string                   joinedAt: string
+                                   score: number               ← NEW (initialised to 0)
+```
+
+```
+New type: Guess                    (added to game.ts)
+──────────────────────────
+participantId: string
+participantName: string
+text: string
+isCorrect: boolean
+submittedAt: string
+```
+
+```
+Room (before)                      Room (after)
+──────────────────────────         ─────────────────────────────
+code, status, hostId               code, status, hostId
+drawerId, currentWord              drawerId, currentWord
+participants, createdAt            participants, createdAt
+updatedAt                          updatedAt
+                                   guesses: Guess[]            ← NEW (initialised to [])
+```
+
+```
+RoomSnapshot (before)              RoomSnapshot (after)
+──────────────────────────         ─────────────────────────────
+code, status, hostId               code, status, hostId
+drawerId, currentWord              drawerId, currentWord
+participants                       participants                 (now includes score per participant)
+availableWords, roles              availableWords, roles
+                                   guesses: Guess[]            ← NEW
+```
+
+### Frontend — `frontend/src/services/api.ts`
+
+```
+Participant interface (before)     Participant interface (after)
+──────────────────────────         ─────────────────────────────
+id: string                         id: string
+name: string                       name: string
+joinedAt: string                   joinedAt: string
+                                   score: number               ← NEW
+```
+
+```
+New interface: Guess               (added to api.ts)
+──────────────────────────
+participantId: string
+participantName: string
+text: string
+isCorrect: boolean
+submittedAt: string
+```
+
+```
+RoomSnapshot interface (before)    RoomSnapshot interface (after)
+──────────────────────────         ─────────────────────────────
+...existing fields...              ...existing fields...
+                                   guesses: Guess[]            ← NEW
+```
+
+---
+
+## Required API Changes
+
+### Modified: `createRoom` and `joinRoom` service functions
+
+- `createRoom`: initialise `participant.score = 0` when creating the participant; initialise `room.guesses = []`.
+- `joinRoom`: initialise `participant.score = 0` when creating the joining participant.
+- These are initialisation-only changes — no logic change.
+
+### Modified: `toRoomSnapshot`
+
+- `participants` map must now include `score: participant.score` in each entry.
+- Add `guesses: room.guesses.map(g => ({ ...g }))` to the returned object.
+- No per-viewer filtering on guesses — all players see the full history.
+
+### New schema: `submitGuessSchema`
+
+```
+z.object({
+  participantId: z.string().min(1),
+  text: z.string().trim().min(1, "Guess cannot be empty")
+})
+```
+
+`z.string().trim()` on `text` ensures whitespace-only guesses fail the `.min(1)` check. `participantId` identifies the submitter.
+
+### New endpoint: `POST /rooms/:code/guess`
+
+- **Purpose:** Accept, validate, score, and store a single guess.
+- **Request:** Body `{ participantId: string, text: string }`.
+- **Validations (in order):**
+  1. Room must exist → 404 "Room not found".
+  2. Room `status` must be `"playing"` → 422 "Game is not in progress".
+  3. `participantId` must match a participant in the room → 404 "Participant not found".
+  4. `participantId` must not equal `room.drawerId` → 403 "Drawer cannot submit a guess".
+- **Processing:**
+  1. Trim and lowercase `text`.
+  2. Compare to `room.currentWord.trim().toLowerCase()`.
+  3. Set `isCorrect = true` if they match.
+  4. If `isCorrect` and `participant.score < 100`: set `participant.score = 100`.
+  5. Append `{ participantId, participantName: participant.name, text: trimmedText, isCorrect, submittedAt: now() }` to `room.guesses`.
+  6. Save room.
+- **Response:** `{ room: RoomSnapshot }` — the full updated snapshot, so the frontend updates scores and guess history in one step.
+
+### New client method: `submitGuess`
+
+- **File:** `frontend/src/services/api.ts`
+- Calls `POST /rooms/:code/guess` with `{ participantId, text }`.
+- Returns `{ room: RoomSnapshot }`.
+
+---
+
+## Polling Changes
+
+### GamePage gains a polling `useEffect`
+
+`GamePage` currently has no polling — it renders from the snapshot set at game start and never refreshes. For Scenario 3, all players need to see updated guess history and scores.
+
+The pattern is identical to `LobbyPage`:
+- `useEffect` starts a `setInterval` at 2000ms calling `roomStore.fetchRoom()`.
+- Cleanup clears the interval on unmount.
+- Dependency on `room?.code` — starts when a room is present, stops on unmount.
+
+`fetchRoom` already calls `GET /rooms/:code?participantId=...` which calls `toRoomSnapshot`, which will now include guesses and scores. No new endpoint or store action is needed for polling.
+
+---
+
+## Scoring Changes
+
+Scores are computed and stored entirely on the backend. The frontend never computes correctness.
+
+- `Participant.score` initialises to `0` in `createRoom` and `joinRoom`.
+- `submitGuess` awards `100` if the guess matches and the participant's score is currently below `100`.
+- The cap at `100` means a second correct guess by the same player does not increase their score.
+- The drawer has no score changes in this scenario.
+- Scores are included in `toRoomSnapshot` via the participants array — the `Scoreboard` component reads `room.participants` from the store snapshot.
+
+---
+
+## Data Flow
+
+### Guess submission
+```
+GamePage (guesser only — drawer does not see GuessForm)
+  → GuessForm local state: guessText
+  → [trim guessText; if empty → "Guess cannot be empty", stop]
+  → onSubmit(trimmedText) callback from GamePage
+  → roomStore.submitGuess(trimmedText)
+  → POST /rooms/:code/guess  { participantId, text }
+  → backend:
+      trim + lowercase text
+      compare to currentWord.trim().toLowerCase()
+      isCorrect = match
+      if isCorrect && score < 100 → participant.score = 100
+      room.guesses.push({ ..., isCorrect, submittedAt })
+      save room
+  → response { room: RoomSnapshot }  (includes updated guesses + scores)
+  → roomStore.setRoomSnapshot(room)
+  → GuessForm clears input; all players see update on next poll
+```
+
+### GamePage polling
+```
+GamePage mounts
+  → useEffect starts setInterval(2000ms)
+    → roomStore.fetchRoom()
+    → GET /rooms/:code?participantId=<viewerId>
+    → toRoomSnapshot: includes guesses[], participants[].score
+    → roomStore.setRoomSnapshot(room)
+    → Scoreboard and ResultPanel re-render with latest data
+  → useEffect cleanup clears interval on unmount
+```
+
+### Drawing canvas (drawer only)
+```
+GamePage (isDrawer = true)
+  → renders <canvas> element with pointer event handlers
+  → drawer draws with mouse/pointer — state is local to the browser
+  → "Clear Canvas" button calls canvas.getContext("2d").clearRect(...)
+  → canvas state is never sent to the backend — no sync with guessers
+```
+
+---
+
+## Implementation Sequence
+
+### Step 1 — Backend: add `Guess` type and extend `Participant` and `Room` models
+- **File:** `backend/src/models/game.ts`
+- Add `score: number` to `Participant`.
+- Define and export `Guess` interface.
+- Add `guesses: Guess[]` to `Room`.
+- Add `guesses: Guess[]` to `RoomSnapshot`.
+- Verify: `npm run build` in `backend/` passes (service type errors expected — fixed in Step 2).
+
+### Step 2 — Backend: initialise score and guesses in room service
+- **File:** `backend/src/services/roomStore.ts`
+- In `createParticipant`: add `score: 0`.
+- In `createRoom`: add `guesses: []` to the room literal.
+- In `toRoomSnapshot`: add `score` to the participants map; add `guesses: room.guesses.map(g => ({ ...g }))`.
+- Verify: `npm run build` in `backend/` passes.
+
+### Step 3 — Backend: add `submitGuessSchema`
+- **File:** `backend/src/api/schemas.ts`
+- Add `submitGuessSchema = z.object({ participantId: z.string().min(1), text: z.string().trim().min(1, "Guess cannot be empty") })`.
+- Verify: `npm run build` in `backend/` passes.
+
+### Step 4 — Backend: add `submitGuess` service function
+- **File:** `backend/src/services/roomStore.ts`
+- Add exported `submitGuess(code, participantId, text)` function with all four validations and the scoring and storage logic.
+- Verify: `npm run build` in `backend/` passes.
+
+### Step 5 — Backend: add `POST /rooms/:code/guess` endpoint
+- **File:** `backend/src/api/rooms.ts`
+- Import `submitGuessSchema` and `submitGuess`.
+- Add the route handler with all guard clauses mapped to correct HTTP status codes.
+- Verify: `npm run build` in `backend/` passes.
+
+### Step 6 — Frontend: update types in `api.ts`
+- **File:** `frontend/src/services/api.ts`
+- Add `score: number` to the `Participant` interface.
+- Add `Guess` interface.
+- Add `guesses: Guess[]` to `RoomSnapshot`.
+- Add `submitGuess(code, participantId, text)` client method.
+- Verify: `npm run build` in `frontend/` passes.
+
+### Step 7 — Frontend: add `submitGuess` action to store
+- **File:** `frontend/src/state/roomStore.ts`
+- Add `submitGuess(text: string)` method that reads `room.code` and `participantId` from state, calls `api.submitGuess`, and calls `setRoomSnapshot` on success.
+- Verify: `npm run build` in `frontend/` passes.
+
+### Step 8 — Frontend: wire `GuessForm`
+- **File:** `frontend/src/components/GuessForm.tsx`
+- Add `onSubmit: (text: string) => Promise<void>` prop.
+- On submit: trim, reject empty with inline error, call `onSubmit`, clear input on success.
+- Verify: `npm run build` in `frontend/` passes.
+
+### Step 9 — Frontend: update `GamePage` — polling, drawer exclusion, canvas, callbacks
+- **File:** `frontend/src/pages/GamePage.tsx`
+- Add polling `useEffect` (same pattern as `LobbyPage`).
+- Render `GuessForm` only when `!isDrawer`; pass `onSubmit` callback that calls `roomStore.submitGuess`.
+- Drawer canvas area: replace the placeholder `<div>` with an HTML `<canvas>` element and pointer event handlers for drawing.
+- Add a "Clear Canvas" button visible only to the drawer.
+- Verify: `npm run build` in `frontend/` passes.
+
+### Step 10 — Frontend: update `Scoreboard`
+- **File:** `frontend/src/components/Scoreboard.tsx`
+- Accept `participants` as a prop (or read from the store directly).
+- Render each participant's name and score from the snapshot.
+- Verify: `npm run build` in `frontend/` passes.
+
+### Step 11 — Frontend: update `ResultPanel` with guess history
+- **File:** `frontend/src/components/ResultPanel.tsx`
+- Accept `guesses` as a prop (or read from the store directly).
+- Render each guess entry: guesser name, guess text, correct/incorrect label.
+- Verify: `npm run build` in `frontend/` passes.
+
+---
+
+## Files Touched
+
+| File | Change type |
+|---|---|
+| `backend/src/models/game.ts` | Modify — add `score` to `Participant`, new `Guess` type, `guesses` to `Room` and `RoomSnapshot` |
+| `backend/src/api/schemas.ts` | Modify — add `submitGuessSchema` |
+| `backend/src/services/roomStore.ts` | Modify — init `score` in `createParticipant`, `guesses` in `createRoom`, include both in `toRoomSnapshot`, add `submitGuess` |
+| `backend/src/api/rooms.ts` | Modify — add `POST /:code/guess` handler |
+| `frontend/src/services/api.ts` | Modify — add `score` to `Participant`, `Guess` type, `guesses` to `RoomSnapshot`, `submitGuess` method |
+| `frontend/src/state/roomStore.ts` | Modify — add `submitGuess` action |
+| `frontend/src/components/GuessForm.tsx` | Modify — add `onSubmit` prop, client-side validation, input clear on success |
+| `frontend/src/components/Scoreboard.tsx` | Modify — render real participant scores from snapshot |
+| `frontend/src/components/ResultPanel.tsx` | Modify — render real guess history from snapshot |
+| `frontend/src/pages/GamePage.tsx` | Modify — add polling, hide GuessForm from drawer, add canvas + clear button for drawer |
+
+No new files. No new libraries.
+
+---
+
+## Testing Strategy
+
+### Backend unit tests (`backend/src/services/roomStore.test.ts`)
+- `submitGuess`: room not found returns the not-found sentinel.
+- `submitGuess`: room not in "playing" status returns the not-in-progress sentinel.
+- `submitGuess`: unknown `participantId` returns the not-found sentinel.
+- `submitGuess`: drawer `participantId` returns the drawer sentinel.
+- `submitGuess`: correct guess (case-insensitive) sets `isCorrect: true` and awards 100 points.
+- `submitGuess`: incorrect guess sets `isCorrect: false` and does not change score.
+- `submitGuess`: second correct guess by same player does not raise score above 100.
+- `submitGuess`: guess is appended to `room.guesses` with correct fields.
+- `toRoomSnapshot`: participants include `score`.
+- `toRoomSnapshot`: `guesses` array is included and matches stored guesses.
+
+### Backend schema tests (`backend/src/api/schemas.test.ts`)
+- `submitGuessSchema`: empty `text` is rejected.
+- `submitGuessSchema`: whitespace-only `text` is rejected.
+- `submitGuessSchema`: `text` with surrounding spaces is trimmed and accepted.
+- `submitGuessSchema`: missing `participantId` is rejected.
+
+### Frontend service tests (`frontend/src/services/api.test.ts`)
+- `api.submitGuess`: makes a `POST` to `/rooms/:code/guess` with the correct body shape.
+
+---
+
+## Risks
+
+| Risk | Mitigation |
+|---|---|
+| Canvas drawing state is local to the drawer's browser — guessers cannot see the drawing | Accepted per the out-of-scope rule (no WebSockets). The spec says the drawing is visible "on the drawer's screen" which is satisfied. |
+| Polling from both `LobbyPage` and `GamePage` must not overlap | Each page manages its own `setInterval` within its own `useEffect`. Navigating from lobby to game runs the lobby cleanup before the game mounts. |
+| `submitGuess` response includes the full room snapshot — this doubles as an immediate update without waiting for the next poll | Intentional — the submitter sees their guess reflected immediately. Other players see it within ~2 seconds via polling. |
+| `GuessForm` needs a new `onSubmit` prop — it is currently rendered in `GamePage` without any prop | `GamePage` already holds `roomStore` and `participantId`. The callback is a one-liner defined in `GamePage` and passed down. |
+| `createParticipant` is a private function — adding `score: 0` there automatically covers both `createRoom` and `joinRoom` | Correct. Both functions call `createParticipant`. Initialising `score` there means no change is needed in `joinRoom` for the participant. |
+| A player submits a guess after navigating away from the game screen | Polling stops on unmount via cleanup. Any in-flight request will still complete but the response snapshot update is a no-op because the store update triggers no re-render on an unmounted component. |
+
+---
+
+---
+
+# Plan — Scenario 4: Result, Restart & Final Validation
+
+---
+
+## Findings
+
+### What exists and is relevant (post Scenario 3)
+
+| Area | File | Current behavior |
+|---|---|---|
+| RoomStatus type | `backend/src/models/game.ts` | `"lobby" \| "playing"`. No `"finished"` value. |
+| Room and RoomSnapshot | `backend/src/models/game.ts` | All needed fields exist: `status`, `hostId`, `drawerId`, `currentWord`, `guesses`, `participants` with `score`. No structural changes needed for Scenario 4. |
+| toRoomSnapshot | `backend/src/services/roomStore.ts` | Filters `currentWord` with `viewerParticipantId === room.drawerId ? room.currentWord : null`. This must be relaxed when status is `"finished"` — all players should see the word. |
+| submitGuess | `backend/src/services/roomStore.ts` | Returns `"not-playing"` when `room.status !== "playing"`. This correctly blocks guesses in `"finished"` state once the status is added. No change needed. |
+| Schemas | `backend/src/api/schemas.ts` | Has `startGameSchema = z.object({ participantId: z.string().min(1) })`. Both `endRound` and `restartGame` need the same shape — can reuse the existing schema or add named aliases. |
+| Rooms router | `backend/src/api/rooms.ts` | Five endpoints. No `POST /:code/end` or `POST /:code/restart`. |
+| Frontend status type | `frontend/src/services/api.ts` | `status: "lobby" \| "playing"`. No `"finished"`. |
+| Frontend api | `frontend/src/services/api.ts` | Has `createRoom`, `joinRoom`, `fetchRoom`, `startGame`, `submitGuess`. No `endRound` or `restartGame` methods. |
+| Frontend store | `frontend/src/state/roomStore.ts` | Has `createRoom`, `joinRoom`, `fetchRoom`, `startGame`, `submitGuess`. No `endRound` or `restartGame` actions. |
+| GamePage | `frontend/src/pages/GamePage.tsx` | Polls every 2s. Renders game content unconditionally when `room` is present. No status check that would switch to a result view. No "End Round" button. No navigation triggered by status change. |
+| LobbyPage | `frontend/src/pages/LobbyPage.tsx` | Polls every 2s. No check for `room.status === "playing"` — non-host players are never auto-navigated to `/game` after the host starts a game. This gap matters for Scenario 4 restart. |
+
+### What is missing
+
+1. **`"finished"` status** — `RoomStatus` has no `"finished"` value. The backend has no way to express a completed round.
+2. **`currentWord` visibility in finished state** — `toRoomSnapshot` always hides the word from non-drawers. In `"finished"` state, all players must see the correct word.
+3. **`endRound` service function** — no logic to transition a room from `"playing"` to `"finished"`.
+4. **`restartGame` service function** — no logic to reset a room back to `"lobby"` with players preserved and round state cleared.
+5. **`POST /rooms/:code/end` endpoint** — does not exist.
+6. **`POST /rooms/:code/restart` endpoint** — does not exist.
+7. **Frontend result view** — `GamePage` renders the same playing layout regardless of status. There is no result view showing the correct word, final scores, and guess history after the round ends.
+8. **"End Round" button in GamePage** — the host has no way to end the round from the UI.
+9. **"Play Again" button on result view** — the host has no way to restart from the UI.
+10. **Status-driven navigation in GamePage** — `GamePage` does not navigate to `/lobby` when `room.status` becomes `"lobby"` (required for the restart flow for non-host players).
+11. **Status-driven navigation in LobbyPage** — `LobbyPage` does not navigate to `/game` when `room.status` becomes `"playing"` (required so non-host players auto-join the game screen after start, and so all players reach the game screen after a restart that goes through lobby then triggers another start).
+
+---
+
+## State Model Changes
+
+### Backend — `backend/src/models/game.ts`
+
+```
+RoomStatus (before)                RoomStatus (after)
+──────────────────────────         ─────────────────────────────
+"lobby" | "playing"                "lobby" | "playing" | "finished"    ← NEW
+```
+
+No other model changes. `Room` and `RoomSnapshot` already carry all fields needed to display results: `currentWord`, `guesses`, and `participants` with `score`.
+
+### Frontend — `frontend/src/services/api.ts`
+
+```
+RoomSnapshot.status (before)       RoomSnapshot.status (after)
+──────────────────────────         ─────────────────────────────
+"lobby" | "playing"                "lobby" | "playing" | "finished"    ← NEW
+```
+
+---
+
+## Required API Changes
+
+### Modified: `toRoomSnapshot` — `backend/src/services/roomStore.ts`
+
+```
+currentWord (before):
+  viewerParticipantId === room.drawerId ? room.currentWord : null
+
+currentWord (after):
+  room.status === "finished" || viewerParticipantId === room.drawerId
+    ? room.currentWord
+    : null
+```
+
+In `"finished"` state the secret word is revealed to everyone. The existing filtering logic is preserved for the `"playing"` state.
+
+### New schemas — `backend/src/api/schemas.ts`
+
+Both new endpoints require only a `participantId` to identify the caller. The existing `startGameSchema` has the same shape. Two named exports are added for clarity:
+
+```
+endRoundSchema   = z.object({ participantId: z.string().min(1) })
+restartGameSchema = z.object({ participantId: z.string().min(1) })
+```
+
+### New service: `endRound(code, participantId)`
+
+- **File:** `backend/src/services/roomStore.ts`
+- Returns `null` if room not found.
+- Returns `"not-host"` if caller is not the host.
+- Returns `"not-playing"` if room status is not `"playing"`.
+- Sets `room.status = "playing"` → `"finished"`, saves, returns snapshot.
+- Response snapshot is called with the caller's `participantId` — but since the status is now `"finished"`, `toRoomSnapshot` exposes `currentWord` to all anyway.
+
+### New service: `restartGame(code, participantId)`
+
+- **File:** `backend/src/services/roomStore.ts`
+- Returns `null` if room not found.
+- Returns `"not-host"` if caller is not the host.
+- Returns `"not-finished"` if room status is not `"finished"`.
+- Resets the room in place: `status = "lobby"`, `drawerId = null`, `currentWord = null`, `guesses = []`, each participant's `score = 0`.
+- Room code, `hostId`, participants (names and ids) are preserved.
+- Saves and returns the updated snapshot.
+
+### New endpoint: `POST /rooms/:code/end`
+
+- Parses params with `roomCodeParamsSchema`, body with `endRoundSchema`.
+- Calls `endRound(code, participantId)`.
+- Returns 404 if room not found, 403 if not host, 422 if not in playing state.
+- Returns 200 with `{ room: snapshot }` on success.
+
+### New endpoint: `POST /rooms/:code/restart`
+
+- Parses params with `roomCodeParamsSchema`, body with `restartGameSchema`.
+- Calls `restartGame(code, participantId)`.
+- Returns 404 if room not found, 403 if not host, 422 if not in finished state.
+- Returns 200 with `{ room: snapshot }` on success.
+
+### New client methods — `frontend/src/services/api.ts`
+
+```
+endRound(code, participantId)   → POST /rooms/:code/end    { participantId }
+restartGame(code, participantId) → POST /rooms/:code/restart { participantId }
+```
+
+Both return `{ room: RoomSnapshot }`.
+
+---
+
+## Result State Flow
+
+```
+GamePage (host, status = "playing")
+  → "End Round" button visible only when isHost
+  → click "End Round" → roomStore.endRound()
+  → POST /rooms/:code/end  { participantId: hostId }
+  → endRound(): status = "finished", save
+  → toRoomSnapshot: currentWord visible to all
+  → response { room } — store updates snapshot
+  → room.status is now "finished"
+  → GamePage renders result view (conditional on status)
+  → polling delivers "finished" snapshot to all other players within ~2s
+  → all players see result view automatically
+```
+
+---
+
+## Restart Flow
+
+```
+GamePage result view (host, status = "finished")
+  → "Play Again" button visible only when isHost
+  → click "Play Again" → roomStore.restartGame()
+  → POST /rooms/:code/restart  { participantId: hostId }
+  → restartGame(): status = "lobby", drawerId = null,
+    currentWord = null, guesses = [], all scores = 0
+  → response { room } — store updates snapshot
+  → room.status is now "lobby"
+  → GamePage useEffect detects status === "lobby" → navigate("/lobby")
+  → non-host players: next poll returns status = "lobby"
+  → GamePage useEffect fires for each → navigate("/lobby")
+  → all players land on LobbyPage with same participants, zero scores
+```
+
+---
+
+## Status-Driven Navigation
+
+Both `GamePage` and `LobbyPage` need `useEffect` hooks that watch `room.status` and navigate based on status transitions. These replace the need for any page to manually navigate after an action — the store update from a poll or action response triggers the effect.
+
+### GamePage additions
+
+```
+useEffect(() => {
+  if (room?.status === "lobby") navigate("/lobby", { replace: true });
+}, [room?.status, navigate]);
+```
+
+This covers:
+- Host after restart (explicit navigate also fires, whichever is first is fine)
+- Non-host players after restart (status changes to "lobby" via polling)
+
+### LobbyPage addition
+
+```
+useEffect(() => {
+  if (room?.status === "playing") navigate("/game", { replace: true });
+}, [room?.status, navigate]);
+```
+
+This covers:
+- Non-host players after the host starts the game (lobby polling delivers "playing" status)
+- All players landing on the lobby after a restart — they stay there because status is "lobby"
+
+---
+
+## Data Flow
+
+### End round
+```
+GamePage (host, status = "playing")
+  → click "End Round"
+  → roomStore.endRound()
+  → POST /rooms/:code/end
+  → status becomes "finished", currentWord now visible to all
+  → store updates, GamePage re-renders result view immediately
+  → other players see result view via next poll (~2s)
+```
+
+### Result view polling
+```
+GamePage (status = "finished")
+  → polling continues every 2s (same useEffect)
+  → GET /rooms/:code?participantId=...
+  → toRoomSnapshot returns currentWord to all (status is "finished")
+  → result view refreshes — scores and guesses stable at this point
+```
+
+### Restart
+```
+GamePage result view (host)
+  → click "Play Again"
+  → roomStore.restartGame()
+  → POST /rooms/:code/restart
+  → room reset: status = "lobby", round fields cleared
+  → store updates snapshot
+  → GamePage status-navigation useEffect fires → navigate("/lobby")
+  → non-host players: poll returns status = "lobby" → same effect → navigate("/lobby")
+  → LobbyPage mounts, polling resumes for all players
+```
+
+### Non-host auto-navigation to game (gap fixed)
+```
+LobbyPage (non-host, status = "lobby")
+  → host clicks "Start Game" → status becomes "playing"
+  → non-host's next poll returns status = "playing"
+  → LobbyPage status-navigation useEffect fires → navigate("/game")
+  → GamePage mounts for non-host player
+```
+
+---
+
+## Implementation Sequence
+
+### Step 1 — Backend: expand RoomStatus
+- **File:** `backend/src/models/game.ts`
+- Add `"finished"` to `RoomStatus`.
+- Verify: `npm run build` in `backend/` passes.
+
+### Step 2 — Backend: update `toRoomSnapshot` for finished state
+- **File:** `backend/src/services/roomStore.ts`
+- Change `currentWord` filtering to also expose the word when `room.status === "finished"`.
+- Verify: `npm run build` in `backend/` passes.
+
+### Step 3 — Backend: add `endRoundSchema` and `restartGameSchema`
+- **File:** `backend/src/api/schemas.ts`
+- Add both schemas (both are `z.object({ participantId: z.string().min(1) })`).
+- Verify: `npm run build` in `backend/` passes.
+
+### Step 4 — Backend: add `endRound` service function
+- **File:** `backend/src/services/roomStore.ts`
+- Add exported `endRound(code, participantId)` with host check, status check, and transition to `"finished"`.
+- Verify: `npm run build` in `backend/` passes.
+
+### Step 5 — Backend: add `restartGame` service function
+- **File:** `backend/src/services/roomStore.ts`
+- Add exported `restartGame(code, participantId)` with host check, status check, and full round-state reset.
+- Verify: `npm run build` in `backend/` passes.
+
+### Step 6 — Backend: add `POST /rooms/:code/end` and `POST /rooms/:code/restart` handlers
+- **File:** `backend/src/api/rooms.ts`
+- Add both route handlers using the new schemas and service functions.
+- Verify: `npm run build` in `backend/` passes.
+
+### Step 7 — Frontend: expand status type and add client methods
+- **File:** `frontend/src/services/api.ts`
+- Add `"finished"` to `status` in `RoomSnapshot`.
+- Add `endRound(code, participantId)` and `restartGame(code, participantId)` to the `api` object.
+- Verify: `npm run build` in `frontend/` passes.
+
+### Step 8 — Frontend: add `endRound` and `restartGame` store actions
+- **File:** `frontend/src/state/roomStore.ts`
+- Add `endRound()` and `restartGame()` methods following the same `withLoading` pattern as `startGame`.
+- Verify: `npm run build` in `frontend/` passes.
+
+### Step 9 — Frontend: update `GamePage` — result view, End Round, status navigation
+- **File:** `frontend/src/pages/GamePage.tsx`
+- Add `useEffect` that navigates to `/lobby` when `room.status === "lobby"`.
+- When `room.status === "finished"`: render a result view showing correct word, final scores, full guess history, and "Play Again" button for host only.
+- When `room.status === "playing"`: render the existing playing layout, plus "End Round" button for host only.
+- Verify: `npm run build` in `frontend/` passes.
+
+### Step 10 — Frontend: update `LobbyPage` — auto-navigate to game on status change
+- **File:** `frontend/src/pages/LobbyPage.tsx`
+- Add `useEffect` that navigates to `/game` when `room.status === "playing"`.
+- Verify: `npm run build` in `frontend/` passes.
+
+---
+
+## Files Touched
+
+| File | Change type |
+|---|---|
+| `backend/src/models/game.ts` | Modify — add `"finished"` to `RoomStatus` |
+| `backend/src/api/schemas.ts` | Modify — add `endRoundSchema` and `restartGameSchema` |
+| `backend/src/services/roomStore.ts` | Modify — update `toRoomSnapshot`, add `endRound`, add `restartGame` |
+| `backend/src/api/rooms.ts` | Modify — add `POST /:code/end` and `POST /:code/restart` handlers |
+| `frontend/src/services/api.ts` | Modify — add `"finished"` to status, add `endRound` and `restartGame` methods |
+| `frontend/src/state/roomStore.ts` | Modify — add `endRound` and `restartGame` actions |
+| `frontend/src/pages/GamePage.tsx` | Modify — result view, End Round button, Play Again button, status navigation |
+| `frontend/src/pages/LobbyPage.tsx` | Modify — auto-navigate to game when status becomes "playing" |
+
+No new files. No new libraries.
+
+---
+
+## Testing Strategy
+
+### Backend unit tests (`backend/src/services/roomStore.test.ts`)
+- `endRound`: room not found returns null.
+- `endRound`: non-host returns `"not-host"`.
+- `endRound`: room not in "playing" returns `"not-playing"`.
+- `endRound`: success sets status to `"finished"` and returns snapshot.
+- `restartGame`: room not found returns null.
+- `restartGame`: non-host returns `"not-host"`.
+- `restartGame`: room not in "finished" returns `"not-finished"`.
+- `restartGame`: success sets status to `"lobby"`, clears `drawerId`, `currentWord`, `guesses`, and all participant scores.
+- `restartGame`: participants (names, ids) are preserved after restart.
+- `toRoomSnapshot`: in `"finished"` status, `currentWord` is returned for all viewers regardless of `viewerParticipantId`.
+- `toRoomSnapshot`: in `"playing"` status, `currentWord` is still hidden from non-drawers.
+
+### Backend schema tests (`backend/src/api/schemas.test.ts`)
+- `endRoundSchema`: missing `participantId` is rejected.
+- `restartGameSchema`: missing `participantId` is rejected.
+
+### Frontend service tests (`frontend/src/services/api.test.ts`)
+- `api.endRound`: makes a `POST` to `/rooms/:code/end` with `{ participantId }`.
+- `api.restartGame`: makes a `POST` to `/rooms/:code/restart` with `{ participantId }`.
+
+---
+
+## Risks
+
+| Risk | Mitigation |
+|---|---|
+| Status-navigation effects in `LobbyPage` and `GamePage` could create navigation loops | The effects are guarded by specific status values. `LobbyPage` navigates only when `"playing"`, `GamePage` navigates only when `"lobby"`. Neither fires on its target page's expected status, so no loop is possible. |
+| Non-host players on `GamePage` receive `status = "lobby"` from a poll mid-restart before they navigate — stale render | The navigation effect fires immediately when the store update delivers `"lobby"`. At worst the result view renders one extra frame. |
+| `restartGame` must reset all participant scores — mutating participants directly on the stored room object | `structuredClone` in `cloneRoom` is used for all returns, so the mutation is safe on the live object before cloning. The pattern is identical to how `submitGuess` mutates participant scores. |
+| Guess submissions arriving between the host clicking "End Round" and the backend saving `"finished"` status | Unlikely but possible with concurrent tabs. The `endRound` handler runs synchronously in Node's event loop. Any guess request that arrives after the status is set will receive `"not-playing"`. Any that arrived before will be processed before `endRound` runs. No data loss. |
+| `toRoomSnapshot` change to expose word in `"finished"` state affects all five endpoints | Intended. All endpoints call `toRoomSnapshot`. In lobby state `currentWord` is null anyway, so the condition `room.status === "finished"` is safely a no-op for lobby snapshots. |
