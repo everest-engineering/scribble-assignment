@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import type { Participant, Room, RoomSnapshot } from "../models/game.js";
+import type { Guess, Participant, Room, RoomSnapshot, Score } from "../models/game.js";
 import { STARTER_ROLES, STARTER_WORDS } from "../seed/starterData.js";
 
 const rooms = new Map<string, Room>();
@@ -56,6 +56,7 @@ export function createRoom(playerName?: string) {
     status: "lobby",
     hostId: participant.id,
     participants: [participant],
+    guesses: [],
     createdAt: now(),
     updatedAt: now()
   };
@@ -122,8 +123,47 @@ export function startRoom(
   return { room: toRoomSnapshot(cloneRoom(room)) };
 }
 
+export function submitGuess(
+  code: string,
+  guesserId: string,
+  rawText: string
+): { error: "not_found" | "not_active" } | { guess: Guess } {
+  const room = rooms.get(code);
+
+  if (!room) {
+    return { error: "not_found" };
+  }
+
+  if (room.status !== "active") {
+    return { error: "not_active" };
+  }
+
+  const text = rawText.trim();
+  const secretWord = STARTER_WORDS[0];
+  const isCorrect = text.toLowerCase() === secretWord.toLowerCase();
+
+  const guess: Guess = {
+    id: randomUUID(),
+    guesserId,
+    text,
+    isCorrect,
+    submittedAt: now()
+  };
+
+  room.guesses.push(guess);
+  saveRoom(room);
+
+  return { guess };
+}
+
 export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSnapshot {
   void viewerParticipantId;
+
+  const guesses = (room.guesses ?? []).map((g) => ({ ...g }));
+  const scores: Score[] = room.participants.map((p) => ({
+    participantId: p.id,
+    score: guesses.filter((g) => g.guesserId === p.id && g.isCorrect).length * 100
+  }));
 
   return {
     code: room.code,
@@ -131,6 +171,8 @@ export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSn
     hostId: room.hostId,
     participants: room.participants.map((participant) => ({ ...participant })),
     availableWords: listWords(),
-    roles: [...STARTER_ROLES]
+    roles: [...STARTER_ROLES],
+    guesses,
+    scores
   };
 }

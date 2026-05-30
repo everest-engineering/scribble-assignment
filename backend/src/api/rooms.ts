@@ -5,9 +5,10 @@ import {
   joinRoomSchema,
   roomCodeParamsSchema,
   roomViewerQuerySchema,
-  startRoomBodySchema
+  startRoomBodySchema,
+  submitGuessSchema
 } from "./schemas.js";
-import { createRoom, getRoom, joinRoom, startRoom, toRoomSnapshot } from "../services/roomStore.js";
+import { createRoom, getRoom, joinRoom, startRoom, submitGuess, toRoomSnapshot } from "../services/roomStore.js";
 
 export function createRoomsRouter() {
   const router = Router();
@@ -76,6 +77,23 @@ export function createRoomsRouter() {
       }
 
       response.json({ room: (result as { room: ReturnType<typeof toRoomSnapshot> }).room });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/:code/guesses", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { guesserId, text } = submitGuessSchema.parse(request.body);
+      const result = submitGuess(code.toUpperCase(), guesserId, text);
+
+      if ("error" in result) {
+        if (result.error === "not_found") throw new HttpError(404, "Room not found");
+        throw new HttpError(409, "Game is not active");
+      }
+
+      response.status(201).json({ guess: result.guess });
     } catch (error) {
       next(error);
     }

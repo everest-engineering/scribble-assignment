@@ -1,14 +1,16 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card } from "../components/Card";
+import { DrawingCanvas } from "../components/DrawingCanvas";
 import { GuessForm } from "../components/GuessForm";
 import { ResultPanel } from "../components/ResultPanel";
 import { RoomCodeBadge } from "../components/RoomCodeBadge";
 import { Scoreboard } from "../components/Scoreboard";
-import { useRoomState } from "../state/roomStore";
+import { useRoomState, useRoomStore } from "../state/roomStore";
 
 export function GamePage() {
   const navigate = useNavigate();
+  const store = useRoomStore();
   const { room, participantId } = useRoomState();
 
   useEffect(() => {
@@ -16,6 +18,13 @@ export function GamePage() {
       navigate("/", { replace: true });
     }
   }, [navigate, room]);
+
+  useEffect(() => {
+    const id = setInterval(() => {
+      store.fetchRoom();
+    }, 2000);
+    return () => clearInterval(id);
+  }, [store]);
 
   if (!room) {
     return null;
@@ -44,13 +53,8 @@ export function GamePage() {
 
         <div className="game-page__main">
           {isDrawer ? (
-            <Card title="Word to Draw">
-              <p style={{ fontSize: '2rem', fontWeight: 700, textAlign: 'center', padding: '16px 0', letterSpacing: '0.05em' }}>
-                {secretWord}
-              </p>
-              <p style={{ textAlign: 'center', color: '#6b7280', fontSize: '0.875rem' }}>
-                Draw this word — don't say it out loud!
-              </p>
+            <Card title={`Draw: ${secretWord}`}>
+              <DrawingCanvas />
             </Card>
           ) : (
             <Card title="Canvas">
