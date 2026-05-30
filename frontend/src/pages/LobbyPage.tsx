@@ -1,15 +1,17 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card } from "../components/Card";
 import { PageHeader } from "../components/PageHeader";
 import { RoomCodeBadge } from "../components/RoomCodeBadge";
 import { useRoomState, useRoomStore } from "../state/roomStore";
 
+const POLL_INTERVAL_MS = 2000;
+
 export function LobbyPage() {
   const navigate = useNavigate();
   const roomStore = useRoomStore();
-  const { room, error, isLoading } = useRoomState();
-  const [refreshError, setRefreshError] = useState<string | null>(null);
+  const { room, participantId, isLoading } = useRoomState();
+  const navigatingRef = useRef(false);
 
   useEffect(() => {
     if (!room) {
@@ -17,17 +19,39 @@ export function LobbyPage() {
     }
   }, [navigate, room]);
 
-  async function handleRefresh() {
-    try {
-      setRefreshError(null);
-      await roomStore.fetchRoom();
-    } catch (caughtError) {
-      setRefreshError(caughtError instanceof Error ? caughtError.message : "Unable to refresh room");
-    }
-  }
+  useEffect(() => {
+    if (!room) return;
+
+    const intervalId = setInterval(async () => {
+      try {
+        const updated = await roomStore.fetchRoom();
+        if (updated?.status === "active" && !navigatingRef.current) {
+          navigatingRef.current = true;
+          navigate("/game", { replace: true });
+        }
+      } catch {
+        // swallow poll errors — a briefly stale list is acceptable
+      }
+    }, POLL_INTERVAL_MS);
+
+    return () => clearInterval(intervalId);
+  }, [navigate, room, roomStore]);
 
   if (!room) {
     return null;
+  }
+
+  const isHost = participantId === room.hostId;
+  const canStart = room.participants.length >= 2;
+
+  async function handleStartGame() {
+    if (!room || !participantId) return;
+    try {
+      await roomStore.startRoom();
+      navigate("/game", { replace: true });
+    } catch {
+      // error is reflected in roomStore state
+    }
   }
 
   return (
@@ -50,7 +74,9 @@ export function LobbyPage() {
               {room.participants.map((participant) => (
                 <li key={participant.id}>
                   <span>{participant.name}</span>
-                  <span className="player-list__meta">joined</span>
+                  <span className="player-list__meta">
+                    {participant.id === room.hostId ? "host" : "joined"}
+                  </span>
                 </li>
               ))}
             </ul>
@@ -61,17 +87,29 @@ export function LobbyPage() {
           <p className="status-line" style={{ backgroundColor: isLoading ? '#fef3c7' : '#e0e7ff', color: isLoading ? '#b45309' : '#3730a3' }}>
             {isLoading ? "Refreshing players..." : "Ready to play"}
           </p>
-          <p style={{ marginTop: '8px' }}>{error ?? refreshError ?? "Waiting for the host to start the game."}</p>
+          {!canStart && isHost && (
+            <p style={{ marginTop: '8px' }}>At least 2 players are needed to start.</p>
+          )}
+          {!isHost && (
+            <p style={{ marginTop: '8px' }}>Waiting for the host to start the game.</p>
+          )}
         </Card>
       </div>
 
       <div className="button-row button-row--spread">
-        <button className="button button--secondary" disabled={isLoading} onClick={handleRefresh}>
-          {isLoading ? "Refreshing..." : "Refresh Room"}
-        </button>
-        <button className="button button--primary" onClick={() => navigate("/game")}>
-          Start Game
-        </button>
+        {isHost ? (
+          <button
+            className="button button--primary"
+            onClick={handleStartGame}
+            disabled={!canStart || isLoading}
+          >
+            Start Game
+          </button>
+        ) : (
+          <p className="status-line" style={{ backgroundColor: '#f0fdf4', color: '#166534' }}>
+            Waiting for host to start…
+          </p>
+        )}
       </div>
     </section>
   );
