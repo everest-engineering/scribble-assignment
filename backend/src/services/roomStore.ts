@@ -93,6 +93,24 @@ export function saveRoom(room: Room) {
   return getRoom(room.code);
 }
 
+export function startRoom(code: string, participantId: string) {
+  const room = rooms.get(code);
+
+  if (!room) {
+    return null;
+  }
+
+  if (participantId !== room.hostId) {
+    throw new Error("Only the host can start the game");
+  }
+
+  if (room.participants.length < 2) {
+    throw new Error("Need at least 2 players to start");
+  }
+
+  return saveRoom({ ...room, status: "game" });
+}
+
 export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSnapshot {
   void viewerParticipantId;
 

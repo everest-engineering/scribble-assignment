@@ -108,15 +108,15 @@ disabled. Confirm host clicking Start Game navigates both tabs to `/game`.
 
 ### Implementation for User Story 4 — Backend
 
-- [ ] T009 Add `startRoomSchema` (`participantId: z.string().trim().min(1)`) to `backend/src/api/schemas.ts`
-- [ ] T010 Add `startRoom(code, participantId)` service function to `backend/src/services/roomStore.ts` — returns 404/403/400 signals and sets `status: "game"` on success
-- [ ] T011 Add `POST /:code/start` route using `startRoomSchema` and `startRoom()` in `backend/src/api/rooms.ts` (depends on T010)
+- [x] T009 Add `startRoomSchema` (`participantId: z.string().trim().min(1)`) to `backend/src/api/schemas.ts`
+- [x] T010 Add `startRoom(code, participantId)` service function to `backend/src/services/roomStore.ts` — returns 404/403/400 signals and sets `status: "game"` on success
+- [x] T011 Add `POST /:code/start` route using `startRoomSchema` and `startRoom()` in `backend/src/api/rooms.ts` (depends on T010)
 
 ### Implementation for User Story 4 — Frontend
 
-- [ ] T012 [P] Add `api.startGame(code: string, participantId: string)` calling `POST /rooms/:code/start` in `frontend/src/services/api.ts`
-- [ ] T013 Add `startGame()` action to `RoomStore` using `api.startGame()` with `withLoading` wrapper in `frontend/src/state/roomStore.ts` (depends on T012)
-- [ ] T014 Update `frontend/src/pages/LobbyPage.tsx`: derive `isHost = room.hostId === participantId`; render Start Game button only for host; disable when `participants.length < 2` with "Need at least 2 players" hint; wire `handleStartGame()`; navigate to `/game` when poll detects `status === "game"` (depends on T013)
+- [x] T012 [P] Add `api.startGame(code: string, participantId: string)` calling `POST /rooms/:code/start` in `frontend/src/services/api.ts`
+- [x] T013 Add `startGame()` action to `RoomStore` using `api.startGame()` with `withLoading` wrapper in `frontend/src/state/roomStore.ts` (depends on T012)
+- [x] T014 Update `frontend/src/pages/LobbyPage.tsx`: derive `isHost = room.hostId === participantId`; render Start Game button only for host; disable when `participants.length < 2` with "Need at least 2 players" hint; wire `handleStartGame()`; navigate to `/game` when poll detects `status === "game"` (depends on T013)
 
 **Checkpoint**: Host-only Start Game works end to end. Both tabs navigate to Game screen on start.
 
