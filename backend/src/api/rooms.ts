@@ -5,9 +5,10 @@ import {
   joinRoomSchema,
   roomCodeParamsSchema,
   roomViewerQuerySchema,
-  startRoomSchema
+  startRoomSchema,
+  submitGuessSchema
 } from "./schemas.js";
-import { createRoom, getRoom, joinRoom, startRoom, toRoomSnapshot } from "../services/roomStore.js";
+import { createRoom, getRoom, joinRoom, startRoom, submitGuess, toRoomSnapshot } from "../services/roomStore.js";
 
 export function createRoomsRouter() {
   const router = Router();
@@ -84,6 +85,39 @@ export function createRoomsRouter() {
         }
         if (error.message === "Need at least 2 players to start") {
           return next(new HttpError(400, error.message));
+        }
+      }
+      next(error);
+    }
+  });
+
+  router.post("/:code/guesses", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId, text } = submitGuessSchema.parse(request.body);
+      const room = submitGuess(code.toUpperCase(), participantId, text);
+
+      if (!room) {
+        throw new HttpError(404, "Room not found");
+      }
+
+      response.json({ room: toRoomSnapshot(room, participantId) });
+    } catch (error) {
+      if (error instanceof HttpError) {
+        return next(error);
+      }
+      if (error instanceof Error) {
+        if (error.message === "Guess cannot be empty") {
+          return next(new HttpError(400, error.message));
+        }
+        if (error.message === "Drawer cannot submit guesses") {
+          return next(new HttpError(403, error.message));
+        }
+        if (error.message === "Game is not active") {
+          return next(new HttpError(400, error.message));
+        }
+        if (error.message === "Participant not found") {
+          return next(new HttpError(404, error.message));
         }
       }
       next(error);

@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import type { Participant, Room, RoomSnapshot } from "../models/game.js";
+import type { Guess, Participant, Room, RoomSnapshot } from "../models/game.js";
 import { STARTER_ROLES, STARTER_WORDS } from "../seed/starterData.js";
 
 const rooms = new Map<string, Room>();
@@ -52,6 +52,8 @@ export function createRoom(playerName: string) {
     hostId: participant.id,
     drawerId: null,
     secretWord: null,
+    guesses: [],
+    scores: {},
     status: "lobby",
     participants: [participant],
     createdAt: now(),
@@ -110,7 +112,61 @@ export function startRoom(code: string, participantId: string) {
     throw new Error("Need at least 2 players to start");
   }
 
-  return saveRoom({ ...room, status: "game", drawerId: room.hostId, secretWord: STARTER_WORDS[0] });
+  return saveRoom({
+    ...room,
+    status: "game",
+    drawerId: room.hostId,
+    secretWord: STARTER_WORDS[0],
+    guesses: [],
+    scores: Object.fromEntries(room.participants.map((p) => [p.id, 0]))
+  });
+}
+
+export function submitGuess(code: string, participantId: string, text: string) {
+  const room = rooms.get(code);
+
+  if (!room) {
+    return null;
+  }
+
+  if (room.status !== "game") {
+    throw new Error("Game is not active");
+  }
+
+  if (participantId === room.drawerId) {
+    throw new Error("Drawer cannot submit guesses");
+  }
+
+  const trimmed = text.trim();
+
+  if (!trimmed) {
+    throw new Error("Guess cannot be empty");
+  }
+
+  const participant = room.participants.find((p) => p.id === participantId);
+
+  if (!participant) {
+    throw new Error("Participant not found");
+  }
+
+  const isCorrect = trimmed.toLowerCase() === (room.secretWord ?? "").toLowerCase();
+  const guess: Guess = {
+    id: randomUUID(),
+    participantId,
+    participantName: participant.name,
+    text: trimmed,
+    isCorrect,
+    submittedAt: now()
+  };
+
+  const pointsEarned = isCorrect ? 100 : 0;
+  const currentScore = room.scores[participantId] ?? 0;
+
+  return saveRoom({
+    ...room,
+    guesses: [...room.guesses, guess],
+    scores: { ...room.scores, [participantId]: currentScore + pointsEarned }
+  });
 }
 
 export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSnapshot {
@@ -122,6 +178,8 @@ export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSn
     hostId: room.hostId,
     drawerId: room.drawerId,
     ...(isDrawer && room.secretWord ? { secretWord: room.secretWord } : {}),
+    guesses: room.guesses.map((g) => ({ ...g })),
+    scores: { ...room.scores },
     status: room.status,
     participants: room.participants.map((participant) => ({ ...participant })),
     availableWords: listWords(),
