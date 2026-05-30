@@ -1,14 +1,15 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card } from "../components/Card";
 import { GuessForm } from "../components/GuessForm";
 import { ResultPanel } from "../components/ResultPanel";
 import { RoomCodeBadge } from "../components/RoomCodeBadge";
 import { Scoreboard } from "../components/Scoreboard";
-import { useRoomState } from "../state/roomStore";
+import { useRoomState, useRoomStore } from "../state/roomStore";
 
 export function GamePage() {
   const navigate = useNavigate();
+  const roomStore = useRoomStore();
   const { room, participantId } = useRoomState();
 
   useEffect(() => {
@@ -22,12 +23,28 @@ export function GamePage() {
   }
 
   const viewer = room.participants.find((participant) => participant.id === participantId) ?? null;
+  const [lines, setLines] = useState<string[]>(room.canvasLines ?? []);
 
+  async function handleDraw() {
+    const nextLines = [...lines, `Line ${lines.length + 1}`];
+
+    setLines(nextLines);
+
+    await roomStore.saveCanvas(nextLines);
+  }
+
+  async function handleClearCanvas() {
+    setLines([]);
+
+    await roomStore.saveCanvas([]);
+  }
   const isDrawer = viewer?.role === "drawer";
 
   const drawer = room.participants.find(
     (participant) => participant.id === room.currentDrawerId
   );
+  
+
 
   return (
     <section className="panel game-page">
@@ -45,13 +62,48 @@ export function GamePage() {
           <ResultPanel />
         </aside>
 
-          <div className="game-page__main">
+        <div className="game-page__main">
           <Card title="Canvas">
             <p style={{ marginBottom: "12px", fontWeight: "bold" }}>
               Drawer: {drawer?.name ?? "Unknown"}
             </p>
-            <div className="canvas-placeholder" style={{ minHeight: '500px', backgroundColor: '#ffffff', border: '1px solid #e5e7eb' }}>
-              Waiting for drawer...
+            <div
+              className="canvas-placeholder"
+              style={{
+                minHeight: "500px",
+                backgroundColor: "#ffffff",
+                border: "1px solid #e5e7eb",
+                padding: "16px"
+              }}
+            >
+              {lines.length === 0 ? (
+                <p>Waiting for drawing...</p>
+              ) : (
+                <ul>
+                  {lines.map((line, index) => (
+                    <li key={index}>{line}</li>
+                  ))}
+                </ul>
+              )}
+
+              {isDrawer && (
+                <div style={{ marginTop: "16px" }}>
+                  <button
+                    className="button button--primary"
+                    onClick={handleDraw}
+                  >
+                    Draw Line
+                  </button>
+
+                  <button
+                    className="button button--secondary"
+                    style={{ marginLeft: "8px" }}
+                    onClick={handleClearCanvas}
+                  >
+                  Clear Canvas
+                </button>
+                </div>
+              )}
             </div>
           </Card>
         </div>
