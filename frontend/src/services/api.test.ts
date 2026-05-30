@@ -1,6 +1,41 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { api } from "./api";
 
+function createPlayingSnapshot(overrides: Record<string, unknown> = {}) {
+  return {
+    code: "ABCD",
+    status: "playing",
+    hostParticipantId: "p1",
+    participants: [
+      {
+        id: "p1",
+        name: "Alice",
+        joinedAt: "2026-05-30T12:00:00.000Z",
+        score: 0
+      },
+      {
+        id: "p2",
+        name: "Bob",
+        joinedAt: "2026-05-30T12:00:01.000Z",
+        score: 0
+      }
+    ],
+    viewerIsHost: false,
+    canStartGame: false,
+    minimumPlayersToStart: 2,
+    drawerParticipantId: "p1",
+    viewerIsDrawer: false,
+    viewerCanDraw: false,
+    viewerCanGuess: true,
+    wordVisibility: "hidden",
+    canvas: {
+      strokes: []
+    },
+    guessHistory: [],
+    ...overrides
+  };
+}
+
 describe("api service", () => {
   beforeEach(() => {
     vi.stubGlobal("fetch", vi.fn());
@@ -20,9 +55,11 @@ describe("api service", () => {
             viewerIsHost: true,
             canStartGame: false,
             minimumPlayersToStart: 2,
-            viewerIsDrawer: false
-          },
-        }),
+            viewerIsDrawer: false,
+            viewerCanDraw: false,
+            viewerCanGuess: false
+          }
+        })
     };
     vi.mocked(fetch).mockResolvedValue(mockResponse as unknown as Response);
 
@@ -32,7 +69,7 @@ describe("api service", () => {
       expect.stringContaining("/rooms"),
       expect.objectContaining({
         method: "POST",
-        body: JSON.stringify({ playerName: "Alice" }),
+        body: JSON.stringify({ playerName: "Alice" })
       })
     );
   });
@@ -50,9 +87,11 @@ describe("api service", () => {
             viewerIsHost: true,
             canStartGame: false,
             minimumPlayersToStart: 2,
-            viewerIsDrawer: false
-          },
-        }),
+            viewerIsDrawer: false,
+            viewerCanDraw: false,
+            viewerCanGuess: false
+          }
+        })
     };
     vi.mocked(fetch).mockResolvedValue(mockResponse as unknown as Response);
 
@@ -78,9 +117,11 @@ describe("api service", () => {
             viewerIsHost: false,
             canStartGame: false,
             minimumPlayersToStart: 2,
-            viewerIsDrawer: false
+            viewerIsDrawer: false,
+            viewerCanDraw: false,
+            viewerCanGuess: false
           }
-        }),
+        })
     };
     vi.mocked(fetch).mockResolvedValue(mockResponse as unknown as Response);
 
@@ -90,7 +131,7 @@ describe("api service", () => {
       expect.stringContaining("/rooms/ABCD/join"),
       expect.objectContaining({
         method: "POST",
-        body: JSON.stringify({ playerName: "Bob" }),
+        body: JSON.stringify({ playerName: "Bob" })
       })
     );
   });
@@ -100,20 +141,15 @@ describe("api service", () => {
       ok: true,
       json: () =>
         Promise.resolve({
-          room: {
-            code: "ABCD",
-            status: "playing",
-            hostParticipantId: "p1",
-            participants: [],
+          room: createPlayingSnapshot({
             viewerIsHost: true,
-            canStartGame: false,
-            minimumPlayersToStart: 2,
-            drawerParticipantId: "p1",
             viewerIsDrawer: true,
+            viewerCanDraw: true,
+            viewerCanGuess: false,
             wordVisibility: "visible",
             secretWord: "rocket"
-          }
-        }),
+          })
+        })
     };
     vi.mocked(fetch).mockResolvedValue(mockResponse as unknown as Response);
 
@@ -123,29 +159,165 @@ describe("api service", () => {
       expect.stringContaining("/rooms/ABCD/start"),
       expect.objectContaining({
         method: "POST",
-        body: JSON.stringify({ participantId: "p1" }),
+        body: JSON.stringify({ participantId: "p1" })
       })
     );
   });
 
-  it("fetchRoom supports polling a viewer-specific playing room snapshot", async () => {
+  it("drawStroke sends POST to /rooms/:code/drawing with normalized points", async () => {
     const mockResponse = {
       ok: true,
       json: () =>
         Promise.resolve({
-          room: {
-            code: "ABCD",
-            status: "playing",
-            hostParticipantId: "p1",
-            participants: [],
-            viewerIsHost: false,
-            canStartGame: false,
-            minimumPlayersToStart: 2,
-            drawerParticipantId: "p1",
-            viewerIsDrawer: false,
-            wordVisibility: "hidden"
-          }
-        }),
+          room: createPlayingSnapshot({
+            viewerIsHost: true,
+            viewerIsDrawer: true,
+            viewerCanDraw: true,
+            viewerCanGuess: false,
+            canvas: {
+              strokes: [
+                {
+                  id: "stroke-1",
+                  drawnByParticipantId: "p1",
+                  createdAt: "2026-05-30T12:01:00.000Z",
+                  points: [
+                    { x: 0.1, y: 0.1 },
+                    { x: 0.3, y: 0.3 }
+                  ]
+                }
+              ]
+            }
+          })
+        })
+    };
+    vi.mocked(fetch).mockResolvedValue(mockResponse as unknown as Response);
+
+    await api.drawStroke("ABCD", "p1", [
+      { x: 0.1, y: 0.1 },
+      { x: 0.3, y: 0.3 }
+    ]);
+
+    expect(fetch).toHaveBeenCalledWith(
+      expect.stringContaining("/rooms/ABCD/drawing"),
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({
+          participantId: "p1",
+          points: [
+            { x: 0.1, y: 0.1 },
+            { x: 0.3, y: 0.3 }
+          ]
+        })
+      })
+    );
+  });
+
+  it("clearCanvas sends POST to /rooms/:code/drawing/clear with participantId in body", async () => {
+    const mockResponse = {
+      ok: true,
+      json: () =>
+        Promise.resolve({
+          room: createPlayingSnapshot({
+            viewerIsHost: true,
+            viewerIsDrawer: true,
+            viewerCanDraw: true,
+            viewerCanGuess: false,
+            canvas: {
+              strokes: [],
+              clearedAt: "2026-05-30T12:02:00.000Z"
+            }
+          })
+        })
+    };
+    vi.mocked(fetch).mockResolvedValue(mockResponse as unknown as Response);
+
+    await api.clearCanvas("ABCD", "p1");
+
+    expect(fetch).toHaveBeenCalledWith(
+      expect.stringContaining("/rooms/ABCD/drawing/clear"),
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({ participantId: "p1" })
+      })
+    );
+  });
+
+  it("submitGuess sends POST to /rooms/:code/guesses with guess text in body", async () => {
+    const mockResponse = {
+      ok: true,
+      json: () =>
+        Promise.resolve({
+          room: createPlayingSnapshot({
+            guessHistory: [
+              {
+                id: "guess-1",
+                participantId: "p2",
+                participantName: "Bob",
+                guess: "Rocket",
+                isCorrect: true,
+                scoreAwarded: 100,
+                submittedAt: "2026-05-30T12:03:00.000Z"
+              }
+            ],
+            participants: [
+              {
+                id: "p1",
+                name: "Alice",
+                joinedAt: "2026-05-30T12:00:00.000Z",
+                score: 0
+              },
+              {
+                id: "p2",
+                name: "Bob",
+                joinedAt: "2026-05-30T12:00:01.000Z",
+                score: 100
+              }
+            ]
+          })
+        })
+    };
+    vi.mocked(fetch).mockResolvedValue(mockResponse as unknown as Response);
+
+    await api.submitGuess("ABCD", "p2", "Rocket");
+
+    expect(fetch).toHaveBeenCalledWith(
+      expect.stringContaining("/rooms/ABCD/guesses"),
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({ participantId: "p2", guess: "Rocket" })
+      })
+    );
+  });
+
+  it("fetchRoom supports polling a gameplay snapshot with canvas and guess history", async () => {
+    const mockResponse = {
+      ok: true,
+      json: () =>
+        Promise.resolve({
+          room: createPlayingSnapshot({
+            canvas: {
+              strokes: [
+                {
+                  id: "stroke-1",
+                  drawnByParticipantId: "p1",
+                  createdAt: "2026-05-30T12:01:00.000Z",
+                  points: [{ x: 0.2, y: 0.4 }]
+                }
+              ]
+            },
+            guessHistory: [
+              {
+                id: "guess-1",
+                participantId: "p2",
+                participantName: "Bob",
+                guess: "wrong",
+                isCorrect: false,
+                scoreAwarded: 0,
+                submittedAt: "2026-05-30T12:03:00.000Z"
+              }
+            ]
+          })
+        })
     };
     vi.mocked(fetch).mockResolvedValue(mockResponse as unknown as Response);
 
@@ -153,6 +325,8 @@ describe("api service", () => {
 
     expect(response.room.status).toBe("playing");
     expect(response.room.viewerIsDrawer).toBe(false);
+    expect(response.room.canvas?.strokes).toHaveLength(1);
+    expect(response.room.guessHistory?.[0].scoreAwarded).toBe(0);
     expect(response.room.secretWord).toBeUndefined();
   });
 });

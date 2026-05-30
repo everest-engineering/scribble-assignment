@@ -1,13 +1,16 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card } from "../components/Card";
+import { DrawingSurface } from "../components/DrawingSurface";
+import { GuessForm } from "../components/GuessForm";
 import { RoomCodeBadge } from "../components/RoomCodeBadge";
+import type { DrawingPoint } from "../services/api";
 import { useRoomState, useRoomStore } from "../state/roomStore";
 
 export function GamePage() {
   const navigate = useNavigate();
   const roomStore = useRoomStore();
-  const { room, participantId } = useRoomState();
+  const { room, participantId, error, isLoading } = useRoomState();
   const [refreshError, setRefreshError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -51,6 +54,18 @@ export function GamePage() {
     }
   }
 
+  async function handleSubmitStroke(points: DrawingPoint[]) {
+    await roomStore.drawStroke(points);
+  }
+
+  async function handleClearCanvas() {
+    await roomStore.clearCanvas();
+  }
+
+  async function handleSubmitGuess(guess: string) {
+    await roomStore.submitGuess(guess);
+  }
+
   if (!room) {
     return null;
   }
@@ -58,16 +73,26 @@ export function GamePage() {
   const viewer = room.participants.find((participant) => participant.id === participantId) ?? null;
   const drawer =
     room.participants.find((participant) => participant.id === room.drawerParticipantId) ?? null;
-  const drawerStatus = room.viewerIsDrawer ? "You are the drawer for this round." : `${drawer?.name ?? "Another player"} is drawing this round.`;
-  const wordStatus = room.wordVisibility === "visible" ? "Secret word visible" : "Secret word hidden";
-  const wordValue = room.wordVisibility === "visible" ? room.secretWord ?? "Unavailable" : "Only the drawer can see the word right now.";
+  const wordStatus =
+    room.wordVisibility === "visible" ? "Secret word visible" : "Secret word hidden";
+  const wordValue =
+    room.wordVisibility === "visible"
+      ? room.secretWord ?? "Unavailable"
+      : "Only the drawer can see the word right now.";
+  const drawerStatus = room.viewerIsDrawer
+    ? "You are the drawer for this round."
+    : `${drawer?.name ?? "Another player"} is drawing this round.`;
+  const history = room.guessHistory ?? [];
+  const canvas = room.canvas ?? { strokes: [] };
+  const statusMessage =
+    refreshError ?? error ?? (room.viewerCanDraw ? "Draw something for the guessers." : "Watch the sketch and submit guesses.");
 
   return (
     <section className="panel game-page">
       <div className="game-page__header">
         <div className="game-page__header-left">
           <span className="section-kicker">Round 1</span>
-          <h1 className="game-page__title">Round Started</h1>
+          <h1 className="game-page__title">Live Gameplay</h1>
         </div>
         <RoomCodeBadge code={room.code} />
       </div>
@@ -76,10 +101,10 @@ export function GamePage() {
         <aside className="game-page__sidebar">
           <Card title="Round Status">
             <p className={`status-line ${room.viewerIsDrawer ? "status-line--success" : "status-line--info"}`}>
-              {room.viewerIsDrawer ? "Drawer assigned to you" : "Viewer joined as guesser"}
+              {room.viewerIsDrawer ? "Drawer controls enabled" : "Guesser view active"}
             </p>
             <p>{drawerStatus}</p>
-            {refreshError ? <p className="form__error">{refreshError}</p> : null}
+            <p>{statusMessage}</p>
           </Card>
 
           <Card title="Player Info">
@@ -93,6 +118,10 @@ export function GamePage() {
                 <dd>{room.viewerIsDrawer ? "Drawer" : "Guesser"}</dd>
               </div>
               <div>
+                <dt>Score</dt>
+                <dd>{viewer?.score ?? 0} pts</dd>
+              </div>
+              <div>
                 <dt>Host</dt>
                 <dd>{room.viewerIsHost ? "Yes" : "No"}</dd>
               </div>
@@ -102,10 +131,18 @@ export function GamePage() {
 
         <div className="game-page__main">
           <Card title="Secret Word">
-            <p className={`status-line ${room.wordVisibility === "visible" ? "status-line--success" : "status-line--muted"}`}>
+            <p
+              className={`status-line ${
+                room.wordVisibility === "visible" ? "status-line--success" : "status-line--muted"
+              }`}
+            >
               {wordStatus}
             </p>
-            <div className={`word-panel ${room.wordVisibility === "visible" ? "word-panel--visible" : "word-panel--hidden"}`}>
+            <div
+              className={`word-panel ${
+                room.wordVisibility === "visible" ? "word-panel--visible" : "word-panel--hidden"
+              }`}
+            >
               <span className="word-panel__label">
                 {room.wordVisibility === "visible" ? "Your word" : "Word visibility"}
               </span>
@@ -114,9 +151,42 @@ export function GamePage() {
           </Card>
 
           <Card title="Canvas">
-            <div className="canvas-placeholder">
-              Drawing interactions start in the next scenario.
-            </div>
+            <DrawingSurface
+              canvas={canvas}
+              canDraw={room.viewerCanDraw}
+              isBusy={isLoading}
+              onSubmitStroke={handleSubmitStroke}
+              onClearCanvas={handleClearCanvas}
+            />
+          </Card>
+
+          <Card title="Guess History">
+            {history.length === 0 ? (
+              <div className="placeholder-block">
+                <p>No guesses have been accepted yet.</p>
+              </div>
+            ) : (
+              <ul className="history-list">
+                {history.map((entry) => (
+                  <li key={entry.id} className="history-list__item">
+                    <div className="history-list__content">
+                      <strong>{entry.participantName}</strong>
+                      <span>{entry.guess}</span>
+                    </div>
+                    <div className="history-list__meta">
+                      <span
+                        className={`status-line ${
+                          entry.isCorrect ? "status-line--success" : "status-line--muted"
+                        }`}
+                      >
+                        {entry.isCorrect ? "Correct" : "Incorrect"}
+                      </span>
+                      <strong>{entry.scoreAwarded} pts</strong>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
           </Card>
         </div>
 
@@ -140,17 +210,30 @@ export function GamePage() {
 
                 return (
                   <li key={participant.id}>
-                    <span>{participant.name}</span>
-                    <span className="player-list__meta">{labels.join(" · ") || "joined"}</span>
+                    <div className="player-list__player">
+                      <span>{participant.name}</span>
+                      <span className="player-list__meta">{labels.join(" · ") || "joined"}</span>
+                    </div>
+                    <strong className="player-list__score">{participant.score} pts</strong>
                   </li>
                 );
               })}
             </ul>
           </Card>
 
+          <Card title={room.viewerCanGuess ? "Submit Guess" : "Guessing"}>
+            {room.viewerCanGuess ? (
+              <GuessForm disabled={isLoading} onSubmitGuess={handleSubmitGuess} />
+            ) : (
+              <div className="placeholder-block">
+                <p>{room.viewerCanDraw ? "Guess submission is disabled for the drawer." : "Waiting for gameplay access."}</p>
+              </div>
+            )}
+          </Card>
+
           <div className="button-row button-row--compact">
-            <button className="button button--secondary" onClick={handleRefresh}>
-              Refresh State
+            <button className="button button--secondary" disabled={isLoading} onClick={handleRefresh}>
+              {isLoading ? "Refreshing..." : "Refresh State"}
             </button>
           </div>
         </aside>

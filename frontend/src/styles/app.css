@@ -398,10 +398,20 @@ input {
   font-weight: 500;
 }
 
+.player-list__player {
+  display: grid;
+  gap: 4px;
+}
+
 .player-list__meta {
   color: var(--ink-soft);
   font-size: 0.875rem;
   font-weight: 400;
+}
+
+.player-list__score {
+  color: var(--ink);
+  font-size: 0.95rem;
 }
 
 .status-line,
@@ -469,6 +479,53 @@ input {
   color: var(--ink-soft);
   font-size: 1.125rem;
   font-weight: 500;
+}
+
+.drawing-surface {
+  display: grid;
+  gap: 16px;
+}
+
+.drawing-surface__toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.drawing-surface__canvas {
+  width: 100%;
+  min-height: 420px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #ffffff;
+}
+
+.drawing-surface__canvas--interactive {
+  cursor: crosshair;
+  touch-action: none;
+}
+
+.drawing-surface__background {
+  fill: #ffffff;
+}
+
+.drawing-surface__stroke {
+  fill: none;
+  stroke: var(--ink);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 8;
+}
+
+.drawing-surface__stroke--draft {
+  stroke: var(--brand);
+}
+
+.drawing-surface__hint {
+  color: var(--ink-soft);
+  font-size: 0.95rem;
 }
 
 /* --- GAME PAGE LAYOUT --- */
@@ -592,6 +649,40 @@ input {
   color: var(--ink);
   font-size: clamp(1.25rem, 3vw, 2rem);
   line-height: 1.2;
+}
+
+.history-list {
+  display: grid;
+  gap: 12px;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.history-list__item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 20px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface-strong);
+}
+
+.history-list__content {
+  display: grid;
+  gap: 4px;
+}
+
+.history-list__content span {
+  color: var(--ink-soft);
+}
+
+.history-list__meta {
+  display: grid;
+  justify-items: end;
+  gap: 8px;
 }
 
 @media (max-width: 720px) {

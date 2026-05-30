@@ -13,6 +13,19 @@ const playerNameSchema = z
   .trim()
   .min(1, { message: "Player name must include at least one non-space character" });
 
+const participantIdSchema = z.string().trim().min(1, {
+  message: "Participant ID is required"
+});
+
+const drawingPointSchema = z.object({
+  x: z.number().min(0).max(1),
+  y: z.number().min(0).max(1)
+});
+
+const guessSchema = z.string().trim().min(1, {
+  message: "Guess must include at least one non-space character"
+});
+
 export const createRoomSchema = z.object({
   playerName: playerNameSchema.optional()
 });
@@ -30,7 +43,23 @@ export const roomViewerQuerySchema = z.object({
 });
 
 export const startRoomSchema = z.object({
-  participantId: z.string().trim().min(1)
+  participantId: participantIdSchema
+});
+
+export const drawingStrokeSchema = z.object({
+  participantId: participantIdSchema,
+  points: z.array(drawingPointSchema).min(1, {
+    message: "At least one drawing point is required"
+  })
+});
+
+export const clearCanvasSchema = z.object({
+  participantId: participantIdSchema
+});
+
+export const submitGuessSchema = z.object({
+  participantId: participantIdSchema,
+  guess: guessSchema
 });
 
 export class HttpError extends Error {
