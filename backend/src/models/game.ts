@@ -25,6 +25,7 @@ export interface Room {
   secretWord: string | null;
   drawingData: string;
   guesses: Guess[];
+  previousWords: string[];
   createdAt: string;
   updatedAt: string;
 }

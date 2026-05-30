@@ -67,6 +67,7 @@ export function createRoom(playerName?: string) {
     secretWord: null,
     drawingData: "",
     guesses: [],
+    previousWords: [],
     createdAt: now(),
     updatedAt: now()
   };
@@ -129,7 +130,21 @@ export function startGame(code: string, participantId: string) {
 
   room.status = "game";
   room.drawerId = room.hostId;
-  room.secretWord = STARTER_WORDS[0]; // "rocket"
+
+  if (!room.previousWords) {
+    room.previousWords = [];
+  }
+  let pool = STARTER_WORDS.filter((word) => !room.previousWords.includes(word));
+  if (pool.length === 0) {
+    room.previousWords = [];
+    pool = [...STARTER_WORDS];
+  }
+  const randomIndex = Math.floor(Math.random() * pool.length);
+  const selectedWord = pool[randomIndex];
+
+  room.secretWord = selectedWord;
+  room.previousWords.push(selectedWord);
+
   room.drawingData = "";
   room.guesses = [];
   room.updatedAt = now();

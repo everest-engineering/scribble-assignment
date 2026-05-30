@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { createRoom, joinRoom, getRoom, saveRoom, startGame, toRoomSnapshot, updateDrawing, submitGuess, leaveRoom, restartGame } from "./roomStore.js";
 import { HttpError } from "../api/schemas.js";
+import { STARTER_WORDS } from "../seed/starterData.js";
 
 describe("roomStore", () => {
   it("createRoom returns a room with a 4-character uppercase code and host assignment", () => {
@@ -65,11 +66,13 @@ describe("roomStore", () => {
     const activeRoom = startGame(room.code, hostId);
     expect(activeRoom.status).toBe("game");
     expect(activeRoom.drawerId).toBe(hostId);
-    expect(activeRoom.secretWord).toBe("rocket");
+    expect(STARTER_WORDS).toContain(activeRoom.secretWord);
+
+    const secret = activeRoom.secretWord!;
 
     // Verify snapshot visibility
     const hostSnapshot = toRoomSnapshot(activeRoom, hostId);
-    expect(hostSnapshot.secretWord).toBe("rocket");
+    expect(hostSnapshot.secretWord).toBe(secret);
 
     const guestSnapshot = toRoomSnapshot(activeRoom, guestId);
     expect(guestSnapshot.secretWord).toBeNull();
@@ -77,9 +80,9 @@ describe("roomStore", () => {
     // Verify snapshot visibility in result state
     activeRoom.status = "result";
     const resultHostSnapshot = toRoomSnapshot(activeRoom, hostId);
-    expect(resultHostSnapshot.secretWord).toBe("rocket");
+    expect(resultHostSnapshot.secretWord).toBe(secret);
     const resultGuestSnapshot = toRoomSnapshot(activeRoom, guestId);
-    expect(resultGuestSnapshot.secretWord).toBe("rocket");
+    expect(resultGuestSnapshot.secretWord).toBe(secret);
   });
 
   it("startGame rejects request if not host or not enough players", () => {
@@ -111,26 +114,29 @@ describe("roomStore", () => {
     const { room, participantId: hostId } = createRoom("Alice");
     const joinResult = joinRoom(room.code, "Bob");
     const guestId = joinResult!.participantId;
-    startGame(room.code, hostId);
+    const activeRoom = startGame(room.code, hostId);
+    const secret = activeRoom.secretWord!;
+    const wrongWord = secret.toLowerCase() === "guitar" ? "pizza" : "guitar";
 
     // Incorrect guess
-    const resultAfterWrong = submitGuess(room.code, guestId, "guitar");
+    const resultAfterWrong = submitGuess(room.code, guestId, wrongWord);
     expect(resultAfterWrong.status).toBe("game");
     expect(resultAfterWrong.guesses).toHaveLength(1);
-    expect(resultAfterWrong.guesses[0].text).toBe("guitar");
+    expect(resultAfterWrong.guesses[0].text).toBe(wrongWord);
     expect(resultAfterWrong.guesses[0].correct).toBe(false);
     expect(resultAfterWrong.participants.find(p => p.id === guestId)?.score).toBe(0);
 
     // Correct guess (case-insensitive & trimmed)
-    const resultAfterRight = submitGuess(room.code, guestId, "  RoCkeT  ");
+    const guessInput = `  ${secret.toUpperCase()}  `;
+    const resultAfterRight = submitGuess(room.code, guestId, guessInput);
     expect(resultAfterRight.status).toBe("result");
     expect(resultAfterRight.guesses).toHaveLength(2);
-    expect(resultAfterRight.guesses[1].text).toBe("RoCkeT");
+    expect(resultAfterRight.guesses[1].text).toBe(secret.toUpperCase());
     expect(resultAfterRight.guesses[1].correct).toBe(true);
     expect(resultAfterRight.participants.find(p => p.id === guestId)?.score).toBe(100);
 
     // Reject drawer guesses
-    expect(() => submitGuess(room.code, hostId, "rocket")).toThrow(HttpError);
+    expect(() => submitGuess(room.code, hostId, secret)).toThrow(HttpError);
   });
 
   describe("leaveRoom", () => {
@@ -171,10 +177,10 @@ describe("roomStore", () => {
       const { room, participantId: hostId } = createRoom("Alice");
       const joinResult = joinRoom(room.code, "Bob");
       const bobId = joinResult!.participantId;
-      startGame(room.code, hostId);
+      const activeRoom = startGame(room.code, hostId);
 
       // Submit guesses and score
-      submitGuess(room.code, bobId, "rocket");
+      submitGuess(room.code, bobId, activeRoom.secretWord!);
 
       const beforeRestart = getRoom(room.code);
       expect(beforeRestart!.status).toBe("result");
@@ -198,5 +204,70 @@ describe("roomStore", () => {
 
       expect(() => restartGame(room.code, bobId)).toThrow(HttpError);
     });
+  });
+
+  it("randomizes secret word and avoids repeating recently used words in consecutive games", () => {
+    const { room, participantId: hostId } = createRoom("Alice");
+    const joinResult = joinRoom(room.code, "Bob");
+    const guestId = joinResult!.participantId;
+
+    const chosenWords = new Set<string>();
+
+    for (let i = 0; i < 5; i++) {
+      const activeRoom = startGame(room.code, hostId);
+      const word = activeRoom.secretWord;
+      expect(word).not.toBeNull();
+      expect(STARTER_WORDS).toContain(word);
+      expect(chosenWords.has(word!)).toBe(false);
+      chosenWords.add(word!);
+
+      // Complete the game by correct guess to transition status, then restart
+      submitGuess(room.code, guestId, word!);
+      restartGame(room.code, hostId);
+    }
+
+    // After 5 games, all 5 words should have been used exactly once
+    expect(chosenWords.size).toBe(5);
+
+    // Starting the 6th game should reset the history and pick one of the words again
+    const activeRoom6 = startGame(room.code, hostId);
+    expect(STARTER_WORDS).toContain(activeRoom6.secretWord);
+  });
+
+  it("scenario: Player 3 leaves, then Host restarts, then Host starts game again", () => {
+    const { room, participantId: hostId } = createRoom("Player 1");
+    const join2 = joinRoom(room.code, "Player 2");
+    const join3 = joinRoom(room.code, "Player 3");
+    
+    expect(join2).not.toBeNull();
+    expect(join3).not.toBeNull();
+    
+    const p2Id = join2!.participantId;
+    const p3Id = join3!.participantId;
+    
+    // Start game
+    const active = startGame(room.code, hostId);
+    expect(active.status).toBe("game");
+    
+    // Player 2 guesses correctly to transition to result
+    const result = submitGuess(room.code, p2Id, active.secretWord!);
+    expect(result.status).toBe("result");
+    
+    // Player 3 leaves
+    const afterP3Leaves = leaveRoom(room.code, p3Id);
+    expect(afterP3Leaves).not.toBeNull();
+    expect(afterP3Leaves!.participants).toHaveLength(2);
+    expect(afterP3Leaves!.participants.map(p => p.name)).toContain("Player 1");
+    expect(afterP3Leaves!.participants.map(p => p.name)).toContain("Player 2");
+    
+    // Host restarts game
+    const restarted = restartGame(room.code, hostId);
+    expect(restarted.status).toBe("lobby");
+    expect(restarted.participants).toHaveLength(2);
+    
+    // Host starts game again
+    const restartedActive = startGame(room.code, hostId);
+    expect(restartedActive.status).toBe("game");
+    expect(restartedActive.participants).toHaveLength(2);
   });
 });
