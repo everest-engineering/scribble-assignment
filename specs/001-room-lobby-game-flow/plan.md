@@ -1,208 +1,54 @@
-# Implementation Plan: Room Lobby Game Flow
+# Implementation Plan: Room Setup and Lobby
 
-**Branch**: `assignment` | **Date**: 2026-05-30 | **Spec**: `specs/001-room-lobby-game-flow/spec.md`
+**Branch**: `assignment` | **Date**: 2026-05-31 | **Spec**: `specs/001-room-lobby-game-flow/spec.md`
 
-**Input**: Feature specification from `/specs/001-room-lobby-game-flow/spec.md`
-
-**Note**: This plan captures the existing backend/frontend architecture and delivers the room setup, lobby refresh, game entry, and error handling work requested by the feature spec.
+**Input**: Scenario 1: room setup and lobby.
 
 ## Summary
 
-Implement the Scribble room lifecycle for room creation, join, lobby polling, game start, single-round drawing/guessing, results, and restart using the existing TypeScript Express backend and React/Vite frontend. Keep the backend memory-only, avoid WebSockets or persistent storage, and sync shared state through HTTP polling.
+Implement the room setup and lobby slice: create room, assign creator as host, join by unique code, reject invalid or empty inputs with clear feedback, isolate rooms, poll lobby state about every 2 seconds, and allow only the host to start once at least two players are present.
 
 ## Technical Context
 
-**Language/Version**: Node.js + TypeScript on backend and React + TypeScript on frontend.
+**Language/Version**: Node.js + TypeScript backend; React + TypeScript frontend.
 
-**Primary Dependencies**: Express, Zod, React 18, React Router v6, Vite, `node:crypto`, Vitest.
+**Primary Dependencies**: Express, Zod, React 18, React Router v6, Vite, Vitest.
 
-**Storage**: In-memory backend room store via `Map<string, Room>`; frontend transient session via `RoomStore` singleton with no browser refresh persistence.
+**Storage**: In-memory backend rooms only; frontend keeps transient in-app room state.
 
-**Testing**: Vitest for backend and frontend unit tests; existing service and schema tests are available.
+**Testing**: Vitest backend and frontend tests.
 
-**Target Platform**: Local web app with browser frontend and Node backend.
-
-**Project Type**: Web application with separate backend and frontend projects.
-
-**Performance Goals**: Reliable lobby refresh under short polling intervals; low-latency user flows with fast client navigation.
-
-**Constraints**: No WebSockets or real-time push; no databases; no authentication; all rooms and session data live in memory only.
-
-**Scale/Scope**: Single-room multiplayer prototyping in-memory; supports small groups joining through a shared room code.
-
-## Constitution Check
-
-No direct constitution violations identified for this scope. The plan adheres to the project constraint of in-memory storage and avoids out-of-scope persistent or real-time protocols.
-
-## Project Structure
-
-### Documentation (this feature)
-
-```text
-specs/001-room-lobby-game-flow/
-├── plan.md
-├── research.md
-├── data-model.md
-├── quickstart.md
-├── contracts/
-│   └── api-endpoints.md
-├── checklists/
-│   └── requirements.md
-└── spec.md
-```
-
-### Source Code
-
-```text
-backend/
-├── package.json
-├── tsconfig.json
-└── src/
-    ├── api/
-    │   ├── rooms.ts
-    │   ├── router.ts
-    │   ├── schemas.ts
-    │   └── schemas.test.ts
-    ├── models/
-    │   └── game.ts
-    ├── seed/
-    │   └── starterData.ts
-    └── services/
-        ├── roomStore.ts
-        └── roomStore.test.ts
-
-frontend/
-├── package.json
-├── tsconfig.json
-├── vite.config.ts
-└── src/
-    ├── App.tsx
-    ├── main.tsx
-    ├── components/
-    ├── pages/
-    │   ├── CreateRoomPage.tsx
-    │   ├── JoinRoomPage.tsx
-    │   ├── LobbyPage.tsx
-    │   ├── GamePage.tsx
-    │   └── StartPage.tsx
-    ├── routes/
-    ├── services/
-    │   └── api.ts
-    └── state/
-        └── roomStore.ts
-```
-
-**Structure Decision**: Use the existing backend/frontend split. Backend handles room lifecycle APIs and shared models. Frontend handles user flows, lobby refresh, and room session state in `RoomStore`.
+**Constraints**: No WebSockets, databases, authentication, accounts, or persistent sessions.
 
 ## Key Endpoints
 
-- `POST /rooms`
-  - Creates a new room.
-  - Request: `{ playerName?: string }`
-  - Response: `{ participantId, room: RoomSnapshot }`
+- `POST /rooms`: create a room from a non-empty trimmed player name and return host session plus lobby snapshot.
+- `POST /rooms/:code/join`: join by normalized room code and non-empty trimmed player name.
+- `GET /rooms/:code?participantId=...`: poll the latest lobby snapshot.
+- `POST /rooms/:code/start`: host-only start with at least two players.
 
-- `POST /rooms/:code/join`
-  - Joins an existing room by uppercase-normalized code.
-  - Request: `{ playerName?: string }`
-  - Response: `{ participantId, room: RoomSnapshot }`
-  - Error: `404` if room not found.
+## Data Flow
 
-- `GET /rooms/:code?participantId=...`
-  - Refreshes lobby state.
-  - Response: `{ room: RoomSnapshot }`
-  - Error: `404` if room not found.
+1. Creator submits a trimmed player name.
+2. Backend creates a room, assigns creator as `hostId`, and returns `participantId` plus room snapshot.
+3. Joiner submits a room code and trimmed player name.
+4. Backend normalizes the code, validates room existence, and returns a room snapshot scoped to that room.
+5. Lobby polls the room snapshot about every 2 seconds.
+6. Host starts only when at least two participants are present.
 
-- `POST /rooms/:code/start`
-  - Host-only game start with a 2-player minimum.
-  - Request: `{ participantId }`
-  - Response: `{ room: RoomSnapshot }`
+## Implementation Tasks
 
-- `PUT /rooms/:code/drawing`
-  - Drawer-only drawing update.
-  - Request: `{ participantId, drawing }`
-  - Response: `{ room: RoomSnapshot }`
+- Validate create and join names after trimming.
+- Normalize room code input to uppercase.
+- Track `hostId` on room creation.
+- Keep room participants/status isolated by room code.
+- Poll lobby state by HTTP.
+- Disable or reject start for non-hosts and rooms with fewer than two players.
 
-- `POST /rooms/:code/drawing/clear`
-  - Drawer-only drawing clear.
-  - Request: `{ participantId }`
-  - Response: `{ room: RoomSnapshot }`
+## Validation
 
-- `POST /rooms/:code/guesses`
-  - Guesser-only trimmed guess submission.
-  - Request: `{ participantId, text }`
-  - Response: `{ room: RoomSnapshot }`
-
-- `POST /rooms/:code/restart`
-  - Host-only restart from results to lobby.
-  - Request: `{ participantId }`
-  - Response: `{ room: RoomSnapshot }`
-
-## Data Model
-
-- `Room`: `code`, `status`, `hostId`, `participants`, `round`, `createdAt`, `updatedAt`.
-- `Participant`: `id`, `name`, `joinedAt`.
-- `RoundState`: deterministic `drawerId`, deterministic `secretWord`, drawing payload, guesses, scores, and result summary.
-- `RoomSnapshot`: viewer-safe `code`, `status`, `hostId`, `participants`, `drawerId`, conditional `secretWord`, drawing, guesses, scores, result summary, `availableWords`, `roles`.
-- `Room Session`: `participantId` + `room` snapshot stored only in frontend memory for the current tab lifecycle.
-
-## Out-of-Scope Notes
-
-- Multiple rounds, drawer rotation, timers, bonus scoring, authentication, persistent sessions, databases, and WebSockets are not part of this feature.
-
-## Phased Work
-
-### Phase 0: Research
-
-- Confirm the in-memory backend room store and HTTP polling lobby refresh model.
-- Confirm room code normalization to uppercase and empty trimmed player-name rejection.
-- Confirm host-only start with a two-player minimum.
-- Confirm invalid room joins and validation errors are surfaced clearly and form values are preserved.
-
-### Phase 1: Design
-
-- Define backend room entities and schema validation with Zod.
-- Align `RoomSnapshot` payloads with frontend expectations.
-- Define frontend session contract for `createRoom`, `joinRoom`, and `fetchRoom`.
-- Document the API contract for room lifecycle endpoints.
-- Confirm that the frontend room store preserves `participantId` and room snapshot across in-app navigation only, not browser refresh.
-
-### Phase 2: Implementation
-
-1. Room setup
-   - Add or validate backend `POST /rooms` create-room flow.
-   - Validate room code generation and uppercase normalization.
-   - Trim `playerName` and reject empty values with a clear validation error.
-
-2. Join room flow
-   - Implement `POST /rooms/:code/join` with room existence checking.
-   - Preserve entered join form values on error.
-   - Normalize join code to uppercase.
-
-3. Lobby polling and refresh
-   - Use `GET /rooms/:code?participantId=` to refresh lobby state.
-   - Update `LobbyPage` to display current participants and last refresh status.
-   - Surface request errors as retryable UI messages.
-
-4. Game start navigation
-   - Preserve `RoomStore` state when navigating from lobby to `/game`.
-   - Protect `/lobby` and `/game` by redirecting to `/` when no room snapshot exists.
-   - Call the backend start endpoint and navigate to `/game` only after successful host-only validation.
-
-5. Drawer/guessing/scoring/results/restart
-   - Render drawer-only word visibility and drawing controls.
-   - Sync drawing, guesses, scores, and result state through polling.
-   - Submit guesses with trimmed non-empty validation and deterministic scoring.
-   - Show shared results and host-only restart to lobby with players preserved and round state cleared.
-
-6. Error handling and UX
-   - Ensure invalid join attempts return user-friendly errors.
-   - Ensure the lobby refresh button is disabled while loading.
-   - Ensure room state is preserved across lobby/game navigation.
-
-### Validation
-
-- Verify room creation flows to lobby and displays the new room code.
-- Verify join flow adds a second participant and updates the lobby list.
-- Verify lobby refresh requests the latest room snapshot and updates UI.
-- Verify direct access to `/lobby` or `/game` without session state redirects to `/`.
-- Verify invalid room joins show a recoverable error and preserve form input.
+- Create room shows creator as host.
+- Invalid and empty codes show clear feedback.
+- Two rooms do not share participants or status.
+- Lobby updates within about 2 seconds after another player joins.
+- Only host can start and only with at least two players.

@@ -1,25 +1,24 @@
-# Research: Room Lobby Game Flow
+# Research: Room Setup and Lobby
 
-## Decision: Keep the in-memory, HTTP-polling multiplayer architecture
+## Decision: Use in-memory rooms and HTTP polling
 
-- The project already splits frontend and backend with TypeScript and Express/Vite.
-- The feature spec explicitly excludes databases and WebSockets.
-- Room state is modeled as an in-memory Map in `backend/src/services/roomStore.ts` and mirrored as transient frontend state during in-app navigation.
+- The lab forbids WebSockets, databases, authentication, and persistent sessions.
+- Room state remains in a backend in-memory map keyed by normalized room code.
+- Lobby synchronization uses HTTP polling about every 2 seconds.
 
 ## Rationale
 
-- In-memory rooms and session state minimize scope and fit the lab constraints.
-- HTTP polling for lobby and gameplay sync avoids introducing real-time protocols.
-- Normalizing room codes to uppercase, validating trimmed names and guesses, and preserving form state on join failure improves UX without adding backend complexity.
+- Polling is simple, testable, and matches the project constraints.
+- In-memory storage is enough for the lab-sized room flow.
+- Host tracking belongs on the room so start permissions can be enforced consistently.
 
-## Alternatives considered
+## Alternatives Considered
 
-- Full real-time sync with WebSocket-style events: rejected because the lab forbids WebSockets/Socket.io.
-- Persistent room storage: rejected because the spec requires in-memory rooms only.
-- Web storage session persistence: rejected because refresh should be treated as leaving the app and rejoining from scratch.
+- WebSockets: rejected because real-time push is out of scope.
+- Persistent room/session storage: rejected because storage beyond memory is out of scope.
+- Any-player start: rejected because Scenario 1 requires host-only start.
 
-## Game lifecycle scope for this feature
+## Scope
 
-- Implemented: room creation, join, automatic lobby polling, host-only start, deterministic drawer assignment, deterministic word selection, drawer-only word visibility, drawing, clear canvas, guesses, deterministic scoring, results, and host-only restart.
-- Out of scope: multiple rounds, drawer rotation, timers, bonus scoring, authentication, persistent storage, databases, and WebSockets.
-- The UI treats the game page as the single-round play surface and results screen.
+- Included: create, join, host tracking, validation, room isolation, lobby polling, host-only start.
+- Excluded: drawer assignment, drawing, guesses, scoring, results, and restart. Those are handled by later feature folders.

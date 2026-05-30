@@ -8,6 +8,10 @@
 
 **Input**: Scenario 3 from the Scribble lab: drawing canvas, clear canvas, guess submission, guess history sync, and deterministic scoring.
 
+## Scenario Statement
+
+**Given** a round is active with a drawer and guessers and all scores start at 0, **When** the drawer draws or clears the canvas and guessers submit guesses, **Then** the drawing is visible on the drawer's screen; guesses are trimmed, compared case-insensitively, and empty guesses are rejected; the guess history is synced to all players via polling; correct guesses score 100 and incorrect guesses add 0.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Draw and clear canvas (Priority: P1)
@@ -20,7 +24,7 @@ The drawer uses an interactive canvas to draw for the guessers and can clear the
 
 **Acceptance Scenarios**:
 
-1. **Given** the viewer is the drawer, **When** they draw on the canvas, **Then** the drawing state updates.
+1. **Given** the viewer is the drawer, **When** they draw on the canvas, **Then** the drawing is visible on the drawer's screen and the drawing state updates.
 2. **Given** the viewer is the drawer, **When** they clear the canvas, **Then** the drawing state becomes empty.
 3. **Given** the viewer is not the drawer, **When** they attempt to draw or clear, **Then** the action is blocked.
 
@@ -52,15 +56,17 @@ A correct guess is detected deterministically and awards a fixed score.
 
 **Acceptance Scenarios**:
 
-1. **Given** a guess does not match the secret word, **When** it is submitted, **Then** no points are awarded.
-2. **Given** a guess matches the secret word case-insensitively, **When** it is submitted, **Then** the guesser receives 100 points.
-3. **Given** a correct guess is submitted, **When** scoring completes, **Then** the room moves to results.
+1. **Given** a round has just started, **When** scores are displayed, **Then** all scores start at 0.
+2. **Given** a guess does not match the secret word, **When** it is submitted, **Then** 0 points are added.
+3. **Given** a guess matches the secret word case-insensitively, **When** it is submitted, **Then** the guesser receives 100 points.
+4. **Given** a correct guess is submitted, **When** scoring completes, **Then** the room moves to results.
 
 ### Edge Cases
 
 - The drawer cannot submit guesses.
 - Guess submission is blocked when the room is not actively playing.
 - Drawing updates are scoped to one room and do not affect other rooms.
+- All scores start at 0 for a new active round.
 
 ## Requirements *(mandatory)*
 
@@ -71,8 +77,10 @@ A correct guess is detected deterministically and awards a fixed score.
 - **FR-003**: System MUST trim guesses and reject empty guesses.
 - **FR-004**: System MUST prevent the drawer from submitting guesses.
 - **FR-005**: System MUST compare guesses to the secret word case-insensitively.
-- **FR-006**: System MUST award 100 points for a correct guess and 0 points for incorrect guesses.
-- **FR-007**: System MUST sync drawing, guess history, and scores by HTTP polling.
+- **FR-006**: System MUST initialize all scores to 0 when the active round starts.
+- **FR-007**: System MUST award 100 points for a correct guess and add 0 points for incorrect guesses.
+- **FR-008**: System MUST sync guess history to all players by HTTP polling.
+- **FR-009**: System MUST sync drawing and scores by HTTP polling.
 
 ### Key Entities
 

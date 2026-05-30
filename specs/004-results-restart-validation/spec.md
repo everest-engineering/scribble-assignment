@@ -8,6 +8,10 @@
 
 **Input**: Scenario 4 from the Scribble lab: shared result state, final scores, correct-word reveal, and clean host-only restart.
 
+## Scenario Statement
+
+**Given** a round has ended, **When** the result state is displayed and the host restarts, **Then** all players see the correct word, final scores, and full guess history; on restart, everyone returns to the lobby with players preserved and all round state cleared.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Show shared results (Priority: P1)
@@ -21,14 +25,14 @@ After a correct guess, all players see the same result state.
 **Acceptance Scenarios**:
 
 1. **Given** a correct guess is submitted, **When** the room updates, **Then** the room status becomes results.
-2. **Given** a player views the results state, **When** the page renders, **Then** it shows the correct word, winner, all player scores, and guess history.
+2. **Given** a player views the results state, **When** the page renders, **Then** it shows the correct word, winner, final scores, and full guess history.
 3. **Given** another player is still polling the game page, **When** results are reached, **Then** they see the same result state.
 
 ---
 
 ### User Story 2 - Restart from results (Priority: P2)
 
-The host restarts the game from the results screen and sends everyone back to the lobby.
+The host restarts the game from the results screen and sends everyone back to the lobby with players preserved and round state cleared.
 
 **Why this priority**: Restart completes the single-round lifecycle without creating a new room.
 
@@ -39,7 +43,8 @@ The host restarts the game from the results screen and sends everyone back to th
 1. **Given** the room is in results, **When** the host restarts, **Then** the room returns to lobby.
 2. **Given** the room restarts, **When** the lobby renders, **Then** the same players remain in the room.
 3. **Given** the room restarts, **When** the next lobby snapshot is loaded, **Then** drawing, guesses, result, drawer, word, and scores are cleared or reset.
-4. **Given** a non-host is on the results screen, **When** they attempt to restart, **Then** restart is blocked.
+4. **Given** a player is polling the results state, **When** the host restarts, **Then** that player returns to the lobby.
+5. **Given** a non-host is on the results screen, **When** they attempt to restart, **Then** restart is blocked.
 
 ### Edge Cases
 
@@ -52,11 +57,11 @@ The host restarts the game from the results screen and sends everyone back to th
 ### Functional Requirements
 
 - **FR-001**: System MUST enter a shared results state after the first correct guess.
-- **FR-002**: System MUST show the correct word, winner, all player scores, and guess history in results.
+- **FR-002**: System MUST show the correct word, winner, final scores, and full guess history in results.
 - **FR-003**: System MUST allow only the host to restart.
 - **FR-004**: System MUST allow restart only while the room is in results.
 - **FR-005**: System MUST preserve players and room code on restart.
-- **FR-006**: System MUST clear drawer, secret word, drawing, guesses, scores, and result state on restart.
+- **FR-006**: System MUST clear all round state on restart, including drawer, secret word, drawing, guesses, scores, and result state.
 - **FR-007**: System MUST return all polling players to the lobby after restart.
 
 ### Key Entities

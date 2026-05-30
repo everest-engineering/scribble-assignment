@@ -1,188 +1,104 @@
-# API Contracts: Room Lobby Game Flow
+# API Contracts: Room Setup and Lobby
 
 ## POST /rooms
 
+Creates a new room and assigns the creator as host.
+
 ### Request
+
 ```json
-{
-  "playerName": "Alice"
-}
+{ "playerName": "Alice" }
 ```
 
-### Response (201)
+### Response 201
+
 ```json
 {
   "participantId": "uuid",
   "room": {
     "code": "ABCD",
     "status": "lobby",
+    "hostId": "uuid",
     "participants": [
-      { "id": "uuid", "name": "Alice", "joinedAt": "2026-05-30T...Z" }
-    ],
-    "availableWords": ["apple", "house", "rocket"],
-    "roles": ["drawer", "guesser"]
+      { "id": "uuid", "name": "Alice", "joinedAt": "2026-05-31T00:00:00.000Z" }
+    ]
   }
 }
 ```
+
+### Errors
+
+- `400` when `playerName` is empty after trimming.
 
 ## POST /rooms/:code/join
 
+Joins an existing room by normalized room code.
+
 ### Request
+
 ```json
-{
-  "playerName": "Bob"
-}
+{ "playerName": "Bob" }
 ```
 
-### Response (200)
+### Response 200
+
 ```json
 {
   "participantId": "uuid",
   "room": {
     "code": "ABCD",
     "status": "lobby",
+    "hostId": "host-uuid",
     "participants": [
-      { "id": "uuid", "name": "Alice", "joinedAt": "..." },
+      { "id": "host-uuid", "name": "Alice", "joinedAt": "..." },
       { "id": "uuid", "name": "Bob", "joinedAt": "..." }
-    ],
-    "availableWords": ["apple", "house", "rocket"],
-    "roles": ["drawer", "guesser"]
+    ]
   }
 }
 ```
 
 ### Errors
-- `404` when the room code does not exist.
+
 - `400` when `playerName` is empty after trimming.
-- Returns `{ "message": "..." }`.
+- `404` when the room code does not exist.
 
 ## GET /rooms/:code?participantId=<id>
 
-### Response (200)
+Fetches the latest lobby snapshot for polling.
+
+### Response 200
+
 ```json
-{
-  "room": {
-    "code": "ABCD",
-    "status": "lobby",
-    "participants": [ ... ],
-    "availableWords": [ ... ],
-    "roles": [ ... ]
-  }
-}
+{ "room": { "code": "ABCD", "status": "lobby", "hostId": "host-uuid", "participants": [] } }
 ```
 
 ### Errors
-- `404` when the room does not exist.
-- Returns `{ "message": "..." }`.
+
+- `404` when the room code does not exist.
 
 ## POST /rooms/:code/start
 
+Starts the game from the lobby.
+
 ### Request
+
 ```json
-{
-  "participantId": "uuid"
-}
+{ "participantId": "host-uuid" }
 ```
 
-### Response (200)
+### Response 200
+
 ```json
-{
-  "room": {
-    "code": "ABCD",
-    "status": "playing",
-    "hostId": "uuid",
-    "drawerId": "uuid",
-    "secretWord": "house",
-    "drawing": { "paths": [] },
-    "guesses": [],
-    "scores": [
-      { "participantId": "uuid", "playerName": "Alice", "score": 0 }
-    ],
-    "result": null
-  }
-}
+{ "room": { "code": "ABCD", "status": "playing", "hostId": "host-uuid" } }
 ```
 
 ### Errors
+
 - `403` when the participant is not the host.
 - `409` when fewer than two players are present.
 
-## PUT /rooms/:code/drawing
+## Client Contract
 
-### Request
-```json
-{
-  "participantId": "uuid",
-  "drawing": { "paths": [] }
-}
-```
-
-### Response (200)
-```json
-{ "room": { "code": "ABCD", "status": "playing" } }
-```
-
-### Errors
-- `403` when the participant is not the drawer.
-- `409` when the room is not actively playing.
-
-## POST /rooms/:code/drawing/clear
-
-### Request
-```json
-{
-  "participantId": "uuid"
-}
-```
-
-### Response (200)
-```json
-{ "room": { "code": "ABCD", "drawing": { "paths": [] } } }
-```
-
-## POST /rooms/:code/guesses
-
-### Request
-```json
-{
-  "participantId": "uuid",
-  "text": "house"
-}
-```
-
-### Response (200)
-```json
-{ "room": { "code": "ABCD", "status": "results" } }
-```
-
-### Errors
-- `400` when the guess is empty after trimming.
-- `403` when the drawer submits a guess.
-- `409` when the room is not actively playing.
-
-## POST /rooms/:code/restart
-
-### Request
-```json
-{
-  "participantId": "uuid"
-}
-```
-
-### Response (200)
-```json
-{ "room": { "code": "ABCD", "status": "lobby", "guesses": [], "scores": [] } }
-```
-
-### Errors
-- `403` when the participant is not the host.
-- `409` when the room is not in results state.
-
-## Client contract
-
-- The frontend stores `participantId` and `room` in `RoomStore`.
-- `createRoom` and `joinRoom` both return a `RoomSessionResponse`.
-- `fetchRoom` refreshes the current room snapshot using the stored participant identity.
-- Room code values are normalized to uppercase before sending to the backend.
-- Lobby, gameplay, and results state are synced by HTTP polling.
-- Room session state is not persisted across browser refresh.
+- Create and join store `participantId` plus room snapshot in frontend memory.
+- Lobby polling calls `GET /rooms/:code` about every 2 seconds.
+- Join errors preserve entered form values for correction.

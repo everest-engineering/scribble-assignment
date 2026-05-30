@@ -1,4 +1,4 @@
-# Quickstart: Room Lobby Game Flow
+# Quickstart: Room Setup and Lobby
 
 ## Start the backend
 
@@ -7,8 +7,7 @@ cd backend
 npm run dev
 ```
 
-- The backend runs on `http://localhost:3001` by default.
-- It exposes room creation, join, fetch, start, drawing, guess, and restart endpoints.
+Backend defaults to `http://localhost:3001`.
 
 ## Start the frontend
 
@@ -17,25 +16,16 @@ cd frontend
 npm run dev
 ```
 
-- The frontend runs on `http://localhost:5173` by default.
-- It uses `VITE_API_URL` from environment variables or defaults to `http://localhost:3001`.
+Frontend defaults to `http://localhost:5173` and uses `http://localhost:3001` for the API unless `VITE_API_URL` is set.
 
-## Manual flow validation
+## Manual Validation
 
-1. Open the app and create a room with a display name.
-2. Confirm the lobby page shows the generated room code and participant list.
-3. Open a second browser tab, join the room with the code, and confirm both players appear.
-4. Confirm the lobby participant list updates automatically within about 2 seconds.
-5. As the host, press `Start Game` and confirm both players reach `/game`.
-6. Confirm only the drawer sees the secret word during active play.
-7. Draw on the canvas as the drawer and confirm the guesser sees the drawing after polling.
-8. Submit an incorrect guess and confirm it appears in the guess history.
-9. Submit the correct word and confirm both players see the results screen with the correct word, winner, and all scores.
-10. As the host, press `Restart Game` and confirm both players return to the lobby with scores, guesses, and drawing cleared.
-
-## Error flow validation
-
-- Submit a join request with an invalid room code to confirm an error message appears.
-- Submit blank player names or blank guesses to confirm validation messages appear.
-- Refresh the lobby when the backend is unavailable to confirm a retryable error state.
-- Navigate directly to `/lobby` or `/game` without room state to verify the app redirects to `/`.
+1. Create a room with a non-empty player name.
+2. Confirm the creator appears in the lobby as host.
+3. Try creating or joining with whitespace-only names and confirm clear validation messages.
+4. Try joining with an empty or invalid room code and confirm clear feedback with form values preserved.
+5. Join the room from a second browser tab and confirm the lobby updates within about 2 seconds.
+6. Create a second room and confirm participants do not leak between rooms.
+7. Confirm the host cannot start with one player.
+8. Confirm a non-host cannot start.
+9. Confirm the host can start once at least two players are present.

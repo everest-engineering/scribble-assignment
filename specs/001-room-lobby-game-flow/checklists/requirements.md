@@ -1,4 +1,4 @@
-# Specification Quality Checklist: Room setup, lobby, and game flow
+# Specification Quality Checklist: Room setup and lobby
 
 **Purpose**: Validate specification completeness and quality before proceeding to planning
 **Created**: 2026-05-30
