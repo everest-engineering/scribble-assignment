@@ -165,19 +165,40 @@ export function submitGuess(code: string, participantId: string, text: string) {
   return saveRoom({
     ...room,
     guesses: [...room.guesses, guess],
-    scores: { ...room.scores, [participantId]: currentScore + pointsEarned }
+    scores: { ...room.scores, [participantId]: currentScore + pointsEarned },
+    ...(isCorrect ? { status: "result" as const } : {})
+  });
+}
+
+export function restartRoom(code: string, participantId: string) {
+  const room = rooms.get(code);
+
+  if (!room) return null;
+
+  if (participantId !== room.hostId) {
+    throw new Error("Only the host can restart");
+  }
+
+  return saveRoom({
+    ...room,
+    status: "lobby",
+    drawerId: null,
+    secretWord: null,
+    guesses: [],
+    scores: {}
   });
 }
 
 export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSnapshot {
   const isDrawer =
     viewerParticipantId !== undefined && viewerParticipantId === room.drawerId;
+  const revealWord = (isDrawer || room.status === "result") && room.secretWord != null;
 
   return {
     code: room.code,
     hostId: room.hostId,
     drawerId: room.drawerId,
-    ...(isDrawer && room.secretWord ? { secretWord: room.secretWord } : {}),
+    ...(revealWord ? { secretWord: room.secretWord! } : {}),
     guesses: room.guesses.map((g) => ({ ...g })),
     scores: { ...room.scores },
     status: room.status,

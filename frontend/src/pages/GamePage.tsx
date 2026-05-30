@@ -28,6 +28,12 @@ export function GamePage() {
     return () => clearInterval(intervalId);
   }, [roomStore]);
 
+  useEffect(() => {
+    if (room?.status === "result") {
+      navigate("/result");
+    }
+  }, [navigate, room?.status]);
+
   if (!room) {
     return null;
   }

@@ -6,9 +6,10 @@ import {
   roomCodeParamsSchema,
   roomViewerQuerySchema,
   startRoomSchema,
+  restartRoomSchema,
   submitGuessSchema
 } from "./schemas.js";
-import { createRoom, getRoom, joinRoom, startRoom, submitGuess, toRoomSnapshot } from "../services/roomStore.js";
+import { createRoom, getRoom, joinRoom, restartRoom, startRoom, submitGuess, toRoomSnapshot } from "../services/roomStore.js";
 
 export function createRoomsRouter() {
   const router = Router();
@@ -118,6 +119,30 @@ export function createRoomsRouter() {
         }
         if (error.message === "Participant not found") {
           return next(new HttpError(404, error.message));
+        }
+      }
+      next(error);
+    }
+  });
+
+  router.post("/:code/restart", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId } = restartRoomSchema.parse(request.body);
+      const room = restartRoom(code.toUpperCase(), participantId);
+
+      if (!room) {
+        throw new HttpError(404, "Room not found");
+      }
+
+      response.json({ room: toRoomSnapshot(room, participantId) });
+    } catch (error) {
+      if (error instanceof HttpError) {
+        return next(error);
+      }
+      if (error instanceof Error) {
+        if (error.message === "Only the host can restart") {
+          return next(new HttpError(403, error.message));
         }
       }
       next(error);
