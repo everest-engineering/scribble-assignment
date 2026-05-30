@@ -20,6 +20,9 @@ export function DrawingCanvas({ readOnly, drawingData, onChange }: DrawingCanvas
   const isDrawingRef = useRef(false);
   const currentStrokeRef = useRef<Point[]>([]);
 
+  const strokesRef = useRef<Stroke[]>(strokes);
+  strokesRef.current = strokes;
+
   // Parse strokes from drawingData prop when readOnly is true
   useEffect(() => {
     if (readOnly) {
@@ -52,7 +55,7 @@ export function DrawingCanvas({ readOnly, drawingData, onChange }: DrawingCanvas
     ctx.strokeStyle = "#1f2937"; // Dark slate
     ctx.lineWidth = 4;
 
-    const listToDraw = readOnly ? strokes : strokes; // standard list
+    const listToDraw = strokesRef.current;
 
     for (const stroke of listToDraw) {
       if (stroke.length === 0) continue;
@@ -79,10 +82,9 @@ export function DrawingCanvas({ readOnly, drawingData, onChange }: DrawingCanvas
     if (!canvas) return;
 
     const handleResize = () => {
-      const parent = canvas.parentElement;
-      if (parent) {
-        canvas.width = parent.clientWidth;
-        canvas.height = Math.max(parent.clientHeight, 450);
+      if (canvas.width !== canvas.clientWidth || canvas.height !== canvas.clientHeight) {
+        canvas.width = canvas.clientWidth;
+        canvas.height = canvas.clientHeight;
         redraw();
       }
     };
@@ -90,7 +92,7 @@ export function DrawingCanvas({ readOnly, drawingData, onChange }: DrawingCanvas
     handleResize();
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
-  }, [strokes]);
+  }, []);
 
   // Trigger redraw whenever strokes changes
   useEffect(() => {
@@ -275,7 +277,7 @@ export function DrawingCanvas({ readOnly, drawingData, onChange }: DrawingCanvas
           cursor: readOnly ? "default" : "crosshair",
           touchAction: "none",
           width: "100%",
-          minHeight: "450px"
+          height: "450px"
         }}
       />
       {!readOnly && (
