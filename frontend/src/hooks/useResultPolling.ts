@@ -4,14 +4,28 @@ import { useRoomState, useRoomStore } from "../state/roomStore";
 
 const POLL_INTERVAL_MS = 2000;
 
-export function useGamePolling() {
+export function useResultPolling() {
   const navigate = useNavigate();
   const roomStore = useRoomStore();
   const { room } = useRoomState();
   const [pollError, setPollError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!room || room.status !== "playing") {
+    if (!room) {
+      return;
+    }
+
+    if (room.status === "lobby") {
+      navigate("/lobby");
+      return;
+    }
+
+    if (room.status === "playing") {
+      navigate("/game");
+      return;
+    }
+
+    if (room.status !== "results") {
       return;
     }
 
@@ -20,12 +34,14 @@ export function useGamePolling() {
         setPollError(null);
         const snapshot = await roomStore.fetchRoomSilent();
 
-        if (snapshot?.status === "results") {
-          navigate("/result");
+        if (snapshot?.status === "lobby") {
+          navigate("/lobby");
+        } else if (snapshot?.status === "playing") {
+          navigate("/game");
         }
       } catch (caughtError) {
         setPollError(
-          caughtError instanceof Error ? caughtError.message : "Unable to refresh game"
+          caughtError instanceof Error ? caughtError.message : "Unable to refresh results"
         );
       }
     }

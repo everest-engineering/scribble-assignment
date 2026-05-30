@@ -9,6 +9,14 @@ import {
 } from "react";
 import { api, type DrawingStroke, type RoomSessionResponse, type RoomSnapshot } from "../services/api";
 
+type NavigateFn = (path: string) => void;
+
+let roomNavigate: NavigateFn | null = null;
+
+export function bindRoomNavigation(navigate: NavigateFn | null) {
+  roomNavigate = navigate;
+}
+
 export interface RoomState {
   room: RoomSnapshot | null;
   participantId: string | null;
@@ -150,6 +158,24 @@ class RoomStore {
 
     const response = await api.submitGuess(this.state.room.code, this.state.participantId, guessText);
     this.setRoomSession(response);
+
+    if (response.room.status === "results") {
+      roomNavigate?.("/result");
+    }
+
+    return response;
+  }
+
+  async restartRoom() {
+    if (!this.state.room || !this.state.participantId) {
+      throw new Error("No active room session");
+    }
+
+    const response = await this.withLoading(() =>
+      api.restartRoom(this.state.room!.code, this.state.participantId!)
+    );
+    this.setRoomSession(response);
+    roomNavigate?.("/lobby");
     return response;
   }
 }

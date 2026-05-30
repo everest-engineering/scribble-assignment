@@ -23,6 +23,8 @@ export function LobbyPage() {
   useEffect(() => {
     if (room?.status === "playing") {
       navigate("/game");
+    } else if (room?.status === "results") {
+      navigate("/result");
     }
   }, [navigate, room?.status]);
 

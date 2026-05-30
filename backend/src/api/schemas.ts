@@ -44,6 +44,10 @@ export const submitGuessSchema = z.object({
   guessText: z.string().trim().min(1, "Guess is required")
 });
 
+export const restartGameSchema = z.object({
+  participantId: z.string().min(1)
+});
+
 export class HttpError extends Error {
   statusCode: number;
 

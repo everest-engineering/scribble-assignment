@@ -15,8 +15,13 @@ export function useLobbyPolling() {
       return;
     }
 
-    if (room.status !== "lobby") {
+    if (room.status === "playing") {
       navigate("/game");
+      return;
+    }
+
+    if (room.status === "results") {
+      navigate("/result");
       return;
     }
 
@@ -27,6 +32,8 @@ export function useLobbyPolling() {
 
         if (snapshot?.status === "playing") {
           navigate("/game");
+        } else if (snapshot?.status === "results") {
+          navigate("/result");
         }
       } catch (caughtError) {
         setPollError(

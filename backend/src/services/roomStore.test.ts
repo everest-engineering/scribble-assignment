@@ -6,6 +6,7 @@ import {
   getRoom,
   joinRoom,
   resetRoomsForTests,
+  restartGame,
   startGame,
   submitGuess,
   toRoomSnapshot
@@ -288,17 +289,93 @@ describe("roomStore", () => {
     expect(result.room.guesses?.[0].isCorrect).toBe(false);
   });
 
-  it("submitGuess awards 100 for each correct submission", () => {
+  it("submitGuess transitions to results on the first correct guess", () => {
+    const { guest, started } = startTwoPlayerGame();
+    const word = started.room.secretWord ?? "rocket";
+    const result = submitGuess(started.room.code, guest.participantId, word);
+
+    if ("error" in result) {
+      throw new Error("Expected guess to succeed");
+    }
+
+    expect(result.room.status).toBe("results");
+  });
+
+  it("submitGuess rejects guesses after the round ends", () => {
     const { guest, started } = startTwoPlayerGame();
     const word = started.room.secretWord ?? "rocket";
 
     submitGuess(started.room.code, guest.participantId, word);
-    const second = submitGuess(started.room.code, guest.participantId, word);
+    const second = submitGuess(started.room.code, guest.participantId, "another-guess");
 
-    if ("error" in second) {
-      throw new Error("Expected second guess to succeed");
+    expect(second).toEqual({ error: "not_playing" });
+  });
+
+  it("addStroke and clearCanvas reject mutations after results", () => {
+    const { host, guest, started } = startTwoPlayerGame();
+    const word = started.room.secretWord ?? "rocket";
+
+    submitGuess(started.room.code, guest.participantId, word);
+
+    const stroke = { id: "s1", points: [{ x: 0.1, y: 0.2 }] };
+    const strokeResult = addStroke(started.room.code, host.participantId, stroke);
+    const clearResult = clearCanvas(started.room.code, host.participantId);
+
+    expect(strokeResult).toEqual({ error: "not_playing" });
+    expect(clearResult).toEqual({ error: "not_playing" });
+  });
+
+  it("toRoomSnapshot reveals the secret word to all viewers in results", () => {
+    const { host, guest, started } = startTwoPlayerGame();
+    const word = started.room.secretWord ?? "rocket";
+    const ended = submitGuess(started.room.code, guest.participantId, word);
+
+    if ("error" in ended) {
+      throw new Error("Expected guess to succeed");
     }
 
-    expect(second.room.scores?.[guest.participantId]).toBe(200);
+    const guesserSnapshot = toRoomSnapshot(ended.room, guest.participantId);
+
+    expect(guesserSnapshot.status).toBe("results");
+    expect(guesserSnapshot.secretWord).toBe(word);
+    expect(guesserSnapshot.guesses).toHaveLength(1);
+    expect(guesserSnapshot.participants.every((entry) => entry.score !== undefined)).toBe(true);
+  });
+
+  it("restartGame returns lobby with round fields cleared for the host", () => {
+    const { host, guest, started } = startTwoPlayerGame();
+    const word = started.room.secretWord ?? "rocket";
+
+    submitGuess(started.room.code, guest.participantId, word);
+    const restarted = restartGame(started.room.code, host.participantId);
+
+    if ("error" in restarted) {
+      throw new Error("Expected restart to succeed");
+    }
+
+    expect(restarted.room.status).toBe("lobby");
+    expect(restarted.room.participants).toHaveLength(2);
+    expect(restarted.room.drawerId).toBeUndefined();
+    expect(restarted.room.secretWord).toBeUndefined();
+    expect(restarted.room.scores).toBeUndefined();
+    expect(restarted.room.strokes).toBeUndefined();
+    expect(restarted.room.guesses).toBeUndefined();
+  });
+
+  it("restartGame rejects non-host participants", () => {
+    const { host, guest, started } = startTwoPlayerGame();
+    const word = started.room.secretWord ?? "rocket";
+
+    submitGuess(started.room.code, guest.participantId, word);
+    const result = restartGame(started.room.code, guest.participantId);
+
+    expect(result).toEqual({ error: "not_host" });
+  });
+
+  it("restartGame rejects when the room is still playing", () => {
+    const { host, started } = startTwoPlayerGame();
+    const result = restartGame(started.room.code, host.participantId);
+
+    expect(result).toEqual({ error: "not_results" });
   });
 });

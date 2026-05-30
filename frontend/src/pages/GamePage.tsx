@@ -30,8 +30,13 @@ export function GamePage() {
   useEffect(() => {
     if (!room) {
       navigate("/", { replace: true });
+      return;
     }
-  }, [navigate, room]);
+
+    if (room.status === "results") {
+      navigate("/result", { replace: true });
+    }
+  }, [navigate, room, room?.status]);
 
   if (!room) {
     return null;

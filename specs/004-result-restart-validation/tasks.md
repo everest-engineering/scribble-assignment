@@ -18,7 +18,7 @@
 
 **Purpose**: Confirm brownfield starter and Scenarios 1–3 prerequisites are ready.
 
-- [ ] T001 Confirm Scenarios 1–3 game flow works and starter files listed in `specs/004-result-restart-validation/plan.md` exist under `backend/src/` and `frontend/src/`
+- [X] T001 Confirm Scenarios 1–3 game flow works and starter files listed in `specs/004-result-restart-validation/plan.md` exist under `backend/src/` and `frontend/src/`
 
 ---
 
@@ -40,9 +40,9 @@
 
 ### Implementation for User Story 1
 
-- [ ] T002 [US1] Add `"results"` to `RoomStatus` in `backend/src/models/game.ts`
-- [ ] T003 [US1] Set `room.status = "results"` when `isCorrect` in `submitGuess` in `backend/src/services/roomStore.ts`
-- [ ] T004 [US1] Add correct-guess→results, post-results guess rejection, and post-results stroke/clear rejection tests in `backend/src/services/roomStore.test.ts`
+- [X] T002 [US1] Add `"results"` to `RoomStatus` in `backend/src/models/game.ts`
+- [X] T003 [US1] Set `room.status = "results"` when `isCorrect` in `submitGuess` in `backend/src/services/roomStore.ts`
+- [X] T004 [US1] Add correct-guess→results, post-results guess rejection, and post-results stroke/clear rejection tests in `backend/src/services/roomStore.test.ts`
 
 **Checkpoint**: User Story 1 independently testable via Vitest and API — correct guess ends the round; gameplay mutations blocked.
 
@@ -58,12 +58,12 @@
 
 ### Implementation for User Story 2
 
-- [ ] T005 [US2] Extend `toRoomSnapshot` with `results` branch — expose `secretWord` to all viewers, final `score`, and `guesses` in `backend/src/services/roomStore.ts`
-- [ ] T006 [US2] Add non-drawer viewer receives `secretWord` when status is `results` test in `backend/src/services/roomStore.test.ts`
-- [ ] T007 [P] [US2] Add `"results"` to `RoomStatus` in `frontend/src/services/api.ts`
-- [ ] T008 [US2] Create `ResultPage` with revealed word, `Scoreboard`, `ResultPanel`, and participant list in `frontend/src/pages/ResultPage.tsx`
-- [ ] T009 [P] [US2] Add result page layout and word-reveal styles in `frontend/src/styles/app.css`
-- [ ] T010 [US2] Register `/result` route pointing to `ResultPage` in `frontend/src/routes/index.tsx`
+- [X] T005 [US2] Extend `toRoomSnapshot` with `results` branch — expose `secretWord` to all viewers, final `score`, and `guesses` in `backend/src/services/roomStore.ts`
+- [X] T006 [US2] Add non-drawer viewer receives `secretWord` when status is `results` test in `backend/src/services/roomStore.test.ts`
+- [X] T007 [P] [US2] Add `"results"` to `RoomStatus` in `frontend/src/services/api.ts`
+- [X] T008 [US2] Create `ResultPage` with revealed word, `Scoreboard`, `ResultPanel`, and participant list in `frontend/src/pages/ResultPage.tsx`
+- [X] T009 [P] [US2] Add result page layout and word-reveal styles in `frontend/src/styles/app.css`
+- [X] T010 [US2] Register `/result` route pointing to `ResultPage` in `frontend/src/routes/index.tsx`
 
 **Checkpoint**: User Stories 1 and 2 work — results snapshot and Result page display authoritative outcome data.
 
@@ -79,8 +79,8 @@
 
 ### Implementation for User Story 3
 
-- [ ] T011 [US3] Create `useResultPolling` hook with ~2s interval, lobby navigation on status change, and error state in `frontend/src/hooks/useResultPolling.ts`
-- [ ] T012 [US3] Wire `useResultPolling` and poll error display in `frontend/src/pages/ResultPage.tsx`
+- [X] T011 [US3] Create `useResultPolling` hook with ~2s interval, lobby navigation on status change, and error state in `frontend/src/hooks/useResultPolling.ts`
+- [X] T012 [US3] Wire `useResultPolling` and poll error display in `frontend/src/pages/ResultPage.tsx`
 
 **Checkpoint**: User Stories 1–3 work — result data syncs across tabs via polling.
 
@@ -96,13 +96,13 @@
 
 ### Implementation for User Story 4
 
-- [ ] T013 [US4] Implement `restartGame` with host and `results` guards and round-field clearing in `backend/src/services/roomStore.ts`
-- [ ] T014 [US4] Add `restartGameSchema` in `backend/src/api/schemas.ts`
-- [ ] T015 [US4] Add `POST /:code/restart` route with 404/403/400 error mapping in `backend/src/api/rooms.ts`
-- [ ] T016 [US4] Add host restart, non-host rejection, and round-field-clear tests in `backend/src/services/roomStore.test.ts`
-- [ ] T017 [P] [US4] Add `restartRoom` API method in `frontend/src/services/api.ts`
-- [ ] T018 [US4] Add `restartRoom` store action in `frontend/src/state/roomStore.ts`
-- [ ] T019 [US4] Add host-only Restart button with error handling in `frontend/src/pages/ResultPage.tsx`
+- [X] T013 [US4] Implement `restartGame` with host and `results` guards and round-field clearing in `backend/src/services/roomStore.ts`
+- [X] T014 [US4] Add `restartGameSchema` in `backend/src/api/schemas.ts`
+- [X] T015 [US4] Add `POST /:code/restart` route with 404/403/400 error mapping in `backend/src/api/rooms.ts`
+- [X] T016 [US4] Add host restart, non-host rejection, and round-field-clear tests in `backend/src/services/roomStore.test.ts`
+- [X] T017 [P] [US4] Add `restartRoom` API method in `frontend/src/services/api.ts`
+- [X] T018 [US4] Add `restartRoom` store action in `frontend/src/state/roomStore.ts`
+- [X] T019 [US4] Add host-only Restart button with error handling in `frontend/src/pages/ResultPage.tsx`
 
 **Checkpoint**: User Stories 1–4 work — host can restart to a clean lobby; non-host cannot.
 
@@ -118,11 +118,11 @@
 
 ### Implementation for User Story 5
 
-- [ ] T020 [US5] Navigate to `/result` when polled snapshot status is `results` in `frontend/src/hooks/useGamePolling.ts`
-- [ ] T021 [US5] Redirect `playing`→`/game` and `results`→`/result` in initial check and poll in `frontend/src/hooks/useLobbyPolling.ts`
-- [ ] T022 [US5] Redirect to `/result` when `room.status === "results"` in `frontend/src/pages/GamePage.tsx`
-- [ ] T023 [US5] Navigate to `/result` when `submitGuess` response has `status === "results"` in `frontend/src/state/roomStore.ts`
-- [ ] T024 [US5] Navigate to `/lobby` after successful `restartRoom` in `frontend/src/state/roomStore.ts`
+- [X] T020 [US5] Navigate to `/result` when polled snapshot status is `results` in `frontend/src/hooks/useGamePolling.ts`
+- [X] T021 [US5] Redirect `playing`→`/game` and `results`→`/result` in initial check and poll in `frontend/src/hooks/useLobbyPolling.ts`
+- [X] T022 [US5] Redirect to `/result` when `room.status === "results"` in `frontend/src/pages/GamePage.tsx`
+- [X] T023 [US5] Navigate to `/result` when `submitGuess` response has `status === "results"` in `frontend/src/state/roomStore.ts`
+- [X] T024 [US5] Navigate to `/lobby` after successful `restartRoom` in `frontend/src/state/roomStore.ts`
 
 **Checkpoint**: All user stories complete — full round→result→lobby navigation sync across clients.
 
@@ -132,10 +132,10 @@
 
 **Purpose**: Tests, builds, and manual validation across all stories.
 
-- [ ] T025 [P] Update mocks for `results` status and `restartRoom` in `frontend/src/services/api.test.ts`
-- [ ] T026 Run backend Vitest suite in `backend/`
-- [ ] T027 Run `npm run build` in `backend/` and `frontend/`
-- [ ] T028 Manual two-tab validation per Testing Strategy in `specs/004-result-restart-validation/plan.md` (round end, result sync, restart, fresh start, join-during-results rejected)
+- [X] T025 [P] Update mocks for `results` status and `restartRoom` in `frontend/src/services/api.test.ts`
+- [X] T026 Run backend Vitest suite in `backend/`
+- [X] T027 Run `npm run build` in `backend/` and `frontend/`
+- [X] T028 Manual two-tab validation per Testing Strategy in `specs/004-result-restart-validation/plan.md` (round end, result sync, restart, fresh start, join-during-results rejected)
 
 ---
 
