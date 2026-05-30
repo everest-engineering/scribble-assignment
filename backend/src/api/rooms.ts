@@ -4,9 +4,11 @@ import {
   HttpError,
   joinRoomSchema,
   roomCodeParamsSchema,
-  roomViewerQuerySchema
+  roomViewerQuerySchema,
+  startGameSchema,
+  selectWordSchema
 } from "./schemas.js";
-import { createRoom, getRoom, joinRoom, toRoomSnapshot } from "../services/roomStore.js";
+import { createRoom, getRoom, joinRoom, toRoomSnapshot, startGame, selectWord } from "../services/roomStore.js";
 
 export function createRoomsRouter() {
   const router = Router();
@@ -61,6 +63,48 @@ export function createRoomsRouter() {
       });
     } catch (error) {
       next(error);
+    }
+  });
+
+  router.post("/:code/start", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId } = startGameSchema.parse(request.body);
+      const result = startGame(code.toUpperCase(), participantId);
+
+      response.json({
+        participantId: result.participantId,
+        room: toRoomSnapshot(result.room, result.participantId)
+      });
+    } catch (error: any) {
+      if (error.message === "Room not found") {
+        next(new HttpError(404, error.message));
+      } else if (error.message === "Minimum 2 players required to start" || error.message === "Only the host can start the game") {
+        next(new HttpError(403, error.message));
+      } else {
+        next(error);
+      }
+    }
+  });
+
+  router.post("/:code/word", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId, word } = selectWordSchema.parse(request.body);
+      const result = selectWord(code.toUpperCase(), participantId, word);
+
+      response.json({
+        participantId: result.participantId,
+        room: toRoomSnapshot(result.room, result.participantId)
+      });
+    } catch (error: any) {
+      if (error.message === "Room not found") {
+        next(new HttpError(404, error.message));
+      } else if (error.message === "Invalid room state" || error.message === "Only the drawer can select a word" || error.message === "Word already selected" || error.message === "Invalid word selection") {
+        next(new HttpError(400, error.message));
+      } else {
+        next(error);
+      }
     }
   });
 
