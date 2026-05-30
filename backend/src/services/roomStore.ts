@@ -154,13 +154,45 @@ export function submitGuess(code: string, participantId: string, text: string) {
   return toRoomSnapshot(cloneRoom(room), participantId);
 }
 
+export function endRound(code: string, participantId: string) {
+  const room = rooms.get(code);
+
+  if (!room) return null;
+  if (room.hostId !== participantId) return "not-host" as const;
+  if (room.status !== "playing") return "not-playing" as const;
+
+  room.status = "finished";
+  room.updatedAt = now();
+  rooms.set(room.code, room);
+
+  return toRoomSnapshot(cloneRoom(room), participantId);
+}
+
+export function restartGame(code: string, participantId: string) {
+  const room = rooms.get(code);
+
+  if (!room) return null;
+  if (room.hostId !== participantId) return "not-host" as const;
+  if (room.status !== "finished") return "not-finished" as const;
+
+  room.status = "lobby";
+  room.drawerId = null;
+  room.currentWord = null;
+  room.guesses = [];
+  room.participants.forEach((p) => { p.score = 0; });
+  room.updatedAt = now();
+  rooms.set(room.code, room);
+
+  return toRoomSnapshot(cloneRoom(room), participantId);
+}
+
 export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSnapshot {
   return {
     code: room.code,
     status: room.status,
     hostId: room.hostId,
     drawerId: room.drawerId,
-    currentWord: viewerParticipantId === room.drawerId ? room.currentWord : null,
+    currentWord: room.status === "finished" || viewerParticipantId === room.drawerId ? room.currentWord : null,
     guesses: room.guesses.map((g) => ({ ...g })),
     participants: room.participants.map((participant) => ({ ...participant })),
     availableWords: listWords(),

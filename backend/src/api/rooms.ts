@@ -1,14 +1,16 @@
 import { Router } from "express";
 import {
   createRoomSchema,
+  endRoundSchema,
   HttpError,
   joinRoomSchema,
+  restartGameSchema,
   roomCodeParamsSchema,
   roomViewerQuerySchema,
   startGameSchema,
   submitGuessSchema
 } from "./schemas.js";
-import { createRoom, getRoom, joinRoom, startGame, submitGuess, toRoomSnapshot } from "../services/roomStore.js";
+import { createRoom, endRound, getRoom, joinRoom, restartGame, startGame, submitGuess, toRoomSnapshot } from "../services/roomStore.js";
 
 export function createRoomsRouter() {
   const router = Router();
@@ -85,6 +87,50 @@ export function createRoomsRouter() {
       }
       if (result === "is-drawer") {
         throw new HttpError(403, "Drawer cannot submit a guess");
+      }
+
+      response.json({ room: result });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/:code/end", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId } = endRoundSchema.parse(request.body);
+      const result = endRound(code.toUpperCase(), participantId);
+
+      if (result === null) {
+        throw new HttpError(404, "Room not found");
+      }
+      if (result === "not-host") {
+        throw new HttpError(403, "Only the host can end the round");
+      }
+      if (result === "not-playing") {
+        throw new HttpError(422, "Game is not in progress");
+      }
+
+      response.json({ room: result });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/:code/restart", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId } = restartGameSchema.parse(request.body);
+      const result = restartGame(code.toUpperCase(), participantId);
+
+      if (result === null) {
+        throw new HttpError(404, "Room not found");
+      }
+      if (result === "not-host") {
+        throw new HttpError(403, "Only the host can restart the game");
+      }
+      if (result === "not-finished") {
+        throw new HttpError(422, "Round has not finished yet");
       }
 
       response.json({ room: result });

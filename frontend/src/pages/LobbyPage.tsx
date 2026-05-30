@@ -17,6 +17,12 @@ export function LobbyPage() {
   }, [navigate, room]);
 
   useEffect(() => {
+    if (room?.status === "playing") {
+      navigate("/game", { replace: true });
+    }
+  }, [room?.status, navigate]);
+
+  useEffect(() => {
     if (!room) return;
 
     const interval = setInterval(() => {

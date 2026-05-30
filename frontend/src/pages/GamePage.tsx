@@ -22,6 +22,12 @@ export function GamePage() {
   }, [navigate, room]);
 
   useEffect(() => {
+    if (room?.status === "lobby") {
+      navigate("/lobby", { replace: true });
+    }
+  }, [room?.status, navigate]);
+
+  useEffect(() => {
     if (!room) return;
 
     const interval = setInterval(() => {
@@ -35,8 +41,9 @@ export function GamePage() {
     return null;
   }
 
-  const viewer = room.participants.find((p) => p.id === participantId) ?? null;
+  const isHost = room.hostId === participantId;
   const isDrawer = room.drawerId === participantId;
+  const viewer = room.participants.find((p) => p.id === participantId) ?? null;
   const drawerParticipant = room.participants.find((p) => p.id === room.drawerId) ?? null;
 
   function getCanvasPos(e: React.MouseEvent<HTMLCanvasElement>) {
@@ -77,6 +84,51 @@ export function GamePage() {
 
   async function handleGuessSubmit(text: string) {
     await roomStore.submitGuess(text);
+  }
+
+  async function handleEndRound() {
+    await roomStore.endRound();
+  }
+
+  async function handlePlayAgain() {
+    await roomStore.restartGame();
+    navigate("/lobby");
+  }
+
+  if (room.status === "finished") {
+    return (
+      <section className="panel game-page">
+        <div className="game-page__header">
+          <div className="game-page__header-left">
+            <span className="section-kicker">Round over</span>
+            <h1 className="game-page__title">Results</h1>
+          </div>
+          <RoomCodeBadge code={room.code} />
+        </div>
+
+        <div className="summary-grid">
+          <Card title="The Word">
+            <p style={{ fontSize: "1.5rem", fontWeight: "bold" }}>{room.currentWord}</p>
+          </Card>
+
+          <Card title="Final Scores">
+            <Scoreboard participants={room.participants} />
+          </Card>
+        </div>
+
+        <ResultPanel guesses={room.guesses} />
+
+        <div className="button-row" style={{ marginTop: "16px" }}>
+          {isHost ? (
+            <button className="button button--primary" onClick={handlePlayAgain}>
+              Play Again
+            </button>
+          ) : (
+            <p>Waiting for the host to restart...</p>
+          )}
+        </div>
+      </section>
+    );
   }
 
   return (
@@ -149,6 +201,11 @@ export function GamePage() {
       </div>
 
       <div className="button-row">
+        {isHost && (
+          <button className="button button--secondary" onClick={handleEndRound}>
+            End Round
+          </button>
+        )}
         <button className="button button--secondary" onClick={() => navigate("/lobby")}>
           Exit Game
         </button>
