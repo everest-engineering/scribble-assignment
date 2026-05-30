@@ -213,6 +213,39 @@ export function saveCanvas(
   return cloneRoom(room);
 }
 
+export function restartGame(code: string, participantId?: string) {
+  const room = rooms.get(code);
+
+  if (!room) {
+    return null;
+  }
+
+  if (room.hostId !== participantId) {
+    throw new Error("Only the host can restart the game");
+  }
+
+  // Reset round state
+  room.status = "lobby";
+  room.round += 1;
+  room.guesses = [];
+  room.canvasLines = [];
+  room.currentDrawerId = undefined;
+  room.currentWord = undefined;
+
+  // Reset participant state (preserve list but clear roles/scores)
+  room.participants = room.participants.map((p) => ({
+    ...p,
+    role: undefined,
+    score: 0
+  }));
+
+  room.updatedAt = now();
+
+  rooms.set(room.code, room);
+
+  return cloneRoom(room);
+}
+
 export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSnapshot {
   void viewerParticipantId;
 

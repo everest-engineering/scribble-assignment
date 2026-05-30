@@ -15,6 +15,20 @@ export function JoinRoomPage() {
 
     try {
       setError(null);
+      
+      // Validate player name on client side
+      const trimmedName = playerName.trim();
+      if (!trimmedName) {
+        setError("Player name cannot be empty");
+        return;
+      }
+
+      // Validate room code
+      if (!roomCode.trim()) {
+        setError("Room code is required");
+        return;
+      }
+
       await roomStore.joinRoom(roomCode.toUpperCase(), playerName);
       navigate("/lobby");
     } catch (caughtError) {

@@ -98,6 +98,12 @@ export const api = {
       }
   );
 },
+  restartGame(code: string, participantId?: string) {
+    const query = participantId ? `?participantId=${encodeURIComponent(participantId)}` : "";
+    return request<{ room: RoomSnapshot }>(`/rooms/${encodeURIComponent(code)}/restart${query}`, {
+      method: "POST"
+    });
+  },
   fetchRoom(code: string, participantId?: string) {
     const query = participantId ? `?participantId=${encodeURIComponent(participantId)}` : "";
     return request<{ room: RoomSnapshot }>(`/rooms/${encodeURIComponent(code)}${query}`);

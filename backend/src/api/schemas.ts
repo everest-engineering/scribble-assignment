@@ -15,7 +15,10 @@ export const joinRoomSchema = z.object({
 });
 
 export const submitGuessSchema = z.object({
-  message: z.string()
+  message: z
+    .string()
+    .trim()
+    .min(1, "Guess cannot be empty")
 });
 
 export const saveCanvasSchema = z.object({

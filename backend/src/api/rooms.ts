@@ -8,7 +8,7 @@ import {
   roomViewerQuerySchema,
   saveCanvasSchema
 } from "./schemas.js";
-import { createRoom, getRoom, joinRoom, startGame, submitGuess, toRoomSnapshot, saveCanvas } from "../services/roomStore.js";
+import { createRoom, getRoom, joinRoom, startGame, submitGuess, toRoomSnapshot, saveCanvas, restartGame } from "../services/roomStore.js";
 
 export function createRoomsRouter() {
   const router = Router();
@@ -141,5 +141,26 @@ router.post("/:code/canvas", (request, response, next) => {
     next(error);
   }
 });
+
+  router.post("/:code/restart", (request, response, next) => {
+  try {
+    const { code } = roomCodeParamsSchema.parse(request.params);
+    const { participantId } = roomViewerQuerySchema.parse(request.query);
+
+    const room = restartGame(code.toUpperCase(), participantId);
+
+    if (!room) {
+      throw new HttpError(404, "Unable to restart game");
+    }
+
+    response.json({
+      room: toRoomSnapshot(room, participantId)
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
   return router;
 }
+

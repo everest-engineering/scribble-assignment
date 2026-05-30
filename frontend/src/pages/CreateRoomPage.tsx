@@ -14,6 +14,14 @@ export function CreateRoomPage() {
 
     try {
       setError(null);
+      
+      // Validate player name on client side
+      const trimmedName = playerName.trim();
+      if (!trimmedName) {
+        setError("Player name cannot be empty");
+        return;
+      }
+
       await roomStore.createRoom(playerName);
       navigate("/lobby");
     } catch (caughtError) {
