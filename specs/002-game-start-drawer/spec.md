@@ -11,8 +11,9 @@
 ### Session 2026-05-31
 
 - Q: How is the drawer assigned? → A: The host (first participant, `hostId`) is assigned as the drawer for the first round. No rotation needed — single round only.
-- Q: How is the secret word selected? → A: Deterministically: index `0` of the starter word list (`"rocket"`), or the index derived from participant count or room code to keep it stable — the key constraint is that the same room always gets the same word (deterministic, not random).
+- Q: How is the secret word selected? → A: Always `STARTER_WORDS[0]` (`"rocket"`). Every room gets the same word. Simplest valid deterministic selection; no hash or rotation needed.
 - Q: How does word visibility work? → A: The backend includes `secretWord` in the room snapshot only when the requesting `participantId` matches the `drawerId`. All other participants receive the snapshot without `secretWord`.
+- Q: Does the Game screen poll in Scenario 2? → A: No. Drawer assignment and secret word are set once at game start. All clients already have the updated snapshot in React state when they navigate from the Lobby (triggered by detecting `status: "game"` via lobby polling). Game screen polling is deferred to Scenario 3.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -112,9 +113,9 @@ README.
 
 - **FR-001**: When the game starts, the backend MUST assign the room's `hostId`
   participant as the `drawerId` for the round.
-- **FR-002**: The backend MUST select the secret word deterministically from the
-  starter list. The selection MUST be stable for the lifetime of the room (same
-  room always gets the same word).
+- **FR-002**: The backend MUST set the secret word to `STARTER_WORDS[0]`
+  (`"rocket"`) when the game starts. The word is fixed for the lifetime of the
+  room and MUST NOT change between polls.
 - **FR-003**: The backend MUST include `secretWord` in the room snapshot only
   when the requesting `participantId` matches the room's `drawerId`. All other
   requests MUST omit `secretWord` entirely (not null, not masked — absent).
@@ -140,8 +141,9 @@ README.
 
 ### Measurable Outcomes
 
-- **SC-001**: All players see the drawer's name on the Game screen within the
-  next polling cycle after game start.
+- **SC-001**: All players see the drawer's name on the Game screen immediately
+  upon navigation — the snapshot carrying `drawerId` is already in React state
+  when clients arrive from the Lobby.
 - **SC-002**: The drawer's tab shows the secret word immediately on navigation
   to the Game screen.
 - **SC-003**: No guesser tab ever shows the secret word, confirmed by inspecting
@@ -155,9 +157,8 @@ README.
 
 - The drawer is always the host (`hostId` participant) for this single-round
   game. No rotation logic is required.
-- Deterministic word selection uses index `0` of the starter list (`"rocket"`)
-  OR a stable index derived from the room code (e.g., `charCodeAt(0) % wordCount`).
-  Either approach is acceptable as long as the word does not change mid-room.
+- Deterministic word selection always uses `STARTER_WORDS[0]` (`"rocket"`).
+  Every room gets the same word for its lifetime. No hash or index derivation needed.
 - `drawerId` and `secretWord` are set on the room when `POST /rooms/:code/start`
   is called, extending the same endpoint implemented in Scenario 1.
 - The frontend identifies the viewer's role by comparing `participantId` from
@@ -166,3 +167,6 @@ README.
   validation — that work is complete from Scenario 1.
 - `secretWord` is never stored in frontend state in a way accessible to guessers;
   it is simply absent from the API response for non-drawers.
+- No new polling is added to the Game screen for Scenario 2. The snapshot with
+  `drawerId` and `secretWord` (for the drawer) arrives via the lobby poll that
+  detects `status: "game"`. Game screen polling is a Scenario 3 concern.
