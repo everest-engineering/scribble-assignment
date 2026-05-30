@@ -1,5 +1,5 @@
 export type ParticipantRole = "drawer" | "guesser";
-export type RoomStatus = "lobby";
+export type RoomStatus = "lobby" | "playing";
 
 export interface Participant {
   id: string;
@@ -7,9 +7,17 @@ export interface Participant {
   joinedAt: string;
 }
 
+export interface ParticipantSnapshot {
+  id: string;
+  name: string;
+  joinedAt: string;
+  isHost: boolean;
+}
+
 export interface Room {
   code: string;
   status: RoomStatus;
+  hostParticipantId: string;
   participants: Participant[];
   createdAt: string;
   updatedAt: string;
@@ -18,7 +26,8 @@ export interface Room {
 export interface RoomSnapshot {
   code: string;
   status: RoomStatus;
-  participants: Participant[];
+  hostParticipantId: string;
+  participants: ParticipantSnapshot[];
   availableWords: string[];
   roles: ParticipantRole[];
 }
