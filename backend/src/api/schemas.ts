@@ -20,6 +20,40 @@ export const startGameBodySchema = z.object({
   participantId: z.string()
 });
 
+export const renameBodySchema = z.object({
+  participantId: z.string(),
+  name: z.string()
+});
+
+export const disbandBodySchema = z.object({
+  participantId: z.string()
+});
+
+export const strokePointSchema = z.object({
+  x: z.number(),
+  y: z.number()
+});
+
+export const strokeSchema = z.object({
+  points: z.array(strokePointSchema),
+  color: z.string(),
+  width: z.number()
+});
+
+export const guessBodySchema = z.object({
+  participantId: z.string(),
+  text: z.string()
+});
+
+export const canvasStrokesSchema = z.object({
+  participantId: z.string(),
+  strokes: z.array(strokeSchema)
+});
+
+export const canvasClearBodySchema = z.object({
+  participantId: z.string()
+});
+
 export class HttpError extends Error {
   statusCode: number;
 
