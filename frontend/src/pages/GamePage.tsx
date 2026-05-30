@@ -7,6 +7,7 @@ import { GuessInput } from "../components/GuessInput";
 import { RoomCodeBadge } from "../components/RoomCodeBadge";
 import { Scoreboard } from "../components/Scoreboard";
 import { WordSelection } from "../components/WordSelection";
+import { ResultScreen } from "../components/ResultScreen";
 import { useRoomState, useRoomStore } from "../state/roomStore";
 
 export function GamePage() {
@@ -18,6 +19,11 @@ export function GamePage() {
   useEffect(() => {
     if (!room) {
       navigate("/", { replace: true });
+      return;
+    }
+
+    if (room.status === "lobby") {
+      navigate("/lobby", { replace: true });
       return;
     }
 
@@ -61,6 +67,14 @@ export function GamePage() {
       setIsSelecting(false);
     }
   };
+
+  if (room.status === "results") {
+    return (
+      <section className="panel game-page">
+        <ResultScreen />
+      </section>
+    );
+  }
 
   return (
     <section className="panel game-page">
