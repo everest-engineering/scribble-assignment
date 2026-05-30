@@ -5,6 +5,6 @@ alwaysApply: true
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan at
-`specs/002-game-start-drawer-flow/plan.md` (data model: `specs/002-game-start-drawer-flow/data-model.md`,
-API contracts: `specs/002-game-start-drawer-flow/contracts/rooms-api.md`).
+`specs/003-gameplay-interaction/plan.md` (data model: `specs/003-gameplay-interaction/data-model.md`,
+API contracts: `specs/003-gameplay-interaction/contracts/rooms-api.md`).
 <!-- SPECKIT END -->
