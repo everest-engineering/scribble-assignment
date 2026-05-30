@@ -8,12 +8,45 @@ import { useRoomState, useRoomStore } from "../state/roomStore";
 export function LobbyPage() {
   const navigate = useNavigate();
   const roomStore = useRoomStore();
-  const { room, error, isLoading } = useRoomState();
+  const { room, participantId, error, isLoading } = useRoomState();
   const [refreshError, setRefreshError] = useState<string | null>(null);
+
+  const currentParticipant = room?.participants.find(
+    (participant) => participant.id === participantId,
+  );
+
+  const isHost = currentParticipant?.isHost ?? false;
+
+  const canStartGame = isHost && (room?.participants.length ?? 0) >= 2;
 
   useEffect(() => {
     if (!room) {
       navigate("/", { replace: true });
+    }
+  }, [navigate, room]);
+
+  useEffect(() => {
+    if (!room) {
+      return;
+    }
+
+    const intervalId = window.setInterval(() => {
+      setRefreshError(null);
+      roomStore.fetchRoom().catch((caughtError) => {
+        setRefreshError(
+          caughtError instanceof Error
+            ? caughtError.message
+            : "Unable to refresh room",
+        );
+      });
+    }, 2000);
+
+    return () => window.clearInterval(intervalId);
+  }, [room, roomStore]);
+
+  useEffect(() => {
+    if (room?.status === "playing") {
+      navigate("/game");
     }
   }, [navigate, room]);
 
@@ -22,7 +55,25 @@ export function LobbyPage() {
       setRefreshError(null);
       await roomStore.fetchRoom();
     } catch (caughtError) {
-      setRefreshError(caughtError instanceof Error ? caughtError.message : "Unable to refresh room");
+      setRefreshError(
+        caughtError instanceof Error
+          ? caughtError.message
+          : "Unable to refresh room",
+      );
+    }
+  }
+
+  async function handleStartGame() {
+    try {
+      setRefreshError(null);
+      await roomStore.startGame();
+      navigate("/game");
+    } catch (caughtError) {
+      setRefreshError(
+        caughtError instanceof Error
+          ? caughtError.message
+          : "Unable to start game",
+      );
     }
   }
 
@@ -50,7 +101,9 @@ export function LobbyPage() {
               {room.participants.map((participant) => (
                 <li key={participant.id}>
                   <span>{participant.name}</span>
-                  <span className="player-list__meta">joined</span>
+                  {participant.isHost && (
+                    <span className="player-list__meta">host</span>
+                  )}
                 </li>
               ))}
             </ul>
@@ -58,20 +111,48 @@ export function LobbyPage() {
         </Card>
 
         <Card title="Status">
-          <p className="status-line" style={{ backgroundColor: isLoading ? '#fef3c7' : '#e0e7ff', color: isLoading ? '#b45309' : '#3730a3' }}>
+          <p
+            className="status-line"
+            style={{
+              backgroundColor: isLoading ? "#fef3c7" : "#e0e7ff",
+              color: isLoading ? "#b45309" : "#3730a3",
+            }}
+          >
             {isLoading ? "Refreshing players..." : "Ready to play"}
           </p>
-          <p style={{ marginTop: '8px' }}>{error ?? refreshError ?? "Waiting for the host to start the game."}</p>
+          <p style={{ marginTop: "8px" }}>
+            {error ?? refreshError ?? "Waiting for the host to start the game."}
+          </p>
         </Card>
       </div>
 
       <div className="button-row button-row--spread">
-        <button className="button button--secondary" disabled={isLoading} onClick={handleRefresh}>
+        <button
+          className="button button--secondary"
+          disabled={isLoading}
+          onClick={handleRefresh}
+        >
           {isLoading ? "Refreshing..." : "Refresh Room"}
         </button>
-        <button className="button button--primary" onClick={() => navigate("/game")}>
-          Start Game
-        </button>
+        <div>
+          <button
+            className="button button--primary"
+            disabled={!canStartGame}
+            onClick={handleStartGame}
+          >
+            Start Game
+          </button>
+
+          {!isHost && (
+            <p style={{ marginTop: "8px" }}>
+              Only the host can start the game.
+            </p>
+          )}
+
+          {isHost && room.participants.length < 2 && (
+            <p style={{ marginTop: "8px" }}>At least 2 players are required.</p>
+          )}
+        </div>
       </div>
     </section>
   );

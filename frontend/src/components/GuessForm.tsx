@@ -1,32 +1,48 @@
 import { useState } from "react";
+import { useRoomStore } from "../state/roomStore";
 
-interface GuessFormProps {
-  disabled?: boolean;
-}
+export function GuessForm() {
+  const roomStore = useRoomStore();
 
-export function GuessForm({ disabled = false }: GuessFormProps) {
-  const [guessText, setGuessText] = useState("");
+  const [message, setMessage] = useState("");
+  const [error, setError] = useState<string | null>(null);
 
-  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+
+    try {
+      setError(null);
+
+      await roomStore.submitGuess(message);
+
+      setMessage("");
+    } catch (caughtError) {
+      setError(
+        caughtError instanceof Error
+          ? caughtError.message
+          : "Unable to submit guess"
+      );
+    }
   }
 
   return (
-    <form className="form" onSubmit={handleSubmit}>
-      <label className="form__field">
-        <input
-          className="form__input"
-          value={guessText}
-          onChange={(event) => setGuessText(event.target.value)}
-          placeholder="Type your guess here..."
-          disabled={disabled}
-        />
-      </label>
-      <div className="button-row button-row--compact">
-        <button className="button button--primary" type="submit" disabled={disabled}>
-          Submit Guess
-        </button>
-      </div>
+    <form onSubmit={handleSubmit} className="guess-form">
+      <input
+        value={message}
+        onChange={(event) => setMessage(event.target.value)}
+        placeholder="Enter your guess"
+        className="input"
+      />
+
+      {error && (
+        <p style={{ color: "#dc2626", marginTop: "8px" }}>
+          {error}
+        </p>
+      )}
+
+      <button type="submit" className="button button--primary">
+        Submit Guess
+      </button>
     </form>
   );
 }
