@@ -1,5 +1,5 @@
 export type ParticipantRole = "drawer" | "guesser" | "host";
-export type RoomStatus = "lobby" | "game";
+export type RoomStatus = "lobby" | "game" | "results";
 export type RoundStatus = "SelectingWord" | "Drawing" | "Ended";
 
 export interface Participant {
@@ -114,6 +114,12 @@ export const api = {
     return request<RoomSessionResponse>(`/rooms/${encodeURIComponent(code)}/guesses`, {
       method: "POST",
       body: JSON.stringify({ participantId, text })
+    });
+  },
+  resetRoom(code: string, participantId: string) {
+    return request<RoomSessionResponse>(`/rooms/${encodeURIComponent(code)}/reset`, {
+      method: "POST",
+      body: JSON.stringify({ participantId })
     });
   }
 };
