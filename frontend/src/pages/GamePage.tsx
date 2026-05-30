@@ -70,7 +70,9 @@ export function GamePage() {
     <section className="panel game-page">
       <div className="game-page__header">
         <div className="game-page__header-left">
-          <span className="section-kicker">Round 1</span>
+          <span className="section-kicker">
+            Round {room.round}
+          </span>
           <h1 className="game-page__title">Guess the Word!</h1>
         </div>
         <RoomCodeBadge code={room.code} />

@@ -21,6 +21,9 @@ export interface Room {
   updatedAt: string;
   guesses: Guess[];
   canvasLines: string[];
+  round: number;
+  wordIndex: number;
+  drawerIndex: number;
 }
 
 export interface Guess {
@@ -42,6 +45,7 @@ export interface RoomSnapshot {
   currentWord?: string;
   guesses: Guess[];
   canvasLines: string[];
+  round: number;
 }
 
 export interface RoomSessionResponse {

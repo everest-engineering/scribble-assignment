@@ -12,6 +12,7 @@ export interface Participant {
 export interface RoomSnapshot {
   code: string;
   status: "lobby" | "playing";
+  round: number;
   participants: Participant[];
   availableWords: string[];
   roles: ParticipantRole[];

@@ -62,6 +62,9 @@ export function createRoom(playerName?: string) {
     updatedAt: now(),
     guesses: [],
     canvasLines: [],
+    round: 1,
+    wordIndex: 0,
+    drawerIndex: 0,
   };
 
   rooms.set(room.code, room);
@@ -216,6 +219,7 @@ export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSn
   return {
     code: room.code,
     status: room.status,
+    round: room.round,
     participants: room.participants.map((participant) => ({ ...participant })),
     availableWords: listWords(),
     roles: [...STARTER_ROLES],
@@ -225,8 +229,6 @@ export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSn
         ? room.currentWord
         : undefined,  
     guesses: room.guesses,
-    canvasLines: room.canvasLines 
-    
-    
+    canvasLines: room.canvasLines,
   };
 }
