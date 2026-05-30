@@ -94,9 +94,33 @@ class RoomStore {
       return null;
     }
 
+    const response = await this.withLoading(() =>
+      api.fetchRoom(this.state.room!.code, this.state.participantId ?? undefined)
+    );
+    this.setRoomSnapshot(response.room);
+    return response.room;
+  }
+
+  async fetchRoomSilent() {
+    if (!this.state.room) {
+      return null;
+    }
+
     const response = await api.fetchRoom(this.state.room.code, this.state.participantId ?? undefined);
     this.setRoomSnapshot(response.room);
     return response.room;
+  }
+
+  async startGame() {
+    if (!this.state.room || !this.state.participantId) {
+      throw new Error("No active room session");
+    }
+
+    const response = await this.withLoading(() =>
+      api.startGame(this.state.room!.code, this.state.participantId!)
+    );
+    this.setRoomSession(response);
+    return response;
   }
 }
 

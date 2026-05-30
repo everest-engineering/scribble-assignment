@@ -9,11 +9,15 @@ export const joinRoomSchema = z.object({
 });
 
 export const roomCodeParamsSchema = z.object({
-  code: z.string()
+  code: z.string().trim().min(1, "Room code is required")
 });
 
 export const roomViewerQuerySchema = z.object({
   participantId: z.string().optional()
+});
+
+export const startGameSchema = z.object({
+  participantId: z.string().min(1)
 });
 
 export class HttpError extends Error {

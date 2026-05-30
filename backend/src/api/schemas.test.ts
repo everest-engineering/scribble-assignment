@@ -11,4 +11,15 @@ describe("schemas", () => {
   it("roomCodeParamsSchema rejects missing code", () => {
     expect(() => roomCodeParamsSchema.parse({})).toThrow();
   });
+
+  it("roomCodeParamsSchema rejects empty and whitespace-only codes", () => {
+    expect(() => roomCodeParamsSchema.parse({ code: "" })).toThrow();
+    expect(() => roomCodeParamsSchema.parse({ code: "   " })).toThrow();
+  });
+
+  it("roomCodeParamsSchema accepts trimmed non-empty codes", () => {
+    const result = roomCodeParamsSchema.parse({ code: " abcd " });
+
+    expect(result.code).toBe("abcd");
+  });
 });

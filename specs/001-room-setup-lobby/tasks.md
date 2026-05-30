@@ -18,7 +18,7 @@
 
 **Purpose**: Confirm brownfield starter is ready; no new project scaffolding.
 
-- [ ] T001 Confirm starter files listed in plan.md exist under `backend/src/` and `frontend/src/`
+- [x] T001 Confirm starter files listed in plan.md exist under `backend/src/` and `frontend/src/`
 
 ---
 
@@ -28,8 +28,8 @@
 
 **⚠️ CRITICAL**: Complete this phase before Phase 3+.
 
-- [ ] T002 Extend `Room`, `RoomSnapshot`, `ParticipantSnapshot`, and `RoomStatus` (`lobby` | `playing`) with `hostId`, `isHost`, and `canStart` in `backend/src/models/game.ts`
-- [ ] T003 [P] Mirror extended snapshot types in `frontend/src/services/api.ts`
+- [x] T002 Extend `Room`, `RoomSnapshot`, `ParticipantSnapshot`, and `RoomStatus` (`lobby` | `playing`) with `hostId`, `isHost`, and `canStart` in `backend/src/models/game.ts`
+- [x] T003 [P] Mirror extended snapshot types in `frontend/src/services/api.ts`
 
 **Checkpoint**: Types aligned — user story implementation can begin.
 
@@ -45,11 +45,11 @@
 
 ### Implementation for User Story 1
 
-- [ ] T004 [US1] Set `hostId` to creator participant id in `createRoom` in `backend/src/services/roomStore.ts`
-- [ ] T005 [US1] Implement viewer-aware `toRoomSnapshot` (`isHost`, `canStart`, participant `isHost`) in `backend/src/services/roomStore.ts`
-- [ ] T006 [US1] Add host assignment and snapshot tests in `backend/src/services/roomStore.test.ts`
-- [ ] T007 [US1] Render host indicator on participant rows in `frontend/src/pages/LobbyPage.tsx`
-- [ ] T008 [P] [US1] Add host badge styles in `frontend/src/styles/app.css`
+- [x] T004 [US1] Set `hostId` to creator participant id in `createRoom` in `backend/src/services/roomStore.ts`
+- [x] T005 [US1] Implement viewer-aware `toRoomSnapshot` (`isHost`, `canStart`, participant `isHost`) in `backend/src/services/roomStore.ts`
+- [x] T006 [US1] Add host assignment and snapshot tests in `backend/src/services/roomStore.test.ts`
+- [x] T007 [US1] Render host indicator on participant rows in `frontend/src/pages/LobbyPage.tsx`
+- [x] T008 [P] [US1] Add host badge styles in `frontend/src/styles/app.css`
 
 **Checkpoint**: User Story 1 independently testable — create room and verify host lobby UI.
 
@@ -65,12 +65,12 @@
 
 ### Implementation for User Story 2
 
-- [ ] T009 [US2] Add `.trim().min(1)` validation to `roomCodeParamsSchema` in `backend/src/api/schemas.ts`
-- [ ] T010 [US2] Reject `joinRoom` when room status is not `lobby` in `backend/src/services/roomStore.ts`
-- [ ] T011 [US2] Map non-lobby join to 400 with clear message in `backend/src/api/rooms.ts`
-- [ ] T012 [US2] Add join isolation, unknown code, and lobby-only join tests in `backend/src/services/roomStore.test.ts`
-- [ ] T013 [P] [US2] Add empty/whitespace room code schema tests in `backend/src/api/schemas.test.ts`
-- [ ] T014 [US2] Add client-side empty code validation before API call in `frontend/src/pages/JoinRoomPage.tsx`
+- [x] T009 [US2] Add `.trim().min(1)` validation to `roomCodeParamsSchema` in `backend/src/api/schemas.ts`
+- [x] T010 [US2] Reject `joinRoom` when room status is not `lobby` in `backend/src/services/roomStore.ts`
+- [x] T011 [US2] Map non-lobby join to 400 with clear message in `backend/src/api/rooms.ts`
+- [x] T012 [US2] Add join isolation, unknown code, and lobby-only join tests in `backend/src/services/roomStore.test.ts`
+- [x] T013 [P] [US2] Add empty/whitespace room code schema tests in `backend/src/api/schemas.test.ts`
+- [x] T014 [US2] Add client-side empty code validation before API call in `frontend/src/pages/JoinRoomPage.tsx`
 
 **Checkpoint**: User Stories 1 and 2 both work — create, join, validation errors, room isolation.
 
@@ -86,10 +86,10 @@
 
 ### Implementation for User Story 3
 
-- [ ] T015 [US3] Add `fetchRoomSilent` (no global loading toggle) in `frontend/src/state/roomStore.ts`
-- [ ] T016 [US3] Create `useLobbyPolling` hook with 2000ms interval and cleanup in `frontend/src/hooks/useLobbyPolling.ts`
-- [ ] T017 [US3] Wire auto-polling and poll error display in `frontend/src/pages/LobbyPage.tsx`
-- [ ] T018 [US3] Keep manual Refresh Room using `fetchRoom` alongside polling in `frontend/src/pages/LobbyPage.tsx`
+- [x] T015 [US3] Add `fetchRoomSilent` (no global loading toggle) in `frontend/src/state/roomStore.ts`
+- [x] T016 [US3] Create `useLobbyPolling` hook with 2000ms interval and cleanup in `frontend/src/hooks/useLobbyPolling.ts`
+- [x] T017 [US3] Wire auto-polling and poll error display in `frontend/src/pages/LobbyPage.tsx`
+- [x] T018 [US3] Keep manual Refresh Room using `fetchRoom` alongside polling in `frontend/src/pages/LobbyPage.tsx`
 
 **Checkpoint**: User Stories 1–3 work — multi-tab lobby sync via polling.
 
@@ -105,15 +105,15 @@
 
 ### Implementation for User Story 4
 
-- [ ] T019 [US4] Add `startGameSchema` in `backend/src/api/schemas.ts`
-- [ ] T020 [US4] Implement `startGame` with host, headcount, and lobby preconditions in `backend/src/services/roomStore.ts`
-- [ ] T021 [US4] Add start-game precondition tests in `backend/src/services/roomStore.test.ts`
-- [ ] T022 [US4] Add `POST /:code/start` route in `backend/src/api/rooms.ts`
-- [ ] T023 [US4] Add `startGame` API method in `frontend/src/services/api.ts`
-- [ ] T024 [US4] Add `startGame` store action in `frontend/src/state/roomStore.ts`
-- [ ] T025 [US4] Show Start only for host when `canStart`; hide/disable for non-host in `frontend/src/pages/LobbyPage.tsx`
-- [ ] T026 [US4] Call start API and navigate to `/game` on success or when poll sees `playing` in `frontend/src/pages/LobbyPage.tsx`
-- [ ] T027 [P] [US4] Update test mocks for extended snapshot fields in `frontend/src/services/api.test.ts`
+- [x] T019 [US4] Add `startGameSchema` in `backend/src/api/schemas.ts`
+- [x] T020 [US4] Implement `startGame` with host, headcount, and lobby preconditions in `backend/src/services/roomStore.ts`
+- [x] T021 [US4] Add start-game precondition tests in `backend/src/services/roomStore.test.ts`
+- [x] T022 [US4] Add `POST /:code/start` route in `backend/src/api/rooms.ts`
+- [x] T023 [US4] Add `startGame` API method in `frontend/src/services/api.ts`
+- [x] T024 [US4] Add `startGame` store action in `frontend/src/state/roomStore.ts`
+- [x] T025 [US4] Show Start only for host when `canStart`; hide/disable for non-host in `frontend/src/pages/LobbyPage.tsx`
+- [x] T026 [US4] Call start API and navigate to `/game` on success or when poll sees `playing` in `frontend/src/pages/LobbyPage.tsx`
+- [x] T027 [P] [US4] Update test mocks for extended snapshot fields in `frontend/src/services/api.test.ts`
 
 **Checkpoint**: All four user stories complete — full Scenario 1 acceptance criteria.
 
@@ -123,9 +123,9 @@
 
 **Purpose**: Automated checks and manual validation before Scenario 2.
 
-- [ ] T028 Run `npm test` in `backend/` and `frontend/`
-- [ ] T029 Run `npm run build` in `backend/` and `frontend/`
-- [ ] T030 Manual two-tab validation per plan.md Testing Strategy (P1–P4 flows)
+- [x] T028 Run `npm test` in `backend/` and `frontend/`
+- [x] T029 Run `npm run build` in `backend/` and `frontend/`
+- [x] T030 Manual two-tab validation per plan.md Testing Strategy (P1–P4 flows)
 
 ---
 

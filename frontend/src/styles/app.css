@@ -404,6 +404,13 @@ input {
   font-weight: 400;
 }
 
+.player-list__meta--host {
+  color: #3730a3;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
 .status-line,
 .placeholder-note {
   width: max-content;
