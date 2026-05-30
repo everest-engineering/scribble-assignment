@@ -22,7 +22,7 @@
 
 **Purpose**: Project initialization and basic structure
 
-- [ ] T001 Review existing `backend/src` and `frontend/src` layout to identify where state and models currently reside.
+- [x] T001 Review existing `backend/src` and `frontend/src` layout to identify where state and models currently reside.
 
 ---
 
@@ -32,8 +32,8 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T002 Update shared types (e.g. `backend/src/models/types.ts` and `frontend/src/types/index.ts`) with `Point`, `Stroke`, `Guess`, and `GameState` definitions.
-- [ ] T003 Update backend room manager (`backend/src/services/roomManager.ts`) to initialize and hold the new game state (strokes, guesses, scores, round time, rate-limiting map).
+- [x] T002 Update shared types (e.g. `backend/src/models/types.ts` and `frontend/src/types/index.ts`) with `Point`, `Stroke`, `Guess`, and `GameState` definitions.
+- [x] T003 Update backend room manager (`backend/src/services/roomManager.ts`) to initialize and hold the new game state (strokes, guesses, scores, round time, rate-limiting map).
 
 **Checkpoint**: Foundation ready - user story implementation can now begin in parallel
 
@@ -47,9 +47,9 @@
 
 ### Implementation for User Story 1
 
-- [ ] T004 [P] [US1] Create POST endpoint `/api/rooms/:roomId/strokes` in `backend/src/api/routes.ts` to receive and store strokes in-memory.
-- [ ] T005 [P] [US1] Create the interactive `Canvas` component in `frontend/src/components/Canvas.tsx` handling pointer events.
-- [ ] T006 [US1] Add logic to `Canvas.tsx` to batch points every 500ms and send POST requests via `frontend/src/services/api.ts`.
+- [x] T004 [P] [US1] Create POST endpoint `/api/rooms/:roomId/strokes` in `backend/src/api/routes.ts` to receive and store strokes in-memory.
+- [x] T005 [P] [US1] Create the interactive `Canvas` component in `frontend/src/components/Canvas.tsx` handling pointer events.
+- [x] T006 [US1] Add logic to `Canvas.tsx` to batch points every 500ms and send POST requests via `frontend/src/services/api.ts`.
 
 **Checkpoint**: At this point, User Story 1 should be fully functional and testable independently
 
@@ -63,11 +63,11 @@
 
 ### Implementation for User Story 2
 
-- [ ] T007 [US2] Update GET `/api/rooms/:roomId/state` endpoint in `backend/src/api/routes.ts` to include strokes, guesses, and scores (omitting `currentWord` for guessers).
-- [ ] T008 [US2] Create POST endpoint `/api/rooms/:roomId/guesses` in `backend/src/api/routes.ts` with 1 guess/sec rate limiting.
-- [ ] T009 [P] [US2] Update frontend polling logic in `frontend/src/state/roomStore.ts` to fetch and store `strokes` and `guesses`.
-- [ ] T010 [P] [US2] Update `Canvas.tsx` to render read-only strokes when the user is a guesser.
-- [ ] T011 [US2] Create `GuessInput` component (`frontend/src/components/GuessInput.tsx`) to submit guesses and display feedback.
+- [x] T007 [US2] Update GET `/api/rooms/:roomId/state` endpoint in `backend/src/api/routes.ts` to include strokes, guesses, and scores (omitting `currentWord` for guessers).
+- [x] T008 [US2] Create POST endpoint `/api/rooms/:roomId/guesses` in `backend/src/api/routes.ts` with 1 guess/sec rate limiting.
+- [x] T009 [P] [US2] Update frontend polling logic in `frontend/src/state/roomStore.ts` to fetch and store `strokes` and `guesses`.
+- [x] T010 [P] [US2] Update `Canvas.tsx` to render read-only strokes when the user is a guesser.
+- [x] T011 [US2] Create `GuessInput` component (`frontend/src/components/GuessInput.tsx`) to submit guesses and display feedback.
 
 **Checkpoint**: At this point, User Stories 1 AND 2 should both work independently
 
@@ -81,11 +81,11 @@
 
 ### Implementation for User Story 3
 
-- [ ] T012 [US3] Add guess evaluation logic to POST `/api/rooms/:roomId/guesses` (case-insensitive check against `currentWord`).
-- [ ] T013 [US3] Implement scoring distribution logic in backend (award points to guesser and drawer).
-- [ ] T014 [US3] Add early round termination logic in backend if all guessers guess correctly.
-- [ ] T015 [P] [US3] Create `Scoreboard` component (`frontend/src/components/Scoreboard.tsx`) to display player scores.
-- [ ] T016 [P] [US3] Create `Chat` component (`frontend/src/components/Chat.tsx`) to display the history of guesses and correct/incorrect feedback.
+- [x] T012 [US3] Add guess evaluation logic to POST `/api/rooms/:roomId/guesses` (case-insensitive check against `currentWord`).
+- [x] T013 [US3] Implement scoring distribution logic in backend (award points to guesser and drawer).
+- [x] T014 [US3] Add early round termination logic in backend if all guessers guess correctly.
+- [x] T015 [P] [US3] Create `Scoreboard` component (`frontend/src/components/Scoreboard.tsx`) to display player scores.
+- [x] T016 [P] [US3] Create `Chat` component (`frontend/src/components/Chat.tsx`) to display the history of guesses and correct/incorrect feedback.
 
 **Checkpoint**: All user stories should now be independently functional
 
@@ -95,9 +95,9 @@
 
 **Purpose**: Improvements that affect multiple user stories
 
-- [ ] T017 Code cleanup and refactoring across frontend and backend.
-- [ ] T018 Verify error handling and UI fallback for rate-limited guesses.
-- [ ] T019 Follow the `quickstart.md` manual testing steps to ensure the entire flow works end-to-end.
+- [x] T017 Code cleanup and refactoring across frontend and backend.
+- [x] T018 Verify error handling and UI fallback for rate-limited guesses.
+- [x] T019 Follow the `quickstart.md` manual testing steps to ensure the entire flow works end-to-end.
 
 ---
 
