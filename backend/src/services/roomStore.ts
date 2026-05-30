@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import type { Participant, Room, RoomSnapshot, ParticipantRole, Stroke } from "../models/game.js";
+import type { Participant, Room, RoomSnapshot, ParticipantRole, Stroke, Guess } from "../models/game.js";
 import { STARTER_WORDS } from "../seed/starterData.js";
 
 const rooms = new Map<string, Room>();
@@ -59,6 +59,7 @@ export function createRoom(playerName?: string) {
     guesses: [],
     scores: {},
     lastGuessTime: {},
+    lastSeenTime: {},
     createdAt: now(),
     updatedAt: now()
   };
@@ -110,13 +111,37 @@ setInterval(() => {
     }
 }, 60 * 1000);
 
-export function getRoom(code: string) {
+export function getRoom(code: string, viewerParticipantId?: string) {
   const room = rooms.get(code);
-  if (room && room.currentRound && room.currentRound.roundStatus === "Drawing" && room.currentRound.roundEndTime) {
-    if (Date.now() > room.currentRound.roundEndTime) {
-      room.currentRound.roundStatus = "Ended";
+  
+  if (room) {
+    const nowTime = Date.now();
+    if (viewerParticipantId) {
+      if (!room.lastSeenTime) room.lastSeenTime = {};
+      room.lastSeenTime[viewerParticipantId] = nowTime;
+    }
+    
+    // Remove participants not seen in 2 minutes (auto-reassigns host if host dropped)
+    // 2 minutes allows background tabs (which are throttled to 1min intervals by browsers) to stay alive
+    if (room.lastSeenTime) {
+      const active = room.participants.filter(p => {
+        const lastSeen = room.lastSeenTime![p.id] || nowTime;
+        return (nowTime - lastSeen) < 120000;
+      });
+      if (active.length > 0 && active.length < room.participants.length) {
+        room.participants = active;
+        room.updatedAt = now();
+      }
+    }
+
+    if (room.status === "game" && room.currentRound && room.currentRound.roundStatus === "Drawing" && room.currentRound.roundEndTime) {
+      if (nowTime > room.currentRound.roundEndTime) {
+        room.currentRound.roundStatus = "Ended";
+        room.status = "results";
+      }
     }
   }
+  
   return room ? cloneRoom(room) : null;
 }
 
@@ -257,9 +282,31 @@ export function addGuess(code: string, participantId: string, text: string) {
     
     if (guesserIds.every(id => correctGuesserIds.has(id))) {
       room.currentRound.roundStatus = "Ended";
+      room.status = "results";
     }
   }
 
+  room.updatedAt = now();
+  rooms.set(code, room);
+  return { participantId, room: cloneRoom(room) };
+}
+
+export function resetRoomToLobby(code: string, participantId: string) {
+  const room = rooms.get(code);
+  if (!room) throw new Error("Room not found");
+  if (room.participants.length === 0 || room.participants[0].id !== participantId) throw new Error("Only the host can reset the room");
+  if (room.status !== "results") throw new Error("Room must be in results phase to reset");
+
+  room.status = "lobby";
+  room.currentRound = undefined;
+  room.strokes = [];
+  room.guesses = [];
+  
+  // reset scores
+  for (const p of room.participants) {
+    room.scores[p.id] = 0;
+  }
+  
   room.updatedAt = now();
   rooms.set(code, room);
   return { participantId, room: cloneRoom(room) };
