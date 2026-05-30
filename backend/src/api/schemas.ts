@@ -16,6 +16,10 @@ export const roomViewerQuerySchema = z.object({
   participantId: z.string().optional()
 });
 
+export const startGameBodySchema = z.object({
+  participantId: z.string()
+});
+
 export class HttpError extends Error {
   statusCode: number;
 
