@@ -73,7 +73,7 @@ export function createRoomsRouter() {
         throw new HttpError(404, "Room not found");
       }
 
-      response.json({ room: toRoomSnapshot(room) });
+      response.json({ room: toRoomSnapshot(room, participantId) });
     } catch (error) {
       if (error instanceof HttpError) {
         return next(error);

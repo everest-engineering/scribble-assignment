@@ -22,6 +22,8 @@ export function GamePage() {
   }
 
   const viewer = room.participants.find((participant) => participant.id === participantId) ?? null;
+  const isDrawer = room.drawerId === participantId;
+  const drawer = room.participants.find((p) => p.id === room.drawerId) ?? null;
 
   return (
     <section className="panel game-page">
@@ -32,6 +34,12 @@ export function GamePage() {
         </div>
         <RoomCodeBadge code={room.code} />
       </div>
+
+      {drawer && (
+        <div className="game-page__drawer-banner">
+          <strong>{drawer.name}</strong> is drawing
+        </div>
+      )}
 
       <div className="game-page__layout">
         <aside className="game-page__sidebar game-page__sidebar--left">
@@ -55,9 +63,15 @@ export function GamePage() {
                 <dd>{viewer?.name ?? "Unknown player"}</dd>
               </div>
               <div>
-                <dt>Status</dt>
-                <dd>Playing</dd>
+                <dt>Role</dt>
+                <dd>{isDrawer ? "You are drawing" : "You are guessing"}</dd>
               </div>
+              {isDrawer && room.secretWord && (
+                <div>
+                  <dt>Your word</dt>
+                  <dd>{room.secretWord}</dd>
+                </div>
+              )}
             </dl>
           </Card>
 

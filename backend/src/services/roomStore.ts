@@ -50,6 +50,8 @@ export function createRoom(playerName: string) {
   const room: Room = {
     code: generateUniqueCode(),
     hostId: participant.id,
+    drawerId: null,
+    secretWord: null,
     status: "lobby",
     participants: [participant],
     createdAt: now(),
@@ -108,15 +110,18 @@ export function startRoom(code: string, participantId: string) {
     throw new Error("Need at least 2 players to start");
   }
 
-  return saveRoom({ ...room, status: "game" });
+  return saveRoom({ ...room, status: "game", drawerId: room.hostId, secretWord: STARTER_WORDS[0] });
 }
 
 export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSnapshot {
-  void viewerParticipantId;
+  const isDrawer =
+    viewerParticipantId !== undefined && viewerParticipantId === room.drawerId;
 
   return {
     code: room.code,
     hostId: room.hostId,
+    drawerId: room.drawerId,
+    ...(isDrawer && room.secretWord ? { secretWord: room.secretWord } : {}),
     status: room.status,
     participants: room.participants.map((participant) => ({ ...participant })),
     availableWords: listWords(),
