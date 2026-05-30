@@ -19,23 +19,34 @@ export function createApiRouter() {
 
 export function notFoundHandler(_request: Request, response: Response) {
   response.status(404).json({
-    message: "Route not found"
+    error: {
+      code: "ROUTE_NOT_FOUND",
+      message: "Route not found"
+    }
   });
 }
 
 export function errorHandler(
-  error: Error & { statusCode?: number },
+  error: Error & { code?: string; statusCode?: number },
   _request: Request,
   response: Response,
   _next: NextFunction
 ) {
   if (error.name === "ZodError") {
-    response.status(400).json({ message: "Invalid request payload" });
+    response.status(400).json({
+      error: {
+        code: "INVALID_REQUEST",
+        message: "Invalid request payload"
+      }
+    });
     return;
   }
 
   const statusCode = error.statusCode ?? 500;
   response.status(statusCode).json({
-    message: error.message || "Unexpected server error"
+    error: {
+      code: error.code ?? "UNEXPECTED_ERROR",
+      message: error.message || "Unexpected server error"
+    }
   });
 }

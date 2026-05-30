@@ -30,7 +30,8 @@ function generateUniqueCode() {
 }
 
 function displayName(name?: string) {
-  return name || "Player";
+  const trimmedName = name?.trim();
+  return trimmedName || "Player";
 }
 
 function createParticipant(name?: string): Participant {
@@ -51,12 +52,14 @@ export function listWords() {
 
 export function createRoom(playerName?: string) {
   const participant = createParticipant(playerName);
+  const timestamp = now();
   const room: Room = {
     code: generateUniqueCode(),
     status: "lobby",
+    hostParticipantId: participant.id,
     participants: [participant],
-    createdAt: now(),
-    updatedAt: now()
+    createdAt: timestamp,
+    updatedAt: timestamp
   };
 
   rooms.set(room.code, room);
@@ -90,10 +93,47 @@ export function getRoom(code: string) {
   return room ? cloneRoom(room) : null;
 }
 
+export type StartGameResult =
+  | { ok: true; room: Room }
+  | { ok: false; reason: "room-not-found" | "participant-not-host" | "not-enough-players" | "room-already-started" };
+
+export function startGame(code: string, participantId: string): StartGameResult {
+  const room = rooms.get(code);
+
+  if (!room) {
+    return { ok: false, reason: "room-not-found" };
+  }
+
+  if (room.status !== "lobby") {
+    return { ok: false, reason: "room-already-started" };
+  }
+
+  if (room.hostParticipantId !== participantId) {
+    return { ok: false, reason: "participant-not-host" };
+  }
+
+  if (room.participants.length < 2) {
+    return { ok: false, reason: "not-enough-players" };
+  }
+
+  room.status = "in-game";
+  room.updatedAt = now();
+  rooms.set(room.code, room);
+
+  return {
+    ok: true,
+    room: cloneRoom(room)
+  };
+}
+
 export function saveRoom(room: Room) {
   room.updatedAt = now();
   rooms.set(room.code, cloneRoom(room));
   return getRoom(room.code);
+}
+
+export function clearRoomsForTest() {
+  rooms.clear();
 }
 
 export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSnapshot {
@@ -102,6 +142,7 @@ export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSn
   return {
     code: room.code,
     status: room.status,
+    hostParticipantId: room.hostParticipantId,
     participants: room.participants.map((participant) => ({ ...participant })),
     availableWords: listWords(),
     roles: [...STARTER_ROLES]

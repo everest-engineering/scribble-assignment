@@ -404,6 +404,16 @@ input {
   font-weight: 400;
 }
 
+.player-list__badge {
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: #dbeafe;
+  color: var(--brand-strong);
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
 .status-line,
 .placeholder-note {
   width: max-content;

@@ -8,7 +8,8 @@ export interface Participant {
 
 export interface RoomSnapshot {
   code: string;
-  status: "lobby";
+  status: "lobby" | "in-game";
+  hostParticipantId: string;
   participants: Participant[];
   availableWords: string[];
   roles: ParticipantRole[];
@@ -17,6 +18,26 @@ export interface RoomSnapshot {
 export interface RoomSessionResponse {
   participantId: string;
   room: RoomSnapshot;
+}
+
+export interface ApiErrorBody {
+  error?: {
+    code?: string;
+    message?: string;
+  };
+  message?: string;
+}
+
+export class ApiError extends Error {
+  code: string;
+  status: number;
+
+  constructor(message: string, code: string, status: number) {
+    super(message);
+    this.name = "ApiError";
+    this.code = code;
+    this.status = status;
+  }
 }
 
 const API_BASE_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3001";
@@ -31,11 +52,11 @@ async function request<T>(path: string, init?: RequestInit) {
   });
 
   if (!response.ok) {
-    const errorBody = (await response.json().catch(() => ({ message: "Request failed" }))) as {
-      message?: string;
-    };
+    const errorBody = (await response.json().catch(() => ({ message: "Request failed" }))) as ApiErrorBody;
+    const message = errorBody.error?.message ?? errorBody.message ?? "Request failed";
+    const code = errorBody.error?.code ?? "REQUEST_FAILED";
 
-    throw new Error(errorBody.message ?? "Request failed");
+    throw new ApiError(message, code, response.status);
   }
 
   return (await response.json()) as T;
@@ -57,5 +78,11 @@ export const api = {
   fetchRoom(code: string, participantId?: string) {
     const query = participantId ? `?participantId=${encodeURIComponent(participantId)}` : "";
     return request<{ room: RoomSnapshot }>(`/rooms/${encodeURIComponent(code)}${query}`);
+  },
+  startRoom(code: string, participantId: string) {
+    return request<{ room: RoomSnapshot }>(`/rooms/${encodeURIComponent(code)}/start`, {
+      method: "POST",
+      body: JSON.stringify({ participantId })
+    });
   }
 };
