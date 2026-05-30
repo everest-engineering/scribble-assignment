@@ -86,7 +86,10 @@ function participantRole(
   room: Room,
   participantId: string
 ): ParticipantRole | null {
-  if (room.status !== "playing" || !room.drawerParticipantId) {
+  if (
+    (room.status !== "playing" && room.status !== "result") ||
+    !room.drawerParticipantId
+  ) {
     return null;
   }
 
@@ -145,6 +148,14 @@ export type ClearCanvasResult =
 export type SubmitGuessResult =
   | { ok: true; room: Room }
   | { ok: false; reason: "not_found" | "not_playing" | "empty_guess" | "is_drawer" | "not_participant" };
+
+export type EndRoomResult =
+  | { ok: true; room: Room }
+  | { ok: false; reason: "not_found" | "not_host" | "not_playing" };
+
+export type RestartRoomResult =
+  | { ok: true; room: Room }
+  | { ok: false; reason: "not_found" | "not_host" | "not_result" };
 
 export function createRoom(playerName?: string): CreateRoomResult {
   const normalized = normalizePlayerName(playerName);
@@ -350,6 +361,62 @@ export function submitGuess(
   return { ok: true, room: cloneRoom(room) };
 }
 
+export function endRoom(code: string, participantId: string): EndRoomResult {
+  const room = rooms.get(code);
+
+  if (!room) {
+    return { ok: false, reason: "not_found" };
+  }
+
+  if (room.status !== "playing") {
+    return { ok: false, reason: "not_playing" };
+  }
+
+  if (room.hostParticipantId !== participantId) {
+    return { ok: false, reason: "not_host" };
+  }
+
+  room.status = "result";
+  room.updatedAt = now();
+  rooms.set(room.code, room);
+
+  return { ok: true, room: cloneRoom(room) };
+}
+
+function clearRoundState(room: Room) {
+  room.drawerParticipantId = null;
+  room.secretWord = null;
+  room.strokes = [];
+  room.guesses = [];
+  room.scoredParticipantIds = [];
+  room.participants.forEach((participant) => {
+    participant.score = 0;
+  });
+}
+
+export function restartRoom(code: string, participantId: string): RestartRoomResult {
+  const room = rooms.get(code);
+
+  if (!room) {
+    return { ok: false, reason: "not_found" };
+  }
+
+  if (room.status !== "result") {
+    return { ok: false, reason: "not_result" };
+  }
+
+  if (room.hostParticipantId !== participantId) {
+    return { ok: false, reason: "not_host" };
+  }
+
+  clearRoundState(room);
+  room.status = "lobby";
+  room.updatedAt = now();
+  rooms.set(room.code, room);
+
+  return { ok: true, room: cloneRoom(room) };
+}
+
 export function getRoom(code: string) {
   const room = rooms.get(code);
   return room ? cloneRoom(room) : null;
@@ -362,7 +429,8 @@ export function saveRoom(room: Room) {
 }
 
 export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSnapshot {
-  const drawerParticipantId = room.status === "playing" ? room.drawerParticipantId : null;
+  const drawerParticipantId =
+    room.status === "playing" || room.status === "result" ? room.drawerParticipantId : null;
 
   const snapshot: RoomSnapshot = {
     code: room.code,
@@ -384,6 +452,14 @@ export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSn
   if (room.status === "playing") {
     snapshot.strokes = [...room.strokes];
     snapshot.guesses = [...room.guesses];
+  }
+
+  if (room.status === "result") {
+    snapshot.guesses = [...room.guesses];
+
+    if (room.secretWord) {
+      snapshot.secretWord = room.secretWord;
+    }
   }
 
   if (

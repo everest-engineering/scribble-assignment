@@ -3,8 +3,10 @@ import {
   addStroke,
   clearCanvas,
   createRoom,
+  endRoom,
   joinRoom,
   normalizePlayerName,
+  restartRoom,
   startRoom,
   submitGuess,
   toRoomSnapshot
@@ -30,6 +32,17 @@ function startTwoPlayerGame() {
   }
 
   return { host, guest, started };
+}
+
+function startTwoPlayerGameInResult() {
+  const session = startTwoPlayerGame();
+  const ended = endRoom(session.started.room.code, session.host.participantId);
+  expect(ended.ok).toBe(true);
+  if (!ended.ok) {
+    throw new Error("Failed to end room");
+  }
+
+  return { ...session, ended };
 }
 
 describe("roomStore", () => {
@@ -305,5 +318,175 @@ describe("roomStore", () => {
     );
     expect(guestAfterRepeat?.score).toBe(100);
     expect(repeatCorrect.room.guesses).toHaveLength(3);
+  });
+
+  it("endRoom rejects non-host and not_playing states", () => {
+    const { host, guest, started } = startTwoPlayerGame();
+
+    expect(endRoom(started.room.code, guest.participantId)).toEqual({
+      ok: false,
+      reason: "not_host"
+    });
+
+    const ended = endRoom(started.room.code, host.participantId);
+    expect(ended.ok).toBe(true);
+    if (!ended.ok) {
+      return;
+    }
+
+    expect(ended.room.status).toBe("result");
+    expect(endRoom(ended.room.code, host.participantId)).toEqual({
+      ok: false,
+      reason: "not_playing"
+    });
+  });
+
+  it("submitGuess rejects after endRoom", () => {
+    const { host, guest, ended } = startTwoPlayerGameInResult();
+
+    expect(submitGuess(ended.room.code, guest.participantId, "rocket")).toEqual({
+      ok: false,
+      reason: "not_playing"
+    });
+  });
+
+  it("addStroke rejects after endRoom", () => {
+    const { host, ended } = startTwoPlayerGameInResult();
+
+    expect(
+      addStroke(ended.room.code, host.participantId, {
+        points: [
+          { x: 10, y: 10 },
+          { x: 20, y: 20 }
+        ]
+      })
+    ).toEqual({ ok: false, reason: "not_playing" });
+  });
+
+  it("toRoomSnapshot exposes secretWord to all viewers in result state", () => {
+    const { host, guest, ended } = startTwoPlayerGameInResult();
+
+    const drawerSnapshot = toRoomSnapshot(ended.room, host.participantId);
+    const guesserSnapshot = toRoomSnapshot(ended.room, guest.participantId);
+
+    expect(drawerSnapshot.secretWord).toBe("rocket");
+    expect(guesserSnapshot.secretWord).toBe("rocket");
+  });
+
+  it("toRoomSnapshot omits strokes in result state", () => {
+    const { host, started } = startTwoPlayerGame();
+
+    addStroke(started.room.code, host.participantId, {
+      points: [
+        { x: 10, y: 10 },
+        { x: 20, y: 20 }
+      ]
+    });
+
+    const ended = endRoom(started.room.code, host.participantId);
+    expect(ended.ok).toBe(true);
+    if (!ended.ok) {
+      return;
+    }
+
+    const snapshot = toRoomSnapshot(ended.room, host.participantId);
+    expect(snapshot.strokes).toBeUndefined();
+    expect(snapshot.guesses).toBeDefined();
+  });
+
+  it("restartRoom clears round state and returns to lobby", () => {
+    const { host, guest, started } = startTwoPlayerGame();
+
+    submitGuess(started.room.code, guest.participantId, "Rocket");
+
+    const ended = endRoom(started.room.code, host.participantId);
+    expect(ended.ok).toBe(true);
+    if (!ended.ok) {
+      return;
+    }
+
+    const restarted = restartRoom(ended.room.code, host.participantId);
+    expect(restarted.ok).toBe(true);
+    if (!restarted.ok) {
+      return;
+    }
+
+    expect(restarted.room.status).toBe("lobby");
+    expect(restarted.room.secretWord).toBeNull();
+    expect(restarted.room.drawerParticipantId).toBeNull();
+    expect(restarted.room.strokes).toEqual([]);
+    expect(restarted.room.guesses).toEqual([]);
+    expect(restarted.room.scoredParticipantIds).toEqual([]);
+    expect(restarted.room.participants).toHaveLength(2);
+    expect(restarted.room.participants.every((participant) => participant.score === 0)).toBe(
+      true
+    );
+    expect(restarted.room.hostParticipantId).toBe(host.participantId);
+  });
+
+  it("restartRoom rejects when round has not ended", () => {
+    const { host, guest, started } = startTwoPlayerGame();
+
+    expect(restartRoom(started.room.code, host.participantId)).toEqual({
+      ok: false,
+      reason: "not_result"
+    });
+
+    expect(restartRoom(started.room.code, guest.participantId)).toEqual({
+      ok: false,
+      reason: "not_result"
+    });
+  });
+
+  it("restartRoom rejects non-host when in result state", () => {
+    const { host, guest, ended } = startTwoPlayerGameInResult();
+
+    expect(restartRoom(ended.room.code, guest.participantId)).toEqual({
+      ok: false,
+      reason: "not_host"
+    });
+  });
+
+  it("startRoom after restart re-initializes fresh round state", () => {
+    const { host, guest, ended } = startTwoPlayerGameInResult();
+
+    const restarted = restartRoom(ended.room.code, host.participantId);
+    expect(restarted.ok).toBe(true);
+    if (!restarted.ok) {
+      return;
+    }
+
+    const startedAgain = startRoom(restarted.room.code, host.participantId);
+    expect(startedAgain.ok).toBe(true);
+    if (!startedAgain.ok) {
+      return;
+    }
+
+    expect(startedAgain.room.status).toBe("playing");
+    expect(startedAgain.room.guesses).toEqual([]);
+    expect(startedAgain.room.strokes).toEqual([]);
+    expect(startedAgain.room.participants.every((participant) => participant.score === 0)).toBe(
+      true
+    );
+  });
+
+  it("non-host cannot end or restart the room", () => {
+    const { host, guest, started } = startTwoPlayerGame();
+
+    expect(endRoom(started.room.code, guest.participantId)).toEqual({
+      ok: false,
+      reason: "not_host"
+    });
+
+    const ended = endRoom(started.room.code, host.participantId);
+    expect(ended.ok).toBe(true);
+    if (!ended.ok) {
+      return;
+    }
+
+    expect(restartRoom(ended.room.code, guest.participantId)).toEqual({
+      ok: false,
+      reason: "not_host"
+    });
   });
 });

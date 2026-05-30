@@ -165,6 +165,30 @@ class RoomStore {
     this.setRoomSnapshot(response.room);
     return response.room;
   }
+
+  async endRoom() {
+    if (!this.state.room || !this.state.participantId) {
+      throw new Error("No active room session");
+    }
+
+    const response = await this.withLoading(() =>
+      api.endRoom(this.state.room!.code, this.state.participantId!)
+    );
+    this.setRoomSnapshot(response.room);
+    return response.room;
+  }
+
+  async restartRoom() {
+    if (!this.state.room || !this.state.participantId) {
+      throw new Error("No active room session");
+    }
+
+    const response = await this.withLoading(() =>
+      api.restartRoom(this.state.room!.code, this.state.participantId!)
+    );
+    this.setRoomSnapshot(response.room);
+    return response.room;
+  }
 }
 
 const RoomStoreContext = createContext<RoomStore | null>(null);
