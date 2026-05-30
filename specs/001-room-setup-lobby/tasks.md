@@ -144,7 +144,7 @@ the other session; confirm only room B's participants appear.
 
 - [x] T016 [P] Run `cd backend && npm run build` and confirm zero TypeScript errors
 - [x] T017 [P] Run `cd frontend && npm run build` and confirm zero TypeScript errors
-- [ ] T018 Two-tab manual acceptance run: create room → join → lobby polls → host starts → both tabs land on Game screen; verify all edge cases (empty name, empty code, non-existent code, non-host start blocked)
+- [x] T018 Two-tab manual acceptance run: create room → join → lobby polls → host starts → both tabs land on Game screen; verify all edge cases (empty name, empty code, non-existent code, non-host start blocked)
 
 ---
 
@@ -177,13 +177,13 @@ the other session; confirm only room B's participants appear.
 
 ### Parallel Opportunities
 
-| Tasks | Why Parallel |
-|-------|-------------|
-| T001 + T002 | Different files (backend model vs frontend types) |
+| Tasks              | Why Parallel                                         |
+| ------------------ | ---------------------------------------------------- |
+| T001 + T002        | Different files (backend model vs frontend types)    |
 | T003 + T004 + T005 | Different files (schemas, roomStore, CreateRoomPage) |
-| T006 + T007 | Different files (schemas, JoinRoomPage) |
-| T009 + T012 | Different files (backend schema, frontend api) |
-| T016 + T017 | Independent build commands |
+| T006 + T007        | Different files (schemas, JoinRoomPage)              |
+| T009 + T012        | Different files (backend schema, frontend api)       |
+| T016 + T017        | Independent build commands                           |
 
 ---
 
