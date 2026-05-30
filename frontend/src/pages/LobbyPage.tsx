@@ -8,13 +8,25 @@ import { useRoomState, useRoomStore } from "../state/roomStore";
 export function LobbyPage() {
   const navigate = useNavigate();
   const roomStore = useRoomStore();
-  const { room, error, isLoading } = useRoomState();
+  const { room, error, isLoading, participantId } = useRoomState();
   const [refreshError, setRefreshError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!room) {
       navigate("/", { replace: true });
+      return;
     }
+
+    if (room.status === "game") {
+      navigate("/game");
+      return;
+    }
+
+    const intervalId = setInterval(() => {
+      handleRefresh();
+    }, 2000);
+
+    return () => clearInterval(intervalId);
   }, [navigate, room]);
 
   async function handleRefresh() {
@@ -26,9 +38,19 @@ export function LobbyPage() {
     }
   }
 
+  async function handleStartGame() {
+    try {
+      await roomStore.startGame();
+    } catch (caughtError) {
+      setRefreshError(caughtError instanceof Error ? caughtError.message : "Failed to start game");
+    }
+  }
+
   if (!room) {
     return null;
   }
+
+  const isHost = room.participants[0]?.id === participantId;
 
   return (
     <section className="panel placeholder-page">
@@ -49,7 +71,7 @@ export function LobbyPage() {
             <ul className="player-list">
               {room.participants.map((participant) => (
                 <li key={participant.id}>
-                  <span>{participant.name}</span>
+                  <span>{participant.name} {participant.id === room.participants[0]?.id ? "(Host)" : ""}</span>
                   <span className="player-list__meta">joined</span>
                 </li>
               ))}
@@ -69,9 +91,15 @@ export function LobbyPage() {
         <button className="button button--secondary" disabled={isLoading} onClick={handleRefresh}>
           {isLoading ? "Refreshing..." : "Refresh Room"}
         </button>
-        <button className="button button--primary" onClick={() => navigate("/game")}>
-          Start Game
-        </button>
+        {isHost ? (
+          <button className="button button--primary" onClick={handleStartGame} disabled={isLoading || room.participants.length < 2}>
+            Start game
+          </button>
+        ) : (
+          <button className="button button--primary" disabled>
+            Waiting for host to start...
+          </button>
+        )}
       </div>
     </section>
   );

@@ -40,3 +40,11 @@ You are working on a monolithic repository for a multiplayer drawing game ("Scri
 -   Give concise, direct answers.
 -   Do not output large blocks of code if a small change suffices.
 -   When creating or editing files, ensure consistency with the existing directory structure detailed above.
+
+## Version Control
+-   **Branching**: Always create feature branches for future specs from the `scribble-lab` branch instead of the `main` branch.
+
+<!-- SPECKIT START -->
+For additional context about technologies to be used, project structure,
+shell commands, and other important information, read the current plan at `specs/004-result-restart/plan.md`.
+<!-- SPECKIT END -->
