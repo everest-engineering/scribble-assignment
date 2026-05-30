@@ -1,7 +1,10 @@
 import { Router } from "express";
 import {
+  canvasClearBodySchema,
+  canvasStrokesSchema,
   createRoomSchema,
   disbandBodySchema,
+  guessBodySchema,
   HttpError,
   joinRoomSchema,
   renameBodySchema,
@@ -12,6 +15,7 @@ import {
 import {
   checkCreateRateLimit,
   checkJoinRateLimit,
+  clearCanvas,
   createRoom,
   disbandRoom,
   getRoom,
@@ -21,7 +25,9 @@ import {
   recordJoinAttempt,
   renameParticipant,
   startGame,
-  toRoomSnapshot
+  submitGuess,
+  toRoomSnapshot,
+  updateCanvas
 } from "../services/roomStore.js";
 
 export function createRoomsRouter() {
@@ -175,6 +181,72 @@ export function createRoomsRouter() {
       }
 
       response.json({ message: "Room disbanded" });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/:code/guess", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId, text } = guessBodySchema.parse(request.body);
+      const result = submitGuess(code.toUpperCase(), participantId, text);
+
+      if ("error" in result) {
+        const message = result.error as string;
+        const statusCode = message === "Room not found" ? 404
+          : message === "No active round" ? 400
+          : message === "Participant not found" ? 403
+          : 403;
+        throw new HttpError(statusCode, message);
+      }
+
+      if ("rejected" in result) {
+        response.status(400).json({ error: result.reason });
+        return;
+      }
+
+      response.json({ room: toRoomSnapshot(result.room, participantId) });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/:code/canvas", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId, strokes } = canvasStrokesSchema.parse(request.body);
+      const result = updateCanvas(code.toUpperCase(), participantId, strokes);
+
+      if ("error" in result) {
+        const message = result.error as string;
+        const statusCode = message === "Room not found" ? 404
+          : message === "No active round" ? 400
+          : 403;
+        throw new HttpError(statusCode, message);
+      }
+
+      response.json({ room: toRoomSnapshot(result.room, participantId) });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/:code/canvas/clear", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId } = canvasClearBodySchema.parse(request.body);
+      const result = clearCanvas(code.toUpperCase(), participantId);
+
+      if ("error" in result) {
+        const message = result.error as string;
+        const statusCode = message === "Room not found" ? 404
+          : message === "No active round" ? 400
+          : 403;
+        throw new HttpError(statusCode, message);
+      }
+
+      response.json({ room: toRoomSnapshot(result.room, participantId) });
     } catch (error) {
       next(error);
     }

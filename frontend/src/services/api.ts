@@ -8,6 +8,25 @@ export interface Participant {
   isHost: boolean;
 }
 
+export interface StrokePoint {
+  x: number;
+  y: number;
+}
+
+export interface Stroke {
+  points: StrokePoint[];
+  color: string;
+  width: number;
+}
+
+export interface Guess {
+  participantId: string;
+  guesserName: string;
+  text: string;
+  isCorrect: boolean;
+  timestamp: string;
+}
+
 export interface RoomSnapshot {
   code: string;
   status: RoomStatus;
@@ -18,6 +37,9 @@ export interface RoomSnapshot {
   drawerId: string | null;
   currentWord?: string;
   invalidParticipantIds?: string[];
+  strokes: Stroke[];
+  guesses: Guess[];
+  scores: Record<string, number>;
 }
 
 export interface RoomSessionResponse {
@@ -84,6 +106,24 @@ export const api = {
   },
   disband(code: string, participantId: string) {
     return request<{ message: string }>(`/rooms/${encodeURIComponent(code)}/disband`, {
+      method: "POST",
+      body: JSON.stringify({ participantId })
+    });
+  },
+  submitGuess(code: string, participantId: string, text: string) {
+    return request<{ room: RoomSnapshot }>(`/rooms/${encodeURIComponent(code)}/guess`, {
+      method: "POST",
+      body: JSON.stringify({ participantId, text })
+    });
+  },
+  updateCanvas(code: string, participantId: string, strokes: Stroke[]) {
+    return request<{ room: RoomSnapshot }>(`/rooms/${encodeURIComponent(code)}/canvas`, {
+      method: "POST",
+      body: JSON.stringify({ participantId, strokes })
+    });
+  },
+  clearCanvas(code: string, participantId: string) {
+    return request<{ room: RoomSnapshot }>(`/rooms/${encodeURIComponent(code)}/canvas/clear`, {
       method: "POST",
       body: JSON.stringify({ participantId })
     });

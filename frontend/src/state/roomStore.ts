@@ -7,7 +7,7 @@ import {
   useSyncExternalStore,
   type PropsWithChildren
 } from "react";
-import { api, type GameActionResponse, type RoomSessionResponse, type RoomSnapshot } from "../services/api";
+import { api, type GameActionResponse, type RoomSessionResponse, type RoomSnapshot, type Stroke } from "../services/api";
 
 export interface RoomState {
   room: RoomSnapshot | null;
@@ -169,6 +169,40 @@ class RoomStore {
 
     await this.withLoading(() => api.disband(code, participantId));
     this.setState({ room: null, participantId: null });
+  }
+
+  async submitGuess(text: string) {
+    const code = this.state.room?.code;
+    const participantId = this.state.participantId;
+    if (!code || !participantId) {
+      throw new Error("No active room session");
+    }
+
+    const response = await this.withLoading(() => api.submitGuess(code, participantId, text));
+    this.setState({ room: response.room, error: null });
+    return response;
+  }
+
+  async updateCanvas(strokes: Stroke[]) {
+    const code = this.state.room?.code;
+    const participantId = this.state.participantId;
+    if (!code || !participantId) {
+      throw new Error("No active room session");
+    }
+
+    const response = await this.withLoading(() => api.updateCanvas(code, participantId, strokes));
+    this.setState({ room: response.room, error: null });
+  }
+
+  async clearCanvas() {
+    const code = this.state.room?.code;
+    const participantId = this.state.participantId;
+    if (!code || !participantId) {
+      throw new Error("No active room session");
+    }
+
+    const response = await this.withLoading(() => api.clearCanvas(code, participantId));
+    this.setState({ room: response.room, error: null });
   }
 }
 

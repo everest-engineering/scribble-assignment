@@ -222,7 +222,10 @@ export function startGame(code: string, participantId: string) {
   const round: Round = {
     roundNumber: 1,
     drawerId: host.id,
-    word: STARTER_WORDS[0]
+    word: STARTER_WORDS[0],
+    strokes: [],
+    guesses: [],
+    scores: Object.fromEntries(room.participants.map((p) => [p.id, 0]))
   };
 
   room.currentRound = round;
@@ -264,7 +267,10 @@ export function renameParticipant(roomCode: string, participantId: string, newNa
     const round: Round = {
       roundNumber: 1,
       drawerId: host.id,
-      word: STARTER_WORDS[0]
+      word: STARTER_WORDS[0],
+      strokes: [],
+      guesses: [],
+      scores: Object.fromEntries(room.participants.map((p) => [p.id, 0]))
     };
 
     room.currentRound = round;
@@ -310,7 +316,10 @@ export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSn
     availableWords: [],
     roles: [...STARTER_ROLES],
     roundNumber: room.currentRound?.roundNumber ?? null,
-    drawerId: room.currentRound?.drawerId ?? null
+    drawerId: room.currentRound?.drawerId ?? null,
+    strokes: room.currentRound?.strokes ?? [],
+    guesses: room.currentRound?.guesses ?? [],
+    scores: room.currentRound?.scores ?? {}
   };
 
   if (room.currentRound && viewerParticipantId === room.currentRound.drawerId) {
@@ -322,4 +331,122 @@ export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSn
   }
 
   return snapshot;
+}
+
+export function updateCanvas(code: string, participantId: string, strokes: import("../models/game.js").Stroke[]) {
+  const room = rooms.get(code);
+
+  if (!room) {
+    return { error: "Room not found" } as const;
+  }
+
+  if (!room.currentRound) {
+    return { error: "No active round" } as const;
+  }
+
+  if (room.currentRound.drawerId !== participantId) {
+    return { error: "Only the drawer can update the canvas" } as const;
+  }
+
+  room.currentRound.strokes.push(...strokes);
+  room.updatedAt = now();
+  rooms.set(room.code, room);
+
+  return { room: cloneRoom(room) };
+}
+
+interface ProcessGuessResult {
+  guess: import("../models/game.js").Guess;
+  scoreAwarded: boolean;
+  rejected: boolean;
+  reason?: string;
+}
+
+function processGuess(
+  text: string,
+  secretWord: string,
+  guesserId: string,
+  guesserName: string,
+  currentScores: Record<string, number>
+): ProcessGuessResult {
+  const trimmed = text.trim();
+
+  if (trimmed.length === 0) {
+    return { guess: null as unknown as import("../models/game.js").Guess, scoreAwarded: false, rejected: true, reason: "Guess cannot be empty" };
+  }
+
+  const isCorrect = trimmed.toLowerCase() === secretWord.toLowerCase();
+  const alreadyScored = currentScores[guesserId] !== undefined && currentScores[guesserId] > 0;
+
+  const guess: import("../models/game.js").Guess = {
+    participantId: guesserId,
+    guesserName,
+    text: trimmed,
+    isCorrect,
+    timestamp: now()
+  };
+
+  const scoreAwarded = isCorrect && !alreadyScored;
+
+  return { guess, scoreAwarded, rejected: false };
+}
+
+export function submitGuess(code: string, participantId: string, text: string) {
+  const room = rooms.get(code);
+
+  if (!room) {
+    return { error: "Room not found" } as const;
+  }
+
+  if (!room.currentRound) {
+    return { error: "No active round" } as const;
+  }
+
+  const participant = room.participants.find((p) => p.id === participantId);
+  if (!participant) {
+    return { error: "Participant not found" } as const;
+  }
+
+  if (room.currentRound.drawerId === participantId) {
+    return { error: "Drawer cannot submit guesses" } as const;
+  }
+
+  const result = processGuess(text, room.currentRound.word, participantId, participant.name, room.currentRound.scores);
+
+  if (result.rejected) {
+    return { rejected: true as const, reason: result.reason };
+  }
+
+  room.currentRound.guesses.push(result.guess);
+
+  if (result.scoreAwarded) {
+    room.currentRound.scores[participantId] = (room.currentRound.scores[participantId] ?? 0) + 100;
+  }
+
+  room.updatedAt = now();
+  rooms.set(room.code, room);
+
+  return { room: cloneRoom(room), guess: result.guess, scoreAwarded: result.scoreAwarded };
+}
+
+export function clearCanvas(code: string, participantId: string) {
+  const room = rooms.get(code);
+
+  if (!room) {
+    return { error: "Room not found" } as const;
+  }
+
+  if (!room.currentRound) {
+    return { error: "No active round" } as const;
+  }
+
+  if (room.currentRound.drawerId !== participantId) {
+    return { error: "Only the drawer can clear the canvas" } as const;
+  }
+
+  room.currentRound.strokes = [];
+  room.updatedAt = now();
+  rooms.set(room.code, room);
+
+  return { room: cloneRoom(room) };
 }
