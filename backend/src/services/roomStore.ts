@@ -3,6 +3,7 @@ import type { Guess, Participant, Room, RoomSnapshot } from "../models/game.js";
 import { STARTER_ROLES, STARTER_WORDS } from "../seed/starterData.js";
 
 const rooms = new Map<string, Room>();
+let wordIndex = 0;
 
 function now() {
   return new Date().toISOString();
@@ -116,7 +117,7 @@ export function startRoom(code: string, participantId: string) {
     ...room,
     status: "game",
     drawerId: room.hostId,
-    secretWord: STARTER_WORDS[0],
+    secretWord: STARTER_WORDS[wordIndex++ % STARTER_WORDS.length],
     guesses: [],
     scores: Object.fromEntries(room.participants.map((p) => [p.id, 0]))
   });
