@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import type { Participant, Room, RoomSnapshot } from "../models/game.js";
+import type { Participant, ParticipantRole, Room, RoomSnapshot } from "../models/game.js";
 import { STARTER_ROLES, STARTER_WORDS } from "../seed/starterData.js";
 
 const rooms = new Map<string, Room>();
@@ -29,14 +29,24 @@ function generateUniqueCode() {
   return code;
 }
 
-function displayName(name?: string) {
-  return name || "Player";
+export type NormalizedNameResult =
+  | { ok: true; name: string }
+  | { ok: false; reason: "empty_name" };
+
+export function normalizePlayerName(name?: string): NormalizedNameResult {
+  const trimmed = (name ?? "").trim();
+
+  if (!trimmed) {
+    return { ok: false, reason: "empty_name" };
+  }
+
+  return { ok: true, name: trimmed };
 }
 
-function createParticipant(name?: string): Participant {
+function createParticipant(name: string): Participant {
   return {
     id: randomUUID(),
-    name: displayName(name),
+    name,
     joinedAt: now()
   };
 }
@@ -45,24 +55,47 @@ function cloneRoom(room: Room) {
   return structuredClone(room);
 }
 
+function participantRole(
+  room: Room,
+  participantId: string
+): ParticipantRole | null {
+  if (room.status !== "playing" || !room.drawerParticipantId) {
+    return null;
+  }
+
+  return participantId === room.drawerParticipantId ? "drawer" : "guesser";
+}
+
 export function listWords() {
   return [...STARTER_WORDS];
 }
 
+export type CreateRoomResult =
+  | { ok: true; room: Room; participantId: string }
+  | { ok: false; reason: "empty_name" };
+
 export type JoinRoomResult =
   | { ok: true; room: Room; participantId: string }
-  | { ok: false; reason: "not_found" | "game_started" };
+  | { ok: false; reason: "not_found" | "game_started" | "empty_name" };
 
 export type StartRoomResult =
   | { ok: true; room: Room }
   | { ok: false; reason: "not_found" | "not_host" | "not_enough_players" | "game_started" };
 
-export function createRoom(playerName?: string) {
-  const participant = createParticipant(playerName);
+export function createRoom(playerName?: string): CreateRoomResult {
+  const normalized = normalizePlayerName(playerName);
+
+  if (!normalized.ok) {
+    return { ok: false, reason: "empty_name" };
+  }
+
+  const participant = createParticipant(normalized.name);
   const room: Room = {
     code: generateUniqueCode(),
     status: "lobby",
     hostParticipantId: participant.id,
+    drawerParticipantId: null,
+    secretWord: null,
     participants: [participant],
     createdAt: now(),
     updatedAt: now()
@@ -71,12 +104,19 @@ export function createRoom(playerName?: string) {
   rooms.set(room.code, room);
 
   return {
+    ok: true,
     room: cloneRoom(room),
     participantId: participant.id
   };
 }
 
 export function joinRoom(code: string, playerName?: string): JoinRoomResult {
+  const normalized = normalizePlayerName(playerName);
+
+  if (!normalized.ok) {
+    return { ok: false, reason: "empty_name" };
+  }
+
   const room = rooms.get(code);
 
   if (!room) {
@@ -87,7 +127,7 @@ export function joinRoom(code: string, playerName?: string): JoinRoomResult {
     return { ok: false, reason: "game_started" };
   }
 
-  const participant = createParticipant(playerName);
+  const participant = createParticipant(normalized.name);
   room.participants.push(participant);
   room.updatedAt = now();
   rooms.set(room.code, room);
@@ -119,6 +159,8 @@ export function startRoom(code: string, participantId: string): StartRoomResult 
   }
 
   room.status = "playing";
+  room.drawerParticipantId = room.hostParticipantId;
+  room.secretWord = STARTER_WORDS[0];
   room.updatedAt = now();
   rooms.set(room.code, room);
 
@@ -137,19 +179,32 @@ export function saveRoom(room: Room) {
 }
 
 export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSnapshot {
-  void viewerParticipantId;
+  const drawerParticipantId = room.status === "playing" ? room.drawerParticipantId : null;
 
-  return {
+  const snapshot: RoomSnapshot = {
     code: room.code,
     status: room.status,
     hostParticipantId: room.hostParticipantId,
+    drawerParticipantId,
     participants: room.participants.map((participant) => ({
       id: participant.id,
       name: participant.name,
       joinedAt: participant.joinedAt,
-      isHost: participant.id === room.hostParticipantId
+      isHost: participant.id === room.hostParticipantId,
+      role: participantRole(room, participant.id)
     })),
     availableWords: listWords(),
     roles: [...STARTER_ROLES]
   };
+
+  if (
+    room.status === "playing" &&
+    viewerParticipantId &&
+    room.drawerParticipantId === viewerParticipantId &&
+    room.secretWord
+  ) {
+    snapshot.secretWord = room.secretWord;
+  }
+
+  return snapshot;
 }

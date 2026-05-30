@@ -22,8 +22,8 @@ description: "Task list for Game Start & Drawer Flow (Scenario 2)"
 
 **Purpose**: Confirm Scenario 1 baseline and artifact alignment before round-state work
 
-- [ ] T001 Review `specs/002-game-start-drawer-flow/plan.md`, `spec.md`, and `contracts/rooms-api.md` against acceptance criteria
-- [ ] T002 Confirm Scenario 1 flows (create, join, lobby poll, host start, `/game` guard) work on branch `002-game-start-drawer-flow`
+- [x] T001 Review `specs/002-game-start-drawer-flow/plan.md`, `spec.md`, and `contracts/rooms-api.md` against acceptance criteria
+- [x] T002 Confirm Scenario 1 flows (create, join, lobby poll, host start, `/game` guard) work on branch `002-game-start-drawer-flow`
 
 ---
 
@@ -33,15 +33,15 @@ description: "Task list for Game Start & Drawer Flow (Scenario 2)"
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T003 Add `drawerParticipantId: string | null` and `secretWord: string | null` to internal `Room` in `backend/src/models/game.ts`
-- [ ] T004 Extend `RoomSnapshot` with `drawerParticipantId` and `ParticipantSnapshot` with `role: "drawer" | "guesser" | null` plus optional `secretWord` in `backend/src/models/game.ts`
-- [ ] T005 Add `normalizePlayerName()` (trim; reject empty) and replace `displayName()` default in `backend/src/services/roomStore.ts`
-- [ ] T006 Update `createRoom` and `joinRoom` to persist trimmed names via `normalizePlayerName()` in `backend/src/services/roomStore.ts`
-- [ ] T007 Extend `startRoom` to set `drawerParticipantId = hostParticipantId`, `secretWord = STARTER_WORDS[0]`, and `status = "playing"` in `backend/src/services/roomStore.ts`
-- [ ] T008 Implement viewer-aware `toRoomSnapshot(room, viewerParticipantId)` with roles and conditional `secretWord` in `backend/src/services/roomStore.ts`
-- [ ] T009 [P] Require trimmed non-empty `playerName` in `createRoomSchema` and `joinRoomSchema` in `backend/src/api/schemas.ts`
-- [ ] T010 [P] Return `400` with `"Player name is required"` for empty trimmed names on create/join in `backend/src/api/rooms.ts`
-- [ ] T011 [P] Mirror extended snapshot and participant types in `frontend/src/services/api.ts`
+- [x] T003 Add `drawerParticipantId: string | null` and `secretWord: string | null` to internal `Room` in `backend/src/models/game.ts`
+- [x] T004 Extend `RoomSnapshot` with `drawerParticipantId` and `ParticipantSnapshot` with `role: "drawer" | "guesser" | null` plus optional `secretWord` in `backend/src/models/game.ts`
+- [x] T005 Add `normalizePlayerName()` (trim; reject empty) and replace `displayName()` default in `backend/src/services/roomStore.ts`
+- [x] T006 Update `createRoom` and `joinRoom` to persist trimmed names via `normalizePlayerName()` in `backend/src/services/roomStore.ts`
+- [x] T007 Extend `startRoom` to set `drawerParticipantId = hostParticipantId`, `secretWord = STARTER_WORDS[0]`, and `status = "playing"` in `backend/src/services/roomStore.ts`
+- [x] T008 Implement viewer-aware `toRoomSnapshot(room, viewerParticipantId)` with roles and conditional `secretWord` in `backend/src/services/roomStore.ts`
+- [x] T009 [P] Require trimmed non-empty `playerName` in `createRoomSchema` and `joinRoomSchema` in `backend/src/api/schemas.ts`
+- [x] T010 [P] Return `400` with `"Player name is required"` for empty trimmed names on create/join in `backend/src/api/rooms.ts`
+- [x] T011 [P] Mirror extended snapshot and participant types in `frontend/src/services/api.ts`
 
 **Checkpoint**: Foundation ready — backend returns viewer-aware snapshots; names trimmed server-side; round fields set on start
 
@@ -55,10 +55,10 @@ description: "Task list for Game Start & Drawer Flow (Scenario 2)"
 
 ### Implementation for User Story 1
 
-- [ ] T012 [US1] Trim name and reject empty/whitespace-only before API call with clear error in `frontend/src/pages/CreateRoomPage.tsx`
-- [ ] T013 [US1] Trim name and reject empty/whitespace-only before API call with clear error in `frontend/src/pages/JoinRoomPage.tsx`
-- [ ] T014 [US1] Pass trimmed name to `roomStore.createRoom` / `joinRoom` in `frontend/src/pages/CreateRoomPage.tsx` and `frontend/src/pages/JoinRoomPage.tsx`
-- [ ] T015 [P] [US1] Add vitest cases for trimmed names and empty-name rejection in `backend/src/services/roomStore.test.ts`
+- [x] T012 [US1] Trim name and reject empty/whitespace-only before API call with clear error in `frontend/src/pages/CreateRoomPage.tsx`
+- [x] T013 [US1] Trim name and reject empty/whitespace-only before API call with clear error in `frontend/src/pages/JoinRoomPage.tsx`
+- [x] T014 [US1] Pass trimmed name to `roomStore.createRoom` / `joinRoom` in `frontend/src/pages/CreateRoomPage.tsx` and `frontend/src/pages/JoinRoomPage.tsx`
+- [x] T015 [P] [US1] Add vitest cases for trimmed names and empty-name rejection in `backend/src/services/roomStore.test.ts`
 
 **Checkpoint**: Name validation testable on create/join without starting a game
 
@@ -72,10 +72,10 @@ description: "Task list for Game Start & Drawer Flow (Scenario 2)"
 
 ### Implementation for User Story 2
 
-- [ ] T016 [US2] Ensure `POST /rooms/:code/start` response uses viewer-aware `toRoomSnapshot(result.room, participantId)` in `backend/src/api/rooms.ts`
-- [ ] T017 [US2] Add 2000ms game polling via `fetchRoomSilent` with interval cleanup on unmount in `frontend/src/pages/GamePage.tsx`
-- [ ] T018 [US2] Show round-active status (e.g., existing "Round 1" / playing indicator) when `room.status === "playing"` in `frontend/src/pages/GamePage.tsx`
-- [ ] T019 [US2] Show non-blocking poll error while retaining last snapshot in `frontend/src/pages/GamePage.tsx`
+- [x] T016 [US2] Ensure `POST /rooms/:code/start` response uses viewer-aware `toRoomSnapshot(result.room, participantId)` in `backend/src/api/rooms.ts`
+- [x] T017 [US2] Add 2000ms game polling via `fetchRoomSilent` with interval cleanup on unmount in `frontend/src/pages/GamePage.tsx`
+- [x] T018 [US2] Show round-active status (e.g., existing "Round 1" / playing indicator) when `room.status === "playing"` in `frontend/src/pages/GamePage.tsx`
+- [x] T019 [US2] Show non-blocking poll error while retaining last snapshot in `frontend/src/pages/GamePage.tsx`
 
 **Checkpoint**: Start transition and game polling work; `/game` guard from Scenario 1 still redirects lobby rooms
 
@@ -89,9 +89,9 @@ description: "Task list for Game Start & Drawer Flow (Scenario 2)"
 
 ### Implementation for User Story 3
 
-- [ ] T020 [US3] Map participant `role` to `"drawer"` for host and `"guesser"` for others when `status === "playing"` in `backend/src/services/roomStore.ts` (`toRoomSnapshot`)
-- [ ] T021 [US3] Display viewer role, drawer name, and drawer badge in Player Info card in `frontend/src/pages/GamePage.tsx`
-- [ ] T022 [P] [US3] Add vitest asserting `startRoom` sets `drawerParticipantId` to host in `backend/src/services/roomStore.test.ts`
+- [x] T020 [US3] Map participant `role` to `"drawer"` for host and `"guesser"` for others when `status === "playing"` in `backend/src/services/roomStore.ts` (`toRoomSnapshot`)
+- [x] T021 [US3] Display viewer role, drawer name, and drawer badge in Player Info card in `frontend/src/pages/GamePage.tsx`
+- [x] T022 [P] [US3] Add vitest asserting `startRoom` sets `drawerParticipantId` to host in `backend/src/services/roomStore.test.ts`
 
 **Checkpoint**: Drawer identification visible on both tabs after game start
 
@@ -105,10 +105,10 @@ description: "Task list for Game Start & Drawer Flow (Scenario 2)"
 
 ### Implementation for User Story 4
 
-- [ ] T023 [US4] Include `secretWord` in snapshot only when `viewerParticipantId === drawerParticipantId` in `backend/src/services/roomStore.ts`
-- [ ] T024 [US4] Render secret word panel for drawer when `room.secretWord` is present in `frontend/src/pages/GamePage.tsx`
-- [ ] T025 [US4] Show neutral guess prompt without secret word for guessers in `frontend/src/pages/GamePage.tsx`
-- [ ] T026 [P] [US4] Add vitest asserting guesser snapshot omits `secretWord` and drawer snapshot includes it in `backend/src/services/roomStore.test.ts`
+- [x] T023 [US4] Include `secretWord` in snapshot only when `viewerParticipantId === drawerParticipantId` in `backend/src/services/roomStore.ts`
+- [x] T024 [US4] Render secret word panel for drawer when `room.secretWord` is present in `frontend/src/pages/GamePage.tsx`
+- [x] T025 [US4] Show neutral guess prompt without secret word for guessers in `frontend/src/pages/GamePage.tsx`
+- [x] T026 [P] [US4] Add vitest asserting guesser snapshot omits `secretWord` and drawer snapshot includes it in `backend/src/services/roomStore.test.ts`
 
 **Checkpoint**: Full Scenario 2 flow — validated names, start, roles, drawer-only word
 
@@ -118,8 +118,8 @@ description: "Task list for Game Start & Drawer Flow (Scenario 2)"
 
 **Purpose**: Validation and build gates before Scenario 3
 
-- [ ] T027 Run manual two-browser validation per `specs/002-game-start-drawer-flow/quickstart.md`
-- [ ] T028 [P] Run `npm run build` in `backend/` and `frontend/` and fix any type errors
+- [x] T027 Run manual two-browser validation per `specs/002-game-start-drawer-flow/quickstart.md`
+- [x] T028 [P] Run `npm run build` in `backend/` and `frontend/` and fix any type errors
 
 ---
 
