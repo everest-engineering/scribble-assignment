@@ -18,12 +18,32 @@ export function GamePage() {
     }
   }, [navigate, room]);
 
+  useEffect(() => {
+  if (!room) {
+    return;
+  }
+
+  const intervalId = window.setInterval(() => {
+    roomStore.fetchRoom().catch(() => {});
+  }, 2000);
+
+    return () => window.clearInterval(intervalId);
+  }, [room, roomStore]);
+
   if (!room) {
     return null;
   }
 
-  const viewer = room.participants.find((participant) => participant.id === participantId) ?? null;
+  const viewer =
+    room.participants.find(
+      (participant) => participant.id === participantId
+    ) ?? null;
+
   const [lines, setLines] = useState<string[]>(room.canvasLines ?? []);
+
+  useEffect(() => {
+     setLines(room.canvasLines ?? []);
+  }, [room.canvasLines]);
 
   async function handleDraw() {
     const nextLines = [...lines, `Line ${lines.length + 1}`];
