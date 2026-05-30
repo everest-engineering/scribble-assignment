@@ -14,6 +14,7 @@ export interface RoomState {
   participantId: string | null;
   error: string | null;
   isLoading: boolean;
+  pollError: string | null;
 }
 
 type Listener = () => void;
@@ -23,10 +24,12 @@ class RoomStore {
     room: null,
     participantId: null,
     error: null,
-    isLoading: false
+    isLoading: false,
+    pollError: null
   };
 
   private listeners = new Set<Listener>();
+  private pollIntervalId: ReturnType<typeof setInterval> | null = null;
 
   subscribe = (listener: Listener) => {
     this.listeners.add(listener);
@@ -45,6 +48,34 @@ class RoomStore {
     this.listeners.forEach((listener) => listener());
   }
 
+  startPolling() {
+    if (this.pollIntervalId) return;
+    this.pollIntervalId = setInterval(() => {
+      this.silentFetchRoom();
+    }, 2000);
+  }
+
+  stopPolling() {
+    if (this.pollIntervalId) {
+      clearInterval(this.pollIntervalId);
+      this.pollIntervalId = null;
+    }
+  }
+
+  private async silentFetchRoom() {
+    const code = this.state.room?.code;
+    if (!code) return;
+    try {
+      const participantId = this.state.participantId ?? undefined;
+      const response = await api.fetchRoom(code, participantId);
+      this.state = { ...this.state, room: response.room, pollError: null };
+      this.listeners.forEach((listener) => listener());
+    } catch {
+      this.state = { ...this.state, pollError: "Failed to refresh room state" };
+      this.listeners.forEach((listener) => listener());
+    }
+  }
+
   private async withLoading<T>(operation: () => Promise<T>) {
     this.setState({
       isLoading: true,
@@ -60,6 +91,10 @@ class RoomStore {
     } finally {
       this.setState({ isLoading: false });
     }
+  }
+
+  getParticipantId() {
+    return this.state.participantId;
   }
 
   setRoomSession(response: RoomSessionResponse) {
@@ -90,11 +125,25 @@ class RoomStore {
   }
 
   async fetchRoom() {
-    if (!this.state.room) {
+    const code = this.state.room?.code;
+    if (!code) {
       return null;
     }
 
-    const response = await api.fetchRoom(this.state.room.code, this.state.participantId ?? undefined);
+    const participantId = this.state.participantId ?? undefined;
+    const response = await this.withLoading(() => api.fetchRoom(code, participantId));
+    this.setRoomSnapshot(response.room);
+    return response.room;
+  }
+
+  async startGame() {
+    const code = this.state.room?.code;
+    const participantId = this.state.participantId;
+    if (!code || !participantId) {
+      throw new Error("No active room session");
+    }
+
+    const response = await this.withLoading(() => api.startGame(code, participantId));
     this.setRoomSnapshot(response.room);
     return response.room;
   }
