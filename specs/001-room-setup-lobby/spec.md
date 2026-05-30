@@ -8,6 +8,13 @@
 
 **Input**: Scenario 1 from README — Room Setup & Lobby: a player hosts or joins a drawing game via a unique room code; the creator is the host; invalid/empty codes are rejected with clear feedback; rooms are fully isolated; the lobby refreshes via polling (~2s); only the host can start the game once at least 2 players are present.
 
+## Clarifications
+
+### Session 2026-05-29
+
+- Q: May a player join a room after the host has started the game (room no longer in lobby status)? → A: Reject join if room status is not `lobby`; show clear feedback (e.g., game has already started).
+- Q: Are participant departures (leave/disconnect) in scope for Scenario 1 lobby polling? → A: Out of scope — polling sync covers new joins only; no leave/disconnect behavior in Scenario 1.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Host Creates a Room (Priority: P1)
@@ -39,13 +46,14 @@ A player who received a room code enters their name and code to join an existing
 1. **Given** an active room with code `ABCD`, **When** a second player submits a valid matching code (case-insensitive) and a player name, **Then** they join that room's lobby and appear in the participant list for all clients viewing that room.
 2. **Given** a player on the join form, **When** they submit an empty or whitespace-only room code, **Then** the join is rejected before any room lookup and a clear error message explains that a code is required.
 3. **Given** a player on the join form, **When** they submit a code that does not match any active room, **Then** the join is rejected and a clear error message explains the room was not found.
-4. **Given** rooms `ROOM1` and `ROOM2` each with their own participants, **When** a player joins `ROOM1`, **Then** they never appear in `ROOM2`'s participant list and cannot load `ROOM2` state using `ROOM1`'s session context.
+4. **Given** a room that has already left lobby status (game started), **When** a player submits that room's code, **Then** the join is rejected and a clear error message explains the game has already started.
+5. **Given** rooms `ROOM1` and `ROOM2` each with their own participants, **When** a player joins `ROOM1`, **Then** they never appear in `ROOM2`'s participant list and cannot load `ROOM2` state using `ROOM1`'s session context.
 
 ---
 
 ### User Story 3 - Lobby Stays Synchronized via Polling (Priority: P3)
 
-While in the lobby, all connected players see an up-to-date participant list without manual action. The lobby refreshes automatically on an interval of approximately 2 seconds so joins and departures become visible promptly.
+While in the lobby, all connected players see an up-to-date participant list without manual action. The lobby refreshes automatically on an interval of approximately 2 seconds so **new joins** become visible promptly to other clients.
 
 **Why this priority**: Polling-based sync is the lab's only multi-client transport. Automatic lobby refresh proves the architecture before gameplay begins.
 
@@ -80,6 +88,7 @@ Only the host may start the game, and only when at least two players are in the 
 
 - **Empty join code**: Submitting no code (or only whitespace) must not call the server with a blank identifier; user sees a validation message immediately.
 - **Unknown room code**: Joining a well-formed code that does not exist returns a not-found style error with plain language (e.g., unable to join / room not found).
+- **Join after game started**: Joining a code for a room that is no longer in lobby status is rejected with clear feedback (e.g., game has already started); the joiner does not enter the room.
 - **Case normalization**: Codes entered as lowercase must match uppercase stored codes without requiring the user to re-type.
 - **Concurrent joins**: Two players joining the same room at nearly the same time both appear in the participant list after the next poll without duplicate host assignment.
 - **Cross-room leakage**: Polling or joining with room A's code never returns participants from room B; participant identifiers from one room are not valid in another room's context.
@@ -87,6 +96,7 @@ Only the host may start the game, and only when at least two players are in the 
 - **Non-host start attempt**: A guesser/joiner cannot start even when the two-player minimum is satisfied.
 - **Stale client after room loss**: If a room no longer exists (e.g., server restart clears memory), clients receive a clear error rather than hanging silently.
 - **Host identity persistence**: The participant who created the room remains host for the lobby phase; joining players never become host.
+- **No participant removal**: Closing a browser tab or leaving the page does not remove a participant from the lobby list in Scenario 1; participant departures are out of scope.
 
 ## Requirements *(mandatory)*
 
@@ -94,14 +104,15 @@ Only the host may start the game, and only when at least two players are in the 
 
 - **FR-001**: System MUST allow a player to create a new room by providing a player name, assigning them a unique room code, and designating them as the room host.
 - **FR-002**: System MUST place a newly created room in `lobby` status with exactly one initial participant (the host).
-- **FR-003**: System MUST allow a player to join an existing room by submitting a room code and player name when the code matches an active room.
+- **FR-003**: System MUST allow a player to join an existing room by submitting a room code and player name when the code matches an active room in `lobby` status only.
+- **FR-003a**: System MUST reject join attempts for rooms that exist but are no longer in `lobby` status, with a clear user-visible message (e.g., game has already started).
 - **FR-004**: System MUST reject join attempts with empty or whitespace-only room codes before server lookup and display a clear, user-visible validation message.
 - **FR-005**: System MUST reject join attempts for codes that do not match any active room and display a clear, user-visible not-found message.
 - **FR-006**: System MUST treat room codes as case-insensitive for matching purposes.
 - **FR-007**: System MUST keep room state fully isolated in memory so participants, host, and lobby data in one room never appear in another room.
 - **FR-008**: System MUST expose a shareable room code in the lobby view for the host to distribute to joiners.
 - **FR-009**: System MUST list all current participants (display name and host indicator) in the lobby for every client viewing that room.
-- **FR-010**: System MUST automatically refresh lobby state for connected clients on an interval of approximately 2 seconds while the room remains in lobby status.
+- **FR-010**: System MUST automatically refresh lobby state for connected clients on an interval of approximately 2 seconds while the room remains in lobby status, reflecting new joins to other clients.
 - **FR-011**: System MUST allow manual lobby refresh as a fallback without breaking automatic polling.
 - **FR-012**: System MUST permit only the designated host to initiate a game start from the lobby.
 - **FR-013**: System MUST reject game start when fewer than two participants are present and provide clear feedback to the host.
@@ -138,6 +149,7 @@ Only the host may start the game, and only when at least two players are in the 
 - If the backend process restarts, all in-memory rooms are lost; clients handle missing rooms with clear errors rather than expecting durability.
 - One host per room, fixed at creation time; host transfer on disconnect is out of scope.
 - Automatic polling runs only while the client is on the lobby view (or equivalent in-session lobby state); exact navigation after start is covered by later scenarios.
+- Lobby polling sync in Scenario 1 covers **new joins only**; participant leave, disconnect detection, and removal from the participant list are out of scope.
 - Maximum practical room size is small (lab-scale, roughly 2–8 players); explicit capacity limits are out of scope unless needed for memory safety.
 
 ## Out of Scope (Explicit Reminders)
@@ -151,6 +163,7 @@ The following MUST NOT appear in implementation work for this scenario:
 - **Round lifecycle**: Multiple rounds, drawer rotation, timers, countdowns, speed bonuses, or drawer bonuses.
 - **Content**: Custom or random word packs beyond the starter list (used only after start in later scenarios).
 - **Social/moderation**: Spectator mode, kick, mute, room passwords, or invite links.
+- **Participant departures**: Leave lobby, disconnect detection, or removing participants when a client closes — polling reflects joins only in Scenario 1.
 - **Infrastructure**: Deployment, hosting, CI, Docker, or new top-level dependencies without plan justification.
 - **Platform expansion**: New state-management or routing libraries beyond what the starter ships.
 
