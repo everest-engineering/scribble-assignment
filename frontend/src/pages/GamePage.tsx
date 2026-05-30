@@ -6,7 +6,6 @@ import { ResultPanel } from "../components/ResultPanel";
 import { RoomCodeBadge } from "../components/RoomCodeBadge";
 import { Scoreboard } from "../components/Scoreboard";
 import { useRoomState, useRoomStore } from "../state/roomStore";
-
 export function GamePage() {
   const navigate = useNavigate();
   const roomStore = useRoomStore();
@@ -36,6 +35,26 @@ export function GamePage() {
     }
   }, [room, searchParams, roomStore, navigate]);
 
+  // Game Page Polling (every 2 seconds)
+  useEffect(() => {
+    if (!room) return;
+
+    const interval = setInterval(() => {
+      roomStore.fetchRoom().catch((caughtError) => {
+        console.error("Game polling error:", caughtError);
+      });
+    }, 2000);
+
+    return () => clearInterval(interval);
+  }, [room, roomStore]);
+
+  // Redirection when room status transitions back to lobby
+  useEffect(() => {
+    if (room?.status === "lobby" && participantId) {
+      navigate(`/lobby?code=${room.code}&participantId=${participantId}`);
+    }
+  }, [room?.status, room?.code, participantId, navigate]);
+
   if (isRestoring || (isLoading && !room)) {
     return (
       <section className="panel placeholder-page">
@@ -49,13 +68,36 @@ export function GamePage() {
   }
 
   const viewer = room.participants.find((participant) => participant.id === participantId) ?? null;
+  const isDrawer = room.drawerId === participantId;
+  const drawerParticipant = room.participants.find((p) => p.id === room.drawerId);
+  const drawerName = drawerParticipant ? drawerParticipant.name : "the drawer";
 
   return (
     <section className="panel game-page">
       <div className="game-page__header">
         <div className="game-page__header-left">
           <span className="section-kicker">Round 1</span>
-          <h1 className="game-page__title">Guess the Word!</h1>
+          {isDrawer ? (
+            <h1 className="game-page__title" style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
+              <span>You are drawing!</span>
+              <span
+                style={{
+                  fontSize: "1.125rem",
+                  fontWeight: 600,
+                  backgroundColor: "#ecfdf5",
+                  color: "#047857",
+                  border: "1px solid #a7f3d0",
+                  padding: "4px 12px",
+                  borderRadius: "8px",
+                  textTransform: "uppercase"
+                }}
+              >
+                Secret Word: {room.secretWord}
+              </span>
+            </h1>
+          ) : (
+            <h1 className="game-page__title">Guess the Word!</h1>
+          )}
         </div>
         <RoomCodeBadge code={room.code} />
       </div>
@@ -68,9 +110,41 @@ export function GamePage() {
 
         <div className="game-page__main">
           <Card title="Canvas">
-            <div className="canvas-placeholder" style={{ minHeight: '500px', backgroundColor: '#ffffff', border: '1px solid #e5e7eb' }}>
-              Waiting for drawer...
-            </div>
+            {isDrawer ? (
+              <div
+                className="canvas-placeholder"
+                style={{
+                  minHeight: '500px',
+                  backgroundColor: '#ffffff',
+                  border: '2px dashed #f59e0b',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '12px'
+                }}
+              >
+                <span style={{ fontSize: "1.5rem", fontWeight: "600", color: "#d97706" }}>✏️ Active Canvas</span>
+                <p style={{ color: "#78350f" }}>Start drawing your word: <strong>{room.secretWord}</strong></p>
+              </div>
+            ) : (
+              <div
+                className="canvas-placeholder"
+                style={{
+                  minHeight: '500px',
+                  backgroundColor: '#f9fafb',
+                  border: '1px solid #e5e7eb',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '12px'
+                }}
+              >
+                <span style={{ fontSize: "1.5rem", fontWeight: "600", color: "#6b7280" }}>👁️ Read-Only Canvas</span>
+                <p style={{ color: "#9ca3af" }}>Waiting for {drawerName} to draw...</p>
+              </div>
+            )}
           </Card>
         </div>
 
@@ -83,14 +157,16 @@ export function GamePage() {
               </div>
               <div>
                 <dt>Status</dt>
-                <dd>Playing</dd>
+                <dd>{isDrawer ? "Drawing" : "Guessing"}</dd>
               </div>
             </dl>
           </Card>
 
-          <Card title="Your Guess">
-            <GuessForm />
-          </Card>
+          {!isDrawer && (
+            <Card title="Your Guess">
+              <GuessForm />
+            </Card>
+          )}
         </aside>
       </div>
 
@@ -105,3 +181,4 @@ export function GamePage() {
     </section>
   );
 }
+

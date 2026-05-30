@@ -67,18 +67,17 @@ A detailed task list to guide the implementation of the Scribble multiplayer dra
   - Dependencies: Task 2.1
 
 ### Frontend Tasks
-- [ ] **Task 2.3**: Map start actions in store.
+- [x] **Task 2.3**: Map start actions in store.
   - Add `startGame()` method to `RoomStore` to post to the start endpoint.
   - Dependencies: Task 1.5, Task 2.1
-- [ ] **Task 2.4**: Build Drawer/Guesser UI Layout.
-  - Update `frontend/src/pages/GamePage.tsx` to poll room state.
-  - Switch layout based on whether the participant is the drawer:
-    - **Drawer**: Render active canvas, display the secret word.
-    - **Guesser**: Render read-only canvas, hide the secret word, render guess input.
-  - Dependencies: Task 1.6, Task 2.3
+- [x] **Task 2.1**: Modify frontend `Scoreboard.tsx` to read from the RoomStore state and dynamically show player scores.
+- [x] **Task 2.2**: Update `GamePage.tsx` to poll room state every 2 seconds.
+- [x] **Task 2.3**: Update `GamePage.tsx` with conditional redirect logic for room status changes.
+- [x] **Task 2.4**: Implement the Drawer vs. Guesser view partition in `GamePage.tsx` with the correct layout, secret word visibility, and form access.
+- [x] **Task 2.5**: Verify implementation with automated and manual testing.
 
 ### Validation & Verification Tasks
-- [ ] **Task 2.5**: Test Game Start flow.
+- [x] **Task 2.5**: Test Game Start flow.
   - Alice starts the game. Verify both Alice and Bob transition to `GamePage` via polling.
   - Verify Alice (drawer) sees the secret word and Bob (guesser) does not.
   - Dependencies: Task 2.4
