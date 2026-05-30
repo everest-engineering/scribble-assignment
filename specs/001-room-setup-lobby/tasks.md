@@ -38,6 +38,12 @@ changing behavior.
 - [ ] T005 Extend room status, host identity, and snapshot types in backend/src/models/game.ts
 - [ ] T006 Mirror room status and host identity response types in frontend/src/services/api.ts
 - [ ] T007 Add non-empty room-code and participant-id validation schemas in backend/src/api/schemas.ts
+
+# Added for response validation
+- [ ] T007A Add room snapshot and error response schemas in backend/src/api/schemas.ts
+- [ ] T007B [P] Add response schema tests for room snapshots and errors in backend/src/api/schemas.test.ts
+- [ ] T007C Apply room snapshot response validation in backend/src/api/rooms.ts
+
 - [ ] T008 [P] Add schema tests for empty room-code and participant-id validation in backend/src/api/schemas.test.ts
 
 **Checkpoint**: Shared backend/frontend types and validation schemas are ready.
@@ -84,9 +90,9 @@ message or lobby entry for each attempt.
 ### Implementation for User Story 2
 
 - [ ] T017 [US2] Normalize and validate room codes before lookup in backend/src/api/rooms.ts
-- [ ] T018 [US2] Return distinct clear errors for empty and unknown room codes in backend/src/api/rooms.ts
+- [ ] T018 [US2] Return distinct clear error response codes and messages for empty and unknown room codes in backend/src/api/rooms.ts
 - [ ] T019 [US2] Trim and validate room code before submit in frontend/src/pages/JoinRoomPage.tsx
-- [ ] T020 [US2] Preserve join-screen state and display backend/client join errors in frontend/src/pages/JoinRoomPage.tsx
+- [ ] T020 [US2] Preserve join-screen state and display backend/client join error messages in frontend/src/pages/JoinRoomPage.tsx
 
 **Checkpoint**: User Stories 1 and 2 both work independently.
 
@@ -109,7 +115,8 @@ and verify each lobby only shows its own participants while updating automatical
 
 - [ ] T023 [US3] Confirm room lookup and snapshot cloning preserve room isolation in backend/src/services/roomStore.ts
 - [ ] T024 [US3] Add lobby polling interval and cleanup lifecycle in frontend/src/pages/LobbyPage.tsx
-- [ ] T025 [US3] Surface polling failures without clearing the latest room snapshot in frontend/src/state/roomStore.ts
+- [ ] T025 [US3] Preserve latest room snapshot and expose recoverable polling error state in frontend/src/state/roomStore.ts
+- [ ] T025A [US3] Render recoverable polling error feedback while keeping the participant list visible in frontend/src/pages/LobbyPage.tsx
 - [ ] T026 [US3] Keep manual refresh compatible with automatic polling in frontend/src/pages/LobbyPage.tsx
 
 **Checkpoint**: User Stories 1, 2, and 3 all work independently.
@@ -138,6 +145,7 @@ cannot start, and host with two players can start.
 - [ ] T033 [US4] Add startRoom action to the client room store in frontend/src/state/roomStore.ts
 - [ ] T034 [US4] Disable or hide start controls for non-hosts and show minimum-player errors in frontend/src/pages/LobbyPage.tsx
 - [ ] T035 [US4] Navigate players out of the lobby when room status becomes in-game in frontend/src/pages/LobbyPage.tsx
+- [ ] T035A [US4] Ensure started room state remains in-memory only and no persistence or background cleanup is introduced in backend/src/services/roomStore.ts
 
 **Checkpoint**: All feature user stories are independently functional.
 

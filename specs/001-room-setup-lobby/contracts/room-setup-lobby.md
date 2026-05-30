@@ -3,6 +3,23 @@
 This contract describes the room API surface needed for Feature 1. Existing route names
 are retained where already present.
 
+## Error Response Shape
+
+Error responses return:
+
+```json
+{
+  "error": {
+    "code": "ROOM_CODE_REQUIRED",
+    "message": "Room code is required."
+  }
+}
+```
+
+Expected error codes include `ROOM_CODE_REQUIRED`, `ROOM_NOT_FOUND`,
+`PARTICIPANT_REQUIRED`, `START_REQUIRES_HOST`, `START_REQUIRES_TWO_PLAYERS`, and
+`ROOM_ALREADY_STARTED`.
+
 ## Create Room
 
 `POST /rooms`

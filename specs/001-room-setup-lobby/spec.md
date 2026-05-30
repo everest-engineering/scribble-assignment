@@ -107,6 +107,8 @@ and a host with at least two players can start.
 - A non-host cannot start a game, even when enough participants are present.
 - Polling failures show a recoverable message while keeping the most recent room snapshot
   visible.
+- Any non-empty room code that does not match an active room is treated as an unknown room code.
+- Feature 1 does not distinguish malformed room codes from unknown room codes.
 
 ## Requirements *(mandatory)*
 
@@ -166,3 +168,6 @@ and a host with at least two players can start.
 - Lobby synchronization uses polling and does not require real-time push.
 - Starting the game only needs to transition players out of the lobby for this feature;
   drawing, scoring, and results are handled by later features.
+- Automatic time-based room expiration is outside the scope of Feature 1.
+- Feature 1 deliberately clears room state when the backend process restarts, and started
+  rooms remain in memory only for the current process lifetime.
