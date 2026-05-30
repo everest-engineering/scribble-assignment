@@ -20,6 +20,15 @@ export const startGameBodySchema = z.object({
   participantId: z.string()
 });
 
+export const renameBodySchema = z.object({
+  participantId: z.string(),
+  name: z.string()
+});
+
+export const disbandBodySchema = z.object({
+  participantId: z.string()
+});
+
 export class HttpError extends Error {
   statusCode: number;
 

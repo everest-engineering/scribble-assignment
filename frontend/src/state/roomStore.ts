@@ -7,7 +7,7 @@ import {
   useSyncExternalStore,
   type PropsWithChildren
 } from "react";
-import { api, type RoomSessionResponse, type RoomSnapshot } from "../services/api";
+import { api, type GameActionResponse, type RoomSessionResponse, type RoomSnapshot } from "../services/api";
 
 export interface RoomState {
   room: RoomSnapshot | null;
@@ -145,7 +145,30 @@ class RoomStore {
 
     const response = await this.withLoading(() => api.startGame(code, participantId));
     this.setRoomSnapshot(response.room);
-    return response.room;
+    return response;
+  }
+
+  async renamePlayer(name: string) {
+    const code = this.state.room?.code;
+    const participantId = this.state.participantId;
+    if (!code || !participantId) {
+      throw new Error("No active room session");
+    }
+
+    const response = await this.withLoading(() => api.rename(code, participantId, name));
+    this.setRoomSnapshot(response.room);
+    return response;
+  }
+
+  async disbandRoom() {
+    const code = this.state.room?.code;
+    const participantId = this.state.participantId;
+    if (!code || !participantId) {
+      throw new Error("No active room session");
+    }
+
+    await this.withLoading(() => api.disband(code, participantId));
+    this.setState({ room: null, participantId: null });
   }
 }
 

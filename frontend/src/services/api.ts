@@ -1,4 +1,5 @@
 export type ParticipantRole = "drawer" | "guesser";
+export type RoomStatus = "lobby" | "awaiting_rename" | "playing";
 
 export interface Participant {
   id: string;
@@ -9,14 +10,24 @@ export interface Participant {
 
 export interface RoomSnapshot {
   code: string;
-  status: "lobby" | "playing";
+  status: RoomStatus;
   participants: Participant[];
   availableWords: string[];
   roles: ParticipantRole[];
+  roundNumber: number | null;
+  drawerId: string | null;
+  currentWord?: string;
+  invalidParticipantIds?: string[];
 }
 
 export interface RoomSessionResponse {
   participantId: string;
+  room: RoomSnapshot;
+}
+
+export interface GameActionResponse {
+  status: "playing" | "awaiting_rename";
+  invalidParticipantIds?: string[];
   room: RoomSnapshot;
 }
 
@@ -60,7 +71,19 @@ export const api = {
     return request<{ room: RoomSnapshot }>(`/rooms/${encodeURIComponent(code)}${query}`);
   },
   startGame(code: string, participantId: string) {
-    return request<{ room: RoomSnapshot }>(`/rooms/${encodeURIComponent(code)}/start`, {
+    return request<GameActionResponse>(`/rooms/${encodeURIComponent(code)}/start`, {
+      method: "POST",
+      body: JSON.stringify({ participantId })
+    });
+  },
+  rename(code: string, participantId: string, name: string) {
+    return request<GameActionResponse>(`/rooms/${encodeURIComponent(code)}/rename`, {
+      method: "POST",
+      body: JSON.stringify({ participantId, name })
+    });
+  },
+  disband(code: string, participantId: string) {
+    return request<{ message: string }>(`/rooms/${encodeURIComponent(code)}/disband`, {
       method: "POST",
       body: JSON.stringify({ participantId })
     });
