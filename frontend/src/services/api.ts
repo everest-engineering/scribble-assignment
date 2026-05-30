@@ -4,14 +4,18 @@ export interface Participant {
   id: string;
   name: string;
   joinedAt: string;
+  score: number;
 }
 
 export interface RoomSnapshot {
   code: string;
-  status: "lobby";
+  status: "lobby" | "game" | "result";
   participants: Participant[];
   availableWords: string[];
   roles: ParticipantRole[];
+  hostId: string;
+  drawerId: string | null;
+  secretWord: string | null;
 }
 
 export interface RoomSessionResponse {
@@ -57,5 +61,10 @@ export const api = {
   fetchRoom(code: string, participantId?: string) {
     const query = participantId ? `?participantId=${encodeURIComponent(participantId)}` : "";
     return request<{ room: RoomSnapshot }>(`/rooms/${encodeURIComponent(code)}${query}`);
+  },
+  startGame(code: string, participantId: string) {
+    return request<{ room: RoomSnapshot }>(`/rooms/${encodeURIComponent(code)}/start?participantId=${encodeURIComponent(participantId)}`, {
+      method: "POST"
+    });
   }
 };

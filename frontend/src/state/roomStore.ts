@@ -78,13 +78,31 @@ class RoomStore {
   }
 
   async createRoom(playerName: string) {
-    const response = await this.withLoading(() => api.createRoom(playerName));
+    const trimmedName = playerName.trim();
+    if (!trimmedName) {
+      const error = new Error("Player name cannot be empty");
+      this.setState({ error: error.message });
+      throw error;
+    }
+    const response = await this.withLoading(() => api.createRoom(trimmedName));
     this.setRoomSession(response);
     return response;
   }
 
   async joinRoom(code: string, playerName: string) {
-    const response = await this.withLoading(() => api.joinRoom(code, playerName));
+    const trimmedCode = code.trim();
+    const trimmedName = playerName.trim();
+    if (!trimmedCode) {
+      const error = new Error("Room code cannot be empty");
+      this.setState({ error: error.message });
+      throw error;
+    }
+    if (!trimmedName) {
+      const error = new Error("Player name cannot be empty");
+      this.setState({ error: error.message });
+      throw error;
+    }
+    const response = await this.withLoading(() => api.joinRoom(trimmedCode, trimmedName));
     this.setRoomSession(response);
     return response;
   }
@@ -97,6 +115,29 @@ class RoomStore {
     const response = await api.fetchRoom(this.state.room.code, this.state.participantId ?? undefined);
     this.setRoomSnapshot(response.room);
     return response.room;
+  }
+
+  async initializeFromUrl(code: string, participantId: string) {
+    return this.withLoading(async () => {
+      const response = await api.fetchRoom(code, participantId);
+      this.setState({
+        room: response.room,
+        participantId,
+        error: null
+      });
+      return response.room;
+    });
+  }
+
+  async startGame() {
+    if (!this.state.room || !this.state.participantId) {
+      return null;
+    }
+    return this.withLoading(async () => {
+      const response = await api.startGame(this.state.room!.code, this.state.participantId!);
+      this.setRoomSnapshot(response.room);
+      return response.room;
+    });
   }
 }
 

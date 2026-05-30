@@ -1,21 +1,48 @@
-import { useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Card } from "../components/Card";
 import { GuessForm } from "../components/GuessForm";
 import { ResultPanel } from "../components/ResultPanel";
 import { RoomCodeBadge } from "../components/RoomCodeBadge";
 import { Scoreboard } from "../components/Scoreboard";
-import { useRoomState } from "../state/roomStore";
+import { useRoomState, useRoomStore } from "../state/roomStore";
 
 export function GamePage() {
   const navigate = useNavigate();
-  const { room, participantId } = useRoomState();
+  const roomStore = useRoomStore();
+  const { room, error, isLoading, participantId } = useRoomState();
+  const [searchParams] = useSearchParams();
+  const [isRestoring, setIsRestoring] = useState(true);
 
   useEffect(() => {
+    const code = searchParams.get("code");
+    const pid = searchParams.get("participantId");
+
     if (!room) {
-      navigate("/", { replace: true });
+      if (code && pid) {
+        roomStore
+          .initializeFromUrl(code, pid)
+          .then(() => setIsRestoring(false))
+          .catch(() => {
+            setIsRestoring(false);
+            navigate("/", { replace: true });
+          });
+      } else {
+        setIsRestoring(false);
+        navigate("/", { replace: true });
+      }
+    } else {
+      setIsRestoring(false);
     }
-  }, [navigate, room]);
+  }, [room, searchParams, roomStore, navigate]);
+
+  if (isRestoring || (isLoading && !room)) {
+    return (
+      <section className="panel placeholder-page">
+        <p>Loading session...</p>
+      </section>
+    );
+  }
 
   if (!room) {
     return null;
@@ -68,7 +95,10 @@ export function GamePage() {
       </div>
 
       <div className="button-row">
-        <button className="button button--secondary" onClick={() => navigate("/lobby")}>
+        <button
+          className="button button--secondary"
+          onClick={() => navigate(`/lobby?code=${room.code}&participantId=${participantId}`)}
+        >
           Exit Game
         </button>
       </div>

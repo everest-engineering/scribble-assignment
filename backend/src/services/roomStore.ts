@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import type { Participant, Room, RoomSnapshot } from "../models/game.js";
 import { STARTER_ROLES, STARTER_WORDS } from "../seed/starterData.js";
+import { HttpError } from "../api/schemas.js";
 
 const rooms = new Map<string, Room>();
 
@@ -37,7 +38,8 @@ function createParticipant(name?: string): Participant {
   return {
     id: randomUUID(),
     name: displayName(name),
-    joinedAt: now()
+    joinedAt: now(),
+    score: 0
   };
 }
 
@@ -50,11 +52,19 @@ export function listWords() {
 }
 
 export function createRoom(playerName?: string) {
-  const participant = createParticipant(playerName);
+  const trimmedName = (playerName || "").trim();
+  if (trimmedName.length === 0) {
+    throw new HttpError(400, "Player name cannot be empty");
+  }
+
+  const participant = createParticipant(trimmedName);
   const room: Room = {
     code: generateUniqueCode(),
     status: "lobby",
     participants: [participant],
+    hostId: participant.id,
+    drawerId: null,
+    secretWord: null,
     createdAt: now(),
     updatedAt: now()
   };
@@ -74,7 +84,23 @@ export function joinRoom(code: string, playerName?: string) {
     return null;
   }
 
-  const participant = createParticipant(playerName);
+  if (room.status !== "lobby") {
+    throw new HttpError(400, "Room is not in lobby status");
+  }
+
+  const trimmedName = (playerName || "").trim();
+  if (trimmedName.length === 0) {
+    throw new HttpError(400, "Player name cannot be empty");
+  }
+
+  const nameExists = room.participants.some(
+    (p) => p.name.toLowerCase() === trimmedName.toLowerCase()
+  );
+  if (nameExists) {
+    throw new HttpError(400, "Player name is already taken");
+  }
+
+  const participant = createParticipant(trimmedName);
   room.participants.push(participant);
   room.updatedAt = now();
   rooms.set(room.code, room);
@@ -83,6 +109,29 @@ export function joinRoom(code: string, playerName?: string) {
     room: cloneRoom(room),
     participantId: participant.id
   };
+}
+
+export function startGame(code: string, participantId: string) {
+  const room = rooms.get(code);
+  if (!room) {
+    throw new HttpError(404, "Room not found");
+  }
+
+  if (room.hostId !== participantId) {
+    throw new HttpError(403, "Only the host can start the game");
+  }
+
+  if (room.participants.length < 2) {
+    throw new HttpError(400, "At least 2 players are required to start the game");
+  }
+
+  room.status = "game";
+  room.drawerId = room.hostId;
+  room.secretWord = STARTER_WORDS[0]; // "rocket"
+  room.updatedAt = now();
+  rooms.set(room.code, room);
+
+  return cloneRoom(room);
 }
 
 export function getRoom(code: string) {
@@ -97,13 +146,16 @@ export function saveRoom(room: Room) {
 }
 
 export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSnapshot {
-  void viewerParticipantId;
+  const isDrawer = viewerParticipantId && room.drawerId && viewerParticipantId === room.drawerId;
 
   return {
     code: room.code,
     status: room.status,
     participants: room.participants.map((participant) => ({ ...participant })),
     availableWords: listWords(),
-    roles: [...STARTER_ROLES]
+    roles: [...STARTER_ROLES],
+    hostId: room.hostId,
+    drawerId: room.drawerId,
+    secretWord: isDrawer ? room.secretWord : null
   };
 }
