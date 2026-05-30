@@ -1,4 +1,6 @@
-export type ParticipantRole = "drawer" | "guesser";
+export type ParticipantRole = "drawer" | "guesser" | "host";
+export type RoomStatus = "lobby" | "game";
+export type RoundStatus = "SelectingWord" | "Drawing" | "Ended";
 
 export interface Participant {
   id: string;
@@ -6,10 +8,19 @@ export interface Participant {
   joinedAt: string;
 }
 
+export interface Round {
+  drawerId: string;
+  wordOptions?: string[]; // Optional since it's hidden from Guessers
+  secretWord?: string | null; // Optional since it's hidden from Guessers
+  roundStatus: RoundStatus;
+  roundEndTime: number | null;
+}
+
 export interface RoomSnapshot {
   code: string;
-  status: "lobby";
+  status: RoomStatus;
   participants: Participant[];
+  currentRound?: Round;
   availableWords: string[];
   roles: ParticipantRole[];
 }
@@ -57,5 +68,17 @@ export const api = {
   fetchRoom(code: string, participantId?: string) {
     const query = participantId ? `?participantId=${encodeURIComponent(participantId)}` : "";
     return request<{ room: RoomSnapshot }>(`/rooms/${encodeURIComponent(code)}${query}`);
+  },
+  startGame(code: string, participantId: string) {
+    return request<RoomSessionResponse>(`/rooms/${encodeURIComponent(code)}/start`, {
+      method: "POST",
+      body: JSON.stringify({ participantId })
+    });
+  },
+  selectWord(code: string, participantId: string, word: string) {
+    return request<RoomSessionResponse>(`/rooms/${encodeURIComponent(code)}/word`, {
+      method: "POST",
+      body: JSON.stringify({ participantId, word })
+    });
   }
 };

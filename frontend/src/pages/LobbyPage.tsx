@@ -17,6 +17,11 @@ export function LobbyPage() {
       return;
     }
 
+    if (room.status === "game") {
+      navigate("/game");
+      return;
+    }
+
     const intervalId = setInterval(() => {
       handleRefresh();
     }, 2000);
@@ -30,6 +35,14 @@ export function LobbyPage() {
       await roomStore.fetchRoom();
     } catch (caughtError) {
       setRefreshError(caughtError instanceof Error ? caughtError.message : "Unable to refresh room");
+    }
+  }
+
+  async function handleStartGame() {
+    try {
+      await roomStore.startGame();
+    } catch (caughtError) {
+      setRefreshError(caughtError instanceof Error ? caughtError.message : "Failed to start game");
     }
   }
 
@@ -79,7 +92,7 @@ export function LobbyPage() {
           {isLoading ? "Refreshing..." : "Refresh Room"}
         </button>
         {isHost ? (
-          <button className="button button--primary" onClick={() => navigate("/game")}>
+          <button className="button button--primary" onClick={handleStartGame} disabled={isLoading || room.participants.length < 2}>
             Start game
           </button>
         ) : (
