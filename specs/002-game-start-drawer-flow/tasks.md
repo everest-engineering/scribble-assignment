@@ -18,7 +18,7 @@
 
 **Purpose**: Confirm brownfield starter and Scenario 1 prerequisite are ready; no new project scaffolding.
 
-- [ ] T001 Confirm Scenario 1 lobby/start flow works and starter files listed in `specs/002-game-start-drawer-flow/plan.md` exist under `backend/src/` and `frontend/src/`
+- [x] T001 Confirm Scenario 1 lobby/start flow works and starter files listed in `specs/002-game-start-drawer-flow/plan.md` exist under `backend/src/` and `frontend/src/`
 
 ---
 
@@ -28,8 +28,8 @@
 
 **⚠️ CRITICAL**: Complete this phase before Phase 4+ (US2 depends on round fields in types).
 
-- [ ] T002 Add `drawerId`, `secretWord` to `Room` and extend `ParticipantSnapshot`/`RoomSnapshot` with `role`, `viewerRole`, and viewer-specific `secretWord` in `backend/src/models/game.ts`
-- [ ] T003 [P] Mirror extended snapshot types in `frontend/src/services/api.ts`
+- [x] T002 Add `drawerId`, `secretWord` to `Room` and extend `ParticipantSnapshot`/`RoomSnapshot` with `role`, `viewerRole`, and viewer-specific `secretWord` in `backend/src/models/game.ts`
+- [x] T003 [P] Mirror extended snapshot types in `frontend/src/services/api.ts`
 
 **Checkpoint**: Round snapshot types aligned — user story implementation can begin.
 
@@ -45,11 +45,11 @@
 
 ### Implementation for User Story 1
 
-- [ ] T004 [US1] Require trimmed `playerName` with `.trim().min(1, "Player name is required")` in `createRoomSchema` and `joinRoomSchema` in `backend/src/api/schemas.ts`
-- [ ] T005 [US1] Remove `"Player"` fallback and store trimmed names from validated input in `createRoom`/`joinRoom` in `backend/src/services/roomStore.ts`
-- [ ] T006 [P] [US1] Add empty and whitespace-only name schema tests in `backend/src/api/schemas.test.ts`
-- [ ] T007 [US1] Trim name before submit and show error when empty in `frontend/src/pages/CreateRoomPage.tsx`
-- [ ] T008 [US1] Trim name before submit and show error when empty in `frontend/src/pages/JoinRoomPage.tsx`
+- [x] T004 [US1] Require trimmed `playerName` with `.trim().min(1, "Player name is required")` in `createRoomSchema` and `joinRoomSchema` in `backend/src/api/schemas.ts`
+- [x] T005 [US1] Remove `"Player"` fallback and store trimmed names from validated input in `createRoom`/`joinRoom` in `backend/src/services/roomStore.ts`
+- [x] T006 [P] [US1] Add empty and whitespace-only name schema tests in `backend/src/api/schemas.test.ts`
+- [x] T007 [US1] Trim name before submit and show error when empty in `frontend/src/pages/CreateRoomPage.tsx`
+- [x] T008 [US1] Trim name before submit and show error when empty in `frontend/src/pages/JoinRoomPage.tsx`
 
 **Checkpoint**: User Story 1 independently testable — name validation on both forms and API.
 
@@ -65,11 +65,11 @@
 
 ### Implementation for User Story 2
 
-- [ ] T009 [US2] Set `drawerId = hostId` in `startGame` in `backend/src/services/roomStore.ts`
-- [ ] T010 [US2] Add participant `role` and snapshot `drawerId` when `status === "playing"` in `toRoomSnapshot` in `backend/src/services/roomStore.ts`
-- [ ] T011 [US2] Add host-as-drawer and single-drawer invariant tests in `backend/src/services/roomStore.test.ts`
-- [ ] T012 [US2] Render drawer/guesser role badges on participant rows in `frontend/src/pages/GamePage.tsx`
-- [ ] T013 [P] [US2] Add `.player-list__meta--drawer` and `--guesser` badge styles in `frontend/src/styles/app.css`
+- [x] T009 [US2] Set `drawerId = hostId` in `startGame` in `backend/src/services/roomStore.ts`
+- [x] T010 [US2] Add participant `role` and snapshot `drawerId` when `status === "playing"` in `toRoomSnapshot` in `backend/src/services/roomStore.ts`
+- [x] T011 [US2] Add host-as-drawer and single-drawer invariant tests in `backend/src/services/roomStore.test.ts`
+- [x] T012 [US2] Render drawer/guesser role badges on participant rows in `frontend/src/pages/GamePage.tsx`
+- [x] T013 [P] [US2] Add `.player-list__meta--drawer` and `--guesser` badge styles in `frontend/src/styles/app.css`
 
 **Checkpoint**: User Stories 1 and 2 work — drawer assigned and visible after start.
 
@@ -85,10 +85,10 @@
 
 ### Implementation for User Story 3
 
-- [ ] T014 [P] [US3] Implement `selectWord(roomCode)` using `STARTER_WORDS[sum(charCodes) % length]` in `backend/src/services/wordSelection.ts`
-- [ ] T015 [P] [US3] Add determinism and starter-list membership tests in `backend/src/services/wordSelection.test.ts`
-- [ ] T016 [US3] Set `secretWord = selectWord(code)` in `startGame` in `backend/src/services/roomStore.ts`
-- [ ] T017 [US3] Add word stability and starter-list tests after start in `backend/src/services/roomStore.test.ts`
+- [x] T014 [P] [US3] Implement `selectWord(roomCode)` using `STARTER_WORDS[sum(charCodes) % length]` in `backend/src/services/wordSelection.ts`
+- [x] T015 [P] [US3] Add determinism and starter-list membership tests in `backend/src/services/wordSelection.test.ts`
+- [x] T016 [US3] Set `secretWord = selectWord(code)` in `startGame` in `backend/src/services/roomStore.ts`
+- [x] T017 [US3] Add word stability and starter-list tests after start in `backend/src/services/roomStore.test.ts`
 
 **Checkpoint**: User Stories 1–3 work — round init assigns host drawer and deterministic word server-side.
 
@@ -104,10 +104,10 @@
 
 ### Implementation for User Story 4
 
-- [ ] T018 [US4] Implement viewer-aware `secretWord` and `viewerRole` in `toRoomSnapshot` in `backend/src/services/roomStore.ts`
-- [ ] T019 [US4] Add guesser-null and drawer-word snapshot leak-prevention tests in `backend/src/services/roomStore.test.ts`
-- [ ] T020 [US4] Display prominent secret word panel when `viewerRole === "drawer"` in `frontend/src/pages/GamePage.tsx`
-- [ ] T021 [US4] Omit secret word UI for guessers and show viewer role in Player Info in `frontend/src/pages/GamePage.tsx`
+- [x] T018 [US4] Implement viewer-aware `secretWord` and `viewerRole` in `toRoomSnapshot` in `backend/src/services/roomStore.ts`
+- [x] T019 [US4] Add guesser-null and drawer-word snapshot leak-prevention tests in `backend/src/services/roomStore.test.ts`
+- [x] T020 [US4] Display prominent secret word panel when `viewerRole === "drawer"` in `frontend/src/pages/GamePage.tsx`
+- [x] T021 [US4] Omit secret word UI for guessers and show viewer role in Player Info in `frontend/src/pages/GamePage.tsx`
 
 **Checkpoint**: User Stories 1–4 work — asymmetric word visibility enforced server- and client-side.
 
@@ -123,9 +123,9 @@
 
 ### Implementation for User Story 5
 
-- [ ] T022 [US5] Create `useGamePolling` hook with 2000ms interval and cleanup in `frontend/src/hooks/useGamePolling.ts`
-- [ ] T023 [US5] Wire `useGamePolling`, poll error display, and `fetchRoomSilent` while `playing` in `frontend/src/pages/GamePage.tsx`
-- [ ] T024 [P] [US5] Update test mocks for extended snapshot fields in `frontend/src/services/api.test.ts`
+- [x] T022 [US5] Create `useGamePolling` hook with 2000ms interval and cleanup in `frontend/src/hooks/useGamePolling.ts`
+- [x] T023 [US5] Wire `useGamePolling`, poll error display, and `fetchRoomSilent` while `playing` in `frontend/src/pages/GamePage.tsx`
+- [x] T024 [P] [US5] Update test mocks for extended snapshot fields in `frontend/src/services/api.test.ts`
 
 **Checkpoint**: All five user stories complete — full Scenario 2 acceptance criteria.
 
@@ -135,9 +135,9 @@
 
 **Purpose**: Automated checks and manual validation before Scenario 3.
 
-- [ ] T025 Run `npm test` in `backend/` and `frontend/`
-- [ ] T026 Run `npm run build` in `backend/` and `frontend/`
-- [ ] T027 Manual two-tab validation per `specs/002-game-start-drawer-flow/plan.md` Testing Strategy (P1–P5 flows)
+- [x] T025 Run `npm test` in `backend/` and `frontend/`
+- [x] T026 Run `npm run build` in `backend/` and `frontend/`
+- [x] T027 Manual two-tab validation per `specs/002-game-start-drawer-flow/plan.md` Testing Strategy (P1–P5 flows)
 
 ---
 

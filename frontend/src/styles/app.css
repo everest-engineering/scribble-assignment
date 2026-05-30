@@ -411,6 +411,29 @@ input {
   letter-spacing: 0.04em;
 }
 
+.player-list__meta--drawer {
+  color: #b45309;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.player-list__meta--guesser {
+  color: #047857;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.secret-word {
+  margin: 0;
+  font-size: 2rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink);
+}
+
 .status-line,
 .placeholder-note {
   width: max-content;

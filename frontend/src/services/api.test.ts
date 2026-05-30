@@ -7,6 +7,9 @@ const baseRoom = {
   hostId: "p1",
   isHost: true,
   canStart: false,
+  drawerId: undefined,
+  viewerRole: null,
+  secretWord: null,
   participants: [],
   availableWords: ["rocket"],
   roles: ["drawer", "guesser"] as const
@@ -63,7 +66,14 @@ describe("api service", () => {
       json: () =>
         Promise.resolve({
           participantId: "p1",
-          room: { ...baseRoom, status: "playing", canStart: false }
+          room: {
+            ...baseRoom,
+            status: "playing",
+            canStart: false,
+            drawerId: "p1",
+            viewerRole: "drawer",
+            secretWord: "rocket"
+          }
         })
     };
     vi.mocked(fetch).mockResolvedValue(mockResponse as unknown as Response);

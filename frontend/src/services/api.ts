@@ -6,6 +6,7 @@ export interface ParticipantSnapshot {
   name: string;
   joinedAt: string;
   isHost: boolean;
+  role?: ParticipantRole;
 }
 
 export interface RoomSnapshot {
@@ -14,6 +15,9 @@ export interface RoomSnapshot {
   hostId: string;
   isHost: boolean;
   canStart: boolean;
+  drawerId?: string;
+  viewerRole?: ParticipantRole | null;
+  secretWord?: string | null;
   participants: ParticipantSnapshot[];
   availableWords: string[];
   roles: ParticipantRole[];
