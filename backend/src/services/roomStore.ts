@@ -55,6 +55,8 @@ export function createRoom(playerName?: string) {
     code: generateUniqueCode(),
     status: "lobby",
     hostId: participant.id,
+    drawerId: null,
+    currentWord: null,
     participants: [participant],
     createdAt: now(),
     updatedAt: now()
@@ -97,6 +99,11 @@ export function saveRoom(room: Room) {
   return getRoom(room.code);
 }
 
+function selectWord(code: string): string {
+  const index = Array.from(code).reduce((sum, char) => sum + char.charCodeAt(0), 0) % STARTER_WORDS.length;
+  return STARTER_WORDS[index];
+}
+
 export function startGame(code: string, participantId: string) {
   const room = rooms.get(code);
 
@@ -105,6 +112,8 @@ export function startGame(code: string, participantId: string) {
   if (room.participants.length < 2) return "not-enough-players" as const;
 
   room.status = "playing";
+  room.drawerId = room.hostId;
+  room.currentWord = selectWord(room.code);
   room.updatedAt = now();
   rooms.set(room.code, room);
 
@@ -112,12 +121,12 @@ export function startGame(code: string, participantId: string) {
 }
 
 export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSnapshot {
-  void viewerParticipantId;
-
   return {
     code: room.code,
     status: room.status,
     hostId: room.hostId,
+    drawerId: room.drawerId,
+    currentWord: viewerParticipantId === room.drawerId ? room.currentWord : null,
     participants: room.participants.map((participant) => ({ ...participant })),
     availableWords: listWords(),
     roles: [...STARTER_ROLES]
