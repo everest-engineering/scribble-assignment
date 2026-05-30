@@ -61,14 +61,14 @@ description: "Task list template for feature implementation"
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-Examples of foundational tasks (adjust based on your project):
+Examples of foundational tasks (adjust based on your project; Scribble lab uses in-memory REST only):
 
-- [ ] T004 Setup database schema and migrations framework
-- [ ] T005 [P] Implement authentication/authorization framework
-- [ ] T006 [P] Setup API routing and middleware structure
-- [ ] T007 Create base models/entities that all stories depend on
-- [ ] T008 Configure error handling and logging infrastructure
-- [ ] T009 Setup environment configuration management
+- [ ] T004 Extend in-memory room model in `backend/src/models/`
+- [ ] T005 [P] Add Zod schemas for new request/response payloads in `backend/src/api/`
+- [ ] T006 [P] Extend room service logic in `backend/src/services/`
+- [ ] T007 [P] Add polling hook or interval in `frontend/src/` (HTTP only, ~2s cadence)
+- [ ] T008 Configure centralized error handling for new API routes
+- [ ] T009 Align frontend state in `frontend/src/state/` with updated room snapshot shape
 
 **Checkpoint**: Foundation ready - user story implementation can now begin in parallel
 

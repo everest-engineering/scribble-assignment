@@ -40,7 +40,15 @@
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-[Gates determined based on constitution file]
+Verify compliance with `.specify/memory/constitution.md` (Scribble v1.0.0):
+
+- [ ] **Brownfield First**: Plan extends starter files; no rewrite-from-scratch or unrelated refactors
+- [ ] **TypeScript + Zod**: New API surfaces have typed models and Zod validation
+- [ ] **HTTP Polling Only**: No WebSockets, databases, auth, or persistent storage proposed
+- [ ] **Spec Kit Traceability**: Plan maps to spec acceptance criteria, file paths, and task IDs
+- [ ] **Deterministic Game Rules**: Host, drawer, word visibility, scoring, and restart behavior match README scenarios
+- [ ] **Out-of-Scope Clean**: No timers, multi-round rotation, custom word packs, or new top-level dependencies
+- [ ] **Validation Plan**: Two-browser manual test and `npm run build` in both apps included
 
 ## Project Structure
 
