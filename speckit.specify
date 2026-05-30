@@ -1,0 +1,137 @@
+# Spec Kit Specification: Scribble
+
+This document specifies the functional requirements, validation rules, edge cases, and acceptance criteria for the Scribble game.
+
+---
+
+## 1. Room Setup, Lobby, & Lifecycle Requirements
+
+### 1.1 Room Creation and Host Assignment
+* **Requirement**: Any user can create a game room. The creator of the room is automatically designated as the host.
+* **Acceptance Criteria**:
+  * Upon successful room creation, a unique room code is generated.
+  * The user who initiated creation is marked as the room host and gets host-specific controls (e.g., ability to start the game).
+
+### 1.2 Joining a Room
+* **Requirement**: A user can join an existing room by entering a unique room code.
+* **Acceptance Criteria**:
+  * Users must provide a non-empty name to join.
+  * Room codes must be validated (exist and be active).
+
+### 1.3 Lobby Polling
+* **Requirement**: The lobby state must automatically refresh via periodic polling at an interval of approximately 2 seconds.
+* **Acceptance Criteria**:
+  * When a new player joins the room, all other players in the lobby see the updated list of participants within 2 seconds without manual refresh.
+
+### 1.4 Room Isolation
+* **Requirement**: Each game room must be completely isolated from all other rooms.
+* **Acceptance Criteria**:
+  * Actions in Room A (such as player joins, drawings, or guesses) must not impact or leak into Room B.
+
+### 1.5 Validation Rules & Edge Cases
+* **Validation**:
+  * **Invalid Room Codes**: Attempting to join with an empty, whitespace-only, or non-existent room code must be rejected with a clear error message.
+  * **Duplicate Names**: (Edge Case) If a user attempts to join a room with a username that is already taken by an active player in that room, the system should reject the join or append a modifier to make it unique.
+  * **Room Capacity**: (Edge Case) Attempting to join a room that does not exist or has been deleted must return an error.
+
+---
+
+## 2. Game Start & Drawer Flow Requirements
+
+### 2.1 Game Start Preconditions
+* **Requirement**: Only the host is permitted to start the game. The option to start the game is disabled or hidden for non-host players.
+* **Acceptance Criteria**:
+  * The host can only trigger the game start when there are at least 2 players in the lobby (including the host).
+  * If there are fewer than 2 players, the host cannot start the game.
+
+### 2.2 Player Name Validation
+* **Requirement**: Player names must be trimmed.
+* **Acceptance Criteria**:
+  * Whitespace-only or empty names must be rejected.
+  * Leading and trailing spaces must be automatically stripped.
+
+### 2.3 Drawer Assignment
+* **Requirement**: When the game begins, the host (or first player in the room list) is assigned as the drawer. All other players are assigned as guessers.
+* **Acceptance Criteria**:
+  * The drawer must be clearly identified to all players (e.g., visually indicated in the player list).
+
+### 2.4 Secret Word Selection and Visibility
+* **Requirement**: The secret word for the round must be deterministically selected from the starter word list: `rocket`, `pizza`, `castle`, `guitar`, `sunflower`.
+* **Acceptance Criteria**:
+  * The secret word is visible *only* to the drawer.
+  * Guessers must not see the secret word; they must only see indicators (such as underscores or blank spaces) or nothing indicating the letters of the word.
+
+### 2.5 Validation Rules & Edge Cases
+* **Edge Cases**:
+  * **Player Disconnection during Start**: If the host disconnects before starting, the next remaining player must be promoted to host.
+  * **Word Selection Depletion**: Since only one round is supported in the scope, word selection is done once per round.
+
+---
+
+## 3. Gameplay Interaction Requirements
+
+### 3.1 Drawing Canvas
+* **Requirement**: The drawer can draw freehand on the canvas and clear the canvas.
+* **Acceptance Criteria**:
+  * Any strokes drawn on the canvas by the drawer must be synced and visible on the screens of all guessers in the same room.
+  * The drawer has a "Clear Canvas" action that immediately clears the drawing on their canvas and synchronizes the clear state to all guessers.
+  * Guessers cannot draw on the canvas or clear it.
+
+### 3.2 Guess Submission
+* **Requirement**: Guessers can submit text guesses to identify the secret word.
+* **Acceptance Criteria**:
+  * Only guessers can submit guesses.
+  * Empty or whitespace-only guesses must be rejected and not added to the guess history.
+
+### 3.3 Guess Validation and Comparison
+* **Requirement**: Guesses must be trimmed and compared case-insensitively with the secret word.
+* **Acceptance Criteria**:
+  * A guess of "Rocket", "ROCKET", or " rocket " must match the secret word "rocket".
+
+### 3.4 Guess History Sync
+* **Requirement**: All submitted guesses must be added to a guess history log and synchronized to all players in the room via polling.
+* **Acceptance Criteria**:
+  * The list of guesses is visible to everyone in the room.
+  * When a guesser submits a guess, it appears in the guess history log for all players within the polling interval.
+
+### 3.5 Validation Rules & Edge Cases
+* **Validation**:
+  * **No Drawer Guesses**: The drawer cannot submit guesses.
+  * **Correct Guess Scoring**: When a guesser submits the exact correct word, their score increases by 100 points. Incorrect guesses add 0 points.
+  * **Subsequent Guesses**: (Edge Case) Once a guesser guesses the correct word, they are awarded points and their status is updated, but they cannot gain additional points by submitting the word again.
+
+---
+
+## 4. Result, Restart, & Post-Game Requirements
+
+### 4.1 Result State
+* **Requirement**: When the round ends, a shared result state is displayed to all players in the room.
+* **Acceptance Criteria**:
+  * All players must see:
+    * The correct secret word.
+    * The final scores of all participants.
+    * The complete guess history log.
+
+### 4.2 Game Restart
+* **Requirement**: Only the host can restart the game from the result screen.
+* **Acceptance Criteria**:
+  * When the host clicks restart, all players in the room are automatically returned to the Lobby.
+  * The list of players in the room is preserved on restart.
+  * All round-specific state (scores, drawings, guess history, drawer assignments, and secret words) is cleared.
+
+### 4.3 Validation Rules & Edge Cases
+* **Edge Cases**:
+  * **Host Leaves during Result State**: If the host leaves the room while in the result state, another player must be promoted to host so they can restart the game.
+  * **Late Joins**: New players cannot join a room that is currently in an active game session or result state; they can only join during the lobby phase.
+
+---
+
+## 5. Scope-Control & Out-of-Scope Constraints
+
+To prevent scope creep, the following behaviors are explicitly disallowed:
+* **No Real-Time Sync Protocols**: No WebSocket, Server-Sent Events (SSE), or WebRTC. All state synchronization must occur via periodic HTTP polling.
+* **No Persistent Storage**: No database, cookie storage, local storage, or session storage. All state must exist solely in the server's volatile memory.
+* **No User Identity Management**: No sign-up, sign-in, session tokens, JWTs, or OAuth integrations. Players are identified solely by the transient name they enter when joining.
+* **No Multi-Round Loop**: There is no support for automatic drawer rotation, multiple rounds, guess/drawer timers, countdowns, speed bonuses, or drawer scoring bonuses. The game consists of a single round that moves to the result state when finished.
+* **No Custom Word Libraries**: The game must only use the predefined list of words: `rocket`, `pizza`, `castle`, `guitar`, `sunflower`.
+* **No Advanced Room Features**: No spectator modes, moderation actions (mute, kick, ban), room passwords, or invite links.
