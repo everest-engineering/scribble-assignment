@@ -31,4 +31,5 @@
 
 ## Notes
 
-All items pass. Ready for `/speckit-clarify` or `/speckit-plan`.
+All items pass. Clarification session 2026-05-31 complete (3/3 questions answered).
+Ready for `/speckit-plan`.

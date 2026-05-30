@@ -6,6 +6,14 @@
 
 **Status**: Draft
 
+## Clarifications
+
+### Session 2026-05-31
+
+- Q: How is host status communicated in the room API response? → A: Room snapshot includes a `hostId` field; the frontend compares it to its own stored `participantId` to determine host status.
+- Q: What does the "Start Game" button trigger? → A: Calls a new `POST /rooms/:code/start` endpoint; backend validates host identity and ≥2 players then sets room `status` to `"game"`; all clients detect the status change on the next poll and navigate to the Game screen.
+- Q: Where is `participantId` stored on the client? → A: In React state (or shared context) for the tab's lifetime only — no `localStorage`, no URL params. Consistent with the in-memory, no-persistence backend.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 — Create Room as Host (Priority: P1)
@@ -145,9 +153,6 @@ shows only room B's participants.
   found" message.
 - Player submits the join form twice in quick succession: second request is
   either ignored or results in a duplicate-prevention error.
-- Backend base URL misconfiguration (e.g., trailing path segment): fix the
-  known typo `/bug` in `frontend/src/services/api.ts` line 22 so all API calls
-  reach the correct base URL `http://localhost:3001`.
 
 ## Requirements *(mandatory)*
 
@@ -155,38 +160,43 @@ shows only room B's participants.
 
 - **FR-001**: When a player creates a room, the backend MUST record that player
   as the host of that room.
-- **FR-002**: The backend MUST return a `isHost` (or equivalent) flag in the
-  room snapshot so the frontend can conditionally render host-only controls.
+- **FR-002**: The backend MUST include a `hostId` field in the room snapshot
+  (the participant ID of the host) so the frontend can compare it against the
+  session's own `participantId` to conditionally render host-only controls.
 - **FR-003**: The frontend MUST display a "Start Game" button on the Lobby
   screen that is visible only to the host and is disabled when fewer than 2
   players are present.
-- **FR-004**: The backend MUST reject a start-game request from any participant
-  who is not the host with an appropriate error response.
-- **FR-005**: The backend MUST reject a start-game request when fewer than 2
-  players are in the room with an appropriate error response.
-- **FR-006**: The Lobby screen MUST poll `GET /rooms/:code` approximately every
+- **FR-004**: A new `POST /rooms/:code/start` endpoint MUST be added. The
+  backend MUST reject the request from any participant who is not the host with
+  a `403` error response.
+- **FR-005**: The `POST /rooms/:code/start` endpoint MUST reject the request
+  when fewer than 2 players are present with a `400` error response.
+- **FR-005a**: On a valid start request, the backend MUST transition the room
+  `status` from `"lobby"` to `"game"`. All clients detect this via polling and
+  navigate to the Game screen.
+- **FR-006**: The frontend MUST retain the `participantId` returned by
+  `POST /rooms` or `POST /rooms/:code/join` in React state for the lifetime of
+  the tab session. It MUST NOT use `localStorage` or URL parameters for this.
+- **FR-007**: The Lobby screen MUST poll `GET /rooms/:code` approximately every
   2 seconds to refresh the participant list without user interaction.
-- **FR-007**: Polling MUST stop when the player navigates away from the Lobby
+- **FR-008**: Polling MUST stop when the player navigates away from the Lobby
   screen.
-- **FR-008**: Player names MUST be trimmed; empty or whitespace-only names MUST
+- **FR-009**: Player names MUST be trimmed; empty or whitespace-only names MUST
   be rejected on the client before submission and on the server with a `400`
   response.
-- **FR-009**: Room codes MUST be trimmed on the client; empty or
+- **FR-010**: Room codes MUST be trimmed on the client; empty or
   whitespace-only codes MUST be rejected before any network call.
-- **FR-010**: Joining a non-existent room MUST return a clear error message to
+- **FR-011**: Joining a non-existent room MUST return a clear error message to
   the user.
-- **FR-011**: Rooms MUST be fully isolated: participant lists, host status, and
+- **FR-012**: Rooms MUST be fully isolated: participant lists, host status, and
   game state MUST NOT bleed between rooms.
-- **FR-012**: The known `/bug` typo in `frontend/src/services/api.ts` line 22
-  MUST be fixed so the API base URL points to `http://localhost:3001` without
-  a path suffix.
 
 ### Key Entities
 
-- **Room**: Identified by a unique code; has a list of participants, a host
-  participant ID, and a status (`lobby` initially).
-- **Participant**: Has an ID, a display name, and a flag indicating whether they
-  are the host.
+- **Room**: Identified by a unique code; has a `hostId` (the participant ID of
+  the creator), a list of participants, and a status (`lobby` initially).
+- **Participant**: Has an ID and a display name. Host identity is determined by
+  comparing participant ID to the room's `hostId`.
 
 ## Success Criteria *(mandatory)*
 
@@ -208,13 +218,15 @@ shows only room B's participants.
 - The backend in-memory store is the single source of truth; no persistence
   across server restarts is required.
 - Room codes are generated by the backend (existing behaviour preserved).
-- "Start Game" navigates to the game screen; the game start API endpoint will
-  be added as part of this scenario's implementation.
+- "Start Game" calls `POST /rooms/:code/start`. All clients (host and joiners)
+  detect `status: "game"` on the next poll and navigate to the Game screen.
 - The existing `GET /rooms/:code` endpoint is used for lobby polling; no new
   polling-specific endpoint is needed.
-- A participant's `isHost` status is determined at creation time and does not
-  change for the lifetime of the room.
+- The room's `hostId` is set to the creator's participant ID at creation time
+  and does not change for the lifetime of the room.
 - Player names need not be unique within a room, but cannot be empty or
   whitespace-only.
+- `participantId` is stored in React state only; closing or refreshing the tab
+  ends the session. This is acceptable because the backend is also in-memory.
 - The existing `POST /rooms` and `POST /rooms/:code/join` endpoints are
   extended (not rewritten) to include host tracking.
