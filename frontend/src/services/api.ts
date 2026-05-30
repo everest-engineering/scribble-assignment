@@ -1,12 +1,34 @@
 export type ParticipantRole = "drawer" | "guesser";
 export type RoomStatus = "lobby" | "playing";
 
+export interface Point {
+  x: number;
+  y: number;
+}
+
+export interface Stroke {
+  id: string;
+  points: Point[];
+  color: string;
+  width: number;
+}
+
+export interface Guess {
+  id: string;
+  participantId: string;
+  participantName: string;
+  text: string;
+  isCorrect: boolean;
+  submittedAt: string;
+}
+
 export interface Participant {
   id: string;
   name: string;
   joinedAt: string;
   isHost: boolean;
   role: ParticipantRole | null;
+  score: number;
 }
 
 export interface RoomSnapshot {
@@ -17,12 +39,23 @@ export interface RoomSnapshot {
   participants: Participant[];
   availableWords: string[];
   roles: ParticipantRole[];
+  strokes?: Stroke[];
+  guesses?: Guess[];
   secretWord?: string;
 }
 
 export interface RoomSessionResponse {
   participantId: string;
   room: RoomSnapshot;
+}
+
+export const CANVAS_WIDTH = 800;
+export const CANVAS_HEIGHT = 500;
+
+export interface StrokeInput {
+  points: Point[];
+  color?: string;
+  width?: number;
 }
 
 const API_BASE_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3001";
@@ -68,6 +101,24 @@ export const api = {
     return request<{ room: RoomSnapshot }>(`/rooms/${encodeURIComponent(code)}/start`, {
       method: "POST",
       body: JSON.stringify({ participantId })
+    });
+  },
+  addStroke(code: string, participantId: string, stroke: StrokeInput) {
+    return request<{ room: RoomSnapshot }>(`/rooms/${encodeURIComponent(code)}/strokes`, {
+      method: "POST",
+      body: JSON.stringify({ participantId, stroke })
+    });
+  },
+  clearCanvas(code: string, participantId: string) {
+    return request<{ room: RoomSnapshot }>(`/rooms/${encodeURIComponent(code)}/canvas/clear`, {
+      method: "POST",
+      body: JSON.stringify({ participantId })
+    });
+  },
+  submitGuess(code: string, participantId: string, guessText: string) {
+    return request<{ room: RoomSnapshot }>(`/rooms/${encodeURIComponent(code)}/guesses`, {
+      method: "POST",
+      body: JSON.stringify({ participantId, guessText })
     });
   }
 };

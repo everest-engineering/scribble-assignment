@@ -1,8 +1,20 @@
 import { randomUUID } from "node:crypto";
-import type { Participant, ParticipantRole, Room, RoomSnapshot } from "../models/game.js";
+import type {
+  Guess,
+  Participant,
+  ParticipantRole,
+  Room,
+  RoomSnapshot,
+  Stroke,
+  StrokeInput
+} from "../models/game.js";
+import { CANVAS_HEIGHT, CANVAS_WIDTH } from "../models/game.js";
 import { STARTER_ROLES, STARTER_WORDS } from "../seed/starterData.js";
 
 const rooms = new Map<string, Room>();
+
+const DEFAULT_STROKE_COLOR = "#111827";
+const DEFAULT_STROKE_WIDTH = 3;
 
 function now() {
   return new Date().toISOString();
@@ -43,11 +55,26 @@ export function normalizePlayerName(name?: string): NormalizedNameResult {
   return { ok: true, name: trimmed };
 }
 
+export type NormalizedGuessResult =
+  | { ok: true; text: string }
+  | { ok: false; reason: "empty_guess" };
+
+export function normalizeGuessText(guessText?: string): NormalizedGuessResult {
+  const trimmed = (guessText ?? "").trim();
+
+  if (!trimmed) {
+    return { ok: false, reason: "empty_guess" };
+  }
+
+  return { ok: true, text: trimmed };
+}
+
 function createParticipant(name: string): Participant {
   return {
     id: randomUUID(),
     name,
-    joinedAt: now()
+    joinedAt: now(),
+    score: 0
   };
 }
 
@@ -66,6 +93,31 @@ function participantRole(
   return participantId === room.drawerParticipantId ? "drawer" : "guesser";
 }
 
+function isValidStrokeInput(stroke: StrokeInput): boolean {
+  if (!stroke.points || stroke.points.length < 2) {
+    return false;
+  }
+
+  return stroke.points.every(
+    (point) =>
+      Number.isFinite(point.x) &&
+      Number.isFinite(point.y) &&
+      point.x >= 0 &&
+      point.x <= CANVAS_WIDTH &&
+      point.y >= 0 &&
+      point.y <= CANVAS_HEIGHT
+  );
+}
+
+function initializeGameplayState(room: Room) {
+  room.strokes = [];
+  room.guesses = [];
+  room.scoredParticipantIds = [];
+  room.participants.forEach((participant) => {
+    participant.score = 0;
+  });
+}
+
 export function listWords() {
   return [...STARTER_WORDS];
 }
@@ -82,6 +134,18 @@ export type StartRoomResult =
   | { ok: true; room: Room }
   | { ok: false; reason: "not_found" | "not_host" | "not_enough_players" | "game_started" };
 
+export type AddStrokeResult =
+  | { ok: true; room: Room }
+  | { ok: false; reason: "not_found" | "not_playing" | "not_drawer" | "invalid_stroke" };
+
+export type ClearCanvasResult =
+  | { ok: true; room: Room }
+  | { ok: false; reason: "not_found" | "not_playing" | "not_drawer" };
+
+export type SubmitGuessResult =
+  | { ok: true; room: Room }
+  | { ok: false; reason: "not_found" | "not_playing" | "empty_guess" | "is_drawer" | "not_participant" };
+
 export function createRoom(playerName?: string): CreateRoomResult {
   const normalized = normalizePlayerName(playerName);
 
@@ -96,6 +160,9 @@ export function createRoom(playerName?: string): CreateRoomResult {
     hostParticipantId: participant.id,
     drawerParticipantId: null,
     secretWord: null,
+    strokes: [],
+    guesses: [],
+    scoredParticipantIds: [],
     participants: [participant],
     createdAt: now(),
     updatedAt: now()
@@ -161,6 +228,122 @@ export function startRoom(code: string, participantId: string): StartRoomResult 
   room.status = "playing";
   room.drawerParticipantId = room.hostParticipantId;
   room.secretWord = STARTER_WORDS[0];
+  initializeGameplayState(room);
+  room.updatedAt = now();
+  rooms.set(room.code, room);
+
+  return { ok: true, room: cloneRoom(room) };
+}
+
+export function addStroke(
+  code: string,
+  participantId: string,
+  strokeInput: StrokeInput
+): AddStrokeResult {
+  const room = rooms.get(code);
+
+  if (!room) {
+    return { ok: false, reason: "not_found" };
+  }
+
+  if (room.status !== "playing") {
+    return { ok: false, reason: "not_playing" };
+  }
+
+  if (room.drawerParticipantId !== participantId) {
+    return { ok: false, reason: "not_drawer" };
+  }
+
+  if (!isValidStrokeInput(strokeInput)) {
+    return { ok: false, reason: "invalid_stroke" };
+  }
+
+  const stroke: Stroke = {
+    id: randomUUID(),
+    points: strokeInput.points,
+    color: strokeInput.color ?? DEFAULT_STROKE_COLOR,
+    width: strokeInput.width ?? DEFAULT_STROKE_WIDTH
+  };
+
+  room.strokes.push(stroke);
+  room.updatedAt = now();
+  rooms.set(room.code, room);
+
+  return { ok: true, room: cloneRoom(room) };
+}
+
+export function clearCanvas(code: string, participantId: string): ClearCanvasResult {
+  const room = rooms.get(code);
+
+  if (!room) {
+    return { ok: false, reason: "not_found" };
+  }
+
+  if (room.status !== "playing") {
+    return { ok: false, reason: "not_playing" };
+  }
+
+  if (room.drawerParticipantId !== participantId) {
+    return { ok: false, reason: "not_drawer" };
+  }
+
+  room.strokes = [];
+  room.updatedAt = now();
+  rooms.set(room.code, room);
+
+  return { ok: true, room: cloneRoom(room) };
+}
+
+export function submitGuess(
+  code: string,
+  participantId: string,
+  guessText?: string
+): SubmitGuessResult {
+  const room = rooms.get(code);
+
+  if (!room) {
+    return { ok: false, reason: "not_found" };
+  }
+
+  if (room.status !== "playing") {
+    return { ok: false, reason: "not_playing" };
+  }
+
+  if (room.drawerParticipantId === participantId) {
+    return { ok: false, reason: "is_drawer" };
+  }
+
+  const participant = room.participants.find((entry) => entry.id === participantId);
+
+  if (!participant) {
+    return { ok: false, reason: "not_participant" };
+  }
+
+  const normalized = normalizeGuessText(guessText);
+
+  if (!normalized.ok) {
+    return { ok: false, reason: "empty_guess" };
+  }
+
+  const secretWord = room.secretWord ?? "";
+  const isCorrect = normalized.text.toLowerCase() === secretWord.toLowerCase();
+
+  const guess: Guess = {
+    id: randomUUID(),
+    participantId: participant.id,
+    participantName: participant.name,
+    text: normalized.text,
+    isCorrect,
+    submittedAt: now()
+  };
+
+  room.guesses.push(guess);
+
+  if (isCorrect && !room.scoredParticipantIds.includes(participantId)) {
+    participant.score += 100;
+    room.scoredParticipantIds.push(participantId);
+  }
+
   room.updatedAt = now();
   rooms.set(room.code, room);
 
@@ -191,11 +374,17 @@ export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSn
       name: participant.name,
       joinedAt: participant.joinedAt,
       isHost: participant.id === room.hostParticipantId,
-      role: participantRole(room, participant.id)
+      role: participantRole(room, participant.id),
+      score: participant.score
     })),
     availableWords: listWords(),
     roles: [...STARTER_ROLES]
   };
+
+  if (room.status === "playing") {
+    snapshot.strokes = [...room.strokes];
+    snapshot.guesses = [...room.guesses];
+  }
 
   if (
     room.status === "playing" &&

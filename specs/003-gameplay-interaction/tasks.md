@@ -22,8 +22,8 @@ description: "Task list for Gameplay Interaction (Scenario 3)"
 
 **Purpose**: Confirm Scenario 2 baseline and artifact alignment before gameplay work
 
-- [ ] T001 Review `specs/003-gameplay-interaction/plan.md`, `spec.md`, and `contracts/rooms-api.md` against acceptance criteria
-- [ ] T002 Confirm Scenario 2 flows (create, join, start, game poll, drawer role, drawer-only word) work on branch `003-gameplay-interaction`
+- [x] T001 Review `specs/003-gameplay-interaction/plan.md`, `spec.md`, and `contracts/rooms-api.md` against acceptance criteria
+- [x] T002 Confirm Scenario 2 flows (create, join, start, game poll, drawer role, drawer-only word) work on branch `003-gameplay-interaction`
 
 ---
 
@@ -33,12 +33,12 @@ description: "Task list for Gameplay Interaction (Scenario 3)"
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T003 Add `Stroke` and `Guess` interfaces in `backend/src/models/game.ts`
-- [ ] T004 Extend internal `Participant` with `score: number` and `Room` with `strokes`, `guesses`, and `scoredParticipantIds` in `backend/src/models/game.ts`
-- [ ] T005 Extend `RoomSnapshot` with `strokes` and `guesses` arrays and `ParticipantSnapshot` with `score` in `backend/src/models/game.ts`
-- [ ] T006 Initialize `strokes = []`, `guesses = []`, `scoredParticipantIds = []`, and each participant `score = 0` in `startRoom()` in `backend/src/services/roomStore.ts`
-- [ ] T007 Include `strokes`, `guesses`, and `participants[].score` in `toRoomSnapshot()` when `status === "playing"` in `backend/src/services/roomStore.ts`
-- [ ] T008 [P] Mirror `Stroke`, `Guess`, and extended snapshot/participant types in `frontend/src/services/api.ts`
+- [x] T003 Add `Stroke` and `Guess` interfaces in `backend/src/models/game.ts`
+- [x] T004 Extend internal `Participant` with `score: number` and `Room` with `strokes`, `guesses`, and `scoredParticipantIds` in `backend/src/models/game.ts`
+- [x] T005 Extend `RoomSnapshot` with `strokes` and `guesses` arrays and `ParticipantSnapshot` with `score` in `backend/src/models/game.ts`
+- [x] T006 Initialize `strokes = []`, `guesses = []`, `scoredParticipantIds = []`, and each participant `score = 0` in `startRoom()` in `backend/src/services/roomStore.ts`
+- [x] T007 Include `strokes`, `guesses`, and `participants[].score` in `toRoomSnapshot()` when `status === "playing"` in `backend/src/services/roomStore.ts`
+- [x] T008 [P] Mirror `Stroke`, `Guess`, and extended snapshot/participant types in `frontend/src/services/api.ts`
 
 **Checkpoint**: Foundation ready — snapshots expose gameplay fields; scores zeroed on start
 
@@ -52,15 +52,15 @@ description: "Task list for Gameplay Interaction (Scenario 3)"
 
 ### Implementation for User Story 1
 
-- [ ] T009 [US1] Implement `addStroke(code, participantId, stroke)` with drawer-only guard in `backend/src/services/roomStore.ts`
-- [ ] T010 [US1] Implement `clearCanvas(code, participantId)` with drawer-only guard in `backend/src/services/roomStore.ts`
-- [ ] T011 [P] [US1] Add `addStrokeSchema` and `clearCanvasSchema` in `backend/src/api/schemas.ts`
-- [ ] T012 [US1] Add `POST /rooms/:code/strokes` and `POST /rooms/:code/canvas/clear` routes in `backend/src/api/rooms.ts`
-- [ ] T013 [P] [US1] Add `addStroke` and `clearCanvas` API methods in `frontend/src/services/api.ts`
-- [ ] T014 [US1] Add `addStroke` and `clearCanvas` actions to `frontend/src/state/roomStore.ts`
-- [ ] T015 [US1] Create `DrawingCanvas` with drawer pointer capture, local render, and guesser read-only replay in `frontend/src/components/DrawingCanvas.tsx`
-- [ ] T016 [US1] Replace canvas placeholder, wire `DrawingCanvas`, and add Clear Canvas button in `frontend/src/pages/GamePage.tsx`
-- [ ] T017 [P] [US1] Add vitest cases for drawer-only stroke append and clear in `backend/src/services/roomStore.test.ts`
+- [x] T009 [US1] Implement `addStroke(code, participantId, stroke)` with drawer-only guard in `backend/src/services/roomStore.ts`
+- [x] T010 [US1] Implement `clearCanvas(code, participantId)` with drawer-only guard in `backend/src/services/roomStore.ts`
+- [x] T011 [P] [US1] Add `addStrokeSchema` and `clearCanvasSchema` in `backend/src/api/schemas.ts`
+- [x] T012 [US1] Add `POST /rooms/:code/strokes` and `POST /rooms/:code/canvas/clear` routes in `backend/src/api/rooms.ts`
+- [x] T013 [P] [US1] Add `addStroke` and `clearCanvas` API methods in `frontend/src/services/api.ts`
+- [x] T014 [US1] Add `addStroke` and `clearCanvas` actions to `frontend/src/state/roomStore.ts`
+- [x] T015 [US1] Create `DrawingCanvas` with drawer pointer capture, local render, and guesser read-only replay in `frontend/src/components/DrawingCanvas.tsx`
+- [x] T016 [US1] Replace canvas placeholder, wire `DrawingCanvas`, and add Clear Canvas button in `frontend/src/pages/GamePage.tsx`
+- [x] T017 [P] [US1] Add vitest cases for drawer-only stroke append and clear in `backend/src/services/roomStore.test.ts`
 
 **Checkpoint**: Drawer can draw/clear; guesser sees synced canvas via existing game poll
 
@@ -74,14 +74,14 @@ description: "Task list for Gameplay Interaction (Scenario 3)"
 
 ### Implementation for User Story 2
 
-- [ ] T018 [US2] Implement `submitGuess(code, participantId, guessText)` with trim, empty reject, drawer reject, and guess append (no score change yet) in `backend/src/services/roomStore.ts`
-- [ ] T019 [P] [US2] Add `submitGuessSchema` with trimmed non-empty validation in `backend/src/api/schemas.ts`
-- [ ] T020 [US2] Add `POST /rooms/:code/guesses` route with error mapping in `backend/src/api/rooms.ts`
-- [ ] T021 [P] [US2] Add `submitGuess` API method in `frontend/src/services/api.ts`
-- [ ] T022 [US2] Add `submitGuess` action to `frontend/src/state/roomStore.ts`
-- [ ] T023 [US2] Wire form submit with client trim, empty rejection, and `roomStore.submitGuess` in `frontend/src/components/GuessForm.tsx`
-- [ ] T024 [US2] Pass `onSubmitGuess` handler and disable when not guesser from `frontend/src/pages/GamePage.tsx` to `GuessForm.tsx`
-- [ ] T025 [P] [US2] Add vitest cases for empty guess rejection and drawer cannot guess in `backend/src/services/roomStore.test.ts`
+- [x] T018 [US2] Implement `submitGuess(code, participantId, guessText)` with trim, empty reject, drawer reject, and guess append (no score change yet) in `backend/src/services/roomStore.ts`
+- [x] T019 [P] [US2] Add `submitGuessSchema` with trimmed non-empty validation in `backend/src/api/schemas.ts`
+- [x] T020 [US2] Add `POST /rooms/:code/guesses` route with error mapping in `backend/src/api/rooms.ts`
+- [x] T021 [P] [US2] Add `submitGuess` API method in `frontend/src/services/api.ts`
+- [x] T022 [US2] Add `submitGuess` action to `frontend/src/state/roomStore.ts`
+- [x] T023 [US2] Wire form submit with client trim, empty rejection, and `roomStore.submitGuess` in `frontend/src/components/GuessForm.tsx`
+- [x] T024 [US2] Pass `onSubmitGuess` handler and disable when not guesser from `frontend/src/pages/GamePage.tsx` to `GuessForm.tsx`
+- [x] T025 [P] [US2] Add vitest cases for empty guess rejection and drawer cannot guess in `backend/src/services/roomStore.test.ts`
 
 **Checkpoint**: Valid guesses recorded server-side; invalid submissions rejected with clear errors
 
@@ -95,10 +95,10 @@ description: "Task list for Gameplay Interaction (Scenario 3)"
 
 ### Implementation for User Story 3
 
-- [ ] T026 [US3] Render chronological guess list with participant name and trimmed text in `frontend/src/components/ResultPanel.tsx`
-- [ ] T027 [US3] Pass `room.guesses` from `frontend/src/pages/GamePage.tsx` to `ResultPanel.tsx`
-- [ ] T028 [US3] Show empty/waiting state when `guesses` is empty in `frontend/src/components/ResultPanel.tsx`
-- [ ] T029 [P] [US3] Add vitest asserting `toRoomSnapshot` includes appended guesses in `backend/src/services/roomStore.test.ts`
+- [x] T026 [US3] Render chronological guess list with participant name and trimmed text in `frontend/src/components/ResultPanel.tsx`
+- [x] T027 [US3] Pass `room.guesses` from `frontend/src/pages/GamePage.tsx` to `ResultPanel.tsx`
+- [x] T028 [US3] Show empty/waiting state when `guesses` is empty in `frontend/src/components/ResultPanel.tsx`
+- [x] T029 [P] [US3] Add vitest asserting `toRoomSnapshot` includes appended guesses in `backend/src/services/roomStore.test.ts`
 
 **Checkpoint**: Activity panel reflects live guess history on all clients via poll
 
@@ -112,10 +112,10 @@ description: "Task list for Gameplay Interaction (Scenario 3)"
 
 ### Implementation for User Story 4
 
-- [ ] T030 [US4] Add case-insensitive match, `isCorrect` flag, +100 scoring, and `scoredParticipantIds` cap in `submitGuess()` in `backend/src/services/roomStore.ts`
-- [ ] T031 [US4] Render participant names and live scores from snapshot in `frontend/src/components/Scoreboard.tsx`
-- [ ] T032 [US4] Pass `room.participants` scores from `frontend/src/pages/GamePage.tsx` to `Scoreboard.tsx`
-- [ ] T033 [P] [US4] Add vitest cases for +100 correct, +0 incorrect, and first-correct cap in `backend/src/services/roomStore.test.ts`
+- [x] T030 [US4] Add case-insensitive match, `isCorrect` flag, +100 scoring, and `scoredParticipantIds` cap in `submitGuess()` in `backend/src/services/roomStore.ts`
+- [x] T031 [US4] Render participant names and live scores from snapshot in `frontend/src/components/Scoreboard.tsx`
+- [x] T032 [US4] Pass `room.participants` scores from `frontend/src/pages/GamePage.tsx` to `Scoreboard.tsx`
+- [x] T033 [P] [US4] Add vitest cases for +100 correct, +0 incorrect, and first-correct cap in `backend/src/services/roomStore.test.ts`
 
 **Checkpoint**: Full Scenario 3 gameplay — draw, guess, history, scoring
 
@@ -125,8 +125,8 @@ description: "Task list for Gameplay Interaction (Scenario 3)"
 
 **Purpose**: Validation and build gates before Scenario 4
 
-- [ ] T034 Run manual two-browser validation per `specs/003-gameplay-interaction/quickstart.md`
-- [ ] T035 [P] Run `npm run build` in `backend/` and `frontend/` and fix any type errors
+- [x] T034 Run manual two-browser validation per `specs/003-gameplay-interaction/quickstart.md`
+- [x] T035 [P] Run `npm run build` in `backend/` and `frontend/` and fix any type errors
 
 ---
 

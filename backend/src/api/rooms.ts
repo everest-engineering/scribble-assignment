@@ -1,13 +1,25 @@
 import { Router } from "express";
 import {
+  addStrokeSchema,
+  clearCanvasSchema,
   createRoomSchema,
   HttpError,
   joinRoomSchema,
   roomCodeParamsSchema,
   roomViewerQuerySchema,
-  startRoomSchema
+  startRoomSchema,
+  submitGuessSchema
 } from "./schemas.js";
-import { createRoom, getRoom, joinRoom, startRoom, toRoomSnapshot } from "../services/roomStore.js";
+import {
+  addStroke,
+  clearCanvas,
+  createRoom,
+  getRoom,
+  joinRoom,
+  startRoom,
+  submitGuess,
+  toRoomSnapshot
+} from "../services/roomStore.js";
 
 export function createRoomsRouter() {
   const router = Router();
@@ -75,6 +87,93 @@ export function createRoomsRouter() {
             throw new HttpError(409, "Game already started");
           default:
             throw new HttpError(400, "Unable to start game");
+        }
+      }
+
+      response.json({
+        room: toRoomSnapshot(result.room, participantId)
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/:code/strokes", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId, stroke } = addStrokeSchema.parse(request.body);
+      const result = addStroke(code.toUpperCase(), participantId, stroke);
+
+      if (!result.ok) {
+        switch (result.reason) {
+          case "not_found":
+            throw new HttpError(404, "Unable to load room");
+          case "not_playing":
+            throw new HttpError(409, "Game not in progress");
+          case "not_drawer":
+            throw new HttpError(403, "Only the drawer can draw");
+          case "invalid_stroke":
+            throw new HttpError(400, "Invalid stroke");
+          default:
+            throw new HttpError(400, "Unable to add stroke");
+        }
+      }
+
+      response.json({
+        room: toRoomSnapshot(result.room, participantId)
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/:code/canvas/clear", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId } = clearCanvasSchema.parse(request.body);
+      const result = clearCanvas(code.toUpperCase(), participantId);
+
+      if (!result.ok) {
+        switch (result.reason) {
+          case "not_found":
+            throw new HttpError(404, "Unable to load room");
+          case "not_playing":
+            throw new HttpError(409, "Game not in progress");
+          case "not_drawer":
+            throw new HttpError(403, "Only the drawer can clear the canvas");
+          default:
+            throw new HttpError(400, "Unable to clear canvas");
+        }
+      }
+
+      response.json({
+        room: toRoomSnapshot(result.room, participantId)
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/:code/guesses", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId, guessText } = submitGuessSchema.parse(request.body);
+      const result = submitGuess(code.toUpperCase(), participantId, guessText);
+
+      if (!result.ok) {
+        switch (result.reason) {
+          case "not_found":
+            throw new HttpError(404, "Unable to load room");
+          case "not_playing":
+            throw new HttpError(409, "Game not in progress");
+          case "empty_guess":
+            throw new HttpError(400, "Guess is required");
+          case "is_drawer":
+            throw new HttpError(403, "The drawer cannot submit guesses");
+          case "not_participant":
+            throw new HttpError(403, "Participant not in room");
+          default:
+            throw new HttpError(400, "Unable to submit guess");
         }
       }
 
