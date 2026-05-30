@@ -21,6 +21,9 @@ export function GamePage() {
     return null;
   }
 
+  const isDrawer = participantId === room.hostId;
+  const drawerParticipant = room.participants.find((p) => p.id === room.hostId) ?? null;
+  const secretWord = room.availableWords[0] ?? "";
   const viewer = room.participants.find((participant) => participant.id === participantId) ?? null;
 
   return (
@@ -28,7 +31,7 @@ export function GamePage() {
       <div className="game-page__header">
         <div className="game-page__header-left">
           <span className="section-kicker">Round 1</span>
-          <h1 className="game-page__title">Guess the Word!</h1>
+          <h1 className="game-page__title">{isDrawer ? "You are drawing!" : "Guess the Word!"}</h1>
         </div>
         <RoomCodeBadge code={room.code} />
       </div>
@@ -40,30 +43,58 @@ export function GamePage() {
         </aside>
 
         <div className="game-page__main">
-          <Card title="Canvas">
-            <div className="canvas-placeholder" style={{ minHeight: '500px', backgroundColor: '#ffffff', border: '1px solid #e5e7eb' }}>
-              Waiting for drawer...
-            </div>
-          </Card>
+          {isDrawer ? (
+            <Card title="Word to Draw">
+              <p style={{ fontSize: '2rem', fontWeight: 700, textAlign: 'center', padding: '16px 0', letterSpacing: '0.05em' }}>
+                {secretWord}
+              </p>
+              <p style={{ textAlign: 'center', color: '#6b7280', fontSize: '0.875rem' }}>
+                Draw this word — don't say it out loud!
+              </p>
+            </Card>
+          ) : (
+            <Card title="Canvas">
+              <div className="canvas-placeholder" style={{ minHeight: '200px', backgroundColor: '#ffffff', border: '1px solid #e5e7eb', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <p style={{ color: '#6b7280' }}>Waiting for {drawerParticipant?.name ?? "the drawer"} to draw…</p>
+              </div>
+            </Card>
+          )}
         </div>
 
         <aside className="game-page__sidebar game-page__sidebar--right">
-          <Card title="Player Info">
+          <Card title="Players">
+            <ul className="player-list">
+              {room.participants.map((participant) => (
+                <li key={participant.id}>
+                  <span>{participant.name}</span>
+                  <span className="player-list__meta">
+                    {participant.id === room.hostId ? "Drawer" : "Guesser"}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </Card>
+
+          <Card title="Your Role">
             <dl className="detail-list">
               <div>
                 <dt>Name</dt>
                 <dd>{viewer?.name ?? "Unknown player"}</dd>
               </div>
               <div>
-                <dt>Status</dt>
-                <dd>Playing</dd>
+                <dt>Role</dt>
+                <dd style={{ fontWeight: 600, color: isDrawer ? '#7c3aed' : '#0369a1' }}>
+                  {isDrawer ? "Drawer" : "Guesser"}
+                </dd>
               </div>
             </dl>
           </Card>
 
-          <Card title="Your Guess">
-            <GuessForm />
-          </Card>
+          {!isDrawer && (
+            <Card title="Your Guess">
+              <GuessForm />
+            </Card>
+          )}
         </aside>
       </div>
 
