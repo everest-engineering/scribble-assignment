@@ -10,6 +10,8 @@ const baseRoom = {
   drawerId: undefined,
   viewerRole: null,
   secretWord: null,
+  strokes: [],
+  guesses: [],
   participants: [],
   availableWords: ["rocket"],
   roles: ["drawer", "guesser"] as const
@@ -85,6 +87,60 @@ describe("api service", () => {
       expect.objectContaining({
         method: "POST",
         body: JSON.stringify({ participantId: "p1" })
+      })
+    );
+  });
+
+  it("addStroke sends POST to /rooms/:code/strokes", async () => {
+    const mockResponse = {
+      ok: true,
+      json: () =>
+        Promise.resolve({
+          participantId: "p1",
+          room: { ...baseRoom, status: "playing", strokes: [{ id: "s1", points: [{ x: 0.1, y: 0.2 }] }] }
+        })
+    };
+    vi.mocked(fetch).mockResolvedValue(mockResponse as unknown as Response);
+
+    await api.addStroke("ABCD", "p1", { id: "s1", points: [{ x: 0.1, y: 0.2 }] });
+
+    expect(fetch).toHaveBeenCalledWith(
+      expect.stringContaining("/rooms/ABCD/strokes"),
+      expect.objectContaining({ method: "POST" })
+    );
+  });
+
+  it("submitGuess sends POST to /rooms/:code/guesses", async () => {
+    const mockResponse = {
+      ok: true,
+      json: () =>
+        Promise.resolve({
+          participantId: "p2",
+          room: {
+            ...baseRoom,
+            status: "playing",
+            guesses: [
+              {
+                id: "g1",
+                participantId: "p2",
+                participantName: "Bob",
+                text: "rocket",
+                isCorrect: true,
+                submittedAt: "2026-01-01T00:00:00.000Z"
+              }
+            ]
+          }
+        })
+    };
+    vi.mocked(fetch).mockResolvedValue(mockResponse as unknown as Response);
+
+    await api.submitGuess("ABCD", "p2", "rocket");
+
+    expect(fetch).toHaveBeenCalledWith(
+      expect.stringContaining("/rooms/ABCD/guesses"),
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({ participantId: "p2", guessText: "rocket" })
       })
     );
   });

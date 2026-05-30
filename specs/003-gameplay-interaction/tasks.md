@@ -18,7 +18,7 @@
 
 **Purpose**: Confirm brownfield starter and Scenarios 1–2 prerequisites are ready.
 
-- [ ] T001 Confirm Scenarios 1–2 game flow works and starter files listed in `specs/003-gameplay-interaction/plan.md` exist under `backend/src/` and `frontend/src/`
+- [x] T001 Confirm Scenarios 1–2 game flow works and starter files listed in `specs/003-gameplay-interaction/plan.md` exist under `backend/src/` and `frontend/src/`
 
 ---
 
@@ -40,12 +40,12 @@
 
 ### Implementation for User Story 1
 
-- [ ] T002 [US1] Add `scores` map on `Room` and `score` on `ParticipantSnapshot` in `backend/src/models/game.ts`
-- [ ] T003 [US1] Initialize `scores[id] = 0` for each participant in `startGame` and expose `score` in `toRoomSnapshot` in `backend/src/services/roomStore.ts`
-- [ ] T004 [US1] Add all-scores-zero-after-start tests in `backend/src/services/roomStore.test.ts`
-- [ ] T005 [P] [US1] Mirror `score` on `ParticipantSnapshot` in `frontend/src/services/api.ts`
-- [ ] T006 [US1] Render participant names and scores from `room.participants` in `frontend/src/components/Scoreboard.tsx`
-- [ ] T007 [US1] Pass `room` into `Scoreboard` from `frontend/src/pages/GamePage.tsx`
+- [x] T002 [US1] Add `scores` map on `Room` and `score` on `ParticipantSnapshot` in `backend/src/models/game.ts`
+- [x] T003 [US1] Initialize `scores[id] = 0` for each participant in `startGame` and expose `score` in `toRoomSnapshot` in `backend/src/services/roomStore.ts`
+- [x] T004 [US1] Add all-scores-zero-after-start tests in `backend/src/services/roomStore.test.ts`
+- [x] T005 [P] [US1] Mirror `score` on `ParticipantSnapshot` in `frontend/src/services/api.ts`
+- [x] T006 [US1] Render participant names and scores from `room.participants` in `frontend/src/components/Scoreboard.tsx`
+- [x] T007 [US1] Pass `room` into `Scoreboard` from `frontend/src/pages/GamePage.tsx`
 
 **Checkpoint**: User Story 1 independently testable — scoreboard shows 0 for all players after start.
 
@@ -61,17 +61,17 @@
 
 ### Implementation for User Story 2
 
-- [ ] T008 [US2] Add `DrawingStroke` type and `strokes` on `Room`/`RoomSnapshot` in `backend/src/models/game.ts`
-- [ ] T009 [US2] Add `strokeSchema`, `addStrokeSchema`, and `clearCanvasSchema` in `backend/src/api/schemas.ts`
-- [ ] T010 [P] [US2] Add stroke and clear schema tests in `backend/src/api/schemas.test.ts`
-- [ ] T011 [US2] Implement `addStroke` and `clearCanvas` with drawer-only guards in `backend/src/services/roomStore.ts`
-- [ ] T012 [US2] Add drawer stroke/clear and guesser-rejection tests in `backend/src/services/roomStore.test.ts`
-- [ ] T013 [US2] Add `POST /:code/strokes` and `POST /:code/canvas/clear` routes in `backend/src/api/rooms.ts`
-- [ ] T014 [P] [US2] Mirror `strokes` on snapshot and add `addStroke`/`clearCanvas` API methods in `frontend/src/services/api.ts`
-- [ ] T015 [US2] Add `addStroke` and `clearCanvas` store actions in `frontend/src/state/roomStore.ts`
-- [ ] T016 [US2] Create interactive/read-only `DrawingCanvas` with normalized coords in `frontend/src/components/DrawingCanvas.tsx`
-- [ ] T017 [US2] Replace canvas placeholder with `DrawingCanvas`, drawer Clear button, and stroke POST on pointer up in `frontend/src/pages/GamePage.tsx`
-- [ ] T018 [P] [US2] Add canvas layout styles in `frontend/src/styles/app.css`
+- [x] T008 [US2] Add `DrawingStroke` type and `strokes` on `Room`/`RoomSnapshot` in `backend/src/models/game.ts`
+- [x] T009 [US2] Add `strokeSchema`, `addStrokeSchema`, and `clearCanvasSchema` in `backend/src/api/schemas.ts`
+- [x] T010 [P] [US2] Add stroke and clear schema tests in `backend/src/api/schemas.test.ts`
+- [x] T011 [US2] Implement `addStroke` and `clearCanvas` with drawer-only guards in `backend/src/services/roomStore.ts`
+- [x] T012 [US2] Add drawer stroke/clear and guesser-rejection tests in `backend/src/services/roomStore.test.ts`
+- [x] T013 [US2] Add `POST /:code/strokes` and `POST /:code/canvas/clear` routes in `backend/src/api/rooms.ts`
+- [x] T014 [P] [US2] Mirror `strokes` on snapshot and add `addStroke`/`clearCanvas` API methods in `frontend/src/services/api.ts`
+- [x] T015 [US2] Add `addStroke` and `clearCanvas` store actions in `frontend/src/state/roomStore.ts`
+- [x] T016 [US2] Create interactive/read-only `DrawingCanvas` with normalized coords in `frontend/src/components/DrawingCanvas.tsx`
+- [x] T017 [US2] Replace canvas placeholder with `DrawingCanvas`, drawer Clear button, and stroke POST on pointer up in `frontend/src/pages/GamePage.tsx`
+- [x] T018 [P] [US2] Add canvas layout styles in `frontend/src/styles/app.css`
 
 **Checkpoint**: User Stories 1 and 2 work — drawing syncs to guessers via poll.
 
@@ -87,17 +87,17 @@
 
 ### Implementation for User Story 3
 
-- [ ] T019 [P] [US3] Implement `evaluateGuess` case-insensitive logic in `backend/src/services/guessScoring.ts`
-- [ ] T020 [P] [US3] Add case-insensitivity and +100/0 unit tests in `backend/src/services/guessScoring.test.ts`
-- [ ] T021 [US3] Add `Guess`, `GuessSnapshot`, and `guesses` on `Room`/`RoomSnapshot` in `backend/src/models/game.ts`
-- [ ] T022 [US3] Add `submitGuessSchema` with trim/min(1) in `backend/src/api/schemas.ts`
-- [ ] T023 [US3] Implement `submitGuess` with guesser-only guard and guess recording in `backend/src/services/roomStore.ts`
-- [ ] T024 [US3] Add empty-guess, case-insensitive, and drawer-blocked tests in `backend/src/services/roomStore.test.ts`
-- [ ] T025 [US3] Add `POST /:code/guesses` route in `backend/src/api/rooms.ts`
-- [ ] T026 [US3] Add `submitGuess` API method and `guesses` snapshot type in `frontend/src/services/api.ts`
-- [ ] T027 [US3] Add `submitGuess` store action in `frontend/src/state/roomStore.ts`
-- [ ] T028 [US3] Wire trim, empty validation, submit handler, and drawer `disabled` in `frontend/src/components/GuessForm.tsx`
-- [ ] T029 [US3] Pass `disabled={isDrawer}` to `GuessForm` in `frontend/src/pages/GamePage.tsx`
+- [x] T019 [P] [US3] Implement `evaluateGuess` case-insensitive logic in `backend/src/services/guessScoring.ts`
+- [x] T020 [P] [US3] Add case-insensitivity and +100/0 unit tests in `backend/src/services/guessScoring.test.ts`
+- [x] T021 [US3] Add `Guess`, `GuessSnapshot`, and `guesses` on `Room`/`RoomSnapshot` in `backend/src/models/game.ts`
+- [x] T022 [US3] Add `submitGuessSchema` with trim/min(1) in `backend/src/api/schemas.ts`
+- [x] T023 [US3] Implement `submitGuess` with guesser-only guard and guess recording in `backend/src/services/roomStore.ts`
+- [x] T024 [US3] Add empty-guess, case-insensitive, and drawer-blocked tests in `backend/src/services/roomStore.test.ts`
+- [x] T025 [US3] Add `POST /:code/guesses` route in `backend/src/api/rooms.ts`
+- [x] T026 [US3] Add `submitGuess` API method and `guesses` snapshot type in `frontend/src/services/api.ts`
+- [x] T027 [US3] Add `submitGuess` store action in `frontend/src/state/roomStore.ts`
+- [x] T028 [US3] Wire trim, empty validation, submit handler, and drawer `disabled` in `frontend/src/components/GuessForm.tsx`
+- [x] T029 [US3] Pass `disabled={isDrawer}` to `GuessForm` in `frontend/src/pages/GamePage.tsx`
 
 **Checkpoint**: User Stories 1–3 work — validated guess submission with drawer blocked.
 
@@ -113,9 +113,9 @@
 
 ### Implementation for User Story 4
 
-- [ ] T030 [US4] Include ordered `guesses` in `toRoomSnapshot` when `status === "playing"` in `backend/src/services/roomStore.ts`
-- [ ] T031 [US4] Render ordered guess history with name, text, and correct/incorrect indicator in `frontend/src/components/ResultPanel.tsx`
-- [ ] T032 [P] [US4] Add guess history list styles in `frontend/src/styles/app.css`
+- [x] T030 [US4] Include ordered `guesses` in `toRoomSnapshot` when `status === "playing"` in `backend/src/services/roomStore.ts`
+- [x] T031 [US4] Render ordered guess history with name, text, and correct/incorrect indicator in `frontend/src/components/ResultPanel.tsx`
+- [x] T032 [P] [US4] Add guess history list styles in `frontend/src/styles/app.css`
 
 **Checkpoint**: User Stories 1–4 work — guess history syncs across tabs on poll.
 
@@ -131,9 +131,9 @@
 
 ### Implementation for User Story 5
 
-- [ ] T033 [US5] Apply `evaluateGuess` points to `scores[participantId]` in `submitGuess` in `backend/src/services/roomStore.ts`
-- [ ] T034 [US5] Add +100 correct, +0 incorrect, and repeat-correct scoring tests in `backend/src/services/roomStore.test.ts`
-- [ ] T035 [US5] Ensure `Scoreboard` re-renders updated `participants[].score` after submit and poll in `frontend/src/components/Scoreboard.tsx`
+- [x] T033 [US5] Apply `evaluateGuess` points to `scores[participantId]` in `submitGuess` in `backend/src/services/roomStore.ts`
+- [x] T034 [US5] Add +100 correct, +0 incorrect, and repeat-correct scoring tests in `backend/src/services/roomStore.test.ts`
+- [x] T035 [US5] Ensure `Scoreboard` re-renders updated `participants[].score` after submit and poll in `frontend/src/components/Scoreboard.tsx`
 
 **Checkpoint**: All five user stories complete — full Scenario 3 acceptance criteria.
 
@@ -143,10 +143,10 @@
 
 **Purpose**: Automated checks and manual validation before Scenario 4.
 
-- [ ] T036 [P] Update test mocks for extended snapshot fields and new API methods in `frontend/src/services/api.test.ts`
-- [ ] T037 Run `npm test` in `backend/` and `frontend/`
-- [ ] T038 Run `npm run build` in `backend/` and `frontend/`
-- [ ] T039 Manual two-tab validation per `specs/003-gameplay-interaction/plan.md` Testing Strategy (P1–P5 flows)
+- [x] T036 [P] Update test mocks for extended snapshot fields and new API methods in `frontend/src/services/api.test.ts`
+- [x] T037 Run `npm test` in `backend/` and `frontend/`
+- [x] T038 Run `npm run build` in `backend/` and `frontend/`
+- [x] T039 Manual two-tab validation per `specs/003-gameplay-interaction/plan.md` Testing Strategy (P1–P5 flows)
 
 ---
 

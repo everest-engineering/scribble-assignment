@@ -1,12 +1,13 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card } from "../components/Card";
+import { DrawingCanvas } from "../components/DrawingCanvas";
 import { GuessForm } from "../components/GuessForm";
 import { ResultPanel } from "../components/ResultPanel";
 import { RoomCodeBadge } from "../components/RoomCodeBadge";
 import { Scoreboard } from "../components/Scoreboard";
 import { useGamePolling } from "../hooks/useGamePolling";
-import { useRoomState } from "../state/roomStore";
+import { useRoomState, useRoomStore } from "../state/roomStore";
 
 function roleMetaClass(role?: "drawer" | "guesser") {
   if (role === "drawer") {
@@ -22,6 +23,7 @@ function roleMetaClass(role?: "drawer" | "guesser") {
 
 export function GamePage() {
   const navigate = useNavigate();
+  const roomStore = useRoomStore();
   const { room, participantId } = useRoomState();
   const pollError = useGamePolling();
 
@@ -37,6 +39,23 @@ export function GamePage() {
 
   const viewer = room.participants.find((participant) => participant.id === participantId) ?? null;
   const isDrawer = room.viewerRole === "drawer";
+  const strokes = room.strokes ?? [];
+
+  async function handleStrokeComplete(stroke: (typeof strokes)[number]) {
+    try {
+      await roomStore.addStroke(stroke);
+    } catch {
+      // Poll will reconcile on next interval; avoid crashing the canvas.
+    }
+  }
+
+  async function handleClearCanvas() {
+    try {
+      await roomStore.clearCanvas();
+    } catch {
+      // Errors surface on next explicit action or poll refresh.
+    }
+  }
 
   return (
     <section className="panel game-page">
@@ -52,8 +71,8 @@ export function GamePage() {
 
       <div className="game-page__layout">
         <aside className="game-page__sidebar game-page__sidebar--left">
-          <Scoreboard />
-          <ResultPanel />
+          <Scoreboard room={room} />
+          <ResultPanel guesses={room.guesses} />
 
           <Card title="Participants">
             <ul className="player-list">
@@ -77,9 +96,18 @@ export function GamePage() {
           ) : null}
 
           <Card title="Canvas">
-            <div className="canvas-placeholder" style={{ minHeight: "500px", backgroundColor: "#ffffff", border: "1px solid #e5e7eb" }}>
-              {isDrawer ? "Draw the secret word..." : "Waiting for drawer..."}
-            </div>
+            <DrawingCanvas
+              strokes={strokes}
+              readOnly={!isDrawer}
+              onStrokeComplete={isDrawer ? handleStrokeComplete : undefined}
+            />
+            {isDrawer ? (
+              <div className="button-row button-row--compact">
+                <button className="button button--secondary" type="button" onClick={handleClearCanvas}>
+                  Clear Canvas
+                </button>
+              </div>
+            ) : null}
           </Card>
         </div>
 
@@ -102,7 +130,7 @@ export function GamePage() {
           </Card>
 
           <Card title="Your Guess">
-            <GuessForm />
+            <GuessForm disabled={isDrawer} />
           </Card>
         </aside>
       </div>

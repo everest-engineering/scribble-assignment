@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
-import type { Participant, ParticipantRole, Room, RoomSnapshot } from "../models/game.js";
+import type { DrawingStroke, Guess, Participant, ParticipantRole, Room, RoomSnapshot } from "../models/game.js";
 import { STARTER_ROLES, STARTER_WORDS } from "../seed/starterData.js";
+import { evaluateGuess } from "./guessScoring.js";
 import { selectWord } from "./wordSelection.js";
 
 const rooms = new Map<string, Room>();
@@ -52,6 +53,28 @@ function participantRole(room: Room, participantId: string): ParticipantRole | u
   }
 
   return participantId === room.drawerId ? "drawer" : "guesser";
+}
+
+function initRoundState(room: Room) {
+  room.scores = Object.fromEntries(room.participants.map((participant) => [participant.id, 0]));
+  room.strokes = [];
+  room.guesses = [];
+}
+
+function getPlayingRoom(code: string):
+  | { ok: true; room: Room }
+  | { ok: false; error: "not_found" | "not_playing" } {
+  const room = rooms.get(normalizeCode(code));
+
+  if (!room) {
+    return { ok: false, error: "not_found" };
+  }
+
+  if (room.status !== "playing") {
+    return { ok: false, error: "not_playing" };
+  }
+
+  return { ok: true, room };
 }
 
 export function listWords() {
@@ -140,6 +163,109 @@ export function startGame(code: string, participantId: string): StartGameResult 
   room.status = "playing";
   room.drawerId = room.hostId;
   room.secretWord = selectWord(room.code);
+  initRoundState(room);
+  room.updatedAt = now();
+  rooms.set(room.code, room);
+
+  return {
+    room: cloneRoom(room),
+    participantId
+  };
+}
+
+export type StrokeMutationResult =
+  | { room: Room; participantId: string }
+  | { error: "not_found" }
+  | { error: "not_playing" }
+  | { error: "not_drawer" };
+
+export function addStroke(code: string, participantId: string, stroke: DrawingStroke): StrokeMutationResult {
+  const lookup = getPlayingRoom(code);
+
+  if (!lookup.ok) {
+    return { error: lookup.error };
+  }
+
+  const { room } = lookup;
+
+  if (room.drawerId !== participantId) {
+    return { error: "not_drawer" };
+  }
+
+  room.strokes = [...(room.strokes ?? []), { ...stroke, id: stroke.id || randomUUID() }];
+  room.updatedAt = now();
+  rooms.set(room.code, room);
+
+  return {
+    room: cloneRoom(room),
+    participantId
+  };
+}
+
+export function clearCanvas(code: string, participantId: string): StrokeMutationResult {
+  const lookup = getPlayingRoom(code);
+
+  if (!lookup.ok) {
+    return { error: lookup.error };
+  }
+
+  const { room } = lookup;
+
+  if (room.drawerId !== participantId) {
+    return { error: "not_drawer" };
+  }
+
+  room.strokes = [];
+  room.updatedAt = now();
+  rooms.set(room.code, room);
+
+  return {
+    room: cloneRoom(room),
+    participantId
+  };
+}
+
+export type SubmitGuessResult =
+  | { room: Room; participantId: string }
+  | { error: "not_found" }
+  | { error: "not_playing" }
+  | { error: "is_drawer" }
+  | { error: "not_participant" };
+
+export function submitGuess(code: string, participantId: string, guessText: string): SubmitGuessResult {
+  const lookup = getPlayingRoom(code);
+
+  if (!lookup.ok) {
+    return { error: lookup.error };
+  }
+
+  const { room } = lookup;
+
+  if (room.drawerId === participantId) {
+    return { error: "is_drawer" };
+  }
+
+  const participant = room.participants.find((entry) => entry.id === participantId);
+
+  if (!participant) {
+    return { error: "not_participant" };
+  }
+
+  const { isCorrect, points } = evaluateGuess(guessText, room.secretWord ?? "");
+  const scores = { ...(room.scores ?? {}) };
+  scores[participantId] = (scores[participantId] ?? 0) + points;
+
+  const guess: Guess = {
+    id: randomUUID(),
+    participantId,
+    participantName: participant.name,
+    text: guessText,
+    isCorrect,
+    submittedAt: now()
+  };
+
+  room.scores = scores;
+  room.guesses = [...(room.guesses ?? []), guess];
   room.updatedAt = now();
   rooms.set(room.code, room);
 
@@ -175,7 +301,8 @@ export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSn
     participants: room.participants.map((participant) => ({
       ...participant,
       isHost: participant.id === room.hostId,
-      role: participantRole(room, participant.id)
+      role: participantRole(room, participant.id),
+      ...(isPlaying ? { score: room.scores?.[participant.id] ?? 0 } : {})
     })),
     availableWords: listWords(),
     roles: [...STARTER_ROLES]
@@ -184,6 +311,8 @@ export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSn
   if (isPlaying) {
     snapshot.drawerId = room.drawerId;
     snapshot.viewerRole = viewerRole;
+    snapshot.strokes = room.strokes ?? [];
+    snapshot.guesses = (room.guesses ?? []).map((guess) => ({ ...guess }));
 
     if (viewerParticipantId && viewerParticipantId === room.drawerId) {
       snapshot.secretWord = room.secretWord ?? null;

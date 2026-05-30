@@ -1,5 +1,32 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { createRoom, getRoom, joinRoom, resetRoomsForTests, startGame, toRoomSnapshot } from "./roomStore.js";
+import {
+  addStroke,
+  clearCanvas,
+  createRoom,
+  getRoom,
+  joinRoom,
+  resetRoomsForTests,
+  startGame,
+  submitGuess,
+  toRoomSnapshot
+} from "./roomStore.js";
+
+function startTwoPlayerGame() {
+  const host = createRoom("Alice");
+  const guest = joinRoom(host.room.code, "Bob");
+
+  if ("error" in guest) {
+    throw new Error("Expected guest join to succeed");
+  }
+
+  const started = startGame(host.room.code, host.participantId);
+
+  if ("error" in started) {
+    throw new Error("Expected start to succeed");
+  }
+
+  return { host, guest, started };
+}
 
 describe("roomStore", () => {
   beforeEach(() => {
@@ -180,5 +207,98 @@ describe("roomStore", () => {
     expect(drawerSnapshot.secretWord).toBe(started.room.secretWord);
     expect(guesserSnapshot.viewerRole).toBe("guesser");
     expect(guesserSnapshot.secretWord).toBeNull();
+  });
+
+  it("startGame initializes all participant scores to zero", () => {
+    const { started, host, guest } = startTwoPlayerGame();
+    const snapshot = toRoomSnapshot(started.room, host.participantId);
+
+    expect(started.room.scores?.[host.participantId]).toBe(0);
+    expect(started.room.scores?.[guest.participantId]).toBe(0);
+    expect(snapshot.participants.every((participant) => participant.score === 0)).toBe(true);
+  });
+
+  it("addStroke appends a stroke for the drawer only", () => {
+    const { host, guest, started } = startTwoPlayerGame();
+    const stroke = { id: "s1", points: [{ x: 0.1, y: 0.2 }, { x: 0.3, y: 0.4 }] };
+
+    const drawerResult = addStroke(started.room.code, host.participantId, stroke);
+    const guesserResult = addStroke(started.room.code, guest.participantId, stroke);
+
+    expect("error" in drawerResult).toBe(false);
+    expect(guesserResult).toEqual({ error: "not_drawer" });
+
+    if ("error" in drawerResult) {
+      return;
+    }
+
+    expect(drawerResult.room.strokes).toHaveLength(1);
+  });
+
+  it("clearCanvas removes all strokes for the drawer", () => {
+    const { host, started } = startTwoPlayerGame();
+    addStroke(started.room.code, host.participantId, {
+      id: "s1",
+      points: [{ x: 0.1, y: 0.2 }]
+    });
+
+    const cleared = clearCanvas(started.room.code, host.participantId);
+
+    if ("error" in cleared) {
+      throw new Error("Expected clear to succeed");
+    }
+
+    expect(cleared.room.strokes).toEqual([]);
+  });
+
+  it("submitGuess rejects drawer submissions", () => {
+    const { host, started } = startTwoPlayerGame();
+    const result = submitGuess(started.room.code, host.participantId, "rocket");
+
+    expect(result).toEqual({ error: "is_drawer" });
+  });
+
+  it("submitGuess scores case-insensitive matches and records history", () => {
+    const { guest, started } = startTwoPlayerGame();
+    const word = started.room.secretWord ?? "rocket";
+    const result = submitGuess(started.room.code, guest.participantId, word.toUpperCase());
+
+    if ("error" in result) {
+      throw new Error("Expected guess to succeed");
+    }
+
+    expect(result.room.guesses).toHaveLength(1);
+    expect(result.room.guesses?.[0].isCorrect).toBe(true);
+    expect(result.room.scores?.[guest.participantId]).toBe(100);
+
+    const snapshot = toRoomSnapshot(result.room, guest.participantId);
+    expect(snapshot.guesses).toHaveLength(1);
+    expect(snapshot.participants.find((entry) => entry.id === guest.participantId)?.score).toBe(100);
+  });
+
+  it("submitGuess adds zero points for incorrect guesses", () => {
+    const { guest, started } = startTwoPlayerGame();
+    const result = submitGuess(started.room.code, guest.participantId, "definitely-wrong");
+
+    if ("error" in result) {
+      throw new Error("Expected guess to succeed");
+    }
+
+    expect(result.room.scores?.[guest.participantId]).toBe(0);
+    expect(result.room.guesses?.[0].isCorrect).toBe(false);
+  });
+
+  it("submitGuess awards 100 for each correct submission", () => {
+    const { guest, started } = startTwoPlayerGame();
+    const word = started.room.secretWord ?? "rocket";
+
+    submitGuess(started.room.code, guest.participantId, word);
+    const second = submitGuess(started.room.code, guest.participantId, word);
+
+    if ("error" in second) {
+      throw new Error("Expected second guess to succeed");
+    }
+
+    expect(second.room.scores?.[guest.participantId]).toBe(200);
   });
 });

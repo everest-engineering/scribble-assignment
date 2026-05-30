@@ -1,14 +1,25 @@
 import { Card } from "./Card";
+import type { RoomSnapshot } from "../services/api";
 
-export function Scoreboard() {
+interface ScoreboardProps {
+  room: RoomSnapshot;
+}
+
+export function Scoreboard({ room }: ScoreboardProps) {
   return (
     <Card title="Scoreboard">
-      <div className="placeholder-block" style={{ backgroundColor: '#f9fafb' }}>
-        <div className="placeholder-row">
-          <span>Waiting for players...</span>
-          <strong>0</strong>
-        </div>
-      </div>
+      {room.participants.length === 0 ? (
+        <p>No participants yet.</p>
+      ) : (
+        <ul className="scoreboard-list">
+          {room.participants.map((participant) => (
+            <li key={participant.id} className="scoreboard-list__row">
+              <span>{participant.name}</span>
+              <strong>{participant.score ?? 0}</strong>
+            </li>
+          ))}
+        </ul>
+      )}
     </Card>
   );
 }
