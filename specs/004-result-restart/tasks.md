@@ -28,8 +28,8 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T001 Update Room schema and types to support the `results` phase in `backend/src/models/` (or equivalent types file)
-- [ ] T002 [P] Update frontend state types to support the `results` phase in `frontend/src/state/` (or equivalent types file)
+- [x] T001 Update Room schema and types to support the `results` phase in `backend/src/models/` (or equivalent types file)
+- [x] T002 [P] Update frontend state types to support the `results` phase in `frontend/src/state/` (or equivalent types file)
 
 **Checkpoint**: Foundation ready - user story implementation can now begin in parallel
 
@@ -43,9 +43,9 @@
 
 ### Implementation for User Story 1
 
-- [ ] T003 [P] [US1] Implement logic to automatically transition from `playing` to `results` (preserving canvas and word) in `backend/src/services/roomStore.ts`
-- [ ] T004 [P] [US1] Create the `ResultScreen` component displaying word, sorted scores, and read-only canvas snapshot in `frontend/src/components/ResultScreen.tsx`
-- [ ] T005 [US1] Update the game view to conditionally render the new `ResultScreen` when the room phase is `results` in `frontend/src/pages/` (or equivalent game page)
+- [x] T003 [P] [US1] Implement logic to automatically transition from `playing` to `results` (preserving canvas and word) in `backend/src/services/roomStore.ts`
+- [x] T004 [P] [US1] Create the `ResultScreen` component displaying word, sorted scores, and read-only canvas snapshot in `frontend/src/components/ResultScreen.tsx`
+- [x] T005 [US1] Update the game view to conditionally render the new `ResultScreen` when the room phase is `results` in `frontend/src/pages/` (or equivalent game page)
 
 **Checkpoint**: At this point, User Story 1 should be fully functional and testable independently. The round should end properly and show results.
 
@@ -59,11 +59,11 @@
 
 ### Implementation for User Story 2
 
-- [ ] T006 [P] [US2] Add logic to auto-reassign the host role to the next oldest player upon host disconnect in `backend/src/services/roomStore.ts`
-- [ ] T007 [US2] Implement the room state reset function (clear canvas/word, zero scores, phase to lobby) in `backend/src/services/roomStore.ts`
-- [ ] T008 [US2] Implement the `POST /api/rooms/:roomId/reset` endpoint utilizing the reset function in `backend/src/api/` (or equivalent router file)
-- [ ] T009 [P] [US2] Add the "Return to Lobby" button strictly for the host in `frontend/src/components/ResultScreen.tsx`
-- [ ] T010 [US2] Implement the frontend API call and button integration to trigger the room reset in `frontend/src/state/roomStore.ts` and `ResultScreen.tsx`
+- [x] T006 [P] [US2] Add logic to auto-reassign the host role to the next oldest player upon host disconnect in `backend/src/services/roomStore.ts`
+- [x] T007 [US2] Implement the room state reset function (clear canvas/word, zero scores, phase to lobby) in `backend/src/services/roomStore.ts`
+- [x] T008 [US2] Implement the `POST /api/rooms/:roomId/reset` endpoint utilizing the reset function in `backend/src/api/` (or equivalent router file)
+- [x] T009 [P] [US2] Add the "Return to Lobby" button strictly for the host in `frontend/src/components/ResultScreen.tsx`
+- [x] T010 [US2] Implement the frontend API call and button integration to trigger the room reset in `frontend/src/state/roomStore.ts` and `ResultScreen.tsx`
 
 **Checkpoint**: At this point, User Stories 1 AND 2 should both work independently. The full loop from playing -> results -> lobby is complete.
 
@@ -73,8 +73,8 @@
 
 **Purpose**: Improvements that affect multiple user stories
 
-- [ ] T011 Run the manual testing guide outlined in `quickstart.md`
-- [ ] T012 Code cleanup and ensure Zod validation is strictly applied on the reset endpoint
+- [x] T011 Run the manual testing guide outlined in `quickstart.md`
+- [x] T012 Code cleanup and ensure Zod validation is strictly applied on the reset endpoint
 
 ---
 
