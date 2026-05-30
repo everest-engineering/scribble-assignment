@@ -8,7 +8,7 @@ import {
   roomViewerQuerySchema,
   saveCanvasSchema
 } from "./schemas.js";
-import { createRoom, getRoom, joinRoom, submitGuess, toRoomSnapshot, saveCanvas } from "../services/roomStore.js";
+import { createRoom, getRoom, joinRoom, startGame, submitGuess, toRoomSnapshot, saveCanvas } from "../services/roomStore.js";
 
 export function createRoomsRouter() {
   const router = Router();
@@ -68,18 +68,14 @@ export function createRoomsRouter() {
     try {
       const { code } = roomCodeParamsSchema.parse(request.params);
       const { participantId } = roomViewerQuerySchema.parse(request.query);
-      const room = getRoom(code.toUpperCase());
+
+      const room = startGame(
+        code.toUpperCase(),
+        participantId
+      );
 
       if (!room) {
-        throw new HttpError(404, "Unable to load room");
-      }
-
-      if (!participantId || participantId !== room.hostId) {
-        throw new HttpError(403, "Only the host can start the game");
-      }
-
-      if (room.participants.length < 2) {
-        throw new HttpError(400, "At least 2 players are required to start the game");
+        throw new HttpError(404, "Unable to start game");
       }
 
       response.json({
