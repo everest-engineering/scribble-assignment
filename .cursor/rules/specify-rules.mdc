@@ -1,0 +1,10 @@
+---
+alwaysApply: true
+---
+
+<!-- SPECKIT START -->
+For additional context about technologies to be used, project structure,
+shell commands, and other important information, read the current plan at
+`specs/004-result-restart-validation/plan.md` (data model: `specs/004-result-restart-validation/data-model.md`,
+API contracts: `specs/004-result-restart-validation/contracts/rooms-api.md`).
+<!-- SPECKIT END -->
