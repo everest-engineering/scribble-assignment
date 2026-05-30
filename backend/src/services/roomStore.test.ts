@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createRoom, joinRoom, getRoom, saveRoom, startGame, toRoomSnapshot, updateDrawing, submitGuess } from "./roomStore.js";
+import { createRoom, joinRoom, getRoom, saveRoom, startGame, toRoomSnapshot, updateDrawing, submitGuess, leaveRoom, restartGame } from "./roomStore.js";
 import { HttpError } from "../api/schemas.js";
 
 describe("roomStore", () => {
@@ -73,6 +73,13 @@ describe("roomStore", () => {
 
     const guestSnapshot = toRoomSnapshot(activeRoom, guestId);
     expect(guestSnapshot.secretWord).toBeNull();
+
+    // Verify snapshot visibility in result state
+    activeRoom.status = "result";
+    const resultHostSnapshot = toRoomSnapshot(activeRoom, hostId);
+    expect(resultHostSnapshot.secretWord).toBe("rocket");
+    const resultGuestSnapshot = toRoomSnapshot(activeRoom, guestId);
+    expect(resultGuestSnapshot.secretWord).toBe("rocket");
   });
 
   it("startGame rejects request if not host or not enough players", () => {
@@ -124,5 +131,72 @@ describe("roomStore", () => {
 
     // Reject drawer guesses
     expect(() => submitGuess(room.code, hostId, "rocket")).toThrow(HttpError);
+  });
+
+  describe("leaveRoom", () => {
+    it("removes the participant from the room", () => {
+      const { room } = createRoom("Alice");
+      const joinResult = joinRoom(room.code, "Bob");
+      expect(joinResult).not.toBeNull();
+      const bobId = joinResult!.participantId;
+
+      const updated = leaveRoom(room.code, bobId);
+      expect(updated).not.toBeNull();
+      expect(updated!.participants).toHaveLength(1);
+      expect(updated!.participants[0].name).toBe("Alice");
+    });
+
+    it("promotes the next participant to host if host leaves", () => {
+      const { room, participantId: aliceId } = createRoom("Alice");
+      const joinResult = joinRoom(room.code, "Bob");
+      const bobId = joinResult!.participantId;
+
+      const updated = leaveRoom(room.code, aliceId);
+      expect(updated).not.toBeNull();
+      expect(updated!.participants).toHaveLength(1);
+      expect(updated!.participants[0].id).toBe(bobId);
+      expect(updated!.hostId).toBe(bobId);
+    });
+
+    it("removes the room if all participants leave", () => {
+      const { room, participantId: aliceId } = createRoom("Alice");
+      const updated = leaveRoom(room.code, aliceId);
+      expect(updated).toBeNull();
+      expect(getRoom(room.code)).toBeNull();
+    });
+  });
+
+  describe("restartGame", () => {
+    it("resets game status to lobby, clears scores, canvas, and guesses", () => {
+      const { room, participantId: hostId } = createRoom("Alice");
+      const joinResult = joinRoom(room.code, "Bob");
+      const bobId = joinResult!.participantId;
+      startGame(room.code, hostId);
+
+      // Submit guesses and score
+      submitGuess(room.code, bobId, "rocket");
+
+      const beforeRestart = getRoom(room.code);
+      expect(beforeRestart!.status).toBe("result");
+      expect(beforeRestart!.participants.find(p => p.id === bobId)!.score).toBe(100);
+
+      const restarted = restartGame(room.code, hostId);
+      expect(restarted.status).toBe("lobby");
+      expect(restarted.drawingData).toBe("");
+      expect(restarted.guesses).toHaveLength(0);
+      expect(restarted.drawerId).toBeNull();
+      expect(restarted.secretWord).toBeNull();
+      expect(restarted.participants.find(p => p.id === bobId)!.score).toBe(0);
+      expect(restarted.participants.find(p => p.id === hostId)!.score).toBe(0);
+    });
+
+    it("rejects restart by non-host", () => {
+      const { room, participantId: hostId } = createRoom("Alice");
+      const joinResult = joinRoom(room.code, "Bob");
+      const bobId = joinResult!.participantId;
+      startGame(room.code, hostId);
+
+      expect(() => restartGame(room.code, bobId)).toThrow(HttpError);
+    });
   });
 });

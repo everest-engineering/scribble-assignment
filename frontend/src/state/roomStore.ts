@@ -173,6 +173,38 @@ class RoomStore {
       return response.room;
     });
   }
+
+  async leaveRoom() {
+    if (!this.state.room || !this.state.participantId) {
+      return null;
+    }
+    return this.withLoading(async () => {
+      const response = await api.leaveRoom(
+        this.state.room!.code,
+        this.state.participantId!
+      );
+      this.setState({
+        room: null,
+        participantId: null,
+        error: null
+      });
+      return response;
+    });
+  }
+
+  async restartGame() {
+    if (!this.state.room || !this.state.participantId) {
+      return null;
+    }
+    return this.withLoading(async () => {
+      const response = await api.restartGame(
+        this.state.room!.code,
+        this.state.participantId!
+      );
+      this.setRoomSnapshot(response.room);
+      return response.room;
+    });
+  }
 }
 
 const RoomStoreContext = createContext<RoomStore | null>(null);

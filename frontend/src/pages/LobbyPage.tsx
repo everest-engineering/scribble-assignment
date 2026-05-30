@@ -66,6 +66,15 @@ export function LobbyPage() {
     }
   }
 
+  async function handleLeaveRoom() {
+    try {
+      await roomStore.leaveRoom();
+      navigate("/");
+    } catch (caughtError) {
+      console.error("Leave room failed:", caughtError);
+    }
+  }
+
   if (isRestoring || (isLoading && !room)) {
     return (
       <section className="panel placeholder-page">
@@ -136,13 +145,23 @@ export function LobbyPage() {
       </div>
 
       <div className="button-row button-row--spread">
-        <button
-          className="button button--secondary"
-          disabled={isLoading || isRefreshing}
-          onClick={handleRefresh}
-        >
-          {isRefreshing ? "Refreshing..." : "Refresh Room"}
-        </button>
+        <div style={{ display: "flex", gap: "12px" }}>
+          <button
+            className="button button--secondary"
+            disabled={isLoading || isRefreshing}
+            onClick={handleRefresh}
+          >
+            {isRefreshing ? "Refreshing..." : "Refresh Room"}
+          </button>
+          <button
+            className="button button--secondary"
+            style={{ borderColor: "#fee2e2", color: "#b91c1c", backgroundColor: "#fef2f2" }}
+            disabled={isLoading}
+            onClick={handleLeaveRoom}
+          >
+            Leave Room
+          </button>
+        </div>
         {isHost && (
           <button
             className="button button--primary"

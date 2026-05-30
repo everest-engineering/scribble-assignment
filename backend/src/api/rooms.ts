@@ -8,7 +8,7 @@ import {
   updateDrawingSchema,
   submitGuessSchema
 } from "./schemas.js";
-import { createRoom, getRoom, joinRoom, toRoomSnapshot, startGame, updateDrawing, submitGuess } from "../services/roomStore.js";
+import { createRoom, getRoom, joinRoom, toRoomSnapshot, startGame, updateDrawing, submitGuess, leaveRoom, restartGame } from "../services/roomStore.js";
 
 export function createRoomsRouter() {
   const router = Router();
@@ -94,6 +94,43 @@ export function createRoomsRouter() {
       }
 
       const room = submitGuess(code.toUpperCase(), participantId, guessText);
+      response.json({
+        room: toRoomSnapshot(room, participantId)
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/:code/leave", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId } = roomViewerQuerySchema.parse(request.query);
+
+      if (!participantId) {
+        throw new HttpError(400, "participantId is required");
+      }
+
+      const room = leaveRoom(code.toUpperCase(), participantId);
+      response.json({
+        success: true,
+        room: room ? toRoomSnapshot(room, participantId) : null
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/:code/restart", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId } = roomViewerQuerySchema.parse(request.query);
+
+      if (!participantId) {
+        throw new HttpError(400, "participantId is required");
+      }
+
+      const room = restartGame(code.toUpperCase(), participantId);
       response.json({
         room: toRoomSnapshot(room, participantId)
       });

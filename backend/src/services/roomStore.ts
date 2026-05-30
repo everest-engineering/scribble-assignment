@@ -205,6 +205,55 @@ export function submitGuess(code: string, participantId: string, guessText: stri
   return cloneRoom(room);
 }
 
+export function leaveRoom(code: string, participantId: string) {
+  const room = rooms.get(code);
+  if (!room) {
+    return null;
+  }
+
+  room.participants = room.participants.filter((p) => p.id !== participantId);
+
+  if (room.participants.length === 0) {
+    rooms.delete(code);
+    return null;
+  }
+
+  if (room.hostId === participantId) {
+    room.hostId = room.participants[0].id;
+  }
+
+  room.updatedAt = now();
+  rooms.set(room.code, room);
+
+  return cloneRoom(room);
+}
+
+export function restartGame(code: string, participantId: string) {
+  const room = rooms.get(code);
+  if (!room) {
+    throw new HttpError(404, "Room not found");
+  }
+
+  if (room.hostId !== participantId) {
+    throw new HttpError(403, "Only the host can restart the game");
+  }
+
+  room.status = "lobby";
+  room.drawingData = "";
+  room.guesses = [];
+  room.drawerId = null;
+  room.secretWord = null;
+
+  for (const participant of room.participants) {
+    participant.score = 0;
+  }
+
+  room.updatedAt = now();
+  rooms.set(room.code, room);
+
+  return cloneRoom(room);
+}
+
 export function getRoom(code: string) {
   const room = rooms.get(code);
   return room ? cloneRoom(room) : null;
@@ -217,7 +266,9 @@ export function saveRoom(room: Room) {
 }
 
 export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSnapshot {
-  const isDrawer = viewerParticipantId && room.drawerId && viewerParticipantId === room.drawerId;
+  const isDrawerOrResult =
+    (viewerParticipantId && room.drawerId && viewerParticipantId === room.drawerId) ||
+    room.status === "result";
 
   return {
     code: room.code,
@@ -227,7 +278,7 @@ export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSn
     roles: [...STARTER_ROLES],
     hostId: room.hostId,
     drawerId: room.drawerId,
-    secretWord: isDrawer ? room.secretWord : null,
+    secretWord: isDrawerOrResult ? room.secretWord : null,
     drawingData: room.drawingData,
     guesses: room.guesses.map((g) => ({ ...g }))
   };

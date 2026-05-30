@@ -88,5 +88,17 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ guessText })
     });
+  },
+  leaveRoom(code: string, participantId: string) {
+    return request<{ success: boolean; room: RoomSnapshot | null }>(
+      `/rooms/${encodeURIComponent(code)}/leave?participantId=${encodeURIComponent(participantId)}`,
+      { method: "POST" }
+    );
+  },
+  restartGame(code: string, participantId: string) {
+    return request<{ room: RoomSnapshot }>(
+      `/rooms/${encodeURIComponent(code)}/restart?participantId=${encodeURIComponent(participantId)}`,
+      { method: "POST" }
+    );
   }
 };
