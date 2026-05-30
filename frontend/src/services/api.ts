@@ -84,6 +84,19 @@ export const api = {
     }
   );
 },
+  saveCanvas(
+    code: string,
+    participantId: string,
+    lines: string[]
+  ) {
+  return request<{ room: RoomSnapshot }>(
+      `/rooms/${encodeURIComponent(code)}/canvas?participantId=${encodeURIComponent(participantId)}`,
+      {
+        method: "POST",
+        body: JSON.stringify({ lines })
+      }
+  );
+},
   fetchRoom(code: string, participantId?: string) {
     const query = participantId ? `?participantId=${encodeURIComponent(participantId)}` : "";
     return request<{ room: RoomSnapshot }>(`/rooms/${encodeURIComponent(code)}${query}`);
