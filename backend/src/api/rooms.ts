@@ -8,7 +8,9 @@ import {
   HttpError,
   joinRoomSchema,
   renameBodySchema,
+  restartBodySchema,
   roomCodeParamsSchema,
+  roundEndBodySchema,
   roomViewerQuerySchema,
   startGameBodySchema
 } from "./schemas.js";
@@ -18,12 +20,14 @@ import {
   clearCanvas,
   createRoom,
   disbandRoom,
+  endRound,
   getRoom,
   getRoomStatus,
   joinRoom,
   recordCreateAttempt,
   recordJoinAttempt,
   renameParticipant,
+  restartGame,
   startGame,
   submitGuess,
   toRoomSnapshot,
@@ -247,6 +251,52 @@ export function createRoomsRouter() {
       }
 
       response.json({ room: toRoomSnapshot(result.room, participantId) });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/:code/round/end", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId } = roundEndBodySchema.parse(request.body);
+      const result = endRound(code.toUpperCase(), participantId);
+
+      if ("error" in result) {
+        const message = result.error as string;
+        const statusCode = message === "Room not found" ? 404
+          : message === "No active round" ? 400
+          : 403;
+        throw new HttpError(statusCode, message);
+      }
+
+      response.json({
+        status: "result",
+        room: toRoomSnapshot(result.room, participantId)
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/:code/restart", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId } = restartBodySchema.parse(request.body);
+      const result = restartGame(code.toUpperCase(), participantId);
+
+      if ("error" in result) {
+        const message = result.error as string;
+        const statusCode = message === "Room not found" ? 404
+          : message === "Room is not in result state" ? 400
+          : 403;
+        throw new HttpError(statusCode, message);
+      }
+
+      response.json({
+        status: "lobby",
+        room: toRoomSnapshot(result.room, participantId)
+      });
     } catch (error) {
       next(error);
     }

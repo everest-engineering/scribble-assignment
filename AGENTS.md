@@ -44,5 +44,5 @@ You are working on a monolithic repository for a multiplayer drawing game ("Scri
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the implementation
-plan at `specs/004-gameplay-interaction/plan.md`
+plan at `specs/005-round-result-restart/plan.md`
 <!-- SPECKIT END -->

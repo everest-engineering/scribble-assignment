@@ -21,6 +21,12 @@ export function GamePage() {
     }
   }, [navigate, room]);
 
+  useEffect(() => {
+    if (room?.status === "result") {
+      navigate("/result");
+    }
+  }, [room?.status, navigate]);
+
   if (!room) {
     return null;
   }

@@ -37,6 +37,9 @@ export function LobbyPage() {
     if (room?.status === "playing") {
       navigate("/game");
     }
+    if (room?.status === "result") {
+      navigate("/result");
+    }
   }, [room?.status, navigate]);
 
   async function handleRefresh() {

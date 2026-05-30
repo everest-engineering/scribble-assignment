@@ -204,6 +204,29 @@ class RoomStore {
     const response = await this.withLoading(() => api.clearCanvas(code, participantId));
     this.setState({ room: response.room, error: null });
   }
+
+  async endRound() {
+    const code = this.state.room?.code;
+    const participantId = this.state.participantId;
+    if (!code || !participantId) {
+      throw new Error("No active room session");
+    }
+
+    const response = await this.withLoading(() => api.endRound(code, participantId));
+    this.setState({ room: response.room, error: null });
+    return response;
+  }
+
+  async restartGame() {
+    const code = this.state.room?.code;
+    const participantId = this.state.participantId;
+    if (!code || !participantId) {
+      throw new Error("No active room session");
+    }
+
+    await this.withLoading(() => api.restartGame(code, participantId));
+    await this.silentFetchRoom();
+  }
 }
 
 const RoomStoreContext = createContext<RoomStore | null>(null);

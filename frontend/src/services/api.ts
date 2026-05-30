@@ -1,5 +1,5 @@
 export type ParticipantRole = "drawer" | "guesser";
-export type RoomStatus = "lobby" | "awaiting_rename" | "playing";
+export type RoomStatus = "lobby" | "awaiting_rename" | "playing" | "result";
 
 export interface Participant {
   id: string;
@@ -50,6 +50,16 @@ export interface RoomSessionResponse {
 export interface GameActionResponse {
   status: "playing" | "awaiting_rename";
   invalidParticipantIds?: string[];
+  room: RoomSnapshot;
+}
+
+export interface RoundEndResponse {
+  status: "result";
+  room: RoomSnapshot;
+}
+
+export interface RestartResponse {
+  status: "lobby";
   room: RoomSnapshot;
 }
 
@@ -124,6 +134,18 @@ export const api = {
   },
   clearCanvas(code: string, participantId: string) {
     return request<{ room: RoomSnapshot }>(`/rooms/${encodeURIComponent(code)}/canvas/clear`, {
+      method: "POST",
+      body: JSON.stringify({ participantId })
+    });
+  },
+  endRound(code: string, participantId: string) {
+    return request<RoundEndResponse>(`/rooms/${encodeURIComponent(code)}/round/end`, {
+      method: "POST",
+      body: JSON.stringify({ participantId })
+    });
+  },
+  restartGame(code: string, participantId: string) {
+    return request<RestartResponse>(`/rooms/${encodeURIComponent(code)}/restart`, {
       method: "POST",
       body: JSON.stringify({ participantId })
     });

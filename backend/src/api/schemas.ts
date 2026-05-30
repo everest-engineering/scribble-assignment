@@ -54,6 +54,14 @@ export const canvasClearBodySchema = z.object({
   participantId: z.string()
 });
 
+export const roundEndBodySchema = z.object({
+  participantId: z.string()
+});
+
+export const restartBodySchema = z.object({
+  participantId: z.string()
+});
+
 export class HttpError extends Error {
   statusCode: number;
 

@@ -3,6 +3,11 @@ import type { Participant, Room, RoomSnapshot, Round } from "../models/game.js";
 import { STARTER_ROLES, STARTER_WORDS } from "../seed/starterData.js";
 
 const rooms = new Map<string, Room>();
+const participantLastActive = new Map<string, number>();
+
+function participantActivityKey(code: string, participantId: string) {
+  return `${code}:${participantId}`;
+}
 
 const RATE_LIMIT_CREATE_MAX = 5;
 const RATE_LIMIT_JOIN_MAX = 10;
@@ -308,7 +313,77 @@ export function disbandRoom(code: string, participantId: string) {
   return { disbanded: true as const };
 }
 
+export function endRound(code: string, participantId: string) {
+  const room = rooms.get(code);
+
+  if (!room) {
+    return { error: "Room not found" } as const;
+  }
+
+  if (room.status !== "playing") {
+    return { error: "No active round" } as const;
+  }
+
+  const participant = room.participants.find((p) => p.id === participantId);
+  if (!participant) {
+    return { error: "Participant not found" } as const;
+  }
+
+  if (!participant.isHost) {
+    return { error: "Only the host can end the round" } as const;
+  }
+
+  room.status = "result";
+  room.updatedAt = now();
+  rooms.set(room.code, room);
+
+  return { room: cloneRoom(room) };
+}
+
+export function restartGame(code: string, participantId: string) {
+  const room = rooms.get(code);
+
+  if (!room) {
+    return { error: "Room not found" } as const;
+  }
+
+  if (room.status !== "result") {
+    return { error: "Room is not in result state" } as const;
+  }
+
+  const participant = room.participants.find((p) => p.id === participantId);
+  if (!participant) {
+    return { error: "Participant not found" } as const;
+  }
+
+  if (!participant.isHost) {
+    const host = room.participants.find((p) => p.isHost);
+    const hostKey = host ? participantActivityKey(code, host.id) : "";
+    const hostLastActive = participantLastActive.get(hostKey) ?? 0;
+    const hostTimedOut = host && host.id !== participantId && (Date.now() - hostLastActive > 30_000);
+
+    if (!hostTimedOut) {
+      return { error: "Only the host can restart" } as const;
+    }
+
+    for (const p of room.participants) {
+      p.isHost = false;
+    }
+    participant.isHost = true;
+  }
+
+  room.currentRound = null;
+  room.status = "lobby";
+  room.updatedAt = now();
+  rooms.set(room.code, room);
+
+  return { room: cloneRoom(room) };
+}
+
 export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSnapshot {
+  if (viewerParticipantId) {
+    participantLastActive.set(participantActivityKey(room.code, viewerParticipantId), Date.now());
+  }
   const snapshot: RoomSnapshot = {
     code: room.code,
     status: room.status,
@@ -322,8 +397,10 @@ export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSn
     scores: room.currentRound?.scores ?? {}
   };
 
-  if (room.currentRound && viewerParticipantId === room.currentRound.drawerId) {
-    snapshot.currentWord = room.currentRound.word;
+  if (room.currentRound) {
+    if (room.status === "result" || viewerParticipantId === room.currentRound.drawerId) {
+      snapshot.currentWord = room.currentRound.word;
+    }
   }
 
   if (room.status === "awaiting_rename") {
@@ -421,6 +498,13 @@ export function submitGuess(code: string, participantId: string, text: string) {
 
   if (result.scoreAwarded) {
     room.currentRound.scores[participantId] = (room.currentRound.scores[participantId] ?? 0) + 100;
+  }
+
+  const nonDrawerParticipants = room.participants.filter((p) => p.id !== room.currentRound!.drawerId);
+  const allCorrect = nonDrawerParticipants.every((p) => (room.currentRound!.scores[p.id] ?? 0) > 0);
+
+  if (allCorrect) {
+    room.status = "result";
   }
 
   room.updatedAt = now();
