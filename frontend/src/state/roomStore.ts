@@ -139,6 +139,40 @@ class RoomStore {
       return response.room;
     });
   }
+
+  async updateDrawing(drawingData: string) {
+    if (!this.state.room || !this.state.participantId) {
+      return null;
+    }
+    try {
+      const response = await api.updateDrawing(
+        this.state.room.code,
+        this.state.participantId,
+        drawingData
+      );
+      this.setRoomSnapshot(response.room);
+      return response.room;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to update drawing";
+      this.setState({ error: message });
+      throw error;
+    }
+  }
+
+  async submitGuess(guessText: string) {
+    if (!this.state.room || !this.state.participantId) {
+      return null;
+    }
+    return this.withLoading(async () => {
+      const response = await api.submitGuess(
+        this.state.room!.code,
+        this.state.participantId!,
+        guessText
+      );
+      this.setRoomSnapshot(response.room);
+      return response.room;
+    });
+  }
 }
 
 const RoomStoreContext = createContext<RoomStore | null>(null);

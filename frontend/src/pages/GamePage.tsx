@@ -5,6 +5,7 @@ import { GuessForm } from "../components/GuessForm";
 import { ResultPanel } from "../components/ResultPanel";
 import { RoomCodeBadge } from "../components/RoomCodeBadge";
 import { Scoreboard } from "../components/Scoreboard";
+import { DrawingCanvas } from "../components/DrawingCanvas";
 import { useRoomState, useRoomStore } from "../state/roomStore";
 export function GamePage() {
   const navigate = useNavigate();
@@ -111,39 +112,16 @@ export function GamePage() {
         <div className="game-page__main">
           <Card title="Canvas">
             {isDrawer ? (
-              <div
-                className="canvas-placeholder"
-                style={{
-                  minHeight: '500px',
-                  backgroundColor: '#ffffff',
-                  border: '2px dashed #f59e0b',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '12px'
-                }}
-              >
-                <span style={{ fontSize: "1.5rem", fontWeight: "600", color: "#d97706" }}>✏️ Active Canvas</span>
-                <p style={{ color: "#78350f" }}>Start drawing your word: <strong>{room.secretWord}</strong></p>
-              </div>
+              <DrawingCanvas
+                readOnly={false}
+                drawingData={room.drawingData || ""}
+                onChange={(data) => roomStore.updateDrawing(data)}
+              />
             ) : (
-              <div
-                className="canvas-placeholder"
-                style={{
-                  minHeight: '500px',
-                  backgroundColor: '#f9fafb',
-                  border: '1px solid #e5e7eb',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '12px'
-                }}
-              >
-                <span style={{ fontSize: "1.5rem", fontWeight: "600", color: "#6b7280" }}>👁️ Read-Only Canvas</span>
-                <p style={{ color: "#9ca3af" }}>Waiting for {drawerName} to draw...</p>
-              </div>
+              <DrawingCanvas
+                readOnly={true}
+                drawingData={room.drawingData || ""}
+              />
             )}
           </Card>
         </div>

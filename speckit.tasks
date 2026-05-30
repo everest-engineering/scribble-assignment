@@ -87,11 +87,11 @@ A detailed task list to guide the implementation of the Scribble multiplayer dra
 ## Scenario 3: Gameplay Interaction
 
 ### Backend Tasks
-- [ ] **Task 3.1**: Implement Canvas Drawing endpoints.
+- [x] **Task 3.1**: Implement Canvas Drawing endpoints.
   - Add `POST /rooms/:code/drawing` route. Keep drawing coordinate state in-memory under `Room`'s `drawingData`.
   - Implement canvas clearing endpoint or clear payload handling.
   - Dependencies: Task 2.1
-- [ ] **Task 3.2**: Implement Guess Submission endpoint.
+- [x] **Task 3.2**: Implement Guess Submission endpoint.
   - Add `POST /rooms/:code/guess` route. Trim and validate input.
   - Compare guess case-insensitively with `secretWord`.
   - Log guess in `Room`'s `guesses` log.
@@ -99,21 +99,21 @@ A detailed task list to guide the implementation of the Scribble multiplayer dra
   - Dependencies: Task 2.1
 
 ### Frontend Tasks
-- [ ] **Task 3.3**: Connect Drawing and Guessing state actions.
+- [x] **Task 3.3**: Connect Drawing and Guessing state actions.
   - Add methods to `RoomStore` to post canvas drawing updates and submit guess entries.
   - Dependencies: Task 2.3
-- [ ] **Task 3.4**: Integrate Drawing Canvas interaction.
+- [x] **Task 3.4**: Integrate Drawing Canvas interaction.
   - Connect freehand mouse/touch listeners to the drawer's canvas. Send updates to backend.
   - Hook canvas clear action to the "Clear Canvas" button.
   - Setup drawing polling in `GamePage.tsx` for guessers to render the canvas coordinates received from the server.
   - Dependencies: Task 2.4, Task 3.3
-- [ ] **Task 3.5**: Integrate Guessing and Log UI.
+- [x] **Task 3.5**: Integrate Guessing and Log UI.
   - Render the guess logs list dynamically on the Game Page.
   - Connect the guess input form to submit guesses to the backend.
   - Dependencies: Task 2.4, Task 3.3
 
 ### Validation & Verification Tasks
-- [ ] **Task 3.6**: Verify gameplay mechanics.
+- [x] **Task 3.6**: Verify gameplay mechanics.
   - Verify drawing on Alice's screen draws on Bob's screen within the poll interval.
   - Submit wrong guesses from Bob; verify they show in the log.
   - Submit correct guess; verify both tabs transition to result status and Bob's score is updated.

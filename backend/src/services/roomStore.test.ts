@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createRoom, joinRoom, getRoom, saveRoom, startGame, toRoomSnapshot } from "./roomStore.js";
+import { createRoom, joinRoom, getRoom, saveRoom, startGame, toRoomSnapshot, updateDrawing, submitGuess } from "./roomStore.js";
 import { HttpError } from "../api/schemas.js";
 
 describe("roomStore", () => {
@@ -84,5 +84,45 @@ describe("roomStore", () => {
     const guestId = joinResult!.participantId;
 
     expect(() => startGame(room.code, guestId)).toThrow(HttpError);
+  });
+
+  it("updateDrawing saves drawing data when called by drawer, rejects otherwise", () => {
+    const { room, participantId: hostId } = createRoom("Alice");
+    const joinResult = joinRoom(room.code, "Bob");
+    const guestId = joinResult!.participantId;
+    startGame(room.code, hostId);
+
+    const testDrawingData = JSON.stringify([{ x: 0.1, y: 0.2 }]);
+    const updatedRoom = updateDrawing(room.code, hostId, testDrawingData);
+    expect(updatedRoom.drawingData).toBe(testDrawingData);
+
+    // Rejects if drawerId does not match participantId
+    expect(() => updateDrawing(room.code, guestId, testDrawingData)).toThrow(HttpError);
+  });
+
+  it("submitGuess logs guess, awards points and transitions to result state on correct guess", () => {
+    const { room, participantId: hostId } = createRoom("Alice");
+    const joinResult = joinRoom(room.code, "Bob");
+    const guestId = joinResult!.participantId;
+    startGame(room.code, hostId);
+
+    // Incorrect guess
+    const resultAfterWrong = submitGuess(room.code, guestId, "guitar");
+    expect(resultAfterWrong.status).toBe("game");
+    expect(resultAfterWrong.guesses).toHaveLength(1);
+    expect(resultAfterWrong.guesses[0].text).toBe("guitar");
+    expect(resultAfterWrong.guesses[0].correct).toBe(false);
+    expect(resultAfterWrong.participants.find(p => p.id === guestId)?.score).toBe(0);
+
+    // Correct guess (case-insensitive & trimmed)
+    const resultAfterRight = submitGuess(room.code, guestId, "  RoCkeT  ");
+    expect(resultAfterRight.status).toBe("result");
+    expect(resultAfterRight.guesses).toHaveLength(2);
+    expect(resultAfterRight.guesses[1].text).toBe("RoCkeT");
+    expect(resultAfterRight.guesses[1].correct).toBe(true);
+    expect(resultAfterRight.participants.find(p => p.id === guestId)?.score).toBe(100);
+
+    // Reject drawer guesses
+    expect(() => submitGuess(room.code, hostId, "rocket")).toThrow(HttpError);
   });
 });

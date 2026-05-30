@@ -65,6 +65,8 @@ export function createRoom(playerName?: string) {
     hostId: participant.id,
     drawerId: null,
     secretWord: null,
+    drawingData: "",
+    guesses: [],
     createdAt: now(),
     updatedAt: now()
   };
@@ -128,6 +130,75 @@ export function startGame(code: string, participantId: string) {
   room.status = "game";
   room.drawerId = room.hostId;
   room.secretWord = STARTER_WORDS[0]; // "rocket"
+  room.drawingData = "";
+  room.guesses = [];
+  room.updatedAt = now();
+  rooms.set(room.code, room);
+
+  return cloneRoom(room);
+}
+
+export function updateDrawing(code: string, participantId: string, drawingData: string) {
+  const room = rooms.get(code);
+  if (!room) {
+    throw new HttpError(404, "Room not found");
+  }
+
+  if (room.status !== "game") {
+    throw new HttpError(400, "Drawing is only allowed during active game");
+  }
+
+  if (room.drawerId !== participantId) {
+    throw new HttpError(403, "Only the drawer can update the drawing");
+  }
+
+  room.drawingData = drawingData;
+  room.updatedAt = now();
+  rooms.set(room.code, room);
+
+  return cloneRoom(room);
+}
+
+export function submitGuess(code: string, participantId: string, guessText: string) {
+  const room = rooms.get(code);
+  if (!room) {
+    throw new HttpError(404, "Room not found");
+  }
+
+  if (room.status !== "game") {
+    throw new HttpError(400, "Guesses are only allowed during active game");
+  }
+
+  const participant = room.participants.find((p) => p.id === participantId);
+  if (!participant) {
+    throw new HttpError(400, "Participant not in room");
+  }
+
+  if (room.drawerId === participantId) {
+    throw new HttpError(400, "Drawer cannot submit guesses");
+  }
+
+  const trimmedGuessText = guessText.trim();
+  if (trimmedGuessText.length === 0) {
+    throw new HttpError(400, "Please enter a guess.");
+  }
+
+  const isCorrect = trimmedGuessText.toLowerCase() === room.secretWord?.toLowerCase();
+
+  if (isCorrect) {
+    participant.score += 100;
+    room.status = "result";
+  }
+
+  const guess = {
+    senderId: participantId,
+    senderName: participant.name,
+    text: trimmedGuessText,
+    correct: isCorrect,
+    timestamp: now()
+  };
+
+  room.guesses.push(guess);
   room.updatedAt = now();
   rooms.set(room.code, room);
 
@@ -156,6 +227,8 @@ export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSn
     roles: [...STARTER_ROLES],
     hostId: room.hostId,
     drawerId: room.drawerId,
-    secretWord: isDrawer ? room.secretWord : null
+    secretWord: isDrawer ? room.secretWord : null,
+    drawingData: room.drawingData,
+    guesses: room.guesses.map((g) => ({ ...g }))
   };
 }
