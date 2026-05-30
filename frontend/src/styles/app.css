@@ -417,6 +417,23 @@ input {
   letter-spacing: 0.05em;
 }
 
+.word-banner {
+  text-align: center;
+  padding: 12px 20px;
+  margin: 0 auto 16px;
+  max-width: 400px;
+  background: #dbeafe;
+  color: #1e40af;
+  border-radius: 8px;
+  font-size: 1.1rem;
+  font-weight: 500;
+}
+
+.word-banner--muted {
+  background: #f3f4f6;
+  color: #6b7280;
+}
+
 .status-line,
 .placeholder-note {
   width: max-content;
