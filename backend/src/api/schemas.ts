@@ -8,6 +8,10 @@ export const joinRoomSchema = z.object({
   playerName: z.string().optional()
 });
 
+export const startRoomSchema = z.object({
+  participantId: z.string().min(1)
+});
+
 export const roomCodeParamsSchema = z.object({
   code: z.string()
 });

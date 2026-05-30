@@ -22,8 +22,8 @@ description: "Task list for Room Setup & Lobby (Scenario 1)"
 
 **Purpose**: Unblock local development and confirm artifact alignment
 
-- [ ] T001 Review plan.md and contracts/rooms-api.md against spec.md acceptance criteria
-- [ ] T002 Fix default API_BASE_URL to `http://localhost:3001` in `frontend/src/services/api.ts`
+- [x] T001 Review plan.md and contracts/rooms-api.md against spec.md acceptance criteria
+- [x] T002 Fix default API_BASE_URL to `http://localhost:3001` in `frontend/src/services/api.ts`
 
 ---
 
@@ -33,11 +33,11 @@ description: "Task list for Room Setup & Lobby (Scenario 1)"
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T003 Add `hostParticipantId` and extend `RoomStatus` to `"lobby" | "playing"` in `backend/src/models/game.ts`
-- [ ] T004 Add `hostParticipantId`, `isHost` on participants, and extended status to snapshot types in `backend/src/models/game.ts`
-- [ ] T005 Update `createRoom` to set `hostParticipantId` to creator id in `backend/src/services/roomStore.ts`
-- [ ] T006 Update `toRoomSnapshot` to include `hostParticipantId` and per-participant `isHost` in `backend/src/services/roomStore.ts`
-- [ ] T007 [P] Mirror updated `RoomSnapshot` and participant types in `frontend/src/services/api.ts`
+- [x] T003 Add `hostParticipantId` and extend `RoomStatus` to `"lobby" | "playing"` in `backend/src/models/game.ts`
+- [x] T004 Add `hostParticipantId`, `isHost` on participants, and extended status to snapshot types in `backend/src/models/game.ts`
+- [x] T005 Update `createRoom` to set `hostParticipantId` to creator id in `backend/src/services/roomStore.ts`
+- [x] T006 Update `toRoomSnapshot` to include `hostParticipantId` and per-participant `isHost` in `backend/src/services/roomStore.ts`
+- [x] T007 [P] Mirror updated `RoomSnapshot` and participant types in `frontend/src/services/api.ts`
 
 **Checkpoint**: Foundation ready — backend create/join responses expose host data; frontend types aligned
 
@@ -51,8 +51,8 @@ description: "Task list for Room Setup & Lobby (Scenario 1)"
 
 ### Implementation for User Story 1
 
-- [ ] T008 [US1] Render host badge on participant row when `participant.isHost` in `frontend/src/pages/LobbyPage.tsx`
-- [ ] T009 [US1] Add vitest case asserting `createRoom` sets `hostParticipantId` to creator in `backend/src/services/roomStore.test.ts`
+- [x] T008 [US1] Render host badge on participant row when `participant.isHost` in `frontend/src/pages/LobbyPage.tsx`
+- [x] T009 [US1] Add vitest case asserting `createRoom` sets `hostParticipantId` to creator in `backend/src/services/roomStore.test.ts`
 
 **Checkpoint**: Host create flow testable independently; room isolation verified via separate create sessions
 
@@ -66,9 +66,9 @@ description: "Task list for Room Setup & Lobby (Scenario 1)"
 
 ### Implementation for User Story 2
 
-- [ ] T010 [US2] Reject empty or whitespace-only room code before API call in `frontend/src/pages/JoinRoomPage.tsx`
-- [ ] T011 [US2] Display clear not-found error for failed join (404) in `frontend/src/pages/JoinRoomPage.tsx`
-- [ ] T012 [US2] Reject join when room `status !== "lobby"` in `backend/src/services/roomStore.ts`
+- [x] T010 [US2] Reject empty or whitespace-only room code before API call in `frontend/src/pages/JoinRoomPage.tsx`
+- [x] T011 [US2] Display clear not-found error for failed join (404) in `frontend/src/pages/JoinRoomPage.tsx`
+- [x] T012 [US2] Reject join when room `status !== "lobby"` in `backend/src/services/roomStore.ts`
 
 **Checkpoint**: Join validation and isolation testable with two rooms and two tabs
 
@@ -82,9 +82,9 @@ description: "Task list for Room Setup & Lobby (Scenario 1)"
 
 ### Implementation for User Story 3
 
-- [ ] T013 [US3] Add `fetchRoomSilent` that skips `isLoading` toggle in `frontend/src/state/roomStore.ts`
-- [ ] T014 [US3] Add 2000ms polling `useEffect` with interval cleanup on unmount in `frontend/src/pages/LobbyPage.tsx`
-- [ ] T015 [US3] Show non-blocking poll error message while retaining last participant list in `frontend/src/pages/LobbyPage.tsx`
+- [x] T013 [US3] Add `fetchRoomSilent` that skips `isLoading` toggle in `frontend/src/state/roomStore.ts`
+- [x] T014 [US3] Add 2000ms polling `useEffect` with interval cleanup on unmount in `frontend/src/pages/LobbyPage.tsx`
+- [x] T015 [US3] Show non-blocking poll error message while retaining last participant list in `frontend/src/pages/LobbyPage.tsx`
 
 **Checkpoint**: Automatic lobby sync works; manual Refresh button may remain as fallback
 
@@ -98,15 +98,15 @@ description: "Task list for Room Setup & Lobby (Scenario 1)"
 
 ### Implementation for User Story 4
 
-- [ ] T016 [US4] Implement `startRoom(code, participantId)` with host and min-player checks in `backend/src/services/roomStore.ts`
-- [ ] T017 [P] [US4] Add `startRoomSchema` with required `participantId` in `backend/src/api/schemas.ts`
-- [ ] T018 [US4] Wire `POST /rooms/:code/start` route with 403/409 error handling in `backend/src/api/rooms.ts`
-- [ ] T019 [P] [US4] Add `startRoom(code, participantId)` client method in `frontend/src/services/api.ts`
-- [ ] T020 [US4] Add `startGame()` action using `withLoading` in `frontend/src/state/roomStore.ts`
-- [ ] T021 [US4] Disable start button with messaging for non-host and `<2` players in `frontend/src/pages/LobbyPage.tsx`
-- [ ] T022 [US4] Navigate all lobby clients to `/game` when polled snapshot `status === "playing"` in `frontend/src/pages/LobbyPage.tsx`
-- [ ] T023 [US4] Redirect `/game` to `/lobby` when room status is still `lobby` in `frontend/src/pages/GamePage.tsx`
-- [ ] T024 [US4] Add vitest cases for non-host and single-player start rejection in `backend/src/services/roomStore.test.ts`
+- [x] T016 [US4] Implement `startRoom(code, participantId)` with host and min-player checks in `backend/src/services/roomStore.ts`
+- [x] T017 [P] [US4] Add `startRoomSchema` with required `participantId` in `backend/src/api/schemas.ts`
+- [x] T018 [US4] Wire `POST /rooms/:code/start` route with 403/409 error handling in `backend/src/api/rooms.ts`
+- [x] T019 [P] [US4] Add `startRoom(code, participantId)` client method in `frontend/src/services/api.ts`
+- [x] T020 [US4] Add `startGame()` action using `withLoading` in `frontend/src/state/roomStore.ts`
+- [x] T021 [US4] Disable start button with messaging for non-host and `<2` players in `frontend/src/pages/LobbyPage.tsx`
+- [x] T022 [US4] Navigate all lobby clients to `/game` when polled snapshot `status === "playing"` in `frontend/src/pages/LobbyPage.tsx`
+- [x] T023 [US4] Redirect `/game` to `/lobby` when room status is still `lobby` in `frontend/src/pages/GamePage.tsx`
+- [x] T024 [US4] Add vitest cases for non-host and single-player start rejection in `backend/src/services/roomStore.test.ts`
 
 **Checkpoint**: Full Scenario 1 flow complete — create, join, poll, host start, shared navigation
 
@@ -116,8 +116,8 @@ description: "Task list for Room Setup & Lobby (Scenario 1)"
 
 **Purpose**: Validation and build gates before Scenario 2
 
-- [ ] T025 Run manual two-browser validation per `specs/001-room-setup-lobby/quickstart.md`
-- [ ] T026 [P] Run `npm run build` in `backend/` and `frontend/` and fix any type errors
+- [x] T025 Run manual two-browser validation per `specs/001-room-setup-lobby/quickstart.md`
+- [x] T026 [P] Run `npm run build` in `backend/` and `frontend/` and fix any type errors
 
 ---
 

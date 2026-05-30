@@ -49,11 +49,20 @@ export function listWords() {
   return [...STARTER_WORDS];
 }
 
+export type JoinRoomResult =
+  | { ok: true; room: Room; participantId: string }
+  | { ok: false; reason: "not_found" | "game_started" };
+
+export type StartRoomResult =
+  | { ok: true; room: Room }
+  | { ok: false; reason: "not_found" | "not_host" | "not_enough_players" | "game_started" };
+
 export function createRoom(playerName?: string) {
   const participant = createParticipant(playerName);
   const room: Room = {
     code: generateUniqueCode(),
     status: "lobby",
+    hostParticipantId: participant.id,
     participants: [participant],
     createdAt: now(),
     updatedAt: now()
@@ -67,11 +76,15 @@ export function createRoom(playerName?: string) {
   };
 }
 
-export function joinRoom(code: string, playerName?: string) {
+export function joinRoom(code: string, playerName?: string): JoinRoomResult {
   const room = rooms.get(code);
 
   if (!room) {
-    return null;
+    return { ok: false, reason: "not_found" };
+  }
+
+  if (room.status !== "lobby") {
+    return { ok: false, reason: "game_started" };
   }
 
   const participant = createParticipant(playerName);
@@ -80,9 +93,36 @@ export function joinRoom(code: string, playerName?: string) {
   rooms.set(room.code, room);
 
   return {
+    ok: true,
     room: cloneRoom(room),
     participantId: participant.id
   };
+}
+
+export function startRoom(code: string, participantId: string): StartRoomResult {
+  const room = rooms.get(code);
+
+  if (!room) {
+    return { ok: false, reason: "not_found" };
+  }
+
+  if (room.status !== "lobby") {
+    return { ok: false, reason: "game_started" };
+  }
+
+  if (room.hostParticipantId !== participantId) {
+    return { ok: false, reason: "not_host" };
+  }
+
+  if (room.participants.length < 2) {
+    return { ok: false, reason: "not_enough_players" };
+  }
+
+  room.status = "playing";
+  room.updatedAt = now();
+  rooms.set(room.code, room);
+
+  return { ok: true, room: cloneRoom(room) };
 }
 
 export function getRoom(code: string) {
@@ -102,7 +142,13 @@ export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSn
   return {
     code: room.code,
     status: room.status,
-    participants: room.participants.map((participant) => ({ ...participant })),
+    hostParticipantId: room.hostParticipantId,
+    participants: room.participants.map((participant) => ({
+      id: participant.id,
+      name: participant.name,
+      joinedAt: participant.joinedAt,
+      isHost: participant.id === room.hostParticipantId
+    })),
     availableWords: listWords(),
     roles: [...STARTER_ROLES]
   };
