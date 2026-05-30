@@ -33,8 +33,8 @@ This phase is intentionally empty; proceed to Phase 2.
 **Purpose**: Backend and frontend type definitions that every user story depends on.
 All user story phases are blocked until this phase is complete.
 
-- [ ] T001 Extend `RoomStatus` to `"lobby" | "game"`, add `hostId: string` to `Room` and `RoomSnapshot` interfaces in `backend/src/models/game.ts`
-- [ ] T002 [P] Add `hostId: string` to `RoomSnapshot` interface and extend `status` type to `"lobby" | "game"` in `frontend/src/services/api.ts`
+- [x] T001 Extend `RoomStatus` to `"lobby" | "game"`, add `hostId: string` to `Room` and `RoomSnapshot` interfaces in `backend/src/models/game.ts`
+- [x] T002 [P] Add `hostId: string` to `RoomSnapshot` interface and extend `status` type to `"lobby" | "game"` in `frontend/src/services/api.ts`
 
 **Checkpoint**: Backend and frontend type contracts aligned — user story work can begin.
 
@@ -51,9 +51,9 @@ button (only 1 player present).
 
 ### Implementation for User Story 1
 
-- [ ] T003 Update `createRoomSchema` to `z.string().trim().min(1, "Player name is required")` in `backend/src/api/schemas.ts`
-- [ ] T004 [P] Set `hostId = participant.id` in `createRoom()` and include `hostId` in `toRoomSnapshot()` output in `backend/src/services/roomStore.ts`
-- [ ] T005 [P] Add client-side trim + empty name check before calling `roomStore.createRoom()` in `frontend/src/pages/CreateRoomPage.tsx`
+- [x] T003 Update `createRoomSchema` to `z.string().trim().min(1, "Player name is required")` in `backend/src/api/schemas.ts`
+- [x] T004 [P] Set `hostId = participant.id` in `createRoom()` and include `hostId` in `toRoomSnapshot()` output in `backend/src/services/roomStore.ts`
+- [x] T005 [P] Add client-side trim + empty name check before calling `roomStore.createRoom()` in `frontend/src/pages/CreateRoomPage.tsx`
 
 **Checkpoint**: User Story 1 fully functional — create room, host tracking, name validation.
 
