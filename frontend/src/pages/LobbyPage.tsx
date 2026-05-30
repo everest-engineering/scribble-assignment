@@ -8,7 +8,7 @@ import { useRoomState, useRoomStore } from "../state/roomStore";
 export function LobbyPage() {
   const navigate = useNavigate();
   const roomStore = useRoomStore();
-  const { room, error, isLoading } = useRoomState();
+  const { room, participantId, error, isLoading } = useRoomState();
 
   useEffect(() => {
     if (!room) {
@@ -28,6 +28,18 @@ export function LobbyPage() {
 
   if (!room) {
     return null;
+  }
+
+  const isHost = room.hostId === participantId;
+  const canStart = room.participants.length >= 2;
+
+  async function handleStart() {
+    try {
+      await roomStore.startGame();
+      navigate("/game");
+    } catch {
+      // error is written to store state and shown in the Status card
+    }
   }
 
   return (
@@ -50,7 +62,9 @@ export function LobbyPage() {
               {room.participants.map((participant) => (
                 <li key={participant.id}>
                   <span>{participant.name}</span>
-                  <span className="player-list__meta">joined</span>
+                  <span className="player-list__meta">
+                    {participant.id === room.hostId ? "Host" : "joined"}
+                  </span>
                 </li>
               ))}
             </ul>
@@ -66,9 +80,22 @@ export function LobbyPage() {
       </div>
 
       <div className="button-row button-row--spread">
-        <button className="button button--primary" onClick={() => navigate("/game")}>
-          Start Game
-        </button>
+        {isHost ? (
+          <div>
+            <button
+              className="button button--primary"
+              disabled={!canStart || isLoading}
+              onClick={handleStart}
+            >
+              Start Game
+            </button>
+            {!canStart && (
+              <p className="form__error">Need at least 2 players to start.</p>
+            )}
+          </div>
+        ) : (
+          <p>Waiting for the host to start the game...</p>
+        )}
       </div>
     </section>
   );

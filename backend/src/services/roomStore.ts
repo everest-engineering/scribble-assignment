@@ -97,6 +97,20 @@ export function saveRoom(room: Room) {
   return getRoom(room.code);
 }
 
+export function startGame(code: string, participantId: string) {
+  const room = rooms.get(code);
+
+  if (!room) return null;
+  if (room.hostId !== participantId) return "not-host" as const;
+  if (room.participants.length < 2) return "not-enough-players" as const;
+
+  room.status = "playing";
+  room.updatedAt = now();
+  rooms.set(room.code, room);
+
+  return toRoomSnapshot(cloneRoom(room), participantId);
+}
+
 export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSnapshot {
   void viewerParticipantId;
 
