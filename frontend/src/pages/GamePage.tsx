@@ -75,7 +75,16 @@ export function GamePage() {
   }, [room?.drawingData, room]);
 
   const isDrawer = participantId === room?.drawerId;
+  const isHost = participantId === room?.hostId;
   const isFinished = room?.status === "finished";
+
+  const handleRestart = useCallback(async () => {
+    if (!isHost) return;
+    const result = await roomStore.restartGame();
+    if (result.room) {
+      navigate("/lobby");
+    }
+  }, [isHost, roomStore, navigate]);
 
   const getCanvasPos = useCallback((event: React.MouseEvent<HTMLCanvasElement>): Point => {
     const canvas = canvasRef.current;
@@ -230,6 +239,15 @@ export function GamePage() {
       </div>
 
       <div className="button-row">
+        {isFinished ? (
+          isHost ? (
+            <button className="button button--primary" onClick={handleRestart}>
+              Restart Game
+            </button>
+          ) : (
+            <p style={{ fontWeight: 500, color: '#6b7280' }}>Waiting for host to restart...</p>
+          )
+        ) : null}
         <button className="button button--secondary" onClick={() => navigate("/lobby")}>
           Exit Game
         </button>

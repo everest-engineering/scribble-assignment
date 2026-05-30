@@ -14,6 +14,7 @@ import {
   createRoom,
   getRoom,
   joinRoom,
+  restartGame,
   saveDrawing,
   startGame,
   submitGuess,
@@ -115,6 +116,24 @@ export function createRoomsRouter() {
       const { code } = roomCodeParamsSchema.parse(request.params);
       const { participantId, text } = guessSubmissionSchema.parse(request.body);
       const result = submitGuess(code.toUpperCase(), participantId, text);
+
+      if ("error" in result) {
+        throw new HttpError(400, result.error as string);
+      }
+
+      response.json({
+        room: toRoomSnapshot(result.room, participantId)
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/:code/restart", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId } = startGameSchema.parse(request.body);
+      const result = restartGame(code.toUpperCase(), participantId);
 
       if ("error" in result) {
         throw new HttpError(400, result.error as string);

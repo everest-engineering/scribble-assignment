@@ -222,15 +222,44 @@ export function submitGuess(code: string, participantId: string, text: string) {
   return { room: cloneRoom(room) };
 }
 
+export function restartGame(code: string, participantId: string) {
+  const room = rooms.get(code);
+
+  if (!room) {
+    return { error: "Room not found" } as const;
+  }
+
+  if (room.hostId !== participantId) {
+    return { error: "Only the host can restart the game" } as const;
+  }
+
+  room.drawerId = null;
+  room.secretWord = null;
+  room.round = 0;
+  room.drawingData = "";
+  room.guesses = [];
+  room.status = "lobby";
+
+  for (const p of room.participants) {
+    p.score = 0;
+  }
+
+  room.updatedAt = now();
+  rooms.set(room.code, room);
+
+  return { room: cloneRoom(room) };
+}
+
 export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSnapshot {
   const isDrawer = viewerParticipantId !== undefined && viewerParticipantId === room.drawerId;
+  const showWord = isDrawer || room.status === "finished";
 
   return {
     code: room.code,
     status: room.status,
     hostId: room.hostId,
     drawerId: room.drawerId,
-    secretWord: isDrawer ? room.secretWord : null,
+    secretWord: showWord ? room.secretWord : null,
     round: room.round,
     drawingData: room.drawingData,
     guesses: [...room.guesses],

@@ -110,6 +110,21 @@ class RoomStore {
     await api.saveDrawing(this.state.room.code, this.state.participantId, drawingData);
   }
 
+  async restartGame() {
+    if (!this.state.room || !this.state.participantId) {
+      return { error: "No active room" };
+    }
+
+    try {
+      const response = await api.restartGame(this.state.room.code, this.state.participantId);
+      this.setRoomSnapshot(response.room);
+      return { room: response.room };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to restart game";
+      return { error: message };
+    }
+  }
+
   async clearDrawing() {
     if (!this.state.room || !this.state.participantId) {
       return;
