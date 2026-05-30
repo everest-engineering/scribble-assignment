@@ -5,6 +5,7 @@ import {
   createRoom,
   getRoom,
   joinRoom,
+  restartRoom,
   saveRoom,
   startRoom,
   submitGuess,
@@ -70,6 +71,7 @@ describe("roomStore", () => {
     expect(snapshot.viewerCanDraw).toBe(false);
     expect(snapshot.viewerCanGuess).toBe(false);
     expect(snapshot.canStartGame).toBe(false);
+    expect(snapshot.canRestartGame).toBe(false);
     expect(snapshot.minimumPlayersToStart).toBe(2);
   });
 
@@ -118,7 +120,7 @@ describe("roomStore", () => {
     });
   });
 
-  it("startRoom assigns the host as drawer and initializes Scenario 3 round state", () => {
+  it("startRoom assigns the host as drawer and initializes round state", () => {
     const host = createRoom("Alice");
     const joined = joinRoom(host.room.code, "Bob");
 
@@ -134,6 +136,7 @@ describe("roomStore", () => {
     expect(started.room.status).toBe("playing");
     expect(started.room.round?.drawerParticipantId).toBe(host.participantId);
     expect(started.room.round?.secretWord).toBeDefined();
+    expect(started.room.round?.endedAt).toBeUndefined();
     expect(started.room.round?.canvas.strokes).toHaveLength(0);
     expect(started.room.round?.guessHistory).toHaveLength(0);
 
@@ -144,6 +147,7 @@ describe("roomStore", () => {
     expect(hostSnapshot.viewerIsDrawer).toBe(true);
     expect(hostSnapshot.viewerCanDraw).toBe(true);
     expect(hostSnapshot.viewerCanGuess).toBe(false);
+    expect(hostSnapshot.canRestartGame).toBe(false);
     expect(hostSnapshot.wordVisibility).toBe("visible");
     expect(hostSnapshot.secretWord).toBe(started.room.round?.secretWord);
     expect(hostSnapshot.guessHistory).toEqual([]);
@@ -297,6 +301,8 @@ describe("roomStore", () => {
       return;
     }
 
+    expect(result.room.status).toBe("results");
+    expect(result.room.round?.endedAt).toBeDefined();
     expect(result.room.round?.guessHistory).toHaveLength(1);
     expect(result.room.round?.guessHistory[0].guess).toBe(secretWord.toUpperCase());
     expect(result.room.round?.guessHistory[0].isCorrect).toBe(true);
@@ -305,7 +311,21 @@ describe("roomStore", () => {
     const updatedGuest = result.room.participants.find((participant) => participant.id === guest!.participantId);
     expect(updatedGuest?.score).toBe(100);
 
+    const hostSnapshot = toRoomSnapshot(result.room, host.participantId);
     const guestSnapshot = toRoomSnapshot(result.room, guest!.participantId);
+
+    expect(hostSnapshot.wordVisibility).toBe("visible");
+    expect(hostSnapshot.secretWord).toBe(secretWord);
+    expect(hostSnapshot.viewerCanDraw).toBe(false);
+    expect(hostSnapshot.viewerCanGuess).toBe(false);
+    expect(hostSnapshot.canRestartGame).toBe(true);
+    expect(hostSnapshot.roundEndedAt).toBeDefined();
+
+    expect(guestSnapshot.wordVisibility).toBe("visible");
+    expect(guestSnapshot.secretWord).toBe(secretWord);
+    expect(guestSnapshot.viewerCanDraw).toBe(false);
+    expect(guestSnapshot.viewerCanGuess).toBe(false);
+    expect(guestSnapshot.canRestartGame).toBe(false);
     expect(guestSnapshot.guessHistory?.[0].scoreAwarded).toBe(100);
   });
 
@@ -329,6 +349,7 @@ describe("roomStore", () => {
       return;
     }
 
+    expect(secondGuess.room.status).toBe("playing");
     expect(secondGuess.room.round?.guessHistory).toHaveLength(2);
     expect(secondGuess.room.round?.guessHistory[0].participantId).toBe(guest!.participantId);
     expect(secondGuess.room.round?.guessHistory[1].participantId).toBe(third!.participantId);
@@ -346,7 +367,121 @@ describe("roomStore", () => {
     expect(thirdParticipant?.score).toBe(0);
   });
 
-  it("Scenario 3 drawing and guesses stay isolated per room", () => {
+  it("restartRoom rejects non-host participants", () => {
+    const host = createRoom("Alice");
+    const guest = joinRoom(host.room.code, "Bob");
+
+    expect(guest).not.toBeNull();
+
+    const started = startRoom(host.room.code, host.participantId);
+    expect(started.ok).toBe(true);
+    if (!started.ok) {
+      return;
+    }
+
+    submitGuess(host.room.code, guest!.participantId, started.room.round!.secretWord);
+
+    const result = restartRoom(host.room.code, guest!.participantId);
+
+    expect(result).toEqual({
+      ok: false,
+      reason: "forbidden",
+      message: "Only the host can restart the game"
+    });
+  });
+
+  it("restartRoom rejects attempts before the room has reached results", () => {
+    const host = createRoom("Alice");
+    joinRoom(host.room.code, "Bob");
+    startRoom(host.room.code, host.participantId);
+
+    const result = restartRoom(host.room.code, host.participantId);
+
+    expect(result).toEqual({
+      ok: false,
+      reason: "conflict",
+      message: "Game is not ready to restart"
+    });
+  });
+
+  it("restartRoom returns the room to the lobby with the same roster and cleared round state", () => {
+    const host = createRoom("Alice");
+    const guest = joinRoom(host.room.code, "Bob");
+
+    expect(guest).not.toBeNull();
+
+    const started = startRoom(host.room.code, host.participantId);
+    expect(started.ok).toBe(true);
+    if (!started.ok) {
+      return;
+    }
+
+    addDrawingStroke(host.room.code, host.participantId, [{ x: 0.5, y: 0.5 }]);
+    const completed = submitGuess(host.room.code, guest!.participantId, started.room.round!.secretWord);
+
+    expect(completed.ok).toBe(true);
+    if (!completed.ok) {
+      return;
+    }
+
+    const restarted = restartRoom(host.room.code, host.participantId);
+
+    expect(restarted.ok).toBe(true);
+    if (!restarted.ok) {
+      return;
+    }
+
+    expect(restarted.room.status).toBe("lobby");
+    expect(restarted.room.code).toBe(host.room.code);
+    expect(restarted.room.hostParticipantId).toBe(host.participantId);
+    expect(restarted.room.participants).toHaveLength(2);
+    expect(restarted.room.participants.every((participant) => participant.score === 0)).toBe(true);
+    expect(restarted.room.round).toBeUndefined();
+
+    const hostSnapshot = toRoomSnapshot(restarted.room, host.participantId);
+    const guestSnapshot = toRoomSnapshot(restarted.room, guest!.participantId);
+
+    expect(hostSnapshot.canStartGame).toBe(true);
+    expect(hostSnapshot.canRestartGame).toBe(false);
+    expect(hostSnapshot.secretWord).toBeUndefined();
+    expect(hostSnapshot.guessHistory).toBeUndefined();
+    expect(hostSnapshot.canvas).toBeUndefined();
+
+    expect(guestSnapshot.canStartGame).toBe(false);
+    expect(guestSnapshot.secretWord).toBeUndefined();
+    expect(guestSnapshot.guessHistory).toBeUndefined();
+  });
+
+  it("drawing and guessing are rejected once a room has entered results", () => {
+    const host = createRoom("Alice");
+    const guest = joinRoom(host.room.code, "Bob");
+
+    expect(guest).not.toBeNull();
+
+    const started = startRoom(host.room.code, host.participantId);
+    expect(started.ok).toBe(true);
+    if (!started.ok) {
+      return;
+    }
+
+    submitGuess(host.room.code, guest!.participantId, started.room.round!.secretWord);
+
+    const drawResult = addDrawingStroke(host.room.code, host.participantId, [{ x: 0.1, y: 0.1 }]);
+    const guessResult = submitGuess(host.room.code, guest!.participantId, "late guess");
+
+    expect(drawResult).toEqual({
+      ok: false,
+      reason: "conflict",
+      message: "Game is not in an active round"
+    });
+    expect(guessResult).toEqual({
+      ok: false,
+      reason: "conflict",
+      message: "Game is not in an active round"
+    });
+  });
+
+  it("Scenario 4 result transitions and restart stay isolated per room", () => {
     const firstRoom = createRoom("Alice");
     const secondRoom = createRoom("Cara");
     const firstGuest = joinRoom(firstRoom.room.code, "Bob");
@@ -355,14 +490,21 @@ describe("roomStore", () => {
     expect(firstGuest).not.toBeNull();
     expect(secondGuest).not.toBeNull();
 
-    startRoom(firstRoom.room.code, firstRoom.participantId);
-    startRoom(secondRoom.room.code, secondRoom.participantId);
+    const firstStarted = startRoom(firstRoom.room.code, firstRoom.participantId);
+    const secondStarted = startRoom(secondRoom.room.code, secondRoom.participantId);
 
-    addDrawingStroke(firstRoom.room.code, firstRoom.participantId, [{ x: 0.2, y: 0.2 }]);
-    submitGuess(firstRoom.room.code, firstGuest!.participantId, "miss");
+    expect(firstStarted.ok).toBe(true);
+    expect(secondStarted.ok).toBe(true);
+    if (!firstStarted.ok || !secondStarted.ok) {
+      return;
+    }
+
+    submitGuess(firstRoom.room.code, firstGuest!.participantId, firstStarted.room.round!.secretWord);
+    restartRoom(firstRoom.room.code, firstRoom.participantId);
 
     const untouchedRoom = getRoom(secondRoom.room.code);
-    expect(untouchedRoom?.round?.canvas.strokes).toHaveLength(0);
+    expect(untouchedRoom?.status).toBe("playing");
+    expect(untouchedRoom?.round?.endedAt).toBeUndefined();
     expect(untouchedRoom?.round?.guessHistory).toHaveLength(0);
     expect(untouchedRoom?.participants.every((participant) => participant.score === 0)).toBe(true);
   });

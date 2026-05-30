@@ -1,5 +1,5 @@
 export type ParticipantRole = "drawer" | "guesser";
-export type RoomStatus = "lobby" | "playing";
+export type RoomStatus = "lobby" | "playing" | "results";
 export type WordVisibility = "visible" | "hidden";
 export type ScoreAward = 0 | 100;
 
@@ -52,6 +52,7 @@ export interface RoundState {
   drawerParticipantId: string;
   secretWord: string;
   startedAt: string;
+  endedAt?: string;
   canvas: CanvasState;
   guessHistory: StoredGuessEntry[];
 }
@@ -73,6 +74,7 @@ export interface RoomSnapshot {
   participants: Participant[];
   viewerIsHost: boolean;
   canStartGame: boolean;
+  canRestartGame: boolean;
   minimumPlayersToStart: number;
   drawerParticipantId?: string;
   viewerIsDrawer: boolean;
@@ -80,6 +82,7 @@ export interface RoomSnapshot {
   viewerCanGuess: boolean;
   wordVisibility?: WordVisibility;
   secretWord?: string;
+  roundEndedAt?: string;
   canvas?: CanvasState;
   guessHistory?: GuessHistoryEntry[];
 }

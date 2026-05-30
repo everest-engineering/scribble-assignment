@@ -19,7 +19,7 @@ export function LobbyPage() {
   }, [navigate, room]);
 
   useEffect(() => {
-    if (room?.status === "playing") {
+    if (room?.status === "playing" || room?.status === "results") {
       navigate("/game", { replace: true });
     }
   }, [navigate, room?.status]);

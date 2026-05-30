@@ -12,6 +12,7 @@ export function GamePage() {
   const roomStore = useRoomStore();
   const { room, participantId, error, isLoading } = useRoomState();
   const [refreshError, setRefreshError] = useState<string | null>(null);
+  const [restartError, setRestartError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!room) {
@@ -25,7 +26,7 @@ export function GamePage() {
   }, [navigate, room]);
 
   useEffect(() => {
-    if (!room || room.status !== "playing") {
+    if (!room || room.status === "lobby") {
       return undefined;
     }
 
@@ -66,42 +67,75 @@ export function GamePage() {
     await roomStore.submitGuess(guess);
   }
 
+  async function handleRestartGame() {
+    try {
+      setRestartError(null);
+      await roomStore.restartGame();
+    } catch (caughtError) {
+      setRestartError(caughtError instanceof Error ? caughtError.message : "Unable to restart game");
+    }
+  }
+
   if (!room) {
     return null;
   }
 
+  const isResults = room.status === "results";
   const viewer = room.participants.find((participant) => participant.id === participantId) ?? null;
   const drawer =
     room.participants.find((participant) => participant.id === room.drawerParticipantId) ?? null;
   const wordStatus =
-    room.wordVisibility === "visible" ? "Secret word visible" : "Secret word hidden";
+    room.wordVisibility === "visible"
+      ? isResults
+        ? "Correct word revealed"
+        : "Secret word visible"
+      : "Secret word hidden";
   const wordValue =
     room.wordVisibility === "visible"
       ? room.secretWord ?? "Unavailable"
       : "Only the drawer can see the word right now.";
   const drawerStatus = room.viewerIsDrawer
-    ? "You are the drawer for this round."
-    : `${drawer?.name ?? "Another player"} is drawing this round.`;
+    ? isResults
+      ? "You were the drawer for this completed round."
+      : "You are the drawer for this round."
+    : `${drawer?.name ?? "Another player"} ${isResults ? "drew the completed round." : "is drawing this round."}`;
   const history = room.guessHistory ?? [];
   const canvas = room.canvas ?? { strokes: [] };
-  const statusMessage =
-    refreshError ?? error ?? (room.viewerCanDraw ? "Draw something for the guessers." : "Watch the sketch and submit guesses.");
+  const statusMessage = isResults
+    ? restartError ??
+      refreshError ??
+      error ??
+      (room.viewerIsHost
+        ? "Round complete. Review the results and restart when everyone is ready."
+        : "Round complete. Waiting for the host to restart the room.")
+    : refreshError ?? error ?? (room.viewerCanDraw ? "Draw something for the guessers." : "Watch the sketch and submit guesses.");
 
   return (
     <section className="panel game-page">
       <div className="game-page__header">
         <div className="game-page__header-left">
-          <span className="section-kicker">Round 1</span>
-          <h1 className="game-page__title">Live Gameplay</h1>
+          <span className="section-kicker">{isResults ? "Round complete" : "Round 1"}</span>
+          <h1 className="game-page__title">{isResults ? "Round Results" : "Live Gameplay"}</h1>
         </div>
         <RoomCodeBadge code={room.code} />
       </div>
 
+      {isResults ? (
+        <div className="result-banner">
+          <p className="status-line status-line--success">Results synchronized</p>
+          <p>{room.roundEndedAt ? "The round ended on the first correct accepted guess." : "The completed round is ready for review."}</p>
+        </div>
+      ) : null}
+
       <div className="game-page__layout">
         <aside className="game-page__sidebar">
           <Card title="Round Status">
-            <p className={`status-line ${room.viewerIsDrawer ? "status-line--success" : "status-line--info"}`}>
-              {room.viewerIsDrawer ? "Drawer controls enabled" : "Guesser view active"}
+            <p
+              className={`status-line ${
+                isResults ? "status-line--success" : room.viewerIsDrawer ? "status-line--success" : "status-line--info"
+              }`}
+            >
+              {isResults ? "Result state active" : room.viewerIsDrawer ? "Drawer controls enabled" : "Guesser view active"}
             </p>
             <p>{drawerStatus}</p>
             <p>{statusMessage}</p>
@@ -144,13 +178,17 @@ export function GamePage() {
               }`}
             >
               <span className="word-panel__label">
-                {room.wordVisibility === "visible" ? "Your word" : "Word visibility"}
+                {room.wordVisibility === "visible"
+                  ? isResults
+                    ? "Completed word"
+                    : "Your word"
+                  : "Word visibility"}
               </span>
               <strong className="word-panel__value">{wordValue}</strong>
             </div>
           </Card>
 
-          <Card title="Canvas">
+          <Card title={isResults ? "Completed Canvas" : "Canvas"}>
             <DrawingSurface
               canvas={canvas}
               canDraw={room.viewerCanDraw}
@@ -160,10 +198,10 @@ export function GamePage() {
             />
           </Card>
 
-          <Card title="Guess History">
+          <Card title={isResults ? "Final Guess History" : "Guess History"}>
             {history.length === 0 ? (
               <div className="placeholder-block">
-                <p>No guesses have been accepted yet.</p>
+                <p>{isResults ? "No accepted guesses were recorded before the round ended." : "No guesses have been accepted yet."}</p>
               </div>
             ) : (
               <ul className="history-list">
@@ -191,7 +229,7 @@ export function GamePage() {
         </div>
 
         <aside className="game-page__sidebar">
-          <Card title="Participants">
+          <Card title={isResults ? "Final Scores" : "Participants"}>
             <ul className="player-list">
               {room.participants.map((participant) => {
                 const labels = [];
@@ -214,15 +252,28 @@ export function GamePage() {
                       <span>{participant.name}</span>
                       <span className="player-list__meta">{labels.join(" · ") || "joined"}</span>
                     </div>
-                    <strong className="player-list__score">{participant.score} pts</strong>
+                    <strong className={`player-list__score ${isResults ? "player-list__score--final" : ""}`}>
+                      {participant.score} pts
+                    </strong>
                   </li>
                 );
               })}
             </ul>
           </Card>
 
-          <Card title={room.viewerCanGuess ? "Submit Guess" : "Guessing"}>
-            {room.viewerCanGuess ? (
+          <Card title={isResults ? "Round Controls" : room.viewerCanGuess ? "Submit Guess" : "Guessing"}>
+            {isResults ? (
+              <div className="result-actions">
+                <p>{room.canRestartGame ? "You can restart the room when everyone is ready." : "Only the host can restart this completed room."}</p>
+                <button
+                  className="button button--primary"
+                  disabled={!room.canRestartGame || isLoading}
+                  onClick={handleRestartGame}
+                >
+                  {room.canRestartGame ? "Restart to Lobby" : "Host Can Restart"}
+                </button>
+              </div>
+            ) : room.viewerCanGuess ? (
               <GuessForm disabled={isLoading} onSubmitGuess={handleSubmitGuess} />
             ) : (
               <div className="placeholder-block">

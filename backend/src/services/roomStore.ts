@@ -6,6 +6,7 @@ import type {
   Participant,
   Room,
   RoomSnapshot,
+  RoundState,
   ScoreAward,
   StoredGuessEntry
 } from "../models/game.js";
@@ -107,15 +108,28 @@ function toGuessHistoryEntry(entry: StoredGuessEntry): GuessHistoryEntry {
   };
 }
 
+function resetParticipantScores(participants: Participant[]) {
+  return participants.map((participant) => ({
+    ...participant,
+    score: 0
+  }));
+}
+
+type FailureReason = "not-found" | "forbidden" | "conflict";
 type RoomActionResult =
   | { ok: true; room: Room }
-  | { ok: false; reason: "not-found" | "forbidden" | "conflict"; message: string };
+  | { ok: false; reason: FailureReason; message: string };
 
-type ActiveRoundRoom = Room & { round: NonNullable<Room["round"]> };
+type ActiveRoundRoom = Room & { status: "playing"; round: NonNullable<Room["round"]> & { endedAt?: undefined } };
+type ResultsRoom = Room & { status: "results"; round: NonNullable<Room["round"]> & { endedAt: string } };
 
 type ActiveRoundActionResult =
   | { ok: true; room: ActiveRoundRoom }
-  | { ok: false; reason: "not-found" | "forbidden" | "conflict"; message: string };
+  | { ok: false; reason: FailureReason; message: string };
+
+type ResultsActionResult =
+  | { ok: true; room: ResultsRoom }
+  | { ok: false; reason: FailureReason; message: string };
 
 function canStartRoom(room: Room, viewerParticipantId?: string) {
   return (
@@ -125,7 +139,11 @@ function canStartRoom(room: Room, viewerParticipantId?: string) {
   );
 }
 
-function getActiveRoundRoom(code: string): ActiveRoundActionResult {
+function canRestartRoom(room: Room, viewerParticipantId?: string) {
+  return room.status === "results" && room.hostParticipantId === viewerParticipantId;
+}
+
+function getPlayingRoom(code: string): ActiveRoundActionResult {
   const room = rooms.get(code);
 
   if (!room) {
@@ -136,7 +154,7 @@ function getActiveRoundRoom(code: string): ActiveRoundActionResult {
     };
   }
 
-  if (room.status !== "playing" || !room.round) {
+  if (room.status !== "playing" || !room.round || room.round.endedAt) {
     return {
       ok: false,
       reason: "conflict",
@@ -147,6 +165,41 @@ function getActiveRoundRoom(code: string): ActiveRoundActionResult {
   return {
     ok: true,
     room: room as ActiveRoundRoom
+  };
+}
+
+function getResultsRoom(code: string): ResultsActionResult {
+  const room = rooms.get(code);
+
+  if (!room) {
+    return {
+      ok: false,
+      reason: "not-found",
+      message: "Room code was not found"
+    };
+  }
+
+  if (room.status !== "results" || !room.round || !room.round.endedAt) {
+    return {
+      ok: false,
+      reason: "conflict",
+      message: "Game is not ready to restart"
+    };
+  }
+
+  return {
+    ok: true,
+    room: room as ResultsRoom
+  };
+}
+
+function createRoundState(room: Room, drawer: Participant): RoundState {
+  return {
+    drawerParticipantId: drawer.id,
+    secretWord: getSecretWord(room, drawer),
+    startedAt: now(),
+    canvas: createEmptyCanvas(),
+    guessHistory: []
   };
 }
 
@@ -229,18 +282,9 @@ export function startRoom(code: string, participantId: string): RoomActionResult
 
   const drawer = getDrawer(room);
 
-  room.participants = room.participants.map((participant) => ({
-    ...participant,
-    score: 0
-  }));
+  room.participants = resetParticipantScores(room.participants);
   room.status = "playing";
-  room.round = {
-    drawerParticipantId: drawer.id,
-    secretWord: getSecretWord(room, drawer),
-    startedAt: now(),
-    canvas: createEmptyCanvas(),
-    guessHistory: []
-  };
+  room.round = createRoundState(room, drawer);
   room.updatedAt = now();
   rooms.set(room.code, room);
 
@@ -251,13 +295,13 @@ export function startRoom(code: string, participantId: string): RoomActionResult
 }
 
 export function addDrawingStroke(code: string, participantId: string, points: DrawingPoint[]): RoomActionResult {
-  const activeRoom = getActiveRoundRoom(code);
+  const activeRoom = getPlayingRoom(code);
 
   if (!activeRoom.ok) {
     return activeRoom;
   }
 
-  const { room } = activeRoom;
+  const room = activeRoom.room as Room & { round: RoundState };
   const { round } = room;
   const participant = getParticipant(room, participantId);
 
@@ -293,13 +337,13 @@ export function addDrawingStroke(code: string, participantId: string, points: Dr
 }
 
 export function clearRoomCanvas(code: string, participantId: string): RoomActionResult {
-  const activeRoom = getActiveRoundRoom(code);
+  const activeRoom = getPlayingRoom(code);
 
   if (!activeRoom.ok) {
     return activeRoom;
   }
 
-  const { room } = activeRoom;
+  const room = activeRoom.room as Room & { round: RoundState };
   const { round } = room;
   const participant = getParticipant(room, participantId);
 
@@ -333,13 +377,13 @@ export function clearRoomCanvas(code: string, participantId: string): RoomAction
 }
 
 export function submitGuess(code: string, participantId: string, guess: string): RoomActionResult {
-  const activeRoom = getActiveRoundRoom(code);
+  const activeRoom = getPlayingRoom(code);
 
   if (!activeRoom.ok) {
     return activeRoom;
   }
 
-  const { room } = activeRoom;
+  const room = activeRoom.room as Room & { round: RoundState };
   const { round } = room;
   const participant = getParticipant(room, participantId);
 
@@ -363,6 +407,7 @@ export function submitGuess(code: string, participantId: string, guess: string):
   const normalizedGuess = normalizeGuess(trimmedGuess);
   const isCorrect = normalizedGuess === normalizeGuess(round.secretWord);
   const scoreAwarded: ScoreAward = isCorrect ? 100 : 0;
+  const submittedAt = now();
 
   round.guessHistory.push({
     id: randomUUID(),
@@ -372,9 +417,44 @@ export function submitGuess(code: string, participantId: string, guess: string):
     normalizedGuess,
     isCorrect,
     scoreAwarded,
-    submittedAt: now()
+    submittedAt
   });
   participant.score += scoreAwarded;
+
+  if (isCorrect) {
+    round.endedAt = submittedAt;
+    room.status = "results";
+  }
+
+  room.updatedAt = submittedAt;
+  rooms.set(room.code, room);
+
+  return {
+    ok: true,
+    room: cloneRoom(room)
+  };
+}
+
+export function restartRoom(code: string, participantId: string): RoomActionResult {
+  const completedRoom = getResultsRoom(code);
+
+  if (!completedRoom.ok) {
+    return completedRoom;
+  }
+
+  const room: Room = completedRoom.room;
+
+  if (room.hostParticipantId !== participantId) {
+    return {
+      ok: false,
+      reason: "forbidden",
+      message: "Only the host can restart the game"
+    };
+  }
+
+  room.participants = resetParticipantScores(room.participants);
+  room.status = "lobby";
+  room.round = undefined;
   room.updatedAt = now();
   rooms.set(room.code, room);
 
@@ -396,6 +476,12 @@ export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSn
   const viewerIsDrawer = room.round?.drawerParticipantId === viewerParticipantId;
   const viewerCanDraw = room.status === "playing" && viewerIsDrawer;
   const viewerCanGuess = room.status === "playing" && Boolean(viewerParticipant) && !viewerIsDrawer;
+  const wordVisibility = room.round
+    ? room.status === "results" || viewerIsDrawer
+      ? "visible"
+      : "hidden"
+    : undefined;
+  const secretWord = room.round && wordVisibility === "visible" ? room.round.secretWord : undefined;
 
   return {
     code: room.code,
@@ -404,13 +490,15 @@ export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSn
     participants: room.participants.map((participant) => ({ ...participant })),
     viewerIsHost,
     canStartGame: canStartRoom(room, viewerParticipantId),
+    canRestartGame: canRestartRoom(room, viewerParticipantId),
     minimumPlayersToStart: MINIMUM_PLAYERS_TO_START,
     drawerParticipantId: room.round?.drawerParticipantId,
     viewerIsDrawer,
     viewerCanDraw,
     viewerCanGuess,
-    wordVisibility: room.round ? (viewerIsDrawer ? "visible" : "hidden") : undefined,
-    secretWord: viewerIsDrawer ? room.round?.secretWord : undefined,
+    wordVisibility,
+    secretWord,
+    roundEndedAt: room.round?.endedAt,
     canvas: room.round
       ? {
           strokes: room.round.canvas.strokes.map((stroke) => ({

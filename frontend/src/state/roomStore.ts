@@ -107,6 +107,18 @@ class RoomStore {
     return response.room;
   }
 
+  async restartGame() {
+    if (!this.state.room || !this.state.participantId) {
+      throw new Error("No active room session");
+    }
+
+    const response = await this.withLoading(() =>
+      api.restartGame(this.state.room!.code, this.state.participantId!)
+    );
+    this.setRoomSnapshot(response.room);
+    return response.room;
+  }
+
   async drawStroke(points: DrawingPoint[]) {
     if (!this.state.room || !this.state.participantId) {
       throw new Error("No active room session");

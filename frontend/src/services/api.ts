@@ -5,6 +5,7 @@ export interface Participant {
   score: number;
 }
 
+export type RoomStatus = "lobby" | "playing" | "results";
 export type WordVisibility = "visible" | "hidden";
 export type ScoreAward = 0 | 100;
 
@@ -37,11 +38,12 @@ export interface GuessHistoryEntry {
 
 export interface RoomSnapshot {
   code: string;
-  status: "lobby" | "playing";
+  status: RoomStatus;
   hostParticipantId: string;
   participants: Participant[];
   viewerIsHost: boolean;
   canStartGame: boolean;
+  canRestartGame: boolean;
   minimumPlayersToStart: number;
   drawerParticipantId?: string;
   viewerIsDrawer: boolean;
@@ -49,6 +51,7 @@ export interface RoomSnapshot {
   viewerCanGuess: boolean;
   wordVisibility?: WordVisibility;
   secretWord?: string;
+  roundEndedAt?: string;
   canvas?: CanvasState;
   guessHistory?: GuessHistoryEntry[];
 }
@@ -95,6 +98,12 @@ export const api = {
   },
   startGame(code: string, participantId: string) {
     return request<{ room: RoomSnapshot }>(`/rooms/${encodeURIComponent(code)}/start`, {
+      method: "POST",
+      body: JSON.stringify({ participantId })
+    });
+  },
+  restartGame(code: string, participantId: string) {
+    return request<{ room: RoomSnapshot }>(`/rooms/${encodeURIComponent(code)}/restart`, {
       method: "POST",
       body: JSON.stringify({ participantId })
     });

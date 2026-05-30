@@ -414,6 +414,10 @@ input {
   font-size: 0.95rem;
 }
 
+.player-list__score--final {
+  color: #166534;
+}
+
 .status-line,
 .placeholder-note {
   width: max-content;
@@ -563,6 +567,21 @@ input {
   letter-spacing: -0.025em;
 }
 
+.result-banner {
+  display: grid;
+  gap: 12px;
+  padding: 20px 24px;
+  border: 1px solid #bbf7d0;
+  border-radius: 16px;
+  background: #f0fdf4;
+}
+
+.result-banner p:last-child {
+  margin: 0;
+  color: #166534;
+  font-size: 1rem;
+}
+
 /* Responsive grid: 3-column layout */
 .game-page__layout {
   display: grid;
@@ -683,6 +702,16 @@ input {
   display: grid;
   justify-items: end;
   gap: 8px;
+}
+
+.result-actions {
+  display: grid;
+  gap: 16px;
+}
+
+.result-actions p {
+  margin: 0;
+  color: var(--ink-soft);
 }
 
 @media (max-width: 720px) {

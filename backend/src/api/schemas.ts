@@ -46,6 +46,10 @@ export const startRoomSchema = z.object({
   participantId: participantIdSchema
 });
 
+export const restartRoomSchema = z.object({
+  participantId: participantIdSchema
+});
+
 export const drawingStrokeSchema = z.object({
   participantId: participantIdSchema,
   points: z.array(drawingPointSchema).min(1, {

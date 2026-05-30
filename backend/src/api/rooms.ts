@@ -6,6 +6,7 @@ import {
   drawingStrokeSchema,
   HttpError,
   joinRoomSchema,
+  restartRoomSchema,
   roomCodeParamsSchema,
   roomViewerQuerySchema,
   startRoomSchema,
@@ -17,6 +18,7 @@ import {
   createRoom,
   getRoom,
   joinRoom,
+  restartRoom,
   startRoom,
   submitGuess,
   toRoomSnapshot
@@ -132,6 +134,20 @@ export function createRoomsRouter() {
       const { code } = roomCodeParamsSchema.parse(request.params);
       const { participantId, guess } = submitGuessSchema.parse(request.body);
       const result = submitGuess(code, participantId, guess);
+
+      assertRoomActionSucceeded(result);
+
+      response.json(createRoomSnapshotResponse(result.room, participantId));
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/:code/restart", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId } = restartRoomSchema.parse(request.body);
+      const result = restartRoom(code, participantId);
 
       assertRoomActionSucceeded(result);
 

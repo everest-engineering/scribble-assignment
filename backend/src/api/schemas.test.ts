@@ -4,6 +4,7 @@ import {
   createRoomSchema,
   drawingStrokeSchema,
   joinRoomSchema,
+  restartRoomSchema,
   roomCodeParamsSchema,
   startRoomSchema,
   submitGuessSchema
@@ -54,6 +55,12 @@ describe("schemas", () => {
 
   it("startRoomSchema requires a participantId", () => {
     expect(() => startRoomSchema.parse({ participantId: "   " })).toThrow(
+      "Participant ID is required"
+    );
+  });
+
+  it("restartRoomSchema requires a participantId", () => {
+    expect(() => restartRoomSchema.parse({ participantId: "   " })).toThrow(
       "Participant ID is required"
     );
   });

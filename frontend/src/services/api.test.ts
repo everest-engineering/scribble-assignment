@@ -1,33 +1,37 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { api } from "./api";
 
-function createPlayingSnapshot(overrides: Record<string, unknown> = {}) {
+function createSnapshot(
+  status: "lobby" | "playing" | "results",
+  overrides: Record<string, unknown> = {}
+) {
   return {
     code: "ABCD",
-    status: "playing",
+    status,
     hostParticipantId: "p1",
     participants: [
       {
         id: "p1",
         name: "Alice",
         joinedAt: "2026-05-30T12:00:00.000Z",
-        score: 0
+        score: status === "results" ? 0 : 0
       },
       {
         id: "p2",
         name: "Bob",
         joinedAt: "2026-05-30T12:00:01.000Z",
-        score: 0
+        score: status === "results" ? 100 : 0
       }
     ],
     viewerIsHost: false,
     canStartGame: false,
+    canRestartGame: false,
     minimumPlayersToStart: 2,
     drawerParticipantId: "p1",
     viewerIsDrawer: false,
     viewerCanDraw: false,
-    viewerCanGuess: true,
-    wordVisibility: "hidden",
+    viewerCanGuess: status === "playing",
+    wordVisibility: status === "results" ? "visible" : "hidden",
     canvas: {
       strokes: []
     },
@@ -54,6 +58,7 @@ describe("api service", () => {
             participants: [],
             viewerIsHost: true,
             canStartGame: false,
+            canRestartGame: false,
             minimumPlayersToStart: 2,
             viewerIsDrawer: false,
             viewerCanDraw: false,
@@ -86,6 +91,7 @@ describe("api service", () => {
             participants: [],
             viewerIsHost: true,
             canStartGame: false,
+            canRestartGame: false,
             minimumPlayersToStart: 2,
             viewerIsDrawer: false,
             viewerCanDraw: false,
@@ -116,6 +122,7 @@ describe("api service", () => {
             participants: [],
             viewerIsHost: false,
             canStartGame: false,
+            canRestartGame: false,
             minimumPlayersToStart: 2,
             viewerIsDrawer: false,
             viewerCanDraw: false,
@@ -141,7 +148,7 @@ describe("api service", () => {
       ok: true,
       json: () =>
         Promise.resolve({
-          room: createPlayingSnapshot({
+          room: createSnapshot("playing", {
             viewerIsHost: true,
             viewerIsDrawer: true,
             viewerCanDraw: true,
@@ -164,12 +171,59 @@ describe("api service", () => {
     );
   });
 
+  it("restartGame sends POST to /rooms/:code/restart with participantId in body", async () => {
+    const mockResponse = {
+      ok: true,
+      json: () =>
+        Promise.resolve({
+          room: createSnapshot("lobby", {
+            viewerIsHost: true,
+            canStartGame: true,
+            canRestartGame: false,
+            viewerCanDraw: false,
+            viewerCanGuess: false,
+            drawerParticipantId: undefined,
+            wordVisibility: undefined,
+            secretWord: undefined,
+            roundEndedAt: undefined,
+            canvas: undefined,
+            guessHistory: undefined,
+            participants: [
+              {
+                id: "p1",
+                name: "Alice",
+                joinedAt: "2026-05-30T12:00:00.000Z",
+                score: 0
+              },
+              {
+                id: "p2",
+                name: "Bob",
+                joinedAt: "2026-05-30T12:00:01.000Z",
+                score: 0
+              }
+            ]
+          })
+        })
+    };
+    vi.mocked(fetch).mockResolvedValue(mockResponse as unknown as Response);
+
+    await api.restartGame("ABCD", "p1");
+
+    expect(fetch).toHaveBeenCalledWith(
+      expect.stringContaining("/rooms/ABCD/restart"),
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({ participantId: "p1" })
+      })
+    );
+  });
+
   it("drawStroke sends POST to /rooms/:code/drawing with normalized points", async () => {
     const mockResponse = {
       ok: true,
       json: () =>
         Promise.resolve({
-          room: createPlayingSnapshot({
+          room: createSnapshot("playing", {
             viewerIsHost: true,
             viewerIsDrawer: true,
             viewerCanDraw: true,
@@ -217,7 +271,7 @@ describe("api service", () => {
       ok: true,
       json: () =>
         Promise.resolve({
-          room: createPlayingSnapshot({
+          room: createSnapshot("playing", {
             viewerIsHost: true,
             viewerIsDrawer: true,
             viewerCanDraw: true,
@@ -247,7 +301,9 @@ describe("api service", () => {
       ok: true,
       json: () =>
         Promise.resolve({
-          room: createPlayingSnapshot({
+          room: createSnapshot("results", {
+            secretWord: "rocket",
+            roundEndedAt: "2026-05-30T12:03:00.000Z",
             guessHistory: [
               {
                 id: "guess-1",
@@ -294,7 +350,7 @@ describe("api service", () => {
       ok: true,
       json: () =>
         Promise.resolve({
-          room: createPlayingSnapshot({
+          room: createSnapshot("playing", {
             canvas: {
               strokes: [
                 {
@@ -328,5 +384,44 @@ describe("api service", () => {
     expect(response.room.canvas?.strokes).toHaveLength(1);
     expect(response.room.guessHistory?.[0].scoreAwarded).toBe(0);
     expect(response.room.secretWord).toBeUndefined();
+  });
+
+  it("fetchRoom supports polling a result snapshot with shared word and restart metadata", async () => {
+    const mockResponse = {
+      ok: true,
+      json: () =>
+        Promise.resolve({
+          room: createSnapshot("results", {
+            viewerIsHost: true,
+            canRestartGame: true,
+            viewerCanDraw: false,
+            viewerCanGuess: false,
+            wordVisibility: "visible",
+            secretWord: "rocket",
+            roundEndedAt: "2026-05-30T12:03:00.000Z",
+            guessHistory: [
+              {
+                id: "guess-1",
+                participantId: "p2",
+                participantName: "Bob",
+                guess: "Rocket",
+                isCorrect: true,
+                scoreAwarded: 100,
+                submittedAt: "2026-05-30T12:03:00.000Z"
+              }
+            ]
+          })
+        })
+    };
+    vi.mocked(fetch).mockResolvedValue(mockResponse as unknown as Response);
+
+    const response = await api.fetchRoom("ABCD", "p1");
+
+    expect(response.room.status).toBe("results");
+    expect(response.room.canRestartGame).toBe(true);
+    expect(response.room.secretWord).toBe("rocket");
+    expect(response.room.roundEndedAt).toBeDefined();
+    expect(response.room.viewerCanDraw).toBe(false);
+    expect(response.room.viewerCanGuess).toBe(false);
   });
 });
