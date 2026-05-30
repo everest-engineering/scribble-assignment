@@ -1,10 +1,12 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card } from "../components/Card";
+import { DrawingCanvas } from "../components/DrawingCanvas";
 import { GuessForm } from "../components/GuessForm";
 import { ResultPanel } from "../components/ResultPanel";
 import { RoomCodeBadge } from "../components/RoomCodeBadge";
 import { Scoreboard } from "../components/Scoreboard";
+import type { StrokeInput } from "../services/api";
 import { useRoomState, useRoomStore } from "../state/roomStore";
 
 const POLL_INTERVAL_MS = 2000;
@@ -14,6 +16,7 @@ export function GamePage() {
   const roomStore = useRoomStore();
   const { room, participantId } = useRoomState();
   const [pollError, setPollError] = useState<string | null>(null);
+  const [canvasError, setCanvasError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!room) {
@@ -47,6 +50,41 @@ export function GamePage() {
     };
   }, [room, room?.code, room?.status, roomStore]);
 
+  const handleStrokeComplete = useCallback(
+    async (stroke: StrokeInput) => {
+      setCanvasError(null);
+
+      try {
+        await roomStore.addStroke(stroke);
+      } catch (caughtError) {
+        const message =
+          caughtError instanceof Error ? caughtError.message : "Unable to save stroke";
+        setCanvasError(message);
+        throw caughtError;
+      }
+    },
+    [roomStore]
+  );
+
+  const handleClearCanvas = useCallback(async () => {
+    setCanvasError(null);
+
+    try {
+      await roomStore.clearCanvas();
+    } catch (caughtError) {
+      setCanvasError(
+        caughtError instanceof Error ? caughtError.message : "Unable to clear canvas"
+      );
+    }
+  }, [roomStore]);
+
+  const handleSubmitGuess = useCallback(
+    async (guessText: string) => {
+      await roomStore.submitGuess(guessText);
+    },
+    [roomStore]
+  );
+
   if (!room || room.status === "lobby") {
     return null;
   }
@@ -55,6 +93,8 @@ export function GamePage() {
   const drawer =
     room.participants.find((participant) => participant.role === "drawer") ?? null;
   const isDrawer = viewer?.role === "drawer";
+  const strokes = room.strokes ?? [];
+  const guesses = room.guesses ?? [];
 
   return (
     <section className="panel game-page">
@@ -68,25 +108,28 @@ export function GamePage() {
       </div>
 
       {pollError ? <p className="form__error">{pollError}</p> : null}
+      {canvasError ? <p className="form__error">{canvasError}</p> : null}
 
       <div className="game-page__layout">
         <aside className="game-page__sidebar game-page__sidebar--left">
-          <Scoreboard />
-          <ResultPanel />
+          <Scoreboard participants={room.participants} />
+          <ResultPanel guesses={guesses} />
         </aside>
 
         <div className="game-page__main">
           <Card title="Canvas">
-            <div
-              className="canvas-placeholder"
-              style={{
-                minHeight: "500px",
-                backgroundColor: "#ffffff",
-                border: "1px solid #e5e7eb"
-              }}
-            >
-              {isDrawer ? "You are drawing — canvas coming in Scenario 3." : "Waiting for drawer..."}
-            </div>
+            <DrawingCanvas
+              strokes={strokes}
+              canDraw={isDrawer}
+              onStrokeComplete={handleStrokeComplete}
+            />
+            {isDrawer ? (
+              <div className="button-row button-row--compact" style={{ marginTop: "8px" }}>
+                <button className="button button--secondary" type="button" onClick={handleClearCanvas}>
+                  Clear Canvas
+                </button>
+              </div>
+            ) : null}
           </Card>
         </div>
 
@@ -117,7 +160,7 @@ export function GamePage() {
           {!isDrawer ? (
             <Card title="Your Guess">
               <p style={{ marginBottom: "8px" }}>Watch the drawing and guess the word.</p>
-              <GuessForm />
+              <GuessForm onSubmitGuess={handleSubmitGuess} />
             </Card>
           ) : null}
         </aside>
