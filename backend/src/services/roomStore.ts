@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import type { Participant, Room, RoomSnapshot, ParticipantRole } from "../models/game.js";
+import type { Participant, Room, RoomSnapshot, ParticipantRole, Stroke } from "../models/game.js";
 import { STARTER_WORDS } from "../seed/starterData.js";
 
 const rooms = new Map<string, Room>();
@@ -55,6 +55,10 @@ export function createRoom(playerName?: string) {
     code: generateUniqueCode(),
     status: "lobby",
     participants: [participant],
+    strokes: [],
+    guesses: [],
+    scores: {},
+    lastGuessTime: {},
     createdAt: now(),
     updatedAt: now()
   };
@@ -144,7 +148,10 @@ export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSn
     participants: room.participants.map((participant) => ({ ...participant })),
     currentRound,
     availableWords: listWords(),
-    roles
+    roles,
+    strokes: room.strokes,
+    guesses: room.guesses,
+    scores: room.scores
   };
 }
 
@@ -171,6 +178,8 @@ export function startGame(code: string, participantId: string) {
     roundStatus: "SelectingWord",
     roundEndTime: null
   };
+  room.strokes = [];
+  room.guesses = [];
 
   room.updatedAt = now();
   rooms.set(code, room);
@@ -187,6 +196,69 @@ export function selectWord(code: string, participantId: string, word: string) {
   room.currentRound.secretWord = word;
   room.currentRound.roundStatus = "Drawing";
   room.currentRound.roundEndTime = Date.now() + 60000; // 60 seconds
+
+  room.updatedAt = now();
+  rooms.set(code, room);
+  return { participantId, room: cloneRoom(room) };
+}
+
+export function addStroke(code: string, participantId: string, stroke: Stroke) {
+  const room = rooms.get(code);
+  if (!room || room.status !== "game" || !room.currentRound) throw new Error("Invalid room state");
+  if (room.currentRound.drawerId !== participantId) throw new Error("Only the drawer can draw");
+  if (room.currentRound.roundStatus !== "Drawing") throw new Error("Not currently drawing");
+
+  const existingIndex = room.strokes.findIndex(s => s.id === stroke.id);
+  if (existingIndex >= 0) {
+    room.strokes[existingIndex] = stroke;
+  } else {
+    room.strokes.push(stroke);
+  }
+
+  room.updatedAt = now();
+  rooms.set(code, room);
+  return { participantId, room: cloneRoom(room) };
+}
+
+export function addGuess(code: string, participantId: string, text: string) {
+  const room = rooms.get(code);
+  if (!room || room.status !== "game" || !room.currentRound) throw new Error("Invalid room state");
+  if (room.currentRound.drawerId === participantId) throw new Error("The drawer cannot guess");
+  if (room.currentRound.roundStatus !== "Drawing") throw new Error("Not currently drawing");
+
+  const nowTime = Date.now();
+  const lastGuess = room.lastGuessTime[participantId] || 0;
+  if (nowTime - lastGuess < 1000) {
+    throw new Error("Rate limit exceeded. Please wait 1 second between guesses.");
+  }
+
+  const isCorrect = !!room.currentRound.secretWord && room.currentRound.secretWord.toLowerCase() === text.trim().toLowerCase();
+  
+  const guess: Guess = {
+    userId: participantId,
+    text: text.trim(),
+    timestamp: nowTime,
+    isCorrect
+  };
+
+  room.guesses.push(guess);
+  room.lastGuessTime[participantId] = nowTime;
+
+  if (isCorrect && room.currentRound.roundEndTime) {
+    const timeRemaining = Math.max(0, room.currentRound.roundEndTime - nowTime);
+    const guesserPoints = Math.floor(timeRemaining / 1000) * 10;
+    const drawerPoints = Math.floor(guesserPoints / 2);
+
+    room.scores[participantId] = (room.scores[participantId] || 0) + guesserPoints;
+    room.scores[room.currentRound.drawerId] = (room.scores[room.currentRound.drawerId] || 0) + drawerPoints;
+
+    const guesserIds = room.participants.filter(p => p.id !== room.currentRound!.drawerId).map(p => p.id);
+    const correctGuesserIds = new Set(room.guesses.filter(g => g.isCorrect).map(g => g.userId));
+    
+    if (guesserIds.every(id => correctGuesserIds.has(id))) {
+      room.currentRound.roundStatus = "Ended";
+    }
+  }
 
   room.updatedAt = now();
   rooms.set(code, room);

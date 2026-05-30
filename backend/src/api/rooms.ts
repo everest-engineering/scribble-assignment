@@ -6,9 +6,11 @@ import {
   roomCodeParamsSchema,
   roomViewerQuerySchema,
   startGameSchema,
-  selectWordSchema
+  selectWordSchema,
+  addStrokeSchema,
+  addGuessSchema
 } from "./schemas.js";
-import { createRoom, getRoom, joinRoom, toRoomSnapshot, startGame, selectWord } from "../services/roomStore.js";
+import { createRoom, getRoom, joinRoom, toRoomSnapshot, startGame, selectWord, addStroke, addGuess } from "../services/roomStore.js";
 
 export function createRoomsRouter() {
   const router = Router();
@@ -101,6 +103,44 @@ export function createRoomsRouter() {
       if (error.message === "Room not found") {
         next(new HttpError(404, error.message));
       } else if (error.message === "Invalid room state" || error.message === "Only the drawer can select a word" || error.message === "Word already selected" || error.message === "Invalid word selection") {
+        next(new HttpError(400, error.message));
+      } else {
+        next(error);
+      }
+    }
+  });
+
+  router.post("/:code/strokes", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId, stroke } = addStrokeSchema.parse(request.body);
+      const result = addStroke(code.toUpperCase(), participantId, stroke);
+
+      response.json({
+        participantId: result.participantId,
+        room: toRoomSnapshot(result.room, result.participantId)
+      });
+    } catch (error: any) {
+      if (error.message === "Invalid room state" || error.message === "Only the drawer can draw" || error.message === "Not currently drawing") {
+        next(new HttpError(400, error.message));
+      } else {
+        next(error);
+      }
+    }
+  });
+
+  router.post("/:code/guesses", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId, text } = addGuessSchema.parse(request.body);
+      const result = addGuess(code.toUpperCase(), participantId, text);
+
+      response.json({
+        participantId: result.participantId,
+        room: toRoomSnapshot(result.room, result.participantId)
+      });
+    } catch (error: any) {
+      if (error.message.startsWith("Rate limit") || error.message === "Invalid room state" || error.message === "The drawer cannot guess" || error.message === "Not currently drawing") {
         next(new HttpError(400, error.message));
       } else {
         next(error);
