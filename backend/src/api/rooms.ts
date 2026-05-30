@@ -17,6 +17,10 @@ export function createRoomsRouter() {
       const { playerName } = createRoomSchema.parse(request.body);
       const result = createRoom(playerName);
 
+      if (!result.ok) {
+        throw new HttpError(400, "Player name is required");
+      }
+
       response.status(201).json({
         participantId: result.participantId,
         room: toRoomSnapshot(result.room, result.participantId)
@@ -33,6 +37,10 @@ export function createRoomsRouter() {
       const result = joinRoom(code.toUpperCase(), playerName);
 
       if (!result.ok) {
+        if (result.reason === "empty_name") {
+          throw new HttpError(400, "Player name is required");
+        }
+
         if (result.reason === "game_started") {
           throw new HttpError(409, "Game already started");
         }

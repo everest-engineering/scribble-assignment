@@ -6,15 +6,18 @@ export interface Participant {
   name: string;
   joinedAt: string;
   isHost: boolean;
+  role: ParticipantRole | null;
 }
 
 export interface RoomSnapshot {
   code: string;
   status: RoomStatus;
   hostParticipantId: string;
+  drawerParticipantId: string | null;
   participants: Participant[];
   availableWords: string[];
   roles: ParticipantRole[];
+  secretWord?: string;
 }
 
 export interface RoomSessionResponse {
