@@ -1,0 +1,461 @@
+openapi: 3.1.0
+info:
+  title: Scribble Scenario 4 Rooms API
+  version: 1.0.0
+  description: >
+    Contract for Scenario 4 result-state transition, completed-round review,
+    and host-only restart. The round ends on the first correct accepted guess.
+    Multiple rounds, drawer rotation, timers, bonuses, persistence, and new
+    out-of-scope features are excluded.
+paths:
+  /rooms:
+    post:
+      summary: Create a room with a validated player name
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                playerName:
+                  type: string
+      responses:
+        "201":
+          description: Room created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RoomSessionResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+  /rooms/{code}/join:
+    post:
+      summary: Join an existing room with a validated player name
+      parameters:
+        - $ref: "#/components/parameters/RoomCode"
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                playerName:
+                  type: string
+      responses:
+        "200":
+          description: Room joined
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RoomSessionResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /rooms/{code}:
+    get:
+      summary: Fetch the latest viewer-specific room snapshot
+      parameters:
+        - $ref: "#/components/parameters/RoomCode"
+        - name: participantId
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Room snapshot loaded
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [room]
+                properties:
+                  room:
+                    $ref: "#/components/schemas/RoomSnapshot"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /rooms/{code}/start:
+    post:
+      summary: Start the room and initialize the deterministic round state
+      parameters:
+        - $ref: "#/components/parameters/RoomCode"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [participantId]
+              properties:
+                participantId:
+                  type: string
+      responses:
+        "200":
+          description: Room entered playing state
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [room]
+                properties:
+                  room:
+                    $ref: "#/components/schemas/RoomSnapshot"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+  /rooms/{code}/drawing:
+    post:
+      summary: Append one drawer-authored stroke to the shared canvas
+      parameters:
+        - $ref: "#/components/parameters/RoomCode"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [participantId, points]
+              properties:
+                participantId:
+                  type: string
+                points:
+                  type: array
+                  minItems: 1
+                  items:
+                    $ref: "#/components/schemas/DrawingPoint"
+      responses:
+        "200":
+          description: Stroke accepted and snapshot updated
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [room]
+                properties:
+                  room:
+                    $ref: "#/components/schemas/RoomSnapshot"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+  /rooms/{code}/drawing/clear:
+    post:
+      summary: Clear the shared canvas for the active room
+      parameters:
+        - $ref: "#/components/parameters/RoomCode"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [participantId]
+              properties:
+                participantId:
+                  type: string
+      responses:
+        "200":
+          description: Canvas cleared and snapshot updated
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [room]
+                properties:
+                  room:
+                    $ref: "#/components/schemas/RoomSnapshot"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+  /rooms/{code}/guesses:
+    post:
+      summary: Submit a trimmed guess; the first correct accepted guess ends the round
+      parameters:
+        - $ref: "#/components/parameters/RoomCode"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [participantId, guess]
+              properties:
+                participantId:
+                  type: string
+                guess:
+                  type: string
+      responses:
+        "200":
+          description: Guess accepted and room snapshot updated
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [room]
+                properties:
+                  room:
+                    $ref: "#/components/schemas/RoomSnapshot"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+  /rooms/{code}/restart:
+    post:
+      summary: Restart a completed room back to the lobby while preserving players
+      parameters:
+        - $ref: "#/components/parameters/RoomCode"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [participantId]
+              properties:
+                participantId:
+                  type: string
+      responses:
+        "200":
+          description: Room restarted to lobby
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [room]
+                properties:
+                  room:
+                    $ref: "#/components/schemas/RoomSnapshot"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+components:
+  parameters:
+    RoomCode:
+      name: code
+      in: path
+      required: true
+      schema:
+        type: string
+        pattern: "^[A-Z0-9]{4}$"
+  responses:
+    BadRequest:
+      description: Invalid request payload or malformed room data
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    Forbidden:
+      description: Viewer is not allowed to perform this room action
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    NotFound:
+      description: Room not found
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    Conflict:
+      description: Room state does not allow the requested action
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+  schemas:
+    Participant:
+      type: object
+      additionalProperties: false
+      required: [id, name, joinedAt, score]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        joinedAt:
+          type: string
+          format: date-time
+        score:
+          type: integer
+          minimum: 0
+    DrawingPoint:
+      type: object
+      additionalProperties: false
+      required: [x, y]
+      properties:
+        x:
+          type: number
+        y:
+          type: number
+    DrawingStroke:
+      type: object
+      additionalProperties: false
+      required: [id, points, drawnByParticipantId, createdAt]
+      properties:
+        id:
+          type: string
+        points:
+          type: array
+          items:
+            $ref: "#/components/schemas/DrawingPoint"
+        drawnByParticipantId:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+    CanvasState:
+      type: object
+      additionalProperties: false
+      required: [strokes]
+      properties:
+        strokes:
+          type: array
+          items:
+            $ref: "#/components/schemas/DrawingStroke"
+        clearedAt:
+          type: string
+          format: date-time
+    GuessHistoryEntry:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - participantId
+        - participantName
+        - guess
+        - isCorrect
+        - scoreAwarded
+        - submittedAt
+      properties:
+        id:
+          type: string
+        participantId:
+          type: string
+        participantName:
+          type: string
+        guess:
+          type: string
+        isCorrect:
+          type: boolean
+        scoreAwarded:
+          type: integer
+          enum: [0, 100]
+        submittedAt:
+          type: string
+          format: date-time
+    RoomSnapshot:
+      type: object
+      additionalProperties: false
+      required:
+        - code
+        - status
+        - hostParticipantId
+        - participants
+        - viewerIsHost
+        - canStartGame
+        - canRestartGame
+        - minimumPlayersToStart
+        - viewerIsDrawer
+        - viewerCanDraw
+        - viewerCanGuess
+      properties:
+        code:
+          type: string
+          pattern: "^[A-Z0-9]{4}$"
+        status:
+          type: string
+          enum: [lobby, playing, results]
+        hostParticipantId:
+          type: string
+        participants:
+          type: array
+          items:
+            $ref: "#/components/schemas/Participant"
+        viewerIsHost:
+          type: boolean
+        canStartGame:
+          type: boolean
+        canRestartGame:
+          type: boolean
+        minimumPlayersToStart:
+          type: integer
+          enum: [2]
+        drawerParticipantId:
+          type: string
+        viewerIsDrawer:
+          type: boolean
+        viewerCanDraw:
+          type: boolean
+        viewerCanGuess:
+          type: boolean
+        wordVisibility:
+          type: string
+          enum: [visible, hidden]
+        secretWord:
+          type: string
+        roundEndedAt:
+          type: string
+          format: date-time
+        canvas:
+          $ref: "#/components/schemas/CanvasState"
+        guessHistory:
+          type: array
+          items:
+            $ref: "#/components/schemas/GuessHistoryEntry"
+    RoomSessionResponse:
+      type: object
+      additionalProperties: false
+      required: [participantId, room]
+      properties:
+        participantId:
+          type: string
+        room:
+          $ref: "#/components/schemas/RoomSnapshot"
+    ErrorResponse:
+      type: object
+      additionalProperties: false
+      required: [message]
+      properties:
+        message:
+          type: string
