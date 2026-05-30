@@ -10,7 +10,7 @@ import {
   addStrokeSchema,
   addGuessSchema
 } from "./schemas.js";
-import { createRoom, getRoom, joinRoom, toRoomSnapshot, startGame, selectWord, addStroke, addGuess } from "../services/roomStore.js";
+import { createRoom, getRoom, joinRoom, toRoomSnapshot, startGame, selectWord, addStroke, addGuess, resetRoomToLobby } from "../services/roomStore.js";
 
 export function createRoomsRouter() {
   const router = Router();
@@ -54,7 +54,7 @@ export function createRoomsRouter() {
     try {
       const { code } = roomCodeParamsSchema.parse(request.params);
       const { participantId } = roomViewerQuerySchema.parse(request.query);
-      const room = getRoom(code.toUpperCase());
+      const room = getRoom(code.toUpperCase(), participantId);
 
       if (!room) {
         throw new HttpError(404, "Unable to load room");
@@ -142,6 +142,27 @@ export function createRoomsRouter() {
     } catch (error: any) {
       if (error.message.startsWith("Rate limit") || error.message === "Invalid room state" || error.message === "The drawer cannot guess" || error.message === "Not currently drawing") {
         next(new HttpError(400, error.message));
+      } else {
+        next(error);
+      }
+    }
+  });
+
+  router.post("/:code/reset", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId } = startGameSchema.parse(request.body); // Same shape as start game (just participantId)
+      const result = resetRoomToLobby(code.toUpperCase(), participantId);
+
+      response.json({
+        participantId: result.participantId,
+        room: toRoomSnapshot(result.room, result.participantId)
+      });
+    } catch (error: any) {
+      if (error.message === "Room not found") {
+        next(new HttpError(404, error.message));
+      } else if (error.message === "Only the host can reset the room" || error.message === "Room must be in results phase to reset") {
+        next(new HttpError(403, error.message));
       } else {
         next(error);
       }
