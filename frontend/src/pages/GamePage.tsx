@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card } from "../components/Card";
-import { GuessForm } from "../components/GuessForm";
-import { ResultPanel } from "../components/ResultPanel";
+import { Canvas } from "../components/Canvas";
+import { Chat } from "../components/Chat";
+import { GuessInput } from "../components/GuessInput";
 import { RoomCodeBadge } from "../components/RoomCodeBadge";
 import { Scoreboard } from "../components/Scoreboard";
 import { WordSelection } from "../components/WordSelection";
@@ -75,12 +76,14 @@ export function GamePage() {
       <div className="game-page__layout">
         <aside className="game-page__sidebar game-page__sidebar--left">
           <Scoreboard />
-          <ResultPanel />
+          <div className="mt-4">
+            <Chat />
+          </div>
         </aside>
 
         <div className="game-page__main">
           <Card title="Canvas">
-            <div className="canvas-placeholder" style={{ minHeight: '500px', backgroundColor: '#ffffff', border: '1px solid #e5e7eb', padding: '16px' }}>
+            <div className="canvas-placeholder flex items-center justify-center bg-white" style={{ minHeight: '500px' }}>
               {roundStatus === "SelectingWord" ? (
                 isDrawer ? (
                   <WordSelection 
@@ -89,14 +92,12 @@ export function GamePage() {
                     isLoading={isSelecting} 
                   />
                 ) : (
-                  <div>Waiting for drawer to pick a word...</div>
+                  <div className="text-gray-500 font-medium">Waiting for drawer to pick a word...</div>
                 )
               ) : roundStatus === "Drawing" ? (
-                <div>
-                  {isDrawer ? "You are drawing! (Canvas coming soon)" : "Drawer is drawing... (Canvas coming soon)"}
-                </div>
+                <Canvas strokes={room.strokes || []} isDrawer={isDrawer} width={800} height={500} />
               ) : (
-                <div>Waiting...</div>
+                <div className="text-gray-500 font-medium">Waiting...</div>
               )}
             </div>
           </Card>
@@ -117,7 +118,7 @@ export function GamePage() {
           </Card>
 
           <Card title="Your Guess">
-            <GuessForm />
+            <GuessInput />
           </Card>
         </aside>
       </div>
