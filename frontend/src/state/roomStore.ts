@@ -2,12 +2,11 @@ import {
   createElement,
   createContext,
   useContext,
-  useEffect,
   useRef,
   useSyncExternalStore,
   type PropsWithChildren
 } from "react";
-import { api, type RoomSessionResponse, type RoomSnapshot } from "../services/api";
+import { api, type DrawingData, type RoomSessionResponse, type RoomSnapshot } from "../services/api";
 
 export interface RoomState {
   room: RoomSnapshot | null;
@@ -98,6 +97,56 @@ class RoomStore {
     this.setRoomSnapshot(response.room);
     return response.room;
   }
+
+  async startGame() {
+    if (!this.state.room || !this.state.participantId) {
+      return null;
+    }
+
+    const response = await this.withLoading(() => api.startGame(this.state.room!.code, this.state.participantId!));
+    this.setRoomSnapshot(response.room);
+    return response.room;
+  }
+
+  async updateDrawing(drawing: DrawingData) {
+    if (!this.state.room || !this.state.participantId) {
+      return null;
+    }
+
+    const response = await api.updateDrawing(this.state.room.code, this.state.participantId, drawing);
+    this.setRoomSnapshot(response.room);
+    return response.room;
+  }
+
+  async clearDrawing() {
+    if (!this.state.room || !this.state.participantId) {
+      return null;
+    }
+
+    const response = await api.clearDrawing(this.state.room.code, this.state.participantId);
+    this.setRoomSnapshot(response.room);
+    return response.room;
+  }
+
+  async submitGuess(text: string) {
+    if (!this.state.room || !this.state.participantId) {
+      return null;
+    }
+
+    const response = await this.withLoading(() => api.submitGuess(this.state.room!.code, this.state.participantId!, text));
+    this.setRoomSnapshot(response.room);
+    return response.room;
+  }
+
+  async restartGame() {
+    if (!this.state.room || !this.state.participantId) {
+      return null;
+    }
+
+    const response = await this.withLoading(() => api.restartGame(this.state.room!.code, this.state.participantId!));
+    this.setRoomSnapshot(response.room);
+    return response.room;
+  }
 }
 
 const RoomStoreContext = createContext<RoomStore | null>(null);
@@ -108,8 +157,6 @@ export function RoomStoreProvider({ children }: PropsWithChildren) {
   if (!storeRef.current) {
     storeRef.current = new RoomStore();
   }
-
-  useEffect(() => undefined, []);
 
   return createElement(RoomStoreContext.Provider, { value: storeRef.current }, children);
 }
