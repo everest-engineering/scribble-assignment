@@ -102,6 +102,38 @@ class RoomStore {
     return response;
   }
 
+  async saveDrawing(drawingData: string) {
+    if (!this.state.room || !this.state.participantId) {
+      return;
+    }
+
+    await api.saveDrawing(this.state.room.code, this.state.participantId, drawingData);
+  }
+
+  async clearDrawing() {
+    if (!this.state.room || !this.state.participantId) {
+      return;
+    }
+
+    const response = await api.clearDrawing(this.state.room.code, this.state.participantId);
+    this.setRoomSnapshot(response.room);
+  }
+
+  async submitGuess(text: string) {
+    if (!this.state.room || !this.state.participantId) {
+      return { error: "No active room" };
+    }
+
+    try {
+      const response = await api.submitGuess(this.state.room.code, this.state.participantId, text);
+      this.setRoomSnapshot(response.room);
+      return { room: response.room };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to submit guess";
+      return { error: message };
+    }
+  }
+
   async fetchRoom() {
     if (!this.state.room) {
       return null;
