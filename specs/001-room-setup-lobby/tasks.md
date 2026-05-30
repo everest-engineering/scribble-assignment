@@ -71,8 +71,8 @@ with a message.
 
 ### Implementation for User Story 2
 
-- [ ] T006 [P] Update `joinRoomSchema` to `z.string().trim().min(1, "Player name is required")` in `backend/src/api/schemas.ts`
-- [ ] T007 [P] Add client-side trim + empty check for both `playerName` and `roomCode` before calling `roomStore.joinRoom()` in `frontend/src/pages/JoinRoomPage.tsx`
+- [x] T006 [P] Update `joinRoomSchema` to `z.string().trim().min(1, "Player name is required")` in `backend/src/api/schemas.ts`
+- [x] T007 [P] Add client-side trim + empty check for both `playerName` and `roomCode` before calling `roomStore.joinRoom()` in `frontend/src/pages/JoinRoomPage.tsx`
 
 **Checkpoint**: User Stories 1 and 2 both work independently. Two players can be
 in the same lobby.
