@@ -87,16 +87,16 @@
 
 ### Functional Requirements
 
-- **FR-001**: System MUST [specific capability, e.g., "allow users to create accounts"]
-- **FR-002**: System MUST [specific capability, e.g., "validate email addresses"]
-- **FR-003**: Users MUST be able to [key interaction, e.g., "reset their password"]
-- **FR-004**: System MUST [data requirement, e.g., "persist user preferences"]
-- **FR-005**: System MUST [behavior, e.g., "log all security events"]
+- **FR-001**: System MUST [specific Scribble capability, e.g., "allow a host to create a room"]
+- **FR-002**: System MUST [validation behavior, e.g., "reject empty player names"]
+- **FR-003**: Users MUST be able to [key interaction, e.g., "join a room by code"]
+- **FR-004**: System MUST [state requirement, e.g., "keep rooms isolated in memory"]
+- **FR-005**: System MUST [sync behavior, e.g., "refresh lobby state by HTTP polling"]
 
 *Example of marking unclear requirements:*
 
-- **FR-006**: System MUST authenticate users via [NEEDS CLARIFICATION: auth method not specified - email/password, SSO, OAuth?]
-- **FR-007**: System MUST retain user data for [NEEDS CLARIFICATION: retention period not specified]
+- **FR-006**: System MUST select the drawer using [NEEDS CLARIFICATION: host, first player, or another deterministic rule?]
+- **FR-007**: System MUST end the round when [NEEDS CLARIFICATION: correct guess, host action, or another bounded event?]
 
 ### Key Entities *(include if feature involves data)*
 
@@ -126,6 +126,6 @@
 -->
 
 - [Assumption about target users, e.g., "Users have stable internet connectivity"]
-- [Assumption about scope boundaries, e.g., "Mobile support is out of scope for v1"]
-- [Assumption about data/environment, e.g., "Existing authentication system will be reused"]
+- [Assumption about scope boundaries, e.g., "Authentication and persistence are out of scope"]
+- [Assumption about data/environment, e.g., "Backend restarts clear all rooms"]
 - [Dependency on existing system/service, e.g., "Requires access to the existing user profile API"]

@@ -40,7 +40,16 @@
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-[Gates determined based on constitution file]
+- HTTP polling only: confirm no WebSockets, Socket.io, Server-Sent Events, or push
+  protocols are introduced; document polling cadence for each synced view.
+- In-memory room state only: confirm no database, file persistence, queue, cache, or
+  external state service is introduced; document cleanup/reset behavior.
+- TypeScript and Zod contracts: document API request/response schemas and where backend
+  validation will live.
+- Scenario traceability: map the plan to the relevant README scenario group and its
+  acceptance criteria.
+- Incremental review: identify build/test/manual two-browser verification steps for the
+  slice and record any skipped validation risk.
 
 ## Project Structure
 
@@ -109,5 +118,5 @@ directories captured above]
 
 | Violation | Why Needed | Simpler Alternative Rejected Because |
 |-----------|------------|-------------------------------------|
-| [e.g., 4th project] | [current need] | [why 3 projects insufficient] |
-| [e.g., Repository pattern] | [specific problem] | [why direct DB access insufficient] |
+| [e.g., new dependency] | [specific scenario need] | [why existing React/Express/TypeScript tools are insufficient] |
+| [e.g., broader shared model] | [specific API/state contract need] | [why local types in existing modules are insufficient] |
