@@ -28,7 +28,29 @@ describe("api service", () => {
     );
   });
 
-  it("fetchRoom sends GET to /rooms/:code with participantId query param", async () => {
+  it("joinRoom normalizes lowercase room codes to uppercase", async () => {
+    const mockResponse = {
+      ok: true,
+      json: () =>
+        Promise.resolve({
+          participantId: "p2",
+          room: { code: "ABCD", status: "lobby", participants: [] },
+        }),
+    };
+    vi.mocked(fetch).mockResolvedValue(mockResponse as unknown as Response);
+
+    await api.joinRoom("abcd", "Bob");
+
+    expect(fetch).toHaveBeenCalledWith(
+      expect.stringContaining("/rooms/ABCD/join"),
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({ playerName: "Bob" })
+      })
+    );
+  });
+
+  it("fetchRoom sends GET to /rooms/:code with participantId query param and normalized uppercase code", async () => {
     const mockResponse = {
       ok: true,
       json: () =>
@@ -38,11 +60,53 @@ describe("api service", () => {
     };
     vi.mocked(fetch).mockResolvedValue(mockResponse as unknown as Response);
 
-    await api.fetchRoom("XYZW", "p1");
+    await api.fetchRoom("xyzw", "p1");
 
     expect(fetch).toHaveBeenCalledWith(
       expect.stringContaining("/rooms/XYZW?participantId=p1"),
       expect.anything()
+    );
+  });
+
+  it("startGame posts participant identity to the normalized room start endpoint", async () => {
+    const mockResponse = {
+      ok: true,
+      json: () =>
+        Promise.resolve({
+          room: { code: "ABCD", status: "playing", participants: [] },
+        }),
+    };
+    vi.mocked(fetch).mockResolvedValue(mockResponse as unknown as Response);
+
+    await api.startGame("abcd", "p1");
+
+    expect(fetch).toHaveBeenCalledWith(
+      expect.stringContaining("/rooms/ABCD/start"),
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({ participantId: "p1" })
+      })
+    );
+  });
+
+  it("submitGuess posts trimmed guess text to the normalized guesses endpoint", async () => {
+    const mockResponse = {
+      ok: true,
+      json: () =>
+        Promise.resolve({
+          room: { code: "ABCD", status: "results", participants: [] },
+        }),
+    };
+    vi.mocked(fetch).mockResolvedValue(mockResponse as unknown as Response);
+
+    await api.submitGuess("abcd", "p2", "rocket");
+
+    expect(fetch).toHaveBeenCalledWith(
+      expect.stringContaining("/rooms/ABCD/guesses"),
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({ participantId: "p2", text: "rocket" })
+      })
     );
   });
 });
