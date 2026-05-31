@@ -207,6 +207,15 @@ Check if `.specify/extensions.yml` exists in the project root.
     To execute: `/{command}`
     ```
 
+## Mandatory Post-Validation Commit
+
+**You MUST complete this after acceptance-criteria validation passes** (two browser tabs, builds, scenario checklist).
+
+Check if `.specify/extensions.yml` exists and has `hooks.after_validate`.
+- If registered, emit `EXECUTE_COMMAND: speckit.git.commit` and run:
+  `.specify/extensions/git/scripts/bash/auto-commit.sh after_validate`
+- If not registered, still run the auto-commit script with event `after_validate` when validation completes.
+
 ## Completion Report
 
 Report final status with summary of completed work.
@@ -216,4 +225,5 @@ Report final status with summary of completed work.
 - [ ] All tasks in tasks.md completed and marked `[X]`
 - [ ] Implementation validated against specification, plan, and test coverage
 - [ ] Extension hooks dispatched or skipped according to the rules in Mandatory Post-Execution Hooks above
+- [ ] After acceptance-criteria validation, auto-commit executed with event `after_validate`
 - [ ] Completion reported to user with summary of completed work

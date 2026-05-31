@@ -36,13 +36,14 @@ This extension provides Git operations as an optional, self-contained module. It
 | `before_analyze` | `speckit.git.commit` | Yes | Commit outstanding changes before analysis |
 | `before_taskstoissues` | `speckit.git.commit` | Yes | Commit outstanding changes before issue sync |
 | `after_constitution` | `speckit.git.commit` | Yes | Auto-commit after constitution update |
-| `after_specify` | `speckit.git.commit` | Yes | Auto-commit after specification |
-| `after_clarify` | `speckit.git.commit` | Yes | Auto-commit after clarification |
-| `after_plan` | `speckit.git.commit` | Yes | Auto-commit after planning |
-| `after_tasks` | `speckit.git.commit` | Yes | Auto-commit after task generation |
-| `after_implement` | `speckit.git.commit` | Yes | Auto-commit after implementation |
-| `after_checklist` | `speckit.git.commit` | Yes | Auto-commit after checklist |
-| `after_analyze` | `speckit.git.commit` | Yes | Auto-commit after analysis |
+| `after_specify` | `speckit.git.commit` | No | Auto-commit after specification |
+| `after_clarify` | `speckit.git.commit` | No | Auto-commit after clarification |
+| `after_plan` | `speckit.git.commit` | No | Auto-commit after planning |
+| `after_tasks` | `speckit.git.commit` | No | Auto-commit after task generation |
+| `after_implement` | `speckit.git.commit` | No | Auto-commit after implementation |
+| `after_validate` | `speckit.git.commit` | No | Auto-commit after acceptance-criteria validation |
+| `after_checklist` | `speckit.git.commit` | No | Auto-commit after checklist generation |
+| `after_analyze` | `speckit.git.commit` | No | Auto-commit after analysis |
 | `after_taskstoissues` | `speckit.git.commit` | Yes | Auto-commit after issue sync |
 
 ## Configuration
