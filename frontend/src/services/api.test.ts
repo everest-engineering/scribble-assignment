@@ -6,13 +6,26 @@ describe("api service", () => {
     vi.stubGlobal("fetch", vi.fn());
   });
 
+  const baseRoom = {
+    code: "ABCD",
+    status: "lobby" as const,
+    hostId: "p1",
+    participants: [],
+    currentRound: 0,
+    drawerId: "",
+    secretWord: null,
+    availableWords: [],
+    roles: [] as string[],
+    isHost: true,
+  };
+
   it("createRoom sends POST to /rooms with playerName in body", async () => {
     const mockResponse = {
       ok: true,
       json: () =>
         Promise.resolve({
           participantId: "p1",
-          room: { code: "ABCD", status: "lobby", participants: [] },
+          room: baseRoom,
         }),
     };
     vi.mocked(fetch).mockResolvedValue(mockResponse as unknown as Response);
@@ -33,7 +46,7 @@ describe("api service", () => {
       ok: true,
       json: () =>
         Promise.resolve({
-          room: { code: "XYZW", status: "lobby", participants: [] },
+          room: baseRoom,
         }),
     };
     vi.mocked(fetch).mockResolvedValue(mockResponse as unknown as Response);
@@ -43,6 +56,27 @@ describe("api service", () => {
     expect(fetch).toHaveBeenCalledWith(
       expect.stringContaining("/rooms/XYZW?participantId=p1"),
       expect.anything()
+    );
+  });
+
+  it("startGame sends POST to /rooms/:code/start with participantId", async () => {
+    const mockResponse = {
+      ok: true,
+      json: () =>
+        Promise.resolve({
+          room: { ...baseRoom, status: "playing" as const },
+        }),
+    };
+    vi.mocked(fetch).mockResolvedValue(mockResponse as unknown as Response);
+
+    await api.startGame("ABCD", "p1");
+
+    expect(fetch).toHaveBeenCalledWith(
+      expect.stringContaining("/rooms/ABCD/start"),
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({ participantId: "p1" }),
+      })
     );
   });
 });
