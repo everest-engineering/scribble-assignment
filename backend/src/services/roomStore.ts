@@ -288,6 +288,7 @@ export function submitGuess(code: string, participantId: string, guess: string):
 
     if (evaluation.correct) {
       room.scores[participantId] = (room.scores[participantId] ?? 0) + 100;
+      room.status = "result";
     }
 
     room.updatedAt = now();
@@ -306,16 +307,60 @@ export function submitGuess(code: string, participantId: string, guess: string):
   }
 }
 
+function includesRoundFields(status: Room["status"]) {
+  return status === "playing" || status === "result";
+}
+
+export type RestartRoomResult =
+  | { status: "restarted"; room: Room }
+  | { status: "not_found" }
+  | { status: "not_host" }
+  | { status: "not_result" };
+
+export function restartRoom(code: string, participantId: string): RestartRoomResult {
+  const room = rooms.get(code);
+
+  if (!room) {
+    return { status: "not_found" };
+  }
+
+  if (room.status !== "result") {
+    return { status: "not_result" };
+  }
+
+  if (room.hostId !== participantId) {
+    return { status: "not_host" };
+  }
+
+  room.status = "lobby";
+  room.drawerId = null;
+  room.secretWord = null;
+  room.scores = {};
+  room.strokes = [];
+  room.guesses = [];
+  room.updatedAt = now();
+  rooms.set(room.code, room);
+
+  return {
+    status: "restarted",
+    room: cloneRoom(room)
+  };
+}
+
 export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSnapshot {
+  void viewerParticipantId;
+
   const snapshot: RoomSnapshot = {
     code: room.code,
     status: room.status,
     hostId: room.hostId,
     drawerId: room.drawerId,
     participants: room.participants.map((participant) => ({ ...participant })),
-    scores: room.status === "playing" ? { ...room.scores } : {},
-    strokes: room.status === "playing" ? room.strokes.map((stroke) => structuredClone(stroke)) : [],
-    guesses: room.status === "playing" ? room.guesses.map((guess) => ({ ...guess })) : [],
+    scores: includesRoundFields(room.status) ? { ...room.scores } : {},
+    strokes: includesRoundFields(room.status)
+      ? room.strokes.map((stroke) => structuredClone(stroke))
+      : [],
+    guesses: includesRoundFields(room.status) ? room.guesses.map((guess) => ({ ...guess })) : [],
     roles: [...STARTER_ROLES]
   };
 
@@ -324,7 +369,12 @@ export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSn
     return snapshot;
   }
 
-  if (viewerParticipantId && viewerParticipantId === room.drawerId && room.secretWord) {
+  if (room.status === "result" && room.secretWord) {
+    snapshot.secretWord = room.secretWord;
+    return snapshot;
+  }
+
+  if (room.status === "playing" && viewerParticipantId === room.drawerId && room.secretWord) {
     snapshot.secretWord = room.secretWord;
   }
 

@@ -7,6 +7,7 @@ import {
   joinRoomSchema,
   roomCodeParamsSchema,
   roomViewerQuerySchema,
+  restartRoomSchema,
   startGameSchema,
   submitGuessSchema
 } from "./schemas.js";
@@ -16,6 +17,7 @@ import {
   createRoom,
   getRoom,
   joinRoom,
+  restartRoom,
   startGame,
   submitGuess,
   toRoomSnapshot
@@ -167,6 +169,32 @@ export function createRoomsRouter() {
 
       if (result.status === "invalid_guess") {
         throw new HttpError(400, result.message);
+      }
+
+      response.json({
+        room: toRoomSnapshot(result.room, participantId)
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/:code/restart", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId } = restartRoomSchema.parse(request.body);
+      const result = restartRoom(code, participantId);
+
+      if (result.status === "not_found") {
+        throw new HttpError(404, "Room not found");
+      }
+
+      if (result.status === "not_result") {
+        throw new HttpError(409, "Round has not ended yet");
+      }
+
+      if (result.status === "not_host") {
+        throw new HttpError(403, "Only the host can restart the game");
       }
 
       response.json({

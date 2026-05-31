@@ -26,6 +26,11 @@ export function GamePage() {
       return;
     }
 
+    if (room.status === "result") {
+      navigate("/result", { replace: true });
+      return;
+    }
+
     if (room.status !== "playing") {
       navigate("/lobby", { replace: true });
     }
@@ -85,9 +90,12 @@ export function GamePage() {
 
   const handleSubmitGuess = useCallback(
     async (guess: string) => {
-      await roomStore.submitGuess(guess);
+      const snapshot = await roomStore.submitGuess(guess);
+      if (snapshot.status === "result") {
+        navigate("/result", { replace: true });
+      }
     },
-    [roomStore]
+    [navigate, roomStore]
   );
 
   if (!room || !participantId || room.status !== "playing") {
