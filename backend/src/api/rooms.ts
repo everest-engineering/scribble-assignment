@@ -1,14 +1,16 @@
 import { Router } from "express";
 import {
   createRoomSchema,
+  endRoundSchema,
   HttpError,
   joinRoomSchema,
+  restartSchema,
   roomCodeParamsSchema,
   roomViewerQuerySchema,
   startGameSchema,
   submitGuessSchema
 } from "./schemas.js";
-import { createRoom, getGuesses, getRoom, joinRoom, startGame, submitGuess, toRoomSnapshot } from "../services/roomStore.js";
+import { createRoom, endRound, getGuesses, getRoom, joinRoom, restartGame, startGame, submitGuess, toRoomSnapshot } from "../services/roomStore.js";
 
 export function createRoomsRouter() {
   const router = Router();
@@ -115,6 +117,41 @@ export function createRoomsRouter() {
       }
 
       response.json(result);
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/:code/end-round", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId } = endRoundSchema.parse(request.body);
+      const result = endRound(code.toUpperCase(), participantId);
+
+      if ("error" in result) {
+        if (result.error === "not-found") throw new HttpError(404, "Room not found");
+        if (result.error === "not-in-progress") throw new HttpError(409, "Round can only be ended from in-progress state");
+        throw new HttpError(403, "Only the host can end the round");
+      }
+
+      response.json({ room: toRoomSnapshot(result.room) });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/:code/restart", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId } = restartSchema.parse(request.body);
+      const result = restartGame(code.toUpperCase(), participantId);
+
+      if ("error" in result) {
+        if (result.error === "not-found") throw new HttpError(404, "Room not found");
+        throw new HttpError(403, "Only the host can restart the game");
+      }
+
+      response.json({ room: toRoomSnapshot(result.room) });
     } catch (error) {
       next(error);
     }

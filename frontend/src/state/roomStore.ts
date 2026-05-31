@@ -107,6 +107,24 @@ class RoomStore {
     this.setRoomSnapshot(response.room);
     return response;
   }
+
+  async endRound() {
+    const { room, participantId } = this.state;
+    if (!room || !participantId) return null;
+
+    const response = await this.withLoading(() => api.endRound(room.code, participantId));
+    this.setRoomSnapshot(response.room);
+    return response;
+  }
+
+  async restartGame() {
+    const { room, participantId } = this.state;
+    if (!room || !participantId) return null;
+
+    const response = await this.withLoading(() => api.restartGame(room.code, participantId));
+    this.setRoomSnapshot(response.room);
+    return response;
+  }
 }
 
 const RoomStoreContext = createContext<RoomStore | null>(null);

@@ -164,6 +164,33 @@ export function saveRoom(room: Room) {
   return getRoom(room.code);
 }
 
+export function endRound(code: string, participantId: string) {
+  const room = rooms.get(code);
+  if (!room) return { error: "not-found" as const };
+  if (room.status !== "in-progress") return { error: "not-in-progress" as const };
+  if (room.hostId !== participantId) return { error: "not-host" as const };
+
+  room.status = "finished";
+  room.updatedAt = now();
+  rooms.set(room.code, room);
+
+  return { room: cloneRoom(room) };
+}
+
+export function restartGame(code: string, participantId: string) {
+  const room = rooms.get(code);
+  if (!room) return { error: "not-found" as const };
+  if (room.hostId !== participantId) return { error: "not-host" as const };
+  if (room.status === "lobby") return { room: cloneRoom(room) };
+
+  room.currentRound = undefined;
+  room.status = "lobby";
+  room.updatedAt = now();
+  rooms.set(room.code, room);
+
+  return { room: cloneRoom(room) };
+}
+
 export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSnapshot {
   const snapshot: RoomSnapshot = {
     code: room.code,
@@ -174,7 +201,17 @@ export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSn
     roles: [...STARTER_ROLES]
   };
 
-  if (room.currentRound) {
+  if (room.status === "finished" && room.currentRound) {
+    const round = room.currentRound;
+    snapshot.currentDrawerId = round.drawerId;
+    snapshot.secretWord = STARTER_WORDS[round.wordIndex];
+    const result = {
+      revealedWord: STARTER_WORDS[round.wordIndex],
+      scores: { ...round.scores },
+      guesses: round.guesses.map((g) => ({ ...g })),
+    };
+    snapshot.result = result;
+  } else if (room.currentRound) {
     snapshot.currentDrawerId = room.currentRound.drawerId;
     if (viewerParticipantId === room.currentRound.drawerId) {
       snapshot.secretWord = STARTER_WORDS[room.currentRound.wordIndex];

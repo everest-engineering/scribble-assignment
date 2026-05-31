@@ -27,7 +27,7 @@ description: "Task list for Result, Restart & Final Validation"
 
 **Purpose**: Confirm the existing project builds cleanly before any changes are introduced
 
-- [ ] T001 Verify baseline build passes: run `npm run build` in `backend/` and `npm run build` in `frontend/`
+- [X] T001 Verify baseline build passes: run `npm run build` in `backend/` and `npm run build` in `frontend/`
 
 ---
 
@@ -37,10 +37,10 @@ description: "Task list for Result, Restart & Final Validation"
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T002 Add `"finished"` to the `RoomStatus` union type in `backend/src/models/game.ts`
-- [ ] T003 Add `RoundResult` interface (`revealedWord`, `scores`, `guesses`) in `backend/src/models/game.ts`
-- [ ] T004 Add optional `result?: RoundResult` field to `RoomSnapshot` interface in `backend/src/models/game.ts`
-- [ ] T005 [P] Mirror `"finished"` status value and `RoundResult` type (inline or imported) in `frontend/src/services/api.ts`
+- [X] T002 Add `"finished"` to the `RoomStatus` union type in `backend/src/models/game.ts`
+- [X] T003 Add `RoundResult` interface (`revealedWord`, `scores`, `guesses`) in `backend/src/models/game.ts`
+- [X] T004 Add optional `result?: RoundResult` field to `RoomSnapshot` interface in `backend/src/models/game.ts`
+- [X] T005 [P] Mirror `"finished"` status value and `RoundResult` type (inline or imported) in `frontend/src/services/api.ts`
 
 **Checkpoint**: Type system updated — user story implementation can now begin
 
@@ -54,15 +54,15 @@ description: "Task list for Result, Restart & Final Validation"
 
 ### Implementation for User Story 1
 
-- [ ] T006 [P] [US1] Add `EndRoundBody` Zod schema (`{ participantId: string }`) in `backend/src/api/schemas.ts`
-- [ ] T007 [US1] Implement `endRound(code, participantId)` in `backend/src/services/roomStore.ts`: validate `status === "in-progress"` (409), validate host (403), set `status = "finished"`, refresh `updatedAt`, return snapshot
-- [ ] T008 [US1] Update `toRoomSnapshot()` in `backend/src/services/roomStore.ts`: when `status === "finished"`, expose `secretWord` to all participants and populate the `result` field from `currentRound`
-- [ ] T009 [US1] Add `POST /rooms/:code/end-round` route handler in `backend/src/api/rooms.ts` using `EndRoundBody` schema and calling `endRound()`
-- [ ] T010 [P] [US1] Add `endRound(code: string, participantId: string)` fetch function in `frontend/src/services/api.ts`
-- [ ] T011 [US1] Add `endRound()` action in `frontend/src/state/roomStore.ts` that calls the API function and updates local room state
-- [ ] T012 [US1] Add room-status polling (2 s interval) and a host-only "End Round" button to `frontend/src/pages/GamePage.tsx`; navigate to `/result` when polled `room.status === "finished"`
-- [ ] T013 [P] [US1] Create `frontend/src/pages/ResultPage.tsx`: display `room.result.revealedWord`, per-player scores table from `room.result.scores`, and ordered guess list from `room.result.guesses`; poll `GET /rooms/:code` every 2 s
-- [ ] T014 [US1] Register `/result` route pointing to `ResultPage` in `frontend/src/routes/index.tsx`
+- [X] T006 [P] [US1] Add `EndRoundBody` Zod schema (`{ participantId: string }`) in `backend/src/api/schemas.ts`
+- [X] T007 [US1] Implement `endRound(code, participantId)` in `backend/src/services/roomStore.ts`: validate `status === "in-progress"` (409), validate host (403), set `status = "finished"`, refresh `updatedAt`, return snapshot
+- [X] T008 [US1] Update `toRoomSnapshot()` in `backend/src/services/roomStore.ts`: when `status === "finished"`, expose `secretWord` to all participants and populate the `result` field from `currentRound`
+- [X] T009 [US1] Add `POST /rooms/:code/end-round` route handler in `backend/src/api/rooms.ts` using `EndRoundBody` schema and calling `endRound()`
+- [X] T010 [P] [US1] Add `endRound(code: string, participantId: string)` fetch function in `frontend/src/services/api.ts`
+- [X] T011 [US1] Add `endRound()` action in `frontend/src/state/roomStore.ts` that calls the API function and updates local room state
+- [X] T012 [US1] Add room-status polling (2 s interval) and a host-only "End Round" button to `frontend/src/pages/GamePage.tsx`; navigate to `/result` when polled `room.status === "finished"`
+- [X] T013 [P] [US1] Create `frontend/src/pages/ResultPage.tsx`: display `room.result.revealedWord`, per-player scores table from `room.result.scores`, and ordered guess list from `room.result.guesses`; poll `GET /rooms/:code` every 2 s
+- [X] T014 [US1] Register `/result` route pointing to `ResultPage` in `frontend/src/routes/index.tsx`
 
 **Checkpoint**: US1 complete — host can end round and all clients see the result screen independently
 
@@ -76,12 +76,12 @@ description: "Task list for Result, Restart & Final Validation"
 
 ### Implementation for User Story 2
 
-- [ ] T015 [P] [US2] Add `RestartBody` Zod schema (`{ participantId: string }`) in `backend/src/api/schemas.ts`
-- [ ] T016 [US2] Implement `restartGame(code, participantId)` in `backend/src/services/roomStore.ts`: if `status === "lobby"` return current snapshot (no-op); validate host (403); set `currentRound = undefined`, `status = "lobby"`, refresh `updatedAt`; return snapshot
-- [ ] T017 [US2] Add `POST /rooms/:code/restart` route handler in `backend/src/api/rooms.ts` using `RestartBody` schema and calling `restartGame()`
-- [ ] T018 [P] [US2] Add `restartGame(code: string, participantId: string)` fetch function in `frontend/src/services/api.ts`
-- [ ] T019 [US2] Add `restartGame()` action in `frontend/src/state/roomStore.ts` that calls the API function and updates local room state
-- [ ] T020 [US2] Add "Restart" button and lobby-status poll to `frontend/src/pages/ResultPage.tsx`; navigate to `/lobby` when polled `room.status === "lobby"`
+- [X] T015 [P] [US2] Add `RestartBody` Zod schema (`{ participantId: string }`) in `backend/src/api/schemas.ts`
+- [X] T016 [US2] Implement `restartGame(code, participantId)` in `backend/src/services/roomStore.ts`: if `status === "lobby"` return current snapshot (no-op); validate host (403); set `currentRound = undefined`, `status = "lobby"`, refresh `updatedAt`; return snapshot
+- [X] T017 [US2] Add `POST /rooms/:code/restart` route handler in `backend/src/api/rooms.ts` using `RestartBody` schema and calling `restartGame()`
+- [X] T018 [P] [US2] Add `restartGame(code: string, participantId: string)` fetch function in `frontend/src/services/api.ts`
+- [X] T019 [US2] Add `restartGame()` action in `frontend/src/state/roomStore.ts` that calls the API function and updates local room state
+- [X] T020 [US2] Add "Restart" button and lobby-status poll to `frontend/src/pages/ResultPage.tsx`; navigate to `/lobby` when polled `room.status === "lobby"`
 
 **Checkpoint**: US2 complete — host can restart and all clients return to lobby independently
 
@@ -95,7 +95,7 @@ description: "Task list for Result, Restart & Final Validation"
 
 ### Implementation for User Story 3
 
-- [ ] T021 [US3] Gate the "Restart" button in `frontend/src/pages/ResultPage.tsx` with a condition that compares the stored `participantId` against `room.hostId`; non-host view renders no restart control
+- [X] T021 [US3] Gate the "Restart" button in `frontend/src/pages/ResultPage.tsx` with a condition that compares the stored `participantId` against `room.hostId`; non-host view renders no restart control
 
 **Checkpoint**: US3 complete — restart access is fully restricted to the host
 
@@ -105,8 +105,8 @@ description: "Task list for Result, Restart & Final Validation"
 
 **Purpose**: Regression verification and manual end-to-end validation across all stories
 
-- [ ] T022 [P] Run backend test suite (`npm test` in `backend/`) and confirm all existing tests pass with the new `"finished"` status and new endpoints in place
-- [ ] T023 [P] Run frontend test suite (`npm test` in `frontend/`) and confirm no regressions in existing service and component tests
+- [X] T022 [P] Run backend test suite (`npm test` in `backend/`) and confirm all existing tests pass with the new `"finished"` status and new endpoints in place
+- [X] T023 [P] Run frontend test suite (`npm test` in `frontend/`) and confirm no regressions in existing service and component tests
 - [ ] T024 Execute all six manual verification scenarios from `specs/004-result-restart-validation/quickstart.md` (Tests 1–6: end round, restart, host-only button, non-host API rejection, zero-guess result, idempotent restart)
 
 ---

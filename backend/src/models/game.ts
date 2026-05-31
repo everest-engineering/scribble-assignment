@@ -1,5 +1,5 @@
 export type ParticipantRole = "drawer" | "guesser";
-export type RoomStatus = "lobby" | "in-progress";
+export type RoomStatus = "lobby" | "in-progress" | "finished";
 
 export interface Participant {
   id: string;
@@ -32,6 +32,12 @@ export interface Room {
   updatedAt: string;
 }
 
+export interface RoundResult {
+  revealedWord: string;
+  scores: Record<string, number>;
+  guesses: GuessEntry[];
+}
+
 export interface RoomSnapshot {
   code: string;
   status: RoomStatus;
@@ -41,6 +47,7 @@ export interface RoomSnapshot {
   roles: ParticipantRole[];
   currentDrawerId?: string;
   secretWord?: string;
+  result?: RoundResult;
 }
 
 export interface RoomSessionResponse {

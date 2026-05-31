@@ -13,15 +13,22 @@ export interface Participant {
   joinedAt: string;
 }
 
+export interface RoundResult {
+  revealedWord: string;
+  scores: Record<string, number>;
+  guesses: GuessEntry[];
+}
+
 export interface RoomSnapshot {
   code: string;
-  status: "lobby" | "in-progress";
+  status: "lobby" | "in-progress" | "finished";
   hostId: string;
   participants: Participant[];
   availableWords: string[];
   roles: ParticipantRole[];
   currentDrawerId?: string;
   secretWord?: string;
+  result?: RoundResult;
 }
 
 export interface RoomSessionResponse {
@@ -87,5 +94,17 @@ export const api = {
     return request<{ guesses: GuessEntry[]; scores: Record<string, number> }>(
       `/rooms/${encodeURIComponent(code)}/guesses`
     );
+  },
+  endRound(code: string, participantId: string) {
+    return request<{ room: RoomSnapshot }>(`/rooms/${encodeURIComponent(code)}/end-round`, {
+      method: "POST",
+      body: JSON.stringify({ participantId })
+    });
+  },
+  restartGame(code: string, participantId: string) {
+    return request<{ room: RoomSnapshot }>(`/rooms/${encodeURIComponent(code)}/restart`, {
+      method: "POST",
+      body: JSON.stringify({ participantId })
+    });
   }
 };

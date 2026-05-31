@@ -7,10 +7,11 @@ import { ResultPanel } from "../components/ResultPanel";
 import { RoomCodeBadge } from "../components/RoomCodeBadge";
 import { Scoreboard } from "../components/Scoreboard";
 import { api, type GuessEntry } from "../services/api";
-import { useRoomState } from "../state/roomStore";
+import { useRoomState, useRoomStore } from "../state/roomStore";
 
 export function GamePage() {
   const navigate = useNavigate();
+  const store = useRoomStore();
   const { room, participantId } = useRoomState();
 
   useEffect(() => {
@@ -18,6 +19,12 @@ export function GamePage() {
       navigate("/", { replace: true });
     }
   }, [navigate, room]);
+
+  useEffect(() => {
+    if (room?.status === "finished") {
+      navigate("/result", { replace: true });
+    }
+  }, [navigate, room?.status]);
 
   const [guesses, setGuesses] = useState<GuessEntry[]>([]);
   const [scores, setScores] = useState<Record<string, number>>({});
@@ -36,11 +43,24 @@ export function GamePage() {
     return () => clearInterval(interval);
   }, [room?.code]);
 
+  useEffect(() => {
+    if (!room) return;
+    const interval = setInterval(async () => {
+      try {
+        await store.fetchRoom();
+      } catch {
+        // polling failure is non-fatal
+      }
+    }, 2000);
+    return () => clearInterval(interval);
+  }, [store, room?.code]);
+
   if (!room) {
     return null;
   }
 
   const viewer = room.participants.find((participant) => participant.id === participantId) ?? null;
+  const isHost = participantId === room.hostId;
   const isDrawer = participantId === room.currentDrawerId;
   const drawer = room.participants.find((p) => p.id === room.currentDrawerId) ?? null;
 
@@ -114,6 +134,11 @@ export function GamePage() {
       </div>
 
       <div className="button-row">
+        {isHost && (
+          <button className="button button--primary" onClick={() => store.endRound()}>
+            End Round
+          </button>
+        )}
         <button className="button button--secondary" onClick={() => navigate("/lobby")}>
           Exit Game
         </button>
