@@ -14,8 +14,8 @@
 
 **Purpose**: Confirm the baseline is green before any changes land.
 
-- [ ] T001 Verify `npm test` passes in `backend/` (all existing suites green before changes)
-- [ ] T002 [P] Verify `npm test` passes in `frontend/` (all existing suites green before changes)
+- [x] T001 Verify `npm test` passes in `backend/` (all existing suites green before changes)
+- [x] T002 [P] Verify `npm test` passes in `frontend/` (all existing suites green before changes)
 
 **Checkpoint**: Both test suites green — safe to begin incremental changes.
 
@@ -27,9 +27,9 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete.
 
-- [ ] T003 Extend `Room` interface with `drawerId: string` and `secretWord: string`; extend `RoomSnapshot` interface with `drawerId: string`, `secretWord?: string`, and `wordPlaceholder?: string` in `backend/src/models/game.ts`
-- [ ] T004 [P] Mirror `drawerId: string`, `secretWord?: string`, and `wordPlaceholder?: string` in the `RoomSnapshot` interface in `frontend/src/services/api.ts`
-- [ ] T005 Initialize `drawerId: ""` and `secretWord: ""` on the `Room` object literal inside `createRoom()` in `backend/src/services/roomStore.ts` (fixes TypeScript compile error from T003)
+- [x] T003 Extend `Room` interface with `drawerId: string` and `secretWord: string`; extend `RoomSnapshot` interface with `drawerId: string`, `secretWord?: string`, and `wordPlaceholder?: string` in `backend/src/models/game.ts`
+- [x] T004 [P] Mirror `drawerId: string`, `secretWord?: string`, and `wordPlaceholder?: string` in the `RoomSnapshot` interface in `frontend/src/services/api.ts`
+- [x] T005 Initialize `drawerId: ""` and `secretWord: ""` on the `Room` object literal inside `createRoom()` in `backend/src/services/roomStore.ts` (fixes TypeScript compile error from T003)
 
 **Checkpoint**: `npm run build` passes in both `backend/` and `frontend/` — type contract is complete.
 
@@ -43,13 +43,13 @@
 
 ### Implementation for User Story 1
 
-- [ ] T006 [US1] Implement exported pure function `selectWord(code: string, words: readonly string[]): string` using char-code-sum modulo word-list-length in `backend/src/services/roomStore.ts`
-- [ ] T007 [US1] Update `startRoom()` to assign `room.drawerId = room.hostId` and `room.secretWord = selectWord(room.code, STARTER_WORDS)` before persisting in `backend/src/services/roomStore.ts`
-- [ ] T008 [US1] Update `toRoomSnapshot()`: remove the `void viewerParticipantId` line; add `drawerId: room.drawerId` to every response; when `status === "active"` and `viewerParticipantId === room.drawerId` include `secretWord: room.secretWord`; when `status === "active"` and viewer is NOT the drawer include `wordPlaceholder` (one `_` per character joined by spaces) AND set `availableWords: []` so guessers cannot deduce the word from the candidate list plus placeholder length, in `backend/src/services/roomStore.ts`
-- [ ] T009 [P] [US1] Add unit tests for `selectWord`: same code returns identical word on repeated calls; `selectWord("ABCD", STARTER_WORDS)` equals the hard-coded expected word (`STARTER_WORDS[266 % STARTER_WORDS.length]`); two different codes produce different words in `backend/src/services/roomStore.test.ts`
-- [ ] T010 [P] [US1] Add unit tests for `startRoom` drawer assignment: after `startRoom(code, hostId)` the returned room has `drawerId === hostId` and `secretWord === selectWord(code, STARTER_WORDS)` in `backend/src/services/roomStore.test.ts`
-- [ ] T011 [P] [US1] Add unit test for drawer-scoped snapshot: `toRoomSnapshot(activeRoom, activeRoom.drawerId)` returns object with `secretWord` defined and `wordPlaceholder` undefined in `backend/src/services/roomStore.test.ts`
-- [ ] T012 [US1] Update `GamePage.tsx` to add 2-second polling via `setInterval(() => store.fetchRoom(), 2000)` in `useEffect` with interval cleanup on unmount (same pattern as `LobbyPage.tsx`); look up drawer name via `room.participants.find(p => p.id === room.drawerId)?.name`; display drawer name prominently; display `room.secretWord` when defined (drawer sees the word); display `room.wordPlaceholder` when defined (guesser sees blanks) in `frontend/src/pages/GamePage.tsx`
+- [x] T006 [US1] Implement exported pure function `selectWord(code: string, words: readonly string[]): string` using char-code-sum modulo word-list-length in `backend/src/services/roomStore.ts`
+- [x] T007 [US1] Update `startRoom()` to assign `room.drawerId = room.hostId` and `room.secretWord = selectWord(room.code, STARTER_WORDS)` before persisting in `backend/src/services/roomStore.ts`
+- [x] T008 [US1] Update `toRoomSnapshot()`: remove the `void viewerParticipantId` line; add `drawerId: room.drawerId` to every response; when `status === "active"` and `viewerParticipantId === room.drawerId` include `secretWord: room.secretWord`; when `status === "active"` and viewer is NOT the drawer include `wordPlaceholder` (one `_` per character joined by spaces) AND set `availableWords: []` so guessers cannot deduce the word from the candidate list plus placeholder length, in `backend/src/services/roomStore.ts`
+- [x] T009 [P] [US1] Add unit tests for `selectWord`: same code returns identical word on repeated calls; `selectWord("ABCD", STARTER_WORDS)` equals the hard-coded expected word (`STARTER_WORDS[266 % STARTER_WORDS.length]`); two different codes produce different words in `backend/src/services/roomStore.test.ts`
+- [x] T010 [P] [US1] Add unit tests for `startRoom` drawer assignment: after `startRoom(code, hostId)` the returned room has `drawerId === hostId` and `secretWord === selectWord(code, STARTER_WORDS)` in `backend/src/services/roomStore.test.ts`
+- [x] T011 [P] [US1] Add unit test for drawer-scoped snapshot: `toRoomSnapshot(activeRoom, activeRoom.drawerId)` returns object with `secretWord` defined and `wordPlaceholder` undefined in `backend/src/services/roomStore.test.ts`
+- [x] T012 [US1] Update `GamePage.tsx` to add 2-second polling via `setInterval(() => store.fetchRoom(), 2000)` in `useEffect` with interval cleanup on unmount (same pattern as `LobbyPage.tsx`); look up drawer name via `room.participants.find(p => p.id === room.drawerId)?.name`; display drawer name prominently; display `room.secretWord` when defined (drawer sees the word); display `room.wordPlaceholder` when defined (guesser sees blanks) in `frontend/src/pages/GamePage.tsx`
 
 **Checkpoint**: `npm test` green in `backend/`. Tab A game screen shows drawer name and secret word immediately after start.
 
@@ -65,9 +65,9 @@
 
 ### Implementation for User Story 2
 
-- [ ] T013 [P] [US2] Add unit test for guesser-scoped snapshot: `toRoomSnapshot(activeRoom, guestId)` returns object with `wordPlaceholder` defined, `secretWord` undefined, `wordPlaceholder.split(" ").length === secretWord.length` (character count matches), and `availableWords` empty (`[]`) so the secret word is not in the guesser's candidate list, in `backend/src/services/roomStore.test.ts`
-- [ ] T014 [P] [US2] Add unit test for lobby snapshot: `toRoomSnapshot(lobbyRoom, anyId)` returns object with both `secretWord` and `wordPlaceholder` undefined and `drawerId === ""` in `backend/src/services/roomStore.test.ts`
-- [ ] T015 [US2] Verify `frontend/src/pages/GamePage.tsx` renders `wordPlaceholder` in a visually distinct element (e.g. `<span>`) for guessers alongside the drawer name — confirm both branches (secretWord truthy / wordPlaceholder truthy) are covered in the JSX in `frontend/src/pages/GamePage.tsx`
+- [x] T013 [P] [US2] Add unit test for guesser-scoped snapshot: `toRoomSnapshot(activeRoom, guestId)` returns object with `wordPlaceholder` defined, `secretWord` undefined, `wordPlaceholder.split(" ").length === secretWord.length` (character count matches), and `availableWords` empty (`[]`) so the secret word is not in the guesser's candidate list, in `backend/src/services/roomStore.test.ts`
+- [x] T014 [P] [US2] Add unit test for lobby snapshot: `toRoomSnapshot(lobbyRoom, anyId)` returns object with both `secretWord` and `wordPlaceholder` undefined and `drawerId === ""` in `backend/src/services/roomStore.test.ts`
+- [x] T015 [US2] Verify `frontend/src/pages/GamePage.tsx` renders `wordPlaceholder` in a visually distinct element (e.g. `<span>`) for guessers alongside the drawer name — confirm both branches (secretWord truthy / wordPlaceholder truthy) are covered in the JSX in `frontend/src/pages/GamePage.tsx`
 
 **Checkpoint**: `npm test` green in `backend/`. Tab B game screen shows drawer name and placeholder, not the actual word. Network response for Tab B contains `wordPlaceholder`, no `secretWord`.
 
@@ -83,7 +83,7 @@
 
 ### Implementation for User Story 3
 
-- [ ] T016 [US3] Add unit test that calls `selectWord("ABCD", STARTER_WORDS)` 100 times and asserts every result equals the first result (zero variance — SC-003 requirement) in `backend/src/services/roomStore.test.ts`
+- [x] T016 [US3] Add unit test that calls `selectWord("ABCD", STARTER_WORDS)` 100 times and asserts every result equals the first result (zero variance — SC-003 requirement) in `backend/src/services/roomStore.test.ts`
 
 **Checkpoint**: All backend tests green including the 100-call determinism assertion.
 
@@ -93,10 +93,10 @@
 
 **Purpose**: Full build validation, type safety check, and manual two-tab acceptance test.
 
-- [ ] T017 [P] Run `npm run build` in `backend/` — confirm zero TypeScript errors
-- [ ] T018 [P] Run `npm run build` in `frontend/` — confirm zero TypeScript errors
-- [ ] T019 Run `npm test` in `backend/` — all suites green (schemas, roomStore, api)
-- [ ] T020 [P] Run `npm test` in `frontend/` — all suites green
+- [x] T017 [P] Run `npm run build` in `backend/` — confirm zero TypeScript errors
+- [x] T018 [P] Run `npm run build` in `frontend/` — confirm zero TypeScript errors
+- [x] T019 Run `npm test` in `backend/` — all suites green (schemas, roomStore, api)
+- [x] T020 [P] Run `npm test` in `frontend/` — all suites green
 - [ ] T021 Perform the two-tab acceptance test from `specs/002-game-start-drawer/quickstart.md` — verify SC-001 (word visible within 3s), SC-002 (guesser sees placeholder, network has no `secretWord`), SC-003 (refresh Tab A shows same word)
 
 ---
