@@ -31,6 +31,4 @@
 
 ## Notes
 
-- Validation passed on first review (2026-05-31).
-- Player name validation explicitly deferred to Scenario 2 per README phasing; documented in Assumptions and Scope Boundaries.
-- Ready for `/speckit-clarify` (optional open questions from discovery) or `/speckit-plan`.
+- Validation passed on first review (2026-05-31). Clarification session 2026-05-31 resolved 5 items; ready for `/speckit-plan`.
