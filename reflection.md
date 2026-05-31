@@ -34,3 +34,13 @@ To complete the game requirements across all 4 scenarios, we implemented:
 * **No Databases**: All state is stored in-memory using JavaScript data structures.
 * **No Authentication**: Reused simple transient usernames submitted at room entry.
 * **TypeScript Integrity**: Kept all files 100% type-safe without using the `any` keyword.
+
+## 4. AI Assistance and Corrections
+Throughout the development, AI was used for several boilerplate and design tasks, which were carefully reviewed, tested, and corrected where necessary:
+* **Boilerplate Routes & Zod Validation**: AI was used to generate initial Express API endpoints, Zod verification schemas (e.g. for game start and guesses), and basic TypeScript interfaces. This saved time on routine wiring.
+* **Drawing Canvas Event normalizers**: AI assisted in drafting the canvas Mouse/Touch event coordinate normalizers (converting viewport coordinates to relative `[0..1]` fractions), preventing scaling/distortions.
+* **Polling Hooks and Cleanup Corrections**: 
+  * *Correction*: The AI initially drafted polling hooks in the React components without proper cleanup return statements or loading indicators. We corrected this to ensure intervals are always cleared on component unmount to prevent leaks.
+  * *Correction*: The backend API routes initially lacked checks to verify if a requester was the room host before starting or restarting a game. We added explicit validation filters on the backend to enforce host-only authority.
+  * *Correction*: When a user left or disconnected, the AI failed to implement host promotion. We refactored the room leave handler on the backend to ensure a new host is immediately designated if the previous host leaves.
+

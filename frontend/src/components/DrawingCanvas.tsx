@@ -321,13 +321,18 @@ export function DrawingCanvas({ readOnly, drawingData, onChange }: DrawingCanvas
       {!readOnly && (
         <div style={{ display: "flex", justifyContent: "flex-end", gap: "8px" }}>
           <button
+            id="undo-button"
             className="button button--secondary"
             onClick={handleUndo}
             disabled={strokes.length === 0}
           >
             Undo Last Stroke
           </button>
-          <button className="button button--secondary" onClick={handleClear}>
+          <button
+            id="clear-canvas-button"
+            className="button button--secondary"
+            onClick={handleClear}
+          >
             Clear Canvas
           </button>
         </div>
