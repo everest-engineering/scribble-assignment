@@ -15,4 +15,5 @@ precheck-results/
 .vscode/
 .vite/
 
-.claude
+# Claude local settings
+.claude/settings.local.json
