@@ -2,6 +2,8 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { PageHeader } from "../components/PageHeader";
 import { useRoomStore } from "../state/roomStore";
+import { validatePlayerName } from "../utils/playerName";
+import { validateRoomCode } from "../utils/roomCode";
 
 export function JoinRoomPage() {
   const [playerName, setPlayerName] = useState("");
@@ -13,9 +15,21 @@ export function JoinRoomPage() {
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
+    const nameValidation = validatePlayerName(playerName);
+    if (!nameValidation.ok) {
+      setError(nameValidation.message);
+      return;
+    }
+
+    const codeValidation = validateRoomCode(roomCode);
+    if (!codeValidation.ok) {
+      setError(codeValidation.message);
+      return;
+    }
+
     try {
       setError(null);
-      await roomStore.joinRoom(roomCode.toUpperCase(), playerName);
+      await roomStore.joinRoom(codeValidation.code, nameValidation.name);
       navigate("/lobby");
     } catch (caughtError) {
       setError(caughtError instanceof Error ? caughtError.message : "Unable to join room");

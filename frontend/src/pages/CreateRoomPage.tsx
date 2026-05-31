@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { PageHeader } from "../components/PageHeader";
 import { useRoomStore } from "../state/roomStore";
+import { validatePlayerName } from "../utils/playerName";
 
 export function CreateRoomPage() {
   const [playerName, setPlayerName] = useState("");
@@ -12,9 +13,16 @@ export function CreateRoomPage() {
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
+    const nameValidation = validatePlayerName(playerName);
+
+    if (!nameValidation.ok) {
+      setError(nameValidation.message);
+      return;
+    }
+
     try {
       setError(null);
-      await roomStore.createRoom(playerName);
+      await roomStore.createRoom(nameValidation.name);
       navigate("/lobby");
     } catch (caughtError) {
       setError(caughtError instanceof Error ? caughtError.message : "Unable to create room");
