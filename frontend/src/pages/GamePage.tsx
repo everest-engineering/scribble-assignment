@@ -5,10 +5,11 @@ import { GuessForm } from "../components/GuessForm";
 import { ResultPanel } from "../components/ResultPanel";
 import { RoomCodeBadge } from "../components/RoomCodeBadge";
 import { Scoreboard } from "../components/Scoreboard";
-import { useRoomState } from "../state/roomStore";
+import { useRoomState, useRoomStore } from "../state/roomStore";
 
 export function GamePage() {
   const navigate = useNavigate();
+  const roomStore = useRoomStore();
   const { room, participantId } = useRoomState();
 
   useEffect(() => {
@@ -17,11 +18,26 @@ export function GamePage() {
     }
   }, [navigate, room]);
 
+  // Automatic 2-second polling — same cadence as lobby
+  useEffect(() => {
+    if (!room) return;
+
+    const intervalId = setInterval(() => {
+      roomStore.fetchRoom().catch(() => {
+        // error surfaces through store state
+      });
+    }, 2000);
+
+    return () => clearInterval(intervalId);
+  }, [room?.code, roomStore]);
+
   if (!room) {
     return null;
   }
 
   const viewer = room.participants.find((participant) => participant.id === participantId) ?? null;
+  const drawer = room.participants.find((participant) => participant.id === room.drawerId) ?? null;
+  const isDrawer = participantId === room.drawerId;
 
   return (
     <section className="panel game-page">
@@ -41,13 +57,41 @@ export function GamePage() {
 
         <div className="game-page__main">
           <Card title="Canvas">
-            <div className="canvas-placeholder" style={{ minHeight: '500px', backgroundColor: '#ffffff', border: '1px solid #e5e7eb' }}>
+            <div
+              className="canvas-placeholder"
+              style={{ minHeight: "500px", backgroundColor: "#ffffff", border: "1px solid #e5e7eb" }}
+            >
               Waiting for drawer...
             </div>
           </Card>
         </div>
 
         <aside className="game-page__sidebar game-page__sidebar--right">
+          <Card title="Drawer">
+            <dl className="detail-list">
+              <div>
+                <dt>Drawing</dt>
+                <dd>{drawer?.name ?? "Unknown"}</dd>
+              </div>
+              {isDrawer && room.secretWord ? (
+                <div>
+                  <dt>Your word</dt>
+                  <dd>
+                    <strong>{room.secretWord}</strong>
+                  </dd>
+                </div>
+              ) : null}
+              {!isDrawer && room.wordPlaceholder ? (
+                <div>
+                  <dt>Word</dt>
+                  <dd>
+                    <span className="word-placeholder">{room.wordPlaceholder}</span>
+                  </dd>
+                </div>
+              ) : null}
+            </dl>
+          </Card>
+
           <Card title="Player Info">
             <dl className="detail-list">
               <div>
@@ -56,7 +100,7 @@ export function GamePage() {
               </div>
               <div>
                 <dt>Status</dt>
-                <dd>Playing</dd>
+                <dd>{isDrawer ? "Drawing" : "Guessing"}</dd>
               </div>
             </dl>
           </Card>
