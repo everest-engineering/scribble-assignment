@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card } from "../components/Card";
+import { DrawingCanvas } from "../components/DrawingCanvas";
 import { GuessForm } from "../components/GuessForm";
 import { ResultPanel } from "../components/ResultPanel";
 import { RoomCodeBadge } from "../components/RoomCodeBadge";
@@ -40,6 +41,14 @@ export function GamePage() {
     return stopPolling;
   }, [room, startPolling, stopPolling]);
 
+  async function handleStrokesChange(strokes: { points: { x: number; y: number }[] }[]) {
+    try {
+      await roomStore.saveStrokes(strokes);
+    } catch {
+      // silently fail — strokes will sync on next poll
+    }
+  }
+
   if (!room) {
     return null;
   }
@@ -77,9 +86,11 @@ export function GamePage() {
 
         <div className="game-page__main">
           <Card title="Canvas">
-            <div className="canvas-placeholder" style={{ minHeight: "500px", backgroundColor: "#ffffff", border: "1px solid #e5e7eb" }}>
-              {isDrawer ? "Draw here" : "Waiting for drawer to draw..."}
-            </div>
+            <DrawingCanvas
+              strokes={room.strokes}
+              isDrawer={isDrawer}
+              onStrokesChange={handleStrokesChange}
+            />
           </Card>
         </div>
 

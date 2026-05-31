@@ -66,4 +66,43 @@ describe("api service", () => {
       })
     );
   });
+
+  it("submitGuess sends POST to /rooms/:code/guess with participantId and text", async () => {
+    const mockResponse = {
+      ok: true,
+      json: () =>
+        Promise.resolve({ room: { code: "ABCD", status: "playing", hostId: "p1", participants: [], availableWords: [], roles: [] } }),
+    };
+    vi.mocked(fetch).mockResolvedValue(mockResponse as unknown as Response);
+
+    await api.submitGuess("ABCD", "p1", "rocket");
+
+    expect(fetch).toHaveBeenCalledWith(
+      expect.stringContaining("/rooms/ABCD/guess"),
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({ participantId: "p1", text: "rocket" }),
+      })
+    );
+  });
+
+  it("saveStrokes sends POST to /rooms/:code/strokes with strokes data", async () => {
+    const mockResponse = {
+      ok: true,
+      json: () =>
+        Promise.resolve({ room: { code: "ABCD", status: "playing", hostId: "p1", participants: [], availableWords: [], roles: [] } }),
+    };
+    vi.mocked(fetch).mockResolvedValue(mockResponse as unknown as Response);
+
+    const strokes = [{ points: [{ x: 10, y: 20 }] }];
+    await api.saveStrokes("ABCD", "p1", strokes);
+
+    expect(fetch).toHaveBeenCalledWith(
+      expect.stringContaining("/rooms/ABCD/strokes"),
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({ participantId: "p1", strokes }),
+      })
+    );
+  });
 });

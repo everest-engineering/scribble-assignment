@@ -131,6 +131,75 @@ export function startGame(code: string, requesterId: string) {
   return cloneRoom(room);
 }
 
+export function submitGuess(code: string, participantId: string, text: string) {
+  const room = rooms.get(code);
+
+  if (!room) {
+    return null;
+  }
+
+  if (room.status !== "playing") {
+    throw new HttpError(400, "Round is over");
+  }
+
+  if (participantId === room.drawerId) {
+    throw new HttpError(403, "Drawer cannot submit guesses");
+  }
+
+  const trimmed = text.trim();
+  if (!trimmed) {
+    throw new HttpError(400, "Guess cannot be empty");
+  }
+
+  const isCorrect = trimmed.toLowerCase() === room.secretWord?.toLowerCase();
+  const alreadyGuessedCorrectly = room.guesses.some(
+    (g) => g.participantId === participantId && g.isCorrect
+  );
+  const scoreIncrement = isCorrect && !alreadyGuessedCorrectly ? 100 : 0;
+
+  room.guesses.push({
+    participantId,
+    participantName: room.participants.find((p) => p.id === participantId)?.name ?? "Unknown",
+    text: trimmed,
+    isCorrect
+  });
+
+  room.scores[participantId] = (room.scores[participantId] ?? 0) + scoreIncrement;
+
+  if (isCorrect) {
+    const allGuessersCorrect = room.participants
+      .filter((p) => p.id !== room.drawerId)
+      .every((guesser) => room.guesses.some((g) => g.participantId === guesser.id && g.isCorrect));
+
+    if (allGuessersCorrect) {
+      room.status = "finished";
+    }
+  }
+
+  room.updatedAt = now();
+  rooms.set(room.code, room);
+
+  return cloneRoom(room);
+}
+
+export function saveStrokes(code: string, participantId: string, strokes: { points: { x: number; y: number }[] }[]) {
+  const room = rooms.get(code);
+
+  if (!room) {
+    return null;
+  }
+
+  if (participantId !== room.drawerId) {
+    throw new HttpError(403, "Only the drawer can draw");
+  }
+
+  room.strokes = strokes;
+  room.updatedAt = now();
+  rooms.set(room.code, room);
+
+  return cloneRoom(room);
+}
+
 export function getRoom(code: string) {
   const room = rooms.get(code);
   return room ? cloneRoom(room) : null;

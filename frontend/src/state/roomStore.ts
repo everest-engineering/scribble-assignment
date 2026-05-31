@@ -102,6 +102,32 @@ class RoomStore {
     return response.room;
   }
 
+  async submitGuess(text: string) {
+    const room = this.state.room;
+    const participantId = this.state.participantId;
+
+    if (!room || !participantId) {
+      return null;
+    }
+
+    const response = await api.submitGuess(room.code, participantId, text);
+    this.setRoomSnapshot(response.room);
+    return response.room;
+  }
+
+  async saveStrokes(strokes: { points: { x: number; y: number }[] }[]) {
+    const room = this.state.room;
+    const participantId = this.state.participantId;
+
+    if (!room || !participantId) {
+      return null;
+    }
+
+    const response = await api.saveStrokes(room.code, participantId, strokes);
+    this.setRoomSnapshot(response.room);
+    return response.room;
+  }
+
   async fetchRoom() {
     if (!this.state.room) {
       return null;
