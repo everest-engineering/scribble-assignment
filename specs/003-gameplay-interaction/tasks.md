@@ -16,8 +16,8 @@
 
 **Purpose**: Confirm branch, design artifacts, and Scenario 1–2 prerequisites.
 
-- [ ] T001 Confirm branch `003-gameplay-interaction-drawing` and review spec.md, plan.md, and contracts/rooms-api.md in specs/003-gameplay-interaction/
-- [ ] T002 Verify Scenarios 1–2 baseline on branch (`playing` status, startGame, drawerId, secretWord, scores, game polling) or merge/implement 001–002 before proceeding
+- [x] T001 Confirm branch `003-gameplay-interaction-drawing` and review spec.md, plan.md, and contracts/rooms-api.md in specs/003-gameplay-interaction/
+- [x] T002 Verify Scenarios 1–2 baseline on branch (`playing` status, startGame, drawerId, secretWord, scores, game polling) or merge/implement 001–002 before proceeding
 
 ---
 
@@ -27,10 +27,10 @@
 
 **⚠️ CRITICAL**: User story work depends on this phase.
 
-- [ ] T003 Add `Stroke`, `Guess`, `Point` types and extend `Room` with `strokes` and `guesses` in backend/src/models/game.ts
-- [ ] T004 Initialize empty `strokes` and `guesses` in `startGame()` in backend/src/services/roomStore.ts
-- [ ] T005 Extend `toRoomSnapshot()` with `strokes`, `guesses`, and `scores` when playing in backend/src/services/roomStore.ts
-- [ ] T006 [P] Mirror gameplay snapshot fields on `RoomSnapshot` in frontend/src/services/api.ts
+- [x] T003 Add `Stroke`, `Guess`, `Point` types and extend `Room` with `strokes` and `guesses` in backend/src/models/game.ts
+- [x] T004 Initialize empty `strokes` and `guesses` in `startGame()` in backend/src/services/roomStore.ts
+- [x] T005 Extend `toRoomSnapshot()` with `strokes`, `guesses`, and `scores` when playing in backend/src/services/roomStore.ts
+- [x] T006 [P] Mirror gameplay snapshot fields on `RoomSnapshot` in frontend/src/services/api.ts
 
 **Checkpoint**: Types compile; GET snapshot can carry empty strokes/guesses arrays during an active round.
 
@@ -44,15 +44,15 @@
 
 ### Implementation for User Story 1
 
-- [ ] T007 [US1] Implement `appendStroke()` with drawer-only and playing-only guards in backend/src/services/roomStore.ts
-- [ ] T008 [US1] Add stroke append Zod schemas in backend/src/api/schemas.ts
-- [ ] T009 [US1] Add `POST /rooms/:code/drawing/strokes` route in backend/src/api/rooms.ts
-- [ ] T010 [P] [US1] Add Vitest cases for drawer-only stroke append in backend/src/services/roomStore.test.ts
-- [ ] T011 [P] [US1] Add `appendStroke` client method in frontend/src/services/api.ts
-- [ ] T012 [US1] Add `appendStroke` action in frontend/src/state/roomStore.ts
-- [ ] T013 [US1] Create interactive `DrawingCanvas` component in frontend/src/components/DrawingCanvas.tsx
-- [ ] T014 [US1] Wire drawer canvas and stroke upload on pointer up in frontend/src/pages/GamePage.tsx
-- [ ] T015 [US1] Replay strokes on read-only guesser canvas from poll updates in frontend/src/pages/GamePage.tsx
+- [x] T007 [US1] Implement `appendStroke()` with drawer-only and playing-only guards in backend/src/services/roomStore.ts
+- [x] T008 [US1] Add stroke append Zod schemas in backend/src/api/schemas.ts
+- [x] T009 [US1] Add `POST /rooms/:code/drawing/strokes` route in backend/src/api/rooms.ts
+- [x] T010 [P] [US1] Add Vitest cases for drawer-only stroke append in backend/src/services/roomStore.test.ts
+- [x] T011 [P] [US1] Add `appendStroke` client method in frontend/src/services/api.ts
+- [x] T012 [US1] Add `appendStroke` action in frontend/src/state/roomStore.ts
+- [x] T013 [US1] Create interactive `DrawingCanvas` component in frontend/src/components/DrawingCanvas.tsx
+- [x] T014 [US1] Wire drawer canvas and stroke upload on pointer up in frontend/src/pages/GamePage.tsx
+- [x] T015 [US1] Replay strokes on read-only guesser canvas from poll updates in frontend/src/pages/GamePage.tsx
 
 **Checkpoint**: quickstart.md §1 passes — drawing syncs to guesser tab.
 
@@ -66,12 +66,12 @@
 
 ### Implementation for User Story 2
 
-- [ ] T016 [US2] Implement `clearStrokes()` with drawer-only and playing-only guards in backend/src/services/roomStore.ts
-- [ ] T017 [US2] Add `POST /rooms/:code/drawing/clear` route in backend/src/api/rooms.ts
-- [ ] T018 [P] [US2] Add Vitest cases for drawer-only clear in backend/src/services/roomStore.test.ts
-- [ ] T019 [P] [US2] Add `clearDrawing` client method in frontend/src/services/api.ts
-- [ ] T020 [US2] Add `clearDrawing` action in frontend/src/state/roomStore.ts
-- [ ] T021 [US2] Add drawer-only clear control in frontend/src/components/DrawingCanvas.tsx
+- [x] T016 [US2] Implement `clearStrokes()` with drawer-only and playing-only guards in backend/src/services/roomStore.ts
+- [x] T017 [US2] Add `POST /rooms/:code/drawing/clear` route in backend/src/api/rooms.ts
+- [x] T018 [P] [US2] Add Vitest cases for drawer-only clear in backend/src/services/roomStore.test.ts
+- [x] T019 [P] [US2] Add `clearDrawing` client method in frontend/src/services/api.ts
+- [x] T020 [US2] Add `clearDrawing` action in frontend/src/state/roomStore.ts
+- [x] T021 [US2] Add drawer-only clear control in frontend/src/components/DrawingCanvas.tsx
 
 **Checkpoint**: quickstart.md §2 passes — clear syncs to all tabs.
 
@@ -85,18 +85,18 @@
 
 ### Implementation for User Story 3
 
-- [ ] T022 [US3] Create `evaluateGuess()` with trim and case-insensitive compare in backend/src/services/guessService.ts
-- [ ] T023 [US3] Implement `submitGuess()` with guesser-only guard and score updates in backend/src/services/roomStore.ts
-- [ ] T024 [US3] Add guess submission Zod schema in backend/src/api/schemas.ts
-- [ ] T025 [US3] Add `POST /rooms/:code/guess` route in backend/src/api/rooms.ts
-- [ ] T026 [P] [US3] Add Vitest cases for trim, case, and +100/0 scoring in backend/src/services/guessService.test.ts
-- [ ] T027 [P] [US3] Add Vitest cases for drawer blocked from guessing in backend/src/services/roomStore.test.ts
-- [ ] T028 [P] [US3] Add `submitGuess` client method in frontend/src/services/api.ts
-- [ ] T029 [US3] Add `submitGuess` action in frontend/src/state/roomStore.ts
-- [ ] T030 [US3] Wire guess submit and empty-guess validation in frontend/src/components/GuessForm.tsx
-- [ ] T031 [P] [US3] Create `GuessHistory` component in frontend/src/components/GuessHistory.tsx
-- [ ] T032 [US3] Render participant scores from `room.scores` in frontend/src/components/Scoreboard.tsx
-- [ ] T033 [US3] Disable guess form for drawer and show guess history in frontend/src/pages/GamePage.tsx
+- [x] T022 [US3] Create `evaluateGuess()` with trim and case-insensitive compare in backend/src/services/guessService.ts
+- [x] T023 [US3] Implement `submitGuess()` with guesser-only guard and score updates in backend/src/services/roomStore.ts
+- [x] T024 [US3] Add guess submission Zod schema in backend/src/api/schemas.ts
+- [x] T025 [US3] Add `POST /rooms/:code/guess` route in backend/src/api/rooms.ts
+- [x] T026 [P] [US3] Add Vitest cases for trim, case, and +100/0 scoring in backend/src/services/guessService.test.ts
+- [x] T027 [P] [US3] Add Vitest cases for drawer blocked from guessing in backend/src/services/roomStore.test.ts
+- [x] T028 [P] [US3] Add `submitGuess` client method in frontend/src/services/api.ts
+- [x] T029 [US3] Add `submitGuess` action in frontend/src/state/roomStore.ts
+- [x] T030 [US3] Wire guess submit and empty-guess validation in frontend/src/components/GuessForm.tsx
+- [x] T031 [P] [US3] Create `GuessHistory` component in frontend/src/components/GuessHistory.tsx
+- [x] T032 [US3] Render participant scores from `room.scores` in frontend/src/components/Scoreboard.tsx
+- [x] T033 [US3] Disable guess form for drawer and show guess history in frontend/src/pages/GamePage.tsx
 
 **Checkpoint**: quickstart.md §3 passes — guesses, history, and scoring work across tabs.
 
@@ -106,8 +106,8 @@
 
 **Purpose**: End-to-end validation and Scenario 1–2 regression.
 
-- [ ] T034 Run full manual checklist in specs/003-gameplay-interaction/quickstart.md including Scenario 1–2 regression notes
-- [ ] T035 [P] Run `npm test` in backend/ and `npm run build` in backend/ and frontend/
+- [x] T034 Run full manual checklist in specs/003-gameplay-interaction/quickstart.md including Scenario 1–2 regression notes
+- [x] T035 [P] Run `npm test` in backend/ and `npm run build` in backend/ and frontend/
 
 ---
 
