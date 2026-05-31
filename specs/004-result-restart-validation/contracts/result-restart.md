@@ -82,6 +82,20 @@ export const restartRoomSchema = z.object({
     }
     ```
 
+### 2. Guesses During Result State
+Any guess submitted via `POST /rooms/:code/guesses` when the room status is `"result"` MUST be rejected.
+
+* **Status**: `400 Bad Request`
+* **Body**:
+  ```json
+  {
+    "error": {
+      "code": "GAME_ALREADY_ENDED",
+      "message": "Guesses can only be submitted during active gameplay"
+    }
+  }
+  ```
+
 ---
 
 ## Shared Schema Updates
@@ -107,6 +121,6 @@ export const roomSnapshotSchema = z.object({
     secretWord: z.string().optional()
   }).optional(),
   guessHistory: z.array(guessEntrySchema),
-  correctGuesserId: z.string().nullable().optional() // New optional/nullable field
+  correctGuesserId: z.string().nullable().optional() // Returns z.string() in result state, null/undefined in lobby/in-game states
 });
 ```

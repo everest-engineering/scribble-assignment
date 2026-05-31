@@ -62,21 +62,20 @@ As the host of the Scribble room, after a game has ended and results are display
 
 ### Functional Requirements
 
-- **FR-016 (Single Source of Truth)**: The ONLY way the room status transitions from `"in-game"` to `"result"` is inside the backend `submitGuess` service function within `roomStore.ts` upon validating a correct guess. The backend MUST reject all guess submissions if the current room status is NOT `"in-game"`, preventing any guess processing in the `"result"` or `"lobby"` states.
-- **FR-017 (Winner Uniqueness)**: The backend MUST set `correctGuesserId` ONLY on the first correct guess. Subsequent correct guesses within the same round MUST NOT change the `correctGuesserId` or award any additional score.
-- **FR-018 (Snapshot Consistency)**: In the `RoomSnapshot` returned by the backend, if `status === "result"`, the secret word MUST be revealed and visible to all participants (unmasked), and `correctGuesserId` MUST be included for everyone.
+- **FR-016 (Single Game Termination & Race Safety)**: The ONLY transition from `"in-game"` to `"result"` status occurs on the first processed correct guess in backend `submitGuess` service function inside `roomStore.ts`. Once the room status transitions to `"result"`, the backend MUST lock state updates and reject any further guess submissions with a `400` status code and error code `"GAME_ALREADY_ENDED"`. This prevents race conditions from concurrent correct guesses and ensures subsequent guesses are not silently ignored but return explicit API failures.
+- **FR-017 (Winner Uniqueness)**: The backend MUST set `correctGuesserId` ONLY on the first processed correct guess. Subsequent correct guesses arriving concurrently or after the state transition MUST NOT change the `correctGuesserId` or award any score.
+- **FR-018 (Snapshot Consistency)**: In the `RoomSnapshot` returned by the backend:
+  - If `status === "result"`, the secret word MUST be unmasked and visible to all participants, and `correctGuesserId` MUST be included for everyone.
+  - If `status === "lobby"`, the `correctGuesserId` MUST be returned as `null` or `undefined`.
 - **FR-019**: The system MUST display the final scoreboard (sorted by score descending) and the chronological guess history of the completed round to all participants on the result screen.
 - **FR-020**: The system MUST only permit the host of the room to trigger a restart. Restart requests from non-host participants MUST be rejected.
-- **FR-021 (Atomic Hard Reset)**: Game restart MUST happen atomically in a single backend function `restartRoom()` in `roomStore.ts`, resetting all round-scoped fields:
-  - `status` set to `"lobby"`
-  - `roundState` set to `undefined` (clearing drawer assignment and secret word)
-  - `guessHistory` set to `[]`
-  - `correctGuesserId` set to `null` (or `undefined`)
-  - Each `participant.score` reset to `0`
+- **FR-021 (Atomic Hard Reset & Idempotent Restart)**: Game restart MUST happen atomically in a single backend function `restartRoom()` in `roomStore.ts`. The restart action MUST be idempotent:
+  - If the room status is NOT `"result"`, the backend MUST reject the request with error code `"GAME_NOT_IN_RESULT"` and perform no mutations.
+  - If the status is `"result"`, the backend resets all round-scoped fields: `status` set to `"lobby"`, `roundState` set to `undefined`, `guessHistory` set to `[]`, `correctGuesserId` set to `null`, and each `participant.score` reset to `0`.
 - **FR-022**: Upon restart, the system MUST preserve all current room participants.
 - **FR-023**: The system MUST synchronize the result and restart state transitions to all participants through the existing HTTP polling mechanism.
 - **FR-024 (Frontend Polling Reactivity)**: The frontend client MUST NOT compute or decide the game results locally. It MUST poll the backend at a 2-second interval and dynamically render the Results UI or redirect to `/lobby` solely in reaction to the `status` changes returned in the `RoomSnapshot`.
-- **FR-025**: The `Room` and `RoomSnapshot` backend model definitions and their corresponding Zod schemas MUST be updated to support the new `"result"` status and include the optional `correctGuesserId` property to prevent data from being stripped at the API boundary.
+- **FR-025**: The `Room` and `RoomSnapshot` backend model definitions and their corresponding Zod schemas MUST be updated to support the new `"result"` status, include the optional/nullable `correctGuesserId` property, and support the `"GAME_ALREADY_ENDED"` error code to prevent data from being stripped at the API boundary.
 - **FR-026**: All API endpoint schemas for room queries, guess submissions, and restart requests MUST validate the updated room snapshot payload structure containing the new status and correct guesser properties.
 
 ### Key Entities *(include if feature involves data)*
