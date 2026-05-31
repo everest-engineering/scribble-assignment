@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createRoom, getRoom, joinRoom, startGame } from "./roomStore.js";
+import { createRoom, getRoom, joinRoom, startGame, toRoomSnapshot } from "./roomStore.js";
 import { HttpError } from "../models/game.js";
 
 describe("roomStore", () => {
@@ -97,4 +97,48 @@ describe("roomStore", () => {
     expect(snapshot).not.toBeNull();
     expect(snapshot!.hostId).toBe(room.participantId);
   });
+
+  it("startGame assigns drawer as host", () => {
+    const host = createRoom("Alice");
+    joinRoom(host.room.code, "Bob");
+    const result = startGame(host.room.code, host.participantId);
+
+    expect(result!.drawerId).toBe(host.participantId);
+  });
+
+  it("startGame selects a deterministic word from the starter list", () => {
+    const host = createRoom("Alice");
+    joinRoom(host.room.code, "Bob");
+    const result = startGame(host.room.code, host.participantId);
+
+    expect(["rocket", "pizza", "castle", "guitar", "sunflower"]).toContain(result!.secretWord);
+  });
+
+  it("startGame initialises all scores to 0", () => {
+    const host = createRoom("Alice");
+    joinRoom(host.room.code, "Bob");
+    const result = startGame(host.room.code, host.participantId);
+
+    expect(result!.scores[host.participantId]).toBe(0);
+    expect(Object.values(result!.scores!).every((s) => s === 0)).toBe(true);
+  });
+
+  it("toRoomSnapshot exposes secretWord to the drawer", () => {
+    const host = createRoom("Alice");
+    joinRoom(host.room.code, "Bob");
+    const game = startGame(host.room.code, host.participantId);
+    const snapshot = toRoomSnapshot(game!, host.participantId);
+
+    expect(snapshot.secretWord).toBe(game!.secretWord);
+  });
+
+  it("toRoomSnapshot hides secretWord from guessers", () => {
+    const host = createRoom("Alice");
+    const guest = joinRoom(host.room.code, "Bob");
+    const game = startGame(host.room.code, host.participantId);
+    const snapshot = toRoomSnapshot(game!, guest!.participantId);
+
+    expect(snapshot.secretWord).toBeNull();
+  });
+
 });

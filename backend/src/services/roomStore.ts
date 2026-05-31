@@ -49,6 +49,11 @@ function cloneRoom(room: Room) {
   return structuredClone(room);
 }
 
+function selectWord(roomCode: string): string {
+  const sum = roomCode.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0);
+  return STARTER_WORDS[sum % STARTER_WORDS.length];
+}
+
 export function listWords() {
   return [...STARTER_WORDS];
 }
@@ -60,6 +65,11 @@ export function createRoom(playerName?: string) {
     status: "lobby",
     hostId: participant.id,
     participants: [participant],
+    drawerId: null,
+    secretWord: null,
+    guesses: [],
+    scores: {},
+    strokes: [],
     createdAt: now(),
     updatedAt: now()
   };
@@ -110,6 +120,11 @@ export function startGame(code: string, requesterId: string) {
   }
 
   room.status = "playing";
+  room.drawerId = room.hostId;
+  room.secretWord = selectWord(room.code);
+  room.guesses = [];
+  room.scores = Object.fromEntries(room.participants.map((p) => [p.id, 0]));
+  room.strokes = [];
   room.updatedAt = now();
   rooms.set(room.code, room);
 
@@ -128,13 +143,20 @@ export function saveRoom(room: Room) {
 }
 
 export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSnapshot {
-  void viewerParticipantId;
+  const isDrawer = viewerParticipantId === room.drawerId;
+  const isFinished = room.status === "finished";
+  const showSecret = isDrawer || isFinished;
 
   return {
     code: room.code,
     status: room.status,
     hostId: room.hostId,
     participants: room.participants.map((participant) => ({ ...participant })),
+    drawerId: room.drawerId,
+    secretWord: showSecret ? room.secretWord : null,
+    guesses: [...room.guesses],
+    scores: { ...room.scores },
+    strokes: structuredClone(room.strokes),
     availableWords: listWords(),
     roles: [...STARTER_ROLES]
   };

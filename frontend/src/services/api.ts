@@ -7,11 +7,27 @@ export interface Participant {
   joinedAt: string;
 }
 
+export interface Guess {
+  participantId: string;
+  participantName: string;
+  text: string;
+  isCorrect: boolean;
+}
+
+export interface Stroke {
+  points: { x: number; y: number }[];
+}
+
 export interface RoomSnapshot {
   code: string;
   status: RoomStatus;
   hostId: string;
   participants: Participant[];
+  drawerId: string | null;
+  secretWord: string | null;
+  guesses: Guess[];
+  scores: Record<string, number>;
+  strokes: Stroke[];
   availableWords: string[];
   roles: ParticipantRole[];
 }
