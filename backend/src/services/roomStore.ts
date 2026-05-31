@@ -37,7 +37,7 @@ function createParticipant(name?: string): Participant {
   return {
     id: randomUUID(),
     name: displayName(name),
-    joinedAt: now()
+    joinedAt: now(),
   };
 }
 
@@ -55,15 +55,16 @@ export function createRoom(playerName?: string) {
     code: generateUniqueCode(),
     status: "lobby",
     participants: [participant],
+    hostId: participant.id,
     createdAt: now(),
-    updatedAt: now()
+    updatedAt: now(),
   };
 
   rooms.set(room.code, room);
 
   return {
     room: cloneRoom(room),
-    participantId: participant.id
+    participantId: participant.id,
   };
 }
 
@@ -81,7 +82,7 @@ export function joinRoom(code: string, playerName?: string) {
 
   return {
     room: cloneRoom(room),
-    participantId: participant.id
+    participantId: participant.id,
   };
 }
 
@@ -96,14 +97,35 @@ export function saveRoom(room: Room) {
   return getRoom(room.code);
 }
 
-export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSnapshot {
+export function startGame(code: string, participantId: string) {
+  const room = rooms.get(code);
+  if (!room) {
+    return { ok: false, error: "Room not found" };
+  }
+  if (room.hostId !== participantId) {
+    return { ok: false, error: "Only the host can start the game" };
+  }
+  if (room.participants.length < 2) {
+    return { ok: false, error: "At least 2 players are required to start" };
+  }
+  room.status = "playing";
+  room.updatedAt = now();
+  rooms.set(room.code, room);
+  return { ok: true, room: cloneRoom(room) };
+}
+
+export function toRoomSnapshot(
+  room: Room,
+  viewerParticipantId?: string,
+): RoomSnapshot {
   void viewerParticipantId;
 
   return {
     code: room.code,
     status: room.status,
     participants: room.participants.map((participant) => ({ ...participant })),
+    hostId: room.hostId,
     availableWords: listWords(),
-    roles: [...STARTER_ROLES]
+    roles: [...STARTER_ROLES],
   };
 }
