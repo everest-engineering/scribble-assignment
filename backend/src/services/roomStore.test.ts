@@ -312,6 +312,7 @@ describe("roomStore", () => {
     expect(result!.secretWord).toBeNull();
     expect(result!.guesses).toHaveLength(0);
     expect(result!.strokes).toHaveLength(0);
+    expect(result!.scores).toEqual({});
     expect(result!.participants).toHaveLength(2);
     expect(result!.participants[0].id).toBe(host.participantId);
     expect(result!.participants[1].id).toBe(guest!.participantId);
@@ -328,5 +329,36 @@ describe("roomStore", () => {
 
     expect(newGame!.status).toBe("playing");
     expect(newGame!.drawerId).toBe(host.participantId);
+  });
+
+  it("rooms are isolated — operations in one room do not affect another", () => {
+    const roomA = createRoom("Alice");
+    const roomB = createRoom("Dave");
+
+    joinRoom(roomA.room.code, "Bob");
+    joinRoom(roomB.room.code, "Eve");
+
+    const snapshotA = getRoom(roomA.room.code);
+    const snapshotB = getRoom(roomB.room.code);
+
+    expect(snapshotA!.participants).toHaveLength(2);
+    expect(snapshotA!.participants.map((p) => p.name).sort()).toEqual(["Alice", "Bob"]);
+    expect(snapshotB!.participants).toHaveLength(2);
+    expect(snapshotB!.participants.map((p) => p.name).sort()).toEqual(["Dave", "Eve"]);
+  });
+
+  it("submitGuess matches correctly with explicit lowercased input", () => {
+    const host = createRoom("Alice");
+    const guest = joinRoom(host.room.code, "Bob");
+
+    const room = host.room;
+    const wordIndex = room.code.split("").reduce((sum, ch) => sum + ch.charCodeAt(0), 0) % 5;
+    const knownWord = ["rocket", "pizza", "castle", "guitar", "sunflower"][wordIndex];
+
+    startGame(host.room.code, host.participantId);
+
+    const result = submitGuess(host.room.code, guest!.participantId, knownWord.toLowerCase());
+    expect(result!.guesses[0].isCorrect).toBe(true);
+    expect(result!.scores[guest!.participantId]).toBe(100);
   });
 });

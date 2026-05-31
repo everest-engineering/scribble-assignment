@@ -52,17 +52,22 @@ The starter provided a working app shell with routing between all screens (Start
 
 - AI assisted with drafting spec artifacts, generating test cases, and implementing boilerplate (routes, schemas, store methods)
 - Every AI-suggested change was reviewed for correctness against acceptance criteria
-- Tradeoff: AI-generated Canvas component uses imperative Canvas 2D API rather than a library — simpler but less feature-rich
+- **Tradeoff — Canvas implementation**: AI-generated Canvas component uses imperative Canvas 2D API rather than a library like Fabric.js or Konva. This keeps the bundle small and avoids extra dependencies but makes features like undo/redo or shape tools harder to add later.
+- **Tradeoff — Polling vs WebSockets**: HTTP polling at 2s intervals was chosen over WebSockets (explicitly forbidden). This simplifies the stack and deployment but introduces ~2s latency between draw actions and guessers seeing them. For a drawing game, this means the drawer's strokes appear on guessers' screens with a noticeable delay.
+- **Tradeoff — In-memory storage**: All room state lives in a `Map` in the server process. This avoids database setup and makes the code easy to reason about, but means all game state is lost on server restart and rooms cannot survive across server instances.
+- **Tradeoff — Stroke sync strategy**: Strokes are sent as a complete array on `mouseup` rather than streaming individual points. This reduces HTTP request volume significantly but means partial strokes are not visible to guessers until the drawer lifts the mouse.
+- **Tradeoff — Single round with host-restart**: The game supports one round per game session, with the host manually restarting to play again. This is simpler than implementing full multi-round support with drawer rotation but means players must explicitly restart after each round.
 
 ## What Would I Do Differently
 
 - Add a `hasGuessedCorrectly` per-participant flag on the room to simplify duplicate-guess detection
-- Consider using a debounced stroke save rather than per-stroke-end to reduce requests
-- Write more comprehensive frontend component tests (beyond API service tests)
-- Add a loading indicator during game start transition
+- Use a debounced stroke save (every ~500ms while drawing) rather than per-stroke-end to give guessers more real-time feedback
+- Write more comprehensive frontend component tests (beyond API service tests) — e.g., test that DrawingCanvas renders strokes or GuessForm rejects empty input
+- Add a loading spinner during game start transition to improve UX
+- Use a more robust polling strategy with back-off on error rather than a fixed 2s interval
 
 ## Test Results (Final)
 
-- Backend: 46 tests passing, build clean
+- Backend: 48 tests passing, build clean
 - Frontend: 6 tests passing, build clean
 - Manual E2E verified with 2 browser tabs across all 4 scenarios
