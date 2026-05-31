@@ -404,6 +404,11 @@ input {
   font-weight: 400;
 }
 
+.player-list__host {
+  color: var(--accent);
+  font-weight: 600;
+}
+
 .status-line,
 .placeholder-note {
   width: max-content;
