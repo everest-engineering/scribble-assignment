@@ -30,8 +30,8 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T001 Define `GuessEntry` interface and update `Participant` (initialized to `score: 0`), `Room` (initialized to `guessHistory: []`), and `RoomSnapshot` interfaces in `backend/src/models/game.ts`
-- [ ] T002 [P] Update Zod schemas in `backend/src/api/schemas.ts` to include standardized error codes (`DRAWER_CANNOT_GUESS`, `GAME_NOT_STARTED`), `score` in `participantSchema`, `guessEntrySchema`, and `submitGuessSchema` for request validation, ensuring response schemas (`roomSnapshotSchema`, `roomResponseSchema`) validate all new output properties
+- [x] T001 Define `GuessEntry` interface and update `Participant` (initialized to `score: 0`), `Room` (initialized to `guessHistory: []`), and `RoomSnapshot` interfaces in `backend/src/models/game.ts`
+- [x] T002 [P] Update Zod schemas in `backend/src/api/schemas.ts` to include standardized error codes (`DRAWER_CANNOT_GUESS`, `GAME_NOT_STARTED`), `score` in `participantSchema`, `guessEntrySchema`, and `submitGuessSchema` for request validation, ensuring response schemas (`roomSnapshotSchema`, `roomResponseSchema`) validate all new output properties
 
 **Checkpoint**: Foundation ready - user story implementation can now begin in parallel
 
@@ -45,8 +45,8 @@
 
 ### Implementation for User Story 1
 
-- [ ] T003 [US1] Implement interactive `<canvas>` element and mouse/touch drawing event handlers in `frontend/src/pages/GamePage.tsx`
-- [ ] T004 [US1] Implement local stroke rendering logic and a "Clear Canvas" action button in `frontend/src/pages/GamePage.tsx`
+- [x] T003 [US1] Implement interactive `<canvas>` element and mouse/touch drawing event handlers in `frontend/src/pages/GamePage.tsx`
+- [x] T004 [US1] Implement local stroke rendering logic and a "Clear Canvas" action button in `frontend/src/pages/GamePage.tsx`
 
 **Checkpoint**: At this point, User Story 1 should be fully functional and testable independently
 
@@ -60,14 +60,14 @@
 
 ### Tests for User Story 2 ⚠️
 
-- [ ] T005 [P] [US2] Create API unit tests in `frontend/src/services/api.test.ts` covering successful guess submission, error handling for guess submission failures, and response mapping for updated room snapshots
+- [x] T005 [P] [US2] Create API unit tests in `frontend/src/services/api.test.ts` covering successful guess submission, error handling for guess submission failures, and response mapping for updated room snapshots
 
 ### Implementation for User Story 2
 
-- [ ] T006 [P] [US2] Update `RoomSnapshot` and `GuessEntry` interfaces and add `api.submitGuess` API method in `frontend/src/services/api.ts`
-- [ ] T007 [US2] Implement `submitGuess` action in the room store (`frontend/src/state/roomStore.ts`), updating room state on successful submission and preserving the latest room snapshot
-- [ ] T008 [US2] Update `GuessForm.tsx` in `frontend/src/components/GuessForm.tsx` to invoke the `submitGuess` room store action, trim inputs, block empty submissions, and disable fields for the drawer
-- [ ] T009 [US2] Register the `POST /rooms/:code/guesses` route in `backend/src/api/rooms.ts` and validate both request body and response payload using Zod schemas (`submitGuessSchema` and `roomResponseSchema`)
+- [x] T006 [P] [US2] Update `RoomSnapshot` and `GuessEntry` interfaces and add `api.submitGuess` API method in `frontend/src/services/api.ts`
+- [x] T007 [US2] Implement `submitGuess` action in the room store (`frontend/src/state/roomStore.ts`), updating room state on successful submission and preserving the latest room snapshot
+- [x] T008 [US2] Update `GuessForm.tsx` in `frontend/src/components/GuessForm.tsx` to invoke the `submitGuess` room store action, trim inputs, block empty submissions, and disable fields for the drawer
+- [x] T009 [US2] Register the `POST /rooms/:code/guesses` route in `backend/src/api/rooms.ts` and validate both request body and response payload using Zod schemas (`submitGuessSchema` and `roomResponseSchema`)
 
 **Checkpoint**: At this point, User Stories 1 AND 2 should both work independently
 
@@ -83,12 +83,12 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T010 [P] [US3] Create unit tests in `backend/src/services/roomStore.test.ts` verifying scoring rules (correct/incorrect guesses, case-insensitivity, points awarded only once per round), drawer blocks, lobby check logic, and that guess history preserves submission order
-- [ ] T011 [P] [US3] Create endpoint validation tests in `backend/src/api/schemas.test.ts` verifying error response shapes, correct error codes returned (`DRAWER_CANNOT_GUESS`, `GAME_NOT_STARTED`), and validating response schema payloads
+- [x] T010 [P] [US3] Create unit tests in `backend/src/services/roomStore.test.ts` verifying scoring rules (correct/incorrect guesses, case-insensitivity, points awarded only once per round), drawer blocks, lobby check logic, and that guess history preserves submission order
+- [x] T011 [P] [US3] Create endpoint validation tests in `backend/src/api/schemas.test.ts` verifying error response shapes, correct error codes returned (`DRAWER_CANNOT_GUESS`, `GAME_NOT_STARTED`), and validating response schema payloads
 
 ### Implementation for User Story 3
 
-- [ ] T012 [US3] Implement guess evaluation, score calculation, defaults initialization, and drawer/status validation rules in `backend/src/services/roomStore.ts`
+- [x] T012 [US3] Implement guess evaluation, score calculation, defaults initialization, and drawer/status validation rules in `backend/src/services/roomStore.ts`
 
 **Checkpoint**: User Stories 1, 2, and 3 should now be functional and testable
 
@@ -102,14 +102,14 @@
 
 ### Tests for User Story 4 ⚠️
 
-- [ ] T013 [P] [US4] Create unit tests in `frontend/src/state/roomStore.test.ts` verifying the store `submitGuess` actions, score updates from polling, guess-history updates from polling, and state preservation during polling refreshes
-- [ ] T014 [P] [US4] Create tests in the frontend (such as in `frontend/src/state/roomStore.test.ts` or component tests) verifying higher-scoring participants appear above lower-scoring participants and ordering updates correctly after a successful guess
+- [x] T013 [P] [US4] Create unit tests in `frontend/src/state/roomStore.test.ts` verifying the store `submitGuess` actions, score updates from polling, guess-history updates from polling, and state preservation during polling refreshes
+- [x] T014 [P] [US4] Create tests in the frontend (such as in `frontend/src/state/roomStore.test.ts` or component tests) verifying higher-scoring participants appear above lower-scoring participants and ordering updates correctly after a successful guess
 
 ### Implementation for User Story 4
 
-- [ ] T015 [US4] Rename `ResultPanel.tsx` to `GuessHistoryPanel.tsx` in `frontend/src/components/GuessHistoryPanel.tsx`, and update it to render the room's guess history in submission order
-- [ ] T016 [US4] Update `Scoreboard.tsx` in `frontend/src/components/Scoreboard.tsx` to display all room participants ordered by their score in descending order
-- [ ] T017 [US4] Update `GamePage.tsx` in `frontend/src/pages/GamePage.tsx` to import `GuessHistoryPanel` instead of `ResultPanel`, and display guess history and scoreboard updates synced via HTTP polling
+- [x] T015 [US4] Rename `ResultPanel.tsx` to `GuessHistoryPanel.tsx` in `frontend/src/components/GuessHistoryPanel.tsx`, and update it to render the room's guess history in submission order
+- [x] T016 [US4] Update `Scoreboard.tsx` in `frontend/src/components/Scoreboard.tsx` to display all room participants ordered by their score in descending order
+- [x] T017 [US4] Update `GamePage.tsx` in `frontend/src/pages/GamePage.tsx` to import `GuessHistoryPanel` instead of `ResultPanel`, and display guess history and scoreboard updates synced via HTTP polling
 
 **Checkpoint**: All user stories should now be independently functional
 
@@ -119,7 +119,7 @@
 
 **Purpose**: Final verification and cleanup
 
-- [ ] T018 Run quickstart.md validation steps
+- [x] T018 Run quickstart.md validation steps
 
 ---
 

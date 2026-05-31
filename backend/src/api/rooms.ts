@@ -7,9 +7,10 @@ import {
   roomCodeParamsSchema,
   roomSessionResponseSchema,
   startGameSchema,
-  roomViewerQuerySchema
+  roomViewerQuerySchema,
+  submitGuessSchema
 } from "./schemas.js";
-import { createRoom, getRoom, joinRoom, startGame, toRoomSnapshot } from "../services/roomStore.js";
+import { createRoom, getRoom, joinRoom, startGame, toRoomSnapshot, submitGuess } from "../services/roomStore.js";
 
 function parseRoomCode(params: unknown) {
   const parsed = roomCodeParamsSchema.safeParse(params);
@@ -113,6 +114,28 @@ export function createRoomsRouter() {
 
       response.json(validateRoomResponse({
         room: toRoomSnapshot(result.room, body.data.participantId)
+      }));
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/:code/guesses", (request, response, next) => {
+    try {
+      const code = parseRoomCode(request.params);
+      const body = submitGuessSchema.safeParse(request.body);
+
+      if (!body.success) {
+        const firstIssue = body.error.issues[0];
+        const msg = firstIssue ? firstIssue.message : "Invalid request body.";
+        throw new HttpError(400, msg, "INVALID_REQUEST");
+      }
+
+      const { participantId, guessText } = body.data;
+      const updatedRoom = submitGuess(code, participantId, guessText);
+
+      response.json(validateRoomResponse({
+        room: toRoomSnapshot(updatedRoom, participantId)
       }));
     } catch (error) {
       next(error);

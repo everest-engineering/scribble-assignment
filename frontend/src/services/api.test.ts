@@ -83,4 +83,43 @@ describe("api service", () => {
       })
     );
   });
+
+  it("submitGuess sends POST to /rooms/:code/guesses with participantId and guessText in body", async () => {
+    const mockResponse = {
+      ok: true,
+      json: () =>
+        Promise.resolve({
+          room: { code: "ABCD", status: "in-game", hostParticipantId: "p1", participants: [], guessHistory: [] },
+        }),
+    };
+    vi.mocked(fetch).mockResolvedValue(mockResponse as unknown as Response);
+
+    const res = await api.submitGuess("ABCD", "p2", "rocket");
+
+    expect(fetch).toHaveBeenCalledWith(
+      expect.stringContaining("/rooms/ABCD/guesses"),
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({ participantId: "p2", guessText: "rocket" }),
+      })
+    );
+    expect(res.room.code).toBe("ABCD");
+  });
+
+  it("submitGuess throws backend error messages for failed submissions (e.g. drawer guessing)", async () => {
+    const mockResponse = {
+      ok: false,
+      status: 400,
+      json: () =>
+        Promise.resolve({
+          error: {
+            code: "DRAWER_CANNOT_GUESS",
+            message: "The drawer is not permitted to submit guesses",
+          },
+        }),
+    };
+    vi.mocked(fetch).mockResolvedValue(mockResponse as unknown as Response);
+
+    await expect(api.submitGuess("ABCD", "p1", "rocket")).rejects.toThrow("The drawer is not permitted to submit guesses");
+  });
 });

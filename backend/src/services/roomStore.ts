@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
-import type { Participant, Room, RoomSnapshot } from "../models/game.js";
+import type { Participant, Room, RoomSnapshot, GuessEntry } from "../models/game.js";
 import { STARTER_ROLES, STARTER_WORDS } from "../seed/starterData.js";
+import { HttpError } from "../api/schemas.js";
 
 const rooms = new Map<string, Room>();
 
@@ -38,7 +39,8 @@ function createParticipant(name?: string): Participant {
   return {
     id: randomUUID(),
     name: displayName(name),
-    joinedAt: now()
+    joinedAt: now(),
+    score: 0
   };
 }
 
@@ -59,7 +61,8 @@ export function createRoom(playerName?: string) {
     hostParticipantId: participant.id,
     participants: [participant],
     createdAt: timestamp,
-    updatedAt: timestamp
+    updatedAt: timestamp,
+    guessHistory: []
   };
 
   rooms.set(room.code, room);
@@ -147,7 +150,8 @@ export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSn
     hostParticipantId: room.hostParticipantId,
     participants: room.participants.map((participant) => ({ ...participant })),
     availableWords: listWords(),
-    roles: [...STARTER_ROLES]
+    roles: [...STARTER_ROLES],
+    guessHistory: room.guessHistory ? room.guessHistory.map((entry) => ({ ...entry })) : []
   };
 
   if (room.roundState) {
@@ -161,4 +165,53 @@ export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSn
   }
 
   return snapshot;
+}
+
+export function submitGuess(code: string, participantId: string, guessText: string): Room {
+  const room = rooms.get(code);
+
+  if (!room) {
+    throw new HttpError(404, "Room could not be found or joined.", "ROOM_NOT_FOUND");
+  }
+
+  if (room.status !== "in-game") {
+    throw new HttpError(400, "Guesses can only be submitted when the game is in progress", "GAME_NOT_STARTED");
+  }
+
+  const participant = room.participants.find((p) => p.id === participantId);
+  if (!participant) {
+    throw new HttpError(400, "Participant not found in room.", "INVALID_REQUEST");
+  }
+
+  if (room.roundState && participantId === room.roundState.drawerId) {
+    throw new HttpError(400, "The drawer is not permitted to submit guesses", "DRAWER_CANNOT_GUESS");
+  }
+
+  const normalizedGuess = guessText.trim();
+  const secretWord = room.roundState?.secretWord ?? "";
+  const isCorrect = normalizedGuess.toLowerCase() === secretWord.toLowerCase();
+
+  if (isCorrect) {
+    const alreadyGuessedCorrectly = room.guessHistory.some(
+      (entry) => entry.participantId === participantId && entry.isCorrect
+    );
+    if (!alreadyGuessedCorrectly) {
+      participant.score += 100;
+    }
+  }
+
+  const guessEntry: GuessEntry = {
+    id: randomUUID(),
+    participantId,
+    playerName: participant.name,
+    guessText: normalizedGuess,
+    isCorrect,
+    createdAt: now()
+  };
+
+  room.guessHistory.push(guessEntry);
+  room.updatedAt = now();
+  rooms.set(room.code, room);
+
+  return cloneRoom(room);
 }

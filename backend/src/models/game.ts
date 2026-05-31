@@ -5,11 +5,21 @@ export interface Participant {
   id: string;
   name: string;
   joinedAt: string;
+  score: number;
 }
 
 export interface RoundState {
   drawerId: string;
   secretWord: string;
+}
+
+export interface GuessEntry {
+  id: string;
+  participantId: string;
+  playerName: string;
+  guessText: string;
+  isCorrect: boolean;
+  createdAt: string;
 }
 
 export interface Room {
@@ -20,6 +30,7 @@ export interface Room {
   createdAt: string;
   updatedAt: string;
   roundState?: RoundState;
+  guessHistory: GuessEntry[];
 }
 
 export interface RoomSnapshot {
@@ -33,6 +44,7 @@ export interface RoomSnapshot {
     drawerId: string;
     secretWord?: string;
   };
+  guessHistory: GuessEntry[];
 }
 
 export interface RoomSessionResponse {
