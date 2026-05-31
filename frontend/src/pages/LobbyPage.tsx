@@ -17,10 +17,12 @@ export function LobbyPage() {
   const isHost = Boolean(room && participantId && room.hostId === participantId);
   const canStart = isHost && room?.status === "lobby" && (room?.participants.length ?? 0) >= 2;
 
-  const goToGameIfPlaying = useCallback(
+  const routeByStatus = useCallback(
     (status: string | undefined) => {
       if (status === "playing") {
         navigate("/game", { replace: true });
+      } else if (status === "result") {
+        navigate("/result", { replace: true });
       }
     },
     [navigate]
@@ -33,8 +35,8 @@ export function LobbyPage() {
   }, [navigate, room]);
 
   useEffect(() => {
-    goToGameIfPlaying(room?.status);
-  }, [goToGameIfPlaying, room?.status]);
+    routeByStatus(room?.status);
+  }, [routeByStatus, room?.status]);
 
   useEffect(() => {
     if (!room || room.status !== "lobby") {
@@ -44,7 +46,7 @@ export function LobbyPage() {
     const intervalId = window.setInterval(() => {
       void roomStore.fetchRoom().then((snapshot) => {
         if (snapshot) {
-          goToGameIfPlaying(snapshot.status);
+          routeByStatus(snapshot.status);
         }
       });
     }, LOBBY_POLL_INTERVAL_MS);
@@ -52,14 +54,14 @@ export function LobbyPage() {
     return () => {
       window.clearInterval(intervalId);
     };
-  }, [goToGameIfPlaying, room, room?.code, room?.status, roomStore]);
+  }, [routeByStatus, room, room?.code, room?.status, roomStore]);
 
   async function handleRefresh() {
     try {
       setRefreshError(null);
       const snapshot = await roomStore.fetchRoom();
       if (snapshot) {
-        goToGameIfPlaying(snapshot.status);
+        routeByStatus(snapshot.status);
       }
     } catch (caughtError) {
       setRefreshError(caughtError instanceof Error ? caughtError.message : "Unable to refresh room");
@@ -79,7 +81,7 @@ export function LobbyPage() {
     try {
       setStartError(null);
       const snapshot = await roomStore.startGame();
-      goToGameIfPlaying(snapshot.status);
+      routeByStatus(snapshot.status);
     } catch (caughtError) {
       setStartError(caughtError instanceof Error ? caughtError.message : "Unable to start game");
     }

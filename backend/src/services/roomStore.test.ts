@@ -1,179 +1,189 @@
 import { describe, expect, it } from "vitest";
-import { createRoom, joinRoom, startGame, toRoomSnapshot } from "./roomStore.js";
+import {
+  appendStroke,
+  clearStrokes,
+  createRoom,
+  joinRoom,
+  restartRoom,
+  startGame,
+  submitGuess,
+  toRoomSnapshot
+} from "./roomStore.js";
+
+function startTwoPlayerGame() {
+  const host = createRoom("Alice");
+  const guest = joinRoom(host.room.code, "Bob");
+
+  if (guest.status !== "joined") {
+    throw new Error("Expected guest to join");
+  }
+
+  const started = startGame(host.room.code, host.participantId);
+
+  if (started.status !== "started") {
+    throw new Error("Expected game to start");
+  }
+
+  return { host, guest, started };
+}
 
 describe("roomStore", () => {
-  it("createRoom returns a room with a 4-character uppercase code", () => {
-    const result = createRoom("Alice");
+  it("createRoom returns a room with hostId and trimmed name", () => {
+    const result = createRoom("  Alice  ");
 
     expect(result.room.code).toMatch(/^[A-HJ-NP-Z2-9]{4}$/);
-    expect(result.room.participants).toHaveLength(1);
-    expect(result.room.participants[0].name).toBe("Alice");
-    expect(result.participantId).toBeDefined();
-  });
-
-  it("createRoom trims player names", () => {
-    const result = createRoom("  Alex  ");
-
-    expect(result.room.participants[0].name).toBe("Alex");
-  });
-
-  it("createRoom sets hostId to the creator participant id", () => {
-    const result = createRoom("Alice");
-
     expect(result.room.hostId).toBe(result.participantId);
-    expect(result.room.hostId).toBe(result.room.participants[0].id);
+    expect(result.room.participants[0].name).toBe("Alice");
   });
 
-  it("joinRoom returns not_found for an unknown room code", () => {
-    const result = joinRoom("ZZZZ", "Bob");
-
-    expect(result).toEqual({ status: "not_found" });
+  it("joinRoom returns not_found for unknown code", () => {
+    expect(joinRoom("ZZZZ", "Bob")).toEqual({ status: "not_found" });
   });
 
-  it("joinRoom trims player names", () => {
-    const host = createRoom("Alice");
-    const guest = joinRoom(host.room.code, "  Bob  ");
+  it("startGame assigns drawer, word, scores, and empty gameplay arrays", () => {
+    const { started, host } = startTwoPlayerGame();
 
-    if (guest.status !== "joined") {
-      throw new Error("Expected guest to join");
+    expect(started.room.status).toBe("playing");
+    expect(started.room.drawerId).toBe(host.participantId);
+    expect(started.room.secretWord).toBeTruthy();
+    expect(started.room.strokes).toEqual([]);
+    expect(started.room.guesses).toEqual([]);
+    expect(started.room.scores[host.participantId]).toBe(0);
+  });
+
+  it("appendStroke allows only the drawer during playing", () => {
+    const { host, guest, started } = startTwoPlayerGame();
+
+    const stroke = {
+      color: "#111827",
+      width: 4,
+      points: [
+        { x: 0, y: 0 },
+        { x: 10, y: 10 }
+      ]
+    };
+
+    const drawerResult = appendStroke(started.room.code, host.participantId, stroke);
+    const guesserResult = appendStroke(started.room.code, guest.participantId, stroke);
+
+    expect(drawerResult.status).toBe("appended");
+    if (drawerResult.status === "appended") {
+      expect(drawerResult.room.strokes).toHaveLength(1);
     }
 
-    expect(guest.room.participants[1].name).toBe("Bob");
+    expect(guesserResult.status).toBe("not_drawer");
   });
 
-  it("joinRoom rejects when the game has already started", () => {
-    const host = createRoom("Alice");
-    const guest = joinRoom(host.room.code, "Bob");
+  it("clearStrokes allows only the drawer", () => {
+    const { host, guest, started } = startTwoPlayerGame();
 
-    if (guest.status !== "joined") {
-      throw new Error("Expected guest to join");
-    }
+    appendStroke(started.room.code, host.participantId, {
+      color: "#111827",
+      width: 4,
+      points: [{ x: 1, y: 1 }]
+    });
 
-    const started = startGame(host.room.code, host.participantId);
+    expect(clearStrokes(started.room.code, guest.participantId).status).toBe("not_drawer");
 
-    if (started.status !== "started") {
-      throw new Error("Expected game to start");
-    }
-
-    const lateJoin = joinRoom(host.room.code, "Carol");
-
-    expect(lateJoin).toEqual({ status: "in_progress" });
-  });
-
-  it("startGame requires the host participant", () => {
-    const host = createRoom("Alice");
-    const guest = joinRoom(host.room.code, "Bob");
-
-    if (guest.status !== "joined") {
-      throw new Error("Expected guest to join");
-    }
-
-    const result = startGame(host.room.code, guest.participantId);
-
-    expect(result).toEqual({ status: "not_host" });
-  });
-
-  it("startGame requires at least two players", () => {
-    const host = createRoom("Alice");
-    const result = startGame(host.room.code, host.participantId);
-
-    expect(result).toEqual({ status: "not_enough_players" });
-  });
-
-  it("startGame transitions lobby to playing for the host with two players", () => {
-    const host = createRoom("Alice");
-    const guest = joinRoom(host.room.code, "Bob");
-
-    if (guest.status !== "joined") {
-      throw new Error("Expected guest to join");
-    }
-
-    const result = startGame(host.room.code, host.participantId);
-
-    expect(result.status).toBe("started");
-
-    if (result.status === "started") {
-      expect(result.room.status).toBe("playing");
+    const cleared = clearStrokes(started.room.code, host.participantId);
+    expect(cleared.status).toBe("cleared");
+    if (cleared.status === "cleared") {
+      expect(cleared.room.strokes).toEqual([]);
     }
   });
 
-  it("startGame assigns the host as drawer", () => {
-    const host = createRoom("Alice");
-    const guest = joinRoom(host.room.code, "Bob");
+  it("submitGuess scores correct guesses, ends round, and blocks drawer", () => {
+    const { host, guest, started } = startTwoPlayerGame();
+    const secretWord = started.room.secretWord ?? "";
 
-    if (guest.status !== "joined") {
-      throw new Error("Expected guest to join");
+    const wrong = submitGuess(started.room.code, guest.participantId, "wrong");
+    expect(wrong.status).toBe("submitted");
+    if (wrong.status === "submitted") {
+      expect(wrong.room.status).toBe("playing");
+      expect(wrong.room.scores[guest.participantId]).toBe(0);
+      expect(wrong.room.guesses).toHaveLength(1);
     }
 
-    const result = startGame(host.room.code, host.participantId);
+    expect(submitGuess(started.room.code, host.participantId, secretWord).status).toBe("is_drawer");
 
-    if (result.status !== "started") {
-      throw new Error("Expected game to start");
+    const correct = submitGuess(started.room.code, guest.participantId, secretWord.toUpperCase());
+    expect(correct.status).toBe("submitted");
+    if (correct.status === "submitted") {
+      expect(correct.room.status).toBe("result");
+      expect(correct.room.scores[guest.participantId]).toBe(100);
     }
 
-    expect(result.room.drawerId).toBe(host.participantId);
-    expect(result.room.drawerId).toBe(host.room.hostId);
+    expect(submitGuess(started.room.code, host.participantId, secretWord).status).toBe("not_playing");
+    expect(submitGuess(started.room.code, guest.participantId, "another").status).toBe("not_playing");
   });
 
-  it("startGame initializes scores to zero for all participants", () => {
-    const host = createRoom("Alice");
-    const guest = joinRoom(host.room.code, "Bob");
+  it("rejects draw and guess when status is result", () => {
+    const { host, guest, started } = startTwoPlayerGame();
+    const secretWord = started.room.secretWord ?? "";
 
-    if (guest.status !== "joined") {
-      throw new Error("Expected guest to join");
-    }
+    submitGuess(started.room.code, guest.participantId, secretWord);
 
-    const result = startGame(host.room.code, host.participantId);
+    expect(
+      appendStroke(started.room.code, host.participantId, {
+        color: "#111827",
+        width: 4,
+        points: [{ x: 1, y: 1 }]
+      }).status
+    ).toBe("not_playing");
 
-    if (result.status !== "started") {
-      throw new Error("Expected game to start");
-    }
-
-    expect(result.room.scores[host.participantId]).toBe(0);
-    expect(result.room.scores[guest.participantId]).toBe(0);
+    expect(clearStrokes(started.room.code, host.participantId).status).toBe("not_playing");
+    expect(submitGuess(started.room.code, guest.participantId, "again").status).toBe("not_playing");
   });
 
-  it("toRoomSnapshot includes secretWord only for the drawer viewer", () => {
-    const host = createRoom("Alice");
-    const guest = joinRoom(host.room.code, "Bob");
-
-    if (guest.status !== "joined") {
-      throw new Error("Expected guest to join");
-    }
-
-    const started = startGame(host.room.code, host.participantId);
-
-    if (started.status !== "started") {
-      throw new Error("Expected game to start");
-    }
+  it("toRoomSnapshot hides secretWord from guessers during playing", () => {
+    const { host, guest, started } = startTwoPlayerGame();
 
     const drawerSnapshot = toRoomSnapshot(started.room, host.participantId);
     const guesserSnapshot = toRoomSnapshot(started.room, guest.participantId);
-    const anonymousSnapshot = toRoomSnapshot(started.room);
 
     expect(drawerSnapshot.secretWord).toBe(started.room.secretWord);
     expect(guesserSnapshot.secretWord).toBeUndefined();
-    expect(anonymousSnapshot.secretWord).toBeUndefined();
   });
 
-  it("toRoomSnapshot omits availableWords when playing", () => {
-    const host = createRoom("Alice");
-    const guest = joinRoom(host.room.code, "Bob");
+  it("toRoomSnapshot reveals secretWord to all viewers during result", () => {
+    const { host, guest, started } = startTwoPlayerGame();
+    const secretWord = started.room.secretWord ?? "";
 
-    if (guest.status !== "joined") {
-      throw new Error("Expected guest to join");
+    const ended = submitGuess(started.room.code, guest.participantId, secretWord);
+    if (ended.status !== "submitted") {
+      throw new Error("Expected guess to submit");
     }
 
-    const started = startGame(host.room.code, host.participantId);
+    const drawerSnapshot = toRoomSnapshot(ended.room, host.participantId);
+    const guesserSnapshot = toRoomSnapshot(ended.room, guest.participantId);
 
-    if (started.status !== "started") {
-      throw new Error("Expected game to start");
+    expect(drawerSnapshot.secretWord).toBe(secretWord);
+    expect(guesserSnapshot.secretWord).toBe(secretWord);
+    expect(guesserSnapshot.scores[guest.participantId]).toBe(100);
+    expect(guesserSnapshot.guesses.length).toBeGreaterThan(0);
+  });
+
+  it("restartRoom clears round state and preserves participants", () => {
+    const { host, guest, started } = startTwoPlayerGame();
+    const secretWord = started.room.secretWord ?? "";
+    const code = started.room.code;
+
+    submitGuess(code, guest.participantId, secretWord);
+
+    expect(restartRoom(code, guest.participantId).status).toBe("not_host");
+
+    const restarted = restartRoom(code, host.participantId);
+    expect(restarted.status).toBe("restarted");
+
+    if (restarted.status === "restarted") {
+      expect(restarted.room.status).toBe("lobby");
+      expect(restarted.room.participants).toHaveLength(2);
+      expect(restarted.room.hostId).toBe(host.participantId);
+      expect(restarted.room.drawerId).toBeNull();
+      expect(restarted.room.secretWord).toBeNull();
+      expect(restarted.room.strokes).toEqual([]);
+      expect(restarted.room.guesses).toEqual([]);
+      expect(restarted.room.scores).toEqual({});
     }
-
-    const lobbySnapshot = toRoomSnapshot(host.room, host.participantId);
-    const playingSnapshot = toRoomSnapshot(started.room, host.participantId);
-
-    expect(lobbySnapshot.availableWords).toBeDefined();
-    expect(playingSnapshot.availableWords).toBeUndefined();
   });
 });

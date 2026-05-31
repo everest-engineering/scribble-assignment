@@ -1,13 +1,27 @@
 import { Router } from "express";
 import {
+  appendStrokeSchema,
+  clearDrawingSchema,
   createRoomSchema,
   HttpError,
   joinRoomSchema,
   roomCodeParamsSchema,
   roomViewerQuerySchema,
-  startGameSchema
+  restartRoomSchema,
+  startGameSchema,
+  submitGuessSchema
 } from "./schemas.js";
-import { createRoom, getRoom, joinRoom, startGame, toRoomSnapshot } from "../services/roomStore.js";
+import {
+  appendStroke,
+  clearStrokes,
+  createRoom,
+  getRoom,
+  joinRoom,
+  restartRoom,
+  startGame,
+  submitGuess,
+  toRoomSnapshot
+} from "../services/roomStore.js";
 
 export function createRoomsRouter() {
   const router = Router();
@@ -69,6 +83,118 @@ export function createRoomsRouter() {
 
       if (result.status === "already_started") {
         throw new HttpError(409, "Game already started");
+      }
+
+      response.json({
+        room: toRoomSnapshot(result.room, participantId)
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/:code/drawing/strokes", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId, stroke } = appendStrokeSchema.parse(request.body);
+      const result = appendStroke(code, participantId, stroke);
+
+      if (result.status === "not_found") {
+        throw new HttpError(404, "Room not found");
+      }
+
+      if (result.status === "not_playing") {
+        throw new HttpError(409, "Game is not in progress");
+      }
+
+      if (result.status === "not_drawer") {
+        throw new HttpError(403, "Only the drawer can draw");
+      }
+
+      response.json({
+        room: toRoomSnapshot(result.room, participantId)
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/:code/drawing/clear", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId } = clearDrawingSchema.parse(request.body);
+      const result = clearStrokes(code, participantId);
+
+      if (result.status === "not_found") {
+        throw new HttpError(404, "Room not found");
+      }
+
+      if (result.status === "not_playing") {
+        throw new HttpError(409, "Game is not in progress");
+      }
+
+      if (result.status === "not_drawer") {
+        throw new HttpError(403, "Only the drawer can clear the canvas");
+      }
+
+      response.json({
+        room: toRoomSnapshot(result.room, participantId)
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/:code/guess", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId, guess } = submitGuessSchema.parse(request.body);
+      const result = submitGuess(code, participantId, guess);
+
+      if (result.status === "not_found") {
+        throw new HttpError(404, "Room not found");
+      }
+
+      if (result.status === "not_playing") {
+        throw new HttpError(409, "Game is not in progress");
+      }
+
+      if (result.status === "not_participant") {
+        throw new HttpError(403, "Participant not in room");
+      }
+
+      if (result.status === "is_drawer") {
+        throw new HttpError(403, "The drawer cannot submit guesses");
+      }
+
+      if (result.status === "invalid_guess") {
+        throw new HttpError(400, result.message);
+      }
+
+      response.json({
+        room: toRoomSnapshot(result.room, participantId)
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/:code/restart", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId } = restartRoomSchema.parse(request.body);
+      const result = restartRoom(code, participantId);
+
+      if (result.status === "not_found") {
+        throw new HttpError(404, "Room not found");
+      }
+
+      if (result.status === "not_result") {
+        throw new HttpError(409, "Round has not ended yet");
+      }
+
+      if (result.status === "not_host") {
+        throw new HttpError(403, "Only the host can restart the game");
       }
 
       response.json({

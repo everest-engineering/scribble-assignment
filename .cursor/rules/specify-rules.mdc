@@ -5,8 +5,9 @@ alwaysApply: true
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan at
-`specs/002-game-start-drawer/plan.md` (Game Start & Drawer Flow — Scenario 2).
-Related artifacts: `specs/002-game-start-drawer/spec.md`, `data-model.md`,
+`specs/004-result-restart/plan.md` (Result, Restart & Final Validation — Scenario 4).
+Related artifacts: `specs/004-result-restart/spec.md`, `data-model.md`,
 `contracts/rooms-api.md`, `quickstart.md`.
-Prior scenario: `specs/001-room-setup-lobby/`.
+Prior scenarios: `specs/001-room-setup-lobby/`, `specs/002-game-start-drawer/`,
+`specs/003-gameplay-interaction/`.
 <!-- SPECKIT END -->
