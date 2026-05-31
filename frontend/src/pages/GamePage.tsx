@@ -1,77 +1,91 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Card } from "../components/Card";
-import { GuessForm } from "../components/GuessForm";
-import { ResultPanel } from "../components/ResultPanel";
-import { RoomCodeBadge } from "../components/RoomCodeBadge";
+import { PageHeader } from "../components/PageHeader";
 import { Scoreboard } from "../components/Scoreboard";
-import { useRoomState } from "../state/roomStore";
+import { useRoomState, useRoomStore } from "../state/roomStore";
 
 export function GamePage() {
+  const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
+  const roomStore = useRoomStore();
   const { room, participantId } = useRoomState();
 
   useEffect(() => {
-    if (!room) {
-      navigate("/", { replace: true });
+    if (!room || !participantId) {
+      navigate("/");
+      return;
     }
-  }, [navigate, room]);
 
-  if (!room) {
+    if (room.status !== "playing") {
+      navigate("/lobby");
+      return;
+    }
+
+    let cancelled = false;
+
+    async function pollRoom() {
+      try {
+        await roomStore.fetchRoom();
+        if (!cancelled) {
+          setError(null);
+        }
+      } catch (caughtError) {
+        if (!cancelled) {
+          setError(caughtError instanceof Error ? caughtError.message : "Unable to refresh room");
+        }
+      }
+    }
+
+    void pollRoom();
+    const intervalId = window.setInterval(() => {
+      void pollRoom();
+    }, 2000);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(intervalId);
+    };
+  }, [navigate, participantId, room, room?.code, room?.status, roomStore]);
+
+  if (!room || !participantId || room.status !== "playing") {
     return null;
   }
 
-  const viewer = room.participants.find((participant) => participant.id === participantId) ?? null;
+  const drawer = room.participants.find((participant) => participant.id === room.drawerId);
+  const isDrawer = participantId === room.drawerId;
 
   return (
     <section className="panel game-page">
-      <div className="game-page__header">
-        <div className="game-page__header-left">
-          <span className="section-kicker">Round 1</span>
-          <h1 className="game-page__title">Guess the Word!</h1>
-        </div>
-        <RoomCodeBadge code={room.code} />
+      <PageHeader
+        kicker="Round in progress"
+        title="Game"
+        description="The host draws first. Guessers watch the canvas and scoreboard."
+      />
+
+      <div className="game-page__meta">
+        <p>
+          <strong>Drawer:</strong> {drawer?.name ?? "Unknown"}
+          {isDrawer ? " (you)" : ""}
+        </p>
+        {isDrawer && room.secretWord ? (
+          <p className="game-page__secret-word">
+            <strong>Your word:</strong> {room.secretWord}
+          </p>
+        ) : null}
       </div>
 
       <div className="game-page__layout">
-        <aside className="game-page__sidebar game-page__sidebar--left">
-          <Scoreboard />
-          <ResultPanel />
-        </aside>
-
-        <div className="game-page__main">
-          <Card title="Canvas">
-            <div className="canvas-placeholder" style={{ minHeight: '500px', backgroundColor: '#ffffff', border: '1px solid #e5e7eb' }}>
-              Waiting for drawer...
-            </div>
-          </Card>
+        <div className="game-page__canvas">
+          {isDrawer ? (
+            <p>Canvas placeholder — you are drawing this round.</p>
+          ) : (
+            <p>Canvas placeholder — watch the drawer&apos;s sketch.</p>
+          )}
         </div>
-
-        <aside className="game-page__sidebar game-page__sidebar--right">
-          <Card title="Player Info">
-            <dl className="detail-list">
-              <div>
-                <dt>Name</dt>
-                <dd>{viewer?.name ?? "Unknown player"}</dd>
-              </div>
-              <div>
-                <dt>Status</dt>
-                <dd>Playing</dd>
-              </div>
-            </dl>
-          </Card>
-
-          <Card title="Your Guess">
-            <GuessForm />
-          </Card>
-        </aside>
+        <Scoreboard room={room} />
       </div>
 
-      <div className="button-row">
-        <button className="button button--secondary" onClick={() => navigate("/lobby")}>
-          Exit Game
-        </button>
-      </div>
+      {error ? <p className="form__error">{error}</p> : null}
     </section>
   );
 }
