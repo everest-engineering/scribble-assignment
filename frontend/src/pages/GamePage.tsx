@@ -1,12 +1,13 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { CanvasViewer } from "../components/CanvasViewer";
 import { Card } from "../components/Card";
 import { DrawingCanvas } from "../components/DrawingCanvas";
 import { GuessForm } from "../components/GuessForm";
 import { ResultPanel } from "../components/ResultPanel";
 import { RoomCodeBadge } from "../components/RoomCodeBadge";
 import { Scoreboard } from "../components/Scoreboard";
-import { api, type GuessEntry } from "../services/api";
+import { api, type GuessEntry, type Point } from "../services/api";
 import { useRoomState, useRoomStore } from "../state/roomStore";
 
 export function GamePage() {
@@ -28,6 +29,7 @@ export function GamePage() {
 
   const [guesses, setGuesses] = useState<GuessEntry[]>([]);
   const [scores, setScores] = useState<Record<string, number>>({});
+  const [strokes, setStrokes] = useState<Point[][]>([]);
 
   useEffect(() => {
     if (!room) return;
@@ -54,6 +56,21 @@ export function GamePage() {
     }, 2000);
     return () => clearInterval(interval);
   }, [store, room?.code]);
+
+  const isDrawerComputed = participantId === room?.currentDrawerId;
+
+  useEffect(() => {
+    if (!room || isDrawerComputed) return;
+    const interval = setInterval(async () => {
+      try {
+        const data = await api.fetchCanvas(room.code);
+        setStrokes(data.strokes);
+      } catch {
+        // polling failure is non-fatal
+      }
+    }, 2000);
+    return () => clearInterval(interval);
+  }, [room?.code, isDrawerComputed]);
 
   if (!room) {
     return null;
@@ -89,9 +106,12 @@ export function GamePage() {
         <div className="game-page__main">
           <Card title="Canvas">
             {isDrawer ? (
-              <DrawingCanvas />
+              <DrawingCanvas
+                onStrokeComplete={(path) => { api.saveStroke(room.code, path).catch(() => {}); }}
+                onClearCanvas={() => { api.clearCanvas(room.code).catch(() => {}); }}
+              />
             ) : (
-              <p className="canvas-placeholder">Drawer is drawing…</p>
+              <CanvasViewer strokes={strokes} />
             )}
           </Card>
         </div>

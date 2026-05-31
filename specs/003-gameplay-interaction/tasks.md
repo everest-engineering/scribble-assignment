@@ -91,6 +91,44 @@
 
 ---
 
+## Phase 5b: Canvas Sync — Drawing Visible to Guessers (Added Post-Implementation)
+
+**Goal**: The drawer's strokes are persisted to the backend on each mouseUp and
+cleared when the drawer clicks Clear. Guessers poll `GET /rooms/:code/canvas`
+every 2 s and render all strokes on a read-only canvas, replacing the placeholder.
+
+**Independent Test**: With two tabs open (drawer + guesser), draw a stroke in
+the drawer tab; within 2 s the same stroke should appear in the guesser tab.
+Click Clear in the drawer tab; within 2 s the guesser canvas should blank.
+
+### Implementation for Canvas Sync
+
+- [X] T018 Add `Point` interface to `backend/src/models/game.ts` and extend
+  `CurrentRound` with `strokes: Point[][]`
+- [X] T019 Initialize `strokes: []` in `startGame()` in
+  `backend/src/services/roomStore.ts`; add `saveStroke(code, path)`,
+  `clearCanvas(code)`, and `getCanvasStrokes(code)` service functions
+- [X] T020 Add `saveStrokeSchema` to `backend/src/api/schemas.ts` and wire up
+  three new routes in `backend/src/api/rooms.ts`:
+  `POST /:code/canvas/strokes`, `DELETE /:code/canvas`, `GET /:code/canvas`
+- [X] T021 Add `Point` type and `saveStroke()`, `clearCanvas()`, `fetchCanvas()`
+  functions to `frontend/src/services/api.ts`
+- [X] T022 Update `frontend/src/components/DrawingCanvas.tsx` to accept
+  `onStrokeComplete(path)` and `onClearCanvas()` callbacks; accumulate points
+  during a stroke and fire `onStrokeComplete` on mouseUp, fire `onClearCanvas`
+  on Clear click
+- [X] T023 Create `frontend/src/components/CanvasViewer.tsx` — read-only canvas
+  that re-renders all stroke paths from a `strokes: Point[][]` prop on each change
+- [X] T024 Update `frontend/src/pages/GamePage.tsx`: add `strokes` state; poll
+  `fetchCanvas()` every 2 s for guessers; pass `onStrokeComplete`/`onClearCanvas`
+  callbacks to `<DrawingCanvas />`; render `<CanvasViewer strokes={strokes} />`
+  for guessers instead of the placeholder
+
+**Checkpoint**: Guesser tab shows the drawer's strokes within 2 s; Clear blanks
+both views within 2 s. Validate before proceeding.
+
+---
+
 ## Phase 6: Polish & Cross-Cutting Concerns
 
 **Purpose**: Final edge-case validation across all three user stories.

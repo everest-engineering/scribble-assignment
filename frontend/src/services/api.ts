@@ -1,5 +1,10 @@
 export type ParticipantRole = "drawer" | "guesser";
 
+export interface Point {
+  x: number;
+  y: number;
+}
+
 export interface GuessEntry {
   guesserName: string;
   guessText: string;
@@ -94,6 +99,20 @@ export const api = {
     return request<{ guesses: GuessEntry[]; scores: Record<string, number> }>(
       `/rooms/${encodeURIComponent(code)}/guesses`
     );
+  },
+  saveStroke(code: string, path: Point[]) {
+    return request<{ ok: boolean }>(`/rooms/${encodeURIComponent(code)}/canvas/strokes`, {
+      method: "POST",
+      body: JSON.stringify({ path })
+    });
+  },
+  clearCanvas(code: string) {
+    return request<{ ok: boolean }>(`/rooms/${encodeURIComponent(code)}/canvas`, {
+      method: "DELETE"
+    });
+  },
+  fetchCanvas(code: string) {
+    return request<{ strokes: Point[][] }>(`/rooms/${encodeURIComponent(code)}/canvas`);
   },
   endRound(code: string, participantId: string) {
     return request<{ room: RoomSnapshot }>(`/rooms/${encodeURIComponent(code)}/end-round`, {

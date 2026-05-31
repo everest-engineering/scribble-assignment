@@ -36,7 +36,9 @@ clear button removes all strokes. Testable in a single browser tab as the drawer
 
 3. **Given** an active round and the current user is a guesser (not the drawer),
    **When** the guesser's game screen is displayed,
-   **Then** no drawing controls are accessible to the guesser.
+   **Then** the guesser sees a read-only view of the canvas that updates with
+   the drawer's strokes (via polling); no drawing controls are available to the
+   guesser.
 
 ---
 
@@ -132,14 +134,19 @@ tabs within the polling interval.
 
 ### Functional Requirements
 
-- **FR-001**: The system MUST provide an interactive drawing canvas that is
-  accessible only to the current round's drawer.
+- **FR-001**: The system MUST provide an interactive drawing canvas to the
+  current round's drawer; guessers see a read-only view of the same canvas.
 - **FR-002**: The drawer MUST be able to draw freehand strokes on the canvas;
   strokes MUST appear on the drawer's screen immediately.
 - **FR-003**: The drawer MUST be able to clear all strokes from the canvas with
-  a single action (e.g., a "Clear" button).
-- **FR-004**: Guesser screens MUST NOT expose drawing controls; only the drawer
-  interacts with the canvas.
+  a single action (e.g., a "Clear" button); the clear MUST also remove strokes
+  from all guesser views on their next poll.
+- **FR-004**: Guesser screens MUST NOT expose drawing controls; guessers can
+  view the canvas but cannot draw on it.
+- **FR-015**: Each completed stroke from the drawer MUST be persisted to the
+  backend and retrievable by all players via a polling endpoint
+  (`GET /rooms/:code/canvas`); guessers MUST poll this endpoint (≤ 3 s interval)
+  and re-render the canvas whenever new strokes arrive.
 - **FR-005**: Guess submissions MUST be trimmed of leading and trailing whitespace
   before any validation or comparison.
 - **FR-006**: Empty or whitespace-only guess submissions (after trimming) MUST be
@@ -186,16 +193,19 @@ tabs within the polling interval.
 - **SC-003**: All players see the same guess history within the configured polling
   interval (assumed ≤ 3 seconds); no player is more than one poll cycle out of date.
 - **SC-004**: The drawer can draw and clear the canvas without any page reload or
-  navigation, with strokes appearing immediately on their screen.
+  navigation, with strokes appearing immediately on their own screen and
+  appearing on all guesser screens within the polling interval (≤ 3 seconds).
+- **SC-006**: All guessers see an up-to-date read-only replica of the drawer's
+  canvas within the configured poll interval; clearing the canvas is reflected
+  on all screens within one additional poll cycle.
 - **SC-005**: Case-insensitive guess matching works correctly for all standard
   Latin-character inputs — "APPLE", "apple", and "Apple" all match a secret word
   of "apple".
 
 ## Assumptions
 
-- Drawing broadcast to guessers' screens (real-time canvas sync) is out of scope
-  for this scenario; the spec covers only the drawer seeing their own canvas. If
-  guessers need to see the drawing, that is a separate feature.
+- Canvas sync to guessers is polling-based (REST only, no WebSockets); guessers
+  see the drawing update within ≤ 3 seconds, which is acceptable for this game.
 - Each guesser may submit multiple guesses per round; there is no per-player
   guess limit.
 - Scores accumulate additively within a round; a player who guesses correctly

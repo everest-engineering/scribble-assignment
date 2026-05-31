@@ -25,6 +25,10 @@ export const submitGuessSchema = z.object({
   guessText: z.string(),
 });
 
+export const saveStrokeSchema = z.object({
+  path: z.array(z.object({ x: z.number(), y: z.number() })).min(1),
+});
+
 export const endRoundSchema = z.object({
   participantId: z.string(),
 });

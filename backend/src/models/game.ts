@@ -1,6 +1,11 @@
 export type ParticipantRole = "drawer" | "guesser";
 export type RoomStatus = "lobby" | "in-progress" | "finished";
 
+export interface Point {
+  x: number;
+  y: number;
+}
+
 export interface Participant {
   id: string;
   name: string;
@@ -20,6 +25,7 @@ export interface CurrentRound {
   wordIndex: number;
   guesses: GuessEntry[];
   scores: Record<string, number>;
+  strokes: Point[][];
 }
 
 export interface Room {

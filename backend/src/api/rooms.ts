@@ -7,10 +7,11 @@ import {
   restartSchema,
   roomCodeParamsSchema,
   roomViewerQuerySchema,
+  saveStrokeSchema,
   startGameSchema,
   submitGuessSchema
 } from "./schemas.js";
-import { createRoom, endRound, getGuesses, getRoom, joinRoom, restartGame, startGame, submitGuess, toRoomSnapshot } from "../services/roomStore.js";
+import { clearCanvas, createRoom, endRound, getCanvasStrokes, getGuesses, getRoom, joinRoom, restartGame, saveStroke, startGame, submitGuess, toRoomSnapshot } from "../services/roomStore.js";
 
 export function createRoomsRouter() {
   const router = Router();
@@ -110,6 +111,55 @@ export function createRoomsRouter() {
     try {
       const { code } = roomCodeParamsSchema.parse(request.params);
       const result = getGuesses(code.toUpperCase());
+
+      if ("error" in result) {
+        if (result.error === "not-found") throw new HttpError(404, "not-found");
+        throw new HttpError(409, "not-in-progress");
+      }
+
+      response.json(result);
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/:code/canvas/strokes", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { path } = saveStrokeSchema.parse(request.body);
+      const result = saveStroke(code.toUpperCase(), path);
+
+      if ("error" in result) {
+        if (result.error === "not-found") throw new HttpError(404, "not-found");
+        throw new HttpError(409, "not-in-progress");
+      }
+
+      response.json(result);
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.delete("/:code/canvas", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const result = clearCanvas(code.toUpperCase());
+
+      if ("error" in result) {
+        if (result.error === "not-found") throw new HttpError(404, "not-found");
+        throw new HttpError(409, "not-in-progress");
+      }
+
+      response.json(result);
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.get("/:code/canvas", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const result = getCanvasStrokes(code.toUpperCase());
 
       if ("error" in result) {
         if (result.error === "not-found") throw new HttpError(404, "not-found");

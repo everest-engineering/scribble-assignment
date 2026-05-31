@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import type { GuessEntry, Participant, Room, RoomSnapshot } from "../models/game.js";
+import type { GuessEntry, Participant, Point, Room, RoomSnapshot } from "../models/game.js";
 import { STARTER_ROLES, STARTER_WORDS } from "../seed/starterData.js";
 
 const rooms = new Map<string, Room>();
@@ -102,6 +102,7 @@ export function startGame(code: string, participantId: string) {
     wordIndex: 0,
     guesses: [],
     scores: Object.fromEntries(room.participants.map((p) => [p.id, 0])),
+    strokes: [] as Point[][],
   };
 
   room.status = "in-progress";
@@ -144,6 +145,33 @@ export function submitGuess(code: string, participantId: string, rawText: string
   rooms.set(room.code, room);
 
   return { guess: entry, newScore: round.scores[participantId] ?? 0 };
+}
+
+export function saveStroke(code: string, path: Point[]) {
+  const room = rooms.get(code);
+  if (!room) return { error: "not-found" as const };
+  if (room.status !== "in-progress" || !room.currentRound) return { error: "not-in-progress" as const };
+  room.currentRound.strokes.push(path);
+  room.updatedAt = now();
+  rooms.set(room.code, room);
+  return { ok: true };
+}
+
+export function clearCanvas(code: string) {
+  const room = rooms.get(code);
+  if (!room) return { error: "not-found" as const };
+  if (room.status !== "in-progress" || !room.currentRound) return { error: "not-in-progress" as const };
+  room.currentRound.strokes = [];
+  room.updatedAt = now();
+  rooms.set(room.code, room);
+  return { ok: true };
+}
+
+export function getCanvasStrokes(code: string) {
+  const room = rooms.get(code);
+  if (!room) return { error: "not-found" as const };
+  if (room.status !== "in-progress" || !room.currentRound) return { error: "not-in-progress" as const };
+  return { strokes: room.currentRound.strokes };
 }
 
 export function getGuesses(code: string) {

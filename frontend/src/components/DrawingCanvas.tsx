@@ -1,8 +1,15 @@
 import { useRef } from "react";
+import type { Point } from "../services/api";
 
-export function DrawingCanvas() {
+interface Props {
+  onStrokeComplete?: (path: Point[]) => void;
+  onClearCanvas?: () => void;
+}
+
+export function DrawingCanvas({ onStrokeComplete, onClearCanvas }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const isDrawing = useRef(false);
+  const currentPath = useRef<Point[]>([]);
 
   function getContext() {
     const canvas = canvasRef.current;
@@ -11,22 +18,34 @@ export function DrawingCanvas() {
 
   function handleMouseDown(event: React.MouseEvent<HTMLCanvasElement>) {
     isDrawing.current = true;
+    currentPath.current = [];
+    const x = event.nativeEvent.offsetX;
+    const y = event.nativeEvent.offsetY;
+    currentPath.current.push({ x, y });
     const ctx = getContext();
     if (!ctx) return;
     ctx.beginPath();
-    ctx.moveTo(event.nativeEvent.offsetX, event.nativeEvent.offsetY);
+    ctx.moveTo(x, y);
   }
 
   function handleMouseMove(event: React.MouseEvent<HTMLCanvasElement>) {
     if (!isDrawing.current) return;
+    const x = event.nativeEvent.offsetX;
+    const y = event.nativeEvent.offsetY;
+    currentPath.current.push({ x, y });
     const ctx = getContext();
     if (!ctx) return;
-    ctx.lineTo(event.nativeEvent.offsetX, event.nativeEvent.offsetY);
+    ctx.lineTo(x, y);
     ctx.stroke();
   }
 
   function handleMouseUp() {
+    if (!isDrawing.current) return;
     isDrawing.current = false;
+    if (currentPath.current.length > 1) {
+      onStrokeComplete?.(currentPath.current);
+    }
+    currentPath.current = [];
   }
 
   function handleClear() {
@@ -34,6 +53,7 @@ export function DrawingCanvas() {
     const ctx = getContext();
     if (!canvas || !ctx) return;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+    onClearCanvas?.();
   }
 
   return (
