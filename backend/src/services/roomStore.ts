@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import type { Participant, Room, RoomSnapshot } from "../models/game.js";
+import type { Guess, Participant, Room, RoomSnapshot } from "../models/game.js";
 import { STARTER_ROLES, STARTER_WORDS } from "../seed/starterData.js";
 
 const rooms = new Map<string, Room>();
@@ -58,6 +58,8 @@ export function createRoom(playerName?: string) {
     hostId: participant.id,
     drawerParticipantId: null,
     currentWord: null,
+    guesses: [],
+    scores: {},
     createdAt: now(),
     updatedAt: now()
   };
@@ -121,6 +123,44 @@ export function startGame(code: string, participantId: string) {
   room.status = "playing";
   room.drawerParticipantId = room.participants[0].id;
   room.currentWord = STARTER_WORDS[0];
+  room.scores = Object.fromEntries(room.participants.map((p) => [p.id, 0]));
+  saveRoom(room);
+
+  return { code: "OK", room: cloneRoom(room) } as const;
+}
+
+export function submitGuess(code: string, participantId: string, guessText: string) {
+  const room = rooms.get(code);
+
+  if (!room) {
+    return { code: "NOT_FOUND" } as const;
+  }
+
+  if (room.status !== "playing") {
+    return { code: "BAD_REQUEST", message: "Game is not active" } as const;
+  }
+
+  if (participantId === room.drawerParticipantId) {
+    return { code: "FORBIDDEN", message: "Drawer cannot guess" } as const;
+  }
+
+  const trimmed = guessText.trim();
+  if (trimmed.length === 0) {
+    return { code: "BAD_REQUEST", message: "Guess cannot be empty" } as const;
+  }
+
+  const alreadyCorrect = room.guesses.some((g) => g.participantId === participantId && g.correct);
+  if (alreadyCorrect) {
+    return { code: "BAD_REQUEST", message: "You have already guessed correctly" } as const;
+  }
+
+  const correct = trimmed.toLowerCase() === (room.currentWord ?? "").toLowerCase();
+  const score = correct ? 100 : 0;
+  const participantName = room.participants.find((p) => p.id === participantId)?.name ?? "Unknown";
+
+  const guessRecord: Guess = { participantId, participantName, guess: trimmed, score, correct };
+  room.guesses.push(guessRecord);
+  room.scores[participantId] = (room.scores[participantId] ?? 0) + score;
   saveRoom(room);
 
   return { code: "OK", room: cloneRoom(room) } as const;
@@ -145,6 +185,8 @@ export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSn
     hostId: room.hostId,
     drawerParticipantId: room.drawerParticipantId,
     currentWord: isDrawer ? room.currentWord : null,
-    viewerRole
+    viewerRole,
+    guesses: room.guesses.map((g) => ({ ...g })),
+    scores: { ...room.scores }
   };
 }

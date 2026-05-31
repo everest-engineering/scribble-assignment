@@ -1,6 +1,14 @@
 export type ParticipantRole = "drawer" | "guesser";
 export type RoomStatus = "lobby" | "playing";
 
+export interface Guess {
+  participantId: string;
+  participantName: string;
+  guess: string;
+  score: number;
+  correct: boolean;
+}
+
 export interface Participant {
   id: string;
   name: string;
@@ -14,6 +22,8 @@ export interface Room {
   hostId: string;
   drawerParticipantId: string | null;
   currentWord: string | null;
+  guesses: Guess[];
+  scores: Record<string, number>;
   createdAt: string;
   updatedAt: string;
 }
@@ -28,6 +38,8 @@ export interface RoomSnapshot {
   drawerParticipantId: string | null;
   currentWord: string | null;
   viewerRole: ParticipantRole | null;
+  guesses: Guess[];
+  scores: Record<string, number>;
 }
 
 export interface RoomSessionResponse {
