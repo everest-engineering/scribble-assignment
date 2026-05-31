@@ -15,12 +15,19 @@ export function GamePage() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const isDrawingRef = useRef(false);
   const [guessError, setGuessError] = useState<string | null>(null);
+  const [endError, setEndError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!room) {
       navigate("/", { replace: true });
     }
   }, [navigate, room]);
+
+  useEffect(() => {
+    if (room?.status === "results") {
+      navigate("/results", { replace: true });
+    }
+  }, [room?.status, navigate]);
 
   useEffect(() => {
     const id = setInterval(() => {
@@ -87,6 +94,7 @@ export function GamePage() {
   const viewer = room.participants.find((p) => p.id === participantId) ?? null;
   const drawerName = room.participants.find((p) => p.id === room.drawerParticipantId)?.name ?? "Unknown";
   const isDrawer = room.viewerRole === "drawer";
+  const isHost = participantId !== null && participantId === room.hostId;
 
   async function handleGuess(guess: string) {
     if (!room || !participantId) return;
@@ -97,6 +105,18 @@ export function GamePage() {
     } catch (err) {
       setGuessError(err instanceof Error ? err.message : "Failed to submit guess");
       throw err;
+    }
+  }
+
+  async function handleEndGame() {
+    if (!room || !participantId) return;
+    setEndError(null);
+    try {
+      const response = await api.endGame(room.code, participantId);
+      roomStore.setRoomSession(response);
+      navigate("/results");
+    } catch (err) {
+      setEndError(err instanceof Error ? err.message : "Failed to end game");
     }
   }
 
@@ -178,9 +198,14 @@ export function GamePage() {
       </div>
 
       <div className="button-row">
-        <button className="button button--secondary" onClick={() => navigate("/lobby")}>
-          Exit Game
-        </button>
+        {isHost && (
+          <>
+            <button className="button button--secondary" onClick={handleEndGame}>
+              End Game
+            </button>
+            {endError && <p style={{ color: "red", marginTop: "8px" }}>{endError}</p>}
+          </>
+        )}
       </div>
     </section>
   );

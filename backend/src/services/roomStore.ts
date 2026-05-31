@@ -166,9 +166,56 @@ export function submitGuess(code: string, participantId: string, guessText: stri
   return { code: "OK", room: cloneRoom(room) } as const;
 }
 
+export function endGame(code: string, participantId: string) {
+  const room = rooms.get(code);
+
+  if (!room) {
+    return { code: "NOT_FOUND" } as const;
+  }
+
+  if (participantId !== room.hostId) {
+    return { code: "FORBIDDEN" } as const;
+  }
+
+  if (room.status !== "playing") {
+    return { code: "CONFLICT" } as const;
+  }
+
+  room.status = "results";
+  saveRoom(room);
+
+  return { code: "OK", room: cloneRoom(room) } as const;
+}
+
+export function restartGame(code: string, participantId: string) {
+  const room = rooms.get(code);
+
+  if (!room) {
+    return { code: "NOT_FOUND" } as const;
+  }
+
+  if (participantId !== room.hostId) {
+    return { code: "FORBIDDEN" } as const;
+  }
+
+  if (room.status !== "results") {
+    return { code: "CONFLICT" } as const;
+  }
+
+  room.status = "lobby";
+  room.drawerParticipantId = null;
+  room.currentWord = null;
+  room.guesses = [];
+  room.scores = {};
+  saveRoom(room);
+
+  return { code: "OK", room: cloneRoom(room) } as const;
+}
+
 export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSnapshot {
   const isDrawer =
     room.drawerParticipantId !== null && viewerParticipantId === room.drawerParticipantId;
+  const showWord = isDrawer || room.status === "results";
 
   const viewerRole: import("../models/game.js").ParticipantRole | null = viewerParticipantId
     ? isDrawer
@@ -184,7 +231,7 @@ export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSn
     roles: [...STARTER_ROLES],
     hostId: room.hostId,
     drawerParticipantId: room.drawerParticipantId,
-    currentWord: isDrawer ? room.currentWord : null,
+    currentWord: showWord ? room.currentWord : null,
     viewerRole,
     guesses: room.guesses.map((g) => ({ ...g })),
     scores: { ...room.scores }

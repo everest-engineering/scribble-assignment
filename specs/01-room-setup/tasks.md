@@ -14,12 +14,12 @@
 
 **⚠️ CRITICAL**: No phase 2–4 work can begin until Phase 1 is done and `npm run build` passes on the backend.
 
-- [ ] T001 [US1] Add `hostId: string` to `Room` interface in `backend/src/models/game.ts`
-- [ ] T002 [US1] Add `hostId: string` to `RoomSnapshot` interface in `backend/src/models/game.ts`
-- [ ] T003 [US1] Set `hostId: participant.id` in the `createRoom()` room literal in `backend/src/services/roomStore.ts`
-- [ ] T004 [US1] Replace `void viewerParticipantId` with `hostId: room.hostId` in `toRoomSnapshot()` in `backend/src/services/roomStore.ts`
+- [x] T001 [US1] Add `hostId: string` to `Room` interface in `backend/src/models/game.ts`
+- [x] T002 [US1] Add `hostId: string` to `RoomSnapshot` interface in `backend/src/models/game.ts`
+- [x] T003 [US1] Set `hostId: participant.id` in the `createRoom()` room literal in `backend/src/services/roomStore.ts`
+- [x] T004 [US1] Replace `void viewerParticipantId` with `hostId: room.hostId` in `toRoomSnapshot()` in `backend/src/services/roomStore.ts`
 
-- [ ] T005a [US1] Add `hostId: string` to the local `RoomSnapshot` interface in `frontend/src/services/api.ts` (this file owns its own copy — it does not import from the backend)
+- [x] T005a [US1] Add `hostId: string` to the local `RoomSnapshot` interface in `frontend/src/services/api.ts` (this file owns its own copy — it does not import from the backend)
 
 **Checkpoint**: Run `npm run build` in `backend/` and `frontend/`. Zero TypeScript errors in both. `POST /rooms` response includes `room.hostId`. Confirm with: `curl -X POST http://localhost:3001/rooms -H 'Content-Type: application/json' -d '{"playerName":"Alice"}' | grep hostId`
 
@@ -33,10 +33,10 @@
 
 **Independent Test**: Open two browser tabs. Tab A creates a room. Without clicking anything in Tab A, join from Tab B using the room code. Within ≤4 s, Tab A's participant list shows both names. Tab A's Start Game button becomes enabled. Tab B sees "Waiting for host to start..." with no button.
 
-- [ ] T005 [US1] In `frontend/src/pages/LobbyPage.tsx`: replace `handleRefresh` + manual button logic with a `useEffect` that calls `setInterval(() => { roomStore.fetchRoom().catch(() => {}) }, 2000)` and returns `() => clearInterval(id)` as cleanup
-- [ ] T006 [US1] In `frontend/src/pages/LobbyPage.tsx`: derive `isHost` from `participantId !== null && room !== null && participantId === room.hostId` (read both from `useRoomState()`)
-- [ ] T007 [US1] In `frontend/src/pages/LobbyPage.tsx`: render Start Game button only when `isHost === true`; set `disabled={room.participants.length < 2}` on that button
-- [ ] T008 [US1] In `frontend/src/pages/LobbyPage.tsx`: render `<p>Waiting for host to start...</p>` in place of the Start Game button when `isHost === false`
+- [x] T005 [US1] In `frontend/src/pages/LobbyPage.tsx`: replace `handleRefresh` + manual button logic with a `useEffect` that calls `setInterval(() => { roomStore.fetchRoom().catch(() => {}) }, 2000)` and returns `() => clearInterval(id)` as cleanup
+- [x] T006 [US1] In `frontend/src/pages/LobbyPage.tsx`: derive `isHost` from `participantId !== null && room !== null && participantId === room.hostId` (read both from `useRoomState()`)
+- [x] T007 [US1] In `frontend/src/pages/LobbyPage.tsx`: render Start Game button only when `isHost === true`; set `disabled={room.participants.length < 2}` on that button
+- [x] T008 [US1] In `frontend/src/pages/LobbyPage.tsx`: render `<p>Waiting for host to start...</p>` in place of the Start Game button when `isHost === false`
 
 **Checkpoint**: Two-tab smoke test passes (described above). Confirm no network calls appear in the browser DevTools Network tab after navigating away from the lobby.
 
@@ -50,7 +50,7 @@
 
 **Note**: No backend code changes required — `POST /rooms/:code/join` already works. This phase is a validation checkpoint.
 
-- [ ] T009 [US2] Smoke-test join flow: open a second tab, navigate to `/join-room`, enter the code from Tab A and a different player name, submit — confirm `room.hostId` appears in the join response and equals Tab A's participantId
+- [x] T009 [US2] Smoke-test join flow: open a second tab, navigate to `/join-room`, enter the code from Tab A and a different player name, submit — confirm `room.hostId` appears in the join response and equals Tab A's participantId
 
 **Checkpoint**: Within ≤4 s of Tab B joining, Tab A's participant list shows two names and the Start Game button enables. Tab B sees "Waiting for host to start..." with no button.
 
@@ -62,11 +62,11 @@
 
 **Depends on**: Phase 1 complete (build must be green before touching schemas).
 
-- [ ] T010 [US3] In `backend/src/api/schemas.ts`: change `createRoomSchema.playerName` from `z.string().optional()` to `z.string().trim().min(1, "Player name is required")`
-- [ ] T011 [US3] In `backend/src/api/schemas.ts`: apply the same change to `joinRoomSchema.playerName`
-- [ ] T012 [US3] Verify `POST /rooms` with `{ "playerName": "   " }` returns 400 (existing error middleware handles Zod errors — no route handler changes needed)
-- [ ] T013 [US3] Verify `POST /rooms/:code/join` with a non-existent code returns 404 (already implemented via `HttpError(404, ...)` — confirm it still works after schema changes)
-- [ ] T014 [US3] Verify `GET /rooms/NOTEXIST` returns 404 (existing behaviour — regression check)
+- [x] T010 [US3] In `backend/src/api/schemas.ts`: change `createRoomSchema.playerName` from `z.string().optional()` to `z.string().trim().min(1, "Player name is required")`
+- [x] T011 [US3] In `backend/src/api/schemas.ts`: apply the same change to `joinRoomSchema.playerName`
+- [x] T012 [US3] Verify `POST /rooms` with `{ "playerName": "   " }` returns 400 (existing error middleware handles Zod errors — no route handler changes needed)
+- [x] T013 [US3] Verify `POST /rooms/:code/join` with a non-existent code returns 404 (already implemented via `HttpError(404, ...)` — confirm it still works after schema changes)
+- [x] T014 [US3] Verify `GET /rooms/NOTEXIST` returns 404 (existing behaviour — regression check)
 
 **Checkpoint**: All three curl checks pass:
 ```bash
@@ -88,10 +88,10 @@ curl -s -o /dev/null -w "%{http_code}" http://localhost:3001/rooms/ZZZZ
 
 **Purpose**: Confirm the full build is clean and no existing tests regress.
 
-- [ ] T015 [P] Run `npm run build` in `backend/` — zero TypeScript errors
-- [ ] T016 [P] Run `npm run build` in `frontend/` — zero TypeScript errors
-- [ ] T017 [P] Run `npm test` in `backend/` — all tests pass
-- [ ] T018 [P] Run `npm test` in `frontend/` — all tests pass
+- [x] T015 [P] Run `npm run build` in `backend/` — zero TypeScript errors
+- [x] T016 [P] Run `npm run build` in `frontend/` — zero TypeScript errors
+- [x] T017 [P] Run `npm test` in `backend/` — all tests pass
+- [x] T018 [P] Run `npm test` in `frontend/` — all tests pass
 
 **Checkpoint**: All four commands exit 0. Group 1 is complete.
 

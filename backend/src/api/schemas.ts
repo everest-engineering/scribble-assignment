@@ -25,6 +25,14 @@ export const startRoomSchema = z.object({
   participantId: z.string().trim().min(1, "Participant ID is required")
 });
 
+export const endRoomSchema = z.object({
+  participantId: z.string().trim().min(1, "Participant ID is required")
+});
+
+export const restartRoomSchema = z.object({
+  participantId: z.string().trim().min(1, "Participant ID is required")
+});
+
 export class HttpError extends Error {
   statusCode: number;
 

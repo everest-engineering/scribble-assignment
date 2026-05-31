@@ -1,14 +1,16 @@
 import { Router } from "express";
 import {
   createRoomSchema,
+  endRoomSchema,
   guessSchema,
   HttpError,
   joinRoomSchema,
+  restartRoomSchema,
   roomCodeParamsSchema,
   roomViewerQuerySchema,
   startRoomSchema
 } from "./schemas.js";
-import { createRoom, getRoom, joinRoom, startGame, submitGuess, toRoomSnapshot } from "../services/roomStore.js";
+import { createRoom, endGame, getRoom, joinRoom, restartGame, startGame, submitGuess, toRoomSnapshot } from "../services/roomStore.js";
 
 export function createRoomsRouter() {
   const router = Router();
@@ -61,6 +63,38 @@ export function createRoomsRouter() {
         participantId,
         room: toRoomSnapshot(result.room, participantId)
       });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/:code/end", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId } = endRoomSchema.parse(request.body);
+      const result = endGame(code.toUpperCase(), participantId);
+
+      if (result.code === "NOT_FOUND") throw new HttpError(404, "Room not found");
+      if (result.code === "FORBIDDEN") throw new HttpError(403, "Only the host can end the game");
+      if (result.code === "CONFLICT") throw new HttpError(409, "Game is not currently playing");
+
+      response.json({ participantId, room: toRoomSnapshot(result.room, participantId) });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/:code/restart", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId } = restartRoomSchema.parse(request.body);
+      const result = restartGame(code.toUpperCase(), participantId);
+
+      if (result.code === "NOT_FOUND") throw new HttpError(404, "Room not found");
+      if (result.code === "FORBIDDEN") throw new HttpError(403, "Only the host can restart the game");
+      if (result.code === "CONFLICT") throw new HttpError(409, "Game is not in results state");
+
+      response.json({ participantId, room: toRoomSnapshot(result.room, participantId) });
     } catch (error) {
       next(error);
     }

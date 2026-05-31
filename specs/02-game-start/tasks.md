@@ -14,11 +14,11 @@
 
 **⚠️ CRITICAL**: No other phase can begin until `npm run build` in `backend/` exits 0.
 
-- [ ] T001 [US1] In `backend/src/models/game.ts`: widen `RoomStatus` to `"lobby" | "playing"`
-- [ ] T002 [US1] In `backend/src/models/game.ts`: add `drawerParticipantId: string | null` and `currentWord: string | null` to the `Room` interface
-- [ ] T003 [US1] In `backend/src/models/game.ts`: add `drawerParticipantId: string | null`, `currentWord: string | null`, and `viewerRole: ParticipantRole | null` to the `RoomSnapshot` interface
-- [ ] T004 [US1] In `backend/src/services/roomStore.ts` → `createRoom()`: add `drawerParticipantId: null, currentWord: null` to the room literal (TypeScript enforces this after T002)
-- [ ] T005 [US1] In `backend/src/services/roomStore.ts` → `toRoomSnapshot()`: add `drawerParticipantId: room.drawerParticipantId`, `currentWord: null` (placeholder — correct gating added in Phase 2 T008), and `viewerRole: null` (placeholder) to the returned object to satisfy TypeScript (TypeScript enforces this after T003)
+- [x] T001 [US1] In `backend/src/models/game.ts`: widen `RoomStatus` to `"lobby" | "playing"`
+- [x] T002 [US1] In `backend/src/models/game.ts`: add `drawerParticipantId: string | null` and `currentWord: string | null` to the `Room` interface
+- [x] T003 [US1] In `backend/src/models/game.ts`: add `drawerParticipantId: string | null`, `currentWord: string | null`, and `viewerRole: ParticipantRole | null` to the `RoomSnapshot` interface
+- [x] T004 [US1] In `backend/src/services/roomStore.ts` → `createRoom()`: add `drawerParticipantId: null, currentWord: null` to the room literal (TypeScript enforces this after T002)
+- [x] T005 [US1] In `backend/src/services/roomStore.ts` → `toRoomSnapshot()`: add `drawerParticipantId: room.drawerParticipantId`, `currentWord: null` (placeholder — correct gating added in Phase 2 T008), and `viewerRole: null` (placeholder) to the returned object to satisfy TypeScript (TypeScript enforces this after T003)
 
 **Checkpoint**: `npm run build` in `backend/` exits 0 with zero TypeScript errors. No functional behaviour changes yet — word gating and role derivation are placeholders until Phase 2.
 
@@ -30,14 +30,14 @@
 
 **Depends on**: Phase 1 complete.
 
-- [ ] T006 [US1] In `backend/src/services/roomStore.ts`: add `startGame(code: string, participantId: string)` function that returns a discriminated result object:
+- [x] T006 [US1] In `backend/src/services/roomStore.ts`: add `startGame(code: string, participantId: string)` function that returns a discriminated result object:
   - `{ code: "NOT_FOUND" }` — room does not exist
   - `{ code: "FORBIDDEN" }` — `participantId !== room.hostId`
   - `{ code: "CONFLICT" }` — `room.status === "playing"`
   - `{ code: "BAD_REQUEST" }` — `room.participants.length < 2`
   - `{ code: "OK", room: Room }` — sets `status = "playing"`, `drawerParticipantId = room.participants[0].id`, `currentWord = STARTER_WORDS[0]`, calls `saveRoom(room)`
-- [ ] T007 [US2] In `backend/src/services/roomStore.ts` → `toRoomSnapshot()`: replace the `currentWord: null` placeholder (T005) with real gating: return `room.currentWord` only when `room.drawerParticipantId !== null && viewerParticipantId === room.drawerParticipantId`, otherwise `null`
-- [ ] T008 [US2] In `backend/src/services/roomStore.ts` → `toRoomSnapshot()`: replace the `viewerRole: null` placeholder (T005) with real derivation: `"drawer"` if `viewerParticipantId === room.drawerParticipantId && room.drawerParticipantId !== null`, `"guesser"` if `viewerParticipantId` is present and not the drawer, `null` otherwise
+- [x] T007 [US2] In `backend/src/services/roomStore.ts` → `toRoomSnapshot()`: replace the `currentWord: null` placeholder (T005) with real gating: return `room.currentWord` only when `room.drawerParticipantId !== null && viewerParticipantId === room.drawerParticipantId`, otherwise `null`
+- [x] T008 [US2] In `backend/src/services/roomStore.ts` → `toRoomSnapshot()`: replace the `viewerRole: null` placeholder (T005) with real derivation: `"drawer"` if `viewerParticipantId === room.drawerParticipantId && room.drawerParticipantId !== null`, `"guesser"` if `viewerParticipantId` is present and not the drawer, `null` otherwise
 
 **Checkpoint**: Manually call `startGame("XXXX", "...")` in a test or `console.log` — confirm it returns `NOT_FOUND` for unknown codes before the route is wired.
 
@@ -49,8 +49,8 @@
 
 **Depends on**: Phase 2 complete.
 
-- [ ] T009 [US1] In `backend/src/api/schemas.ts`: add `export const startRoomSchema = z.object({ participantId: z.string().trim().min(1, "Participant ID is required") })`
-- [ ] T010 [US1] In `backend/src/api/rooms.ts`: add `POST /:code/start` route after the existing `POST /:code/join` route; import `startGame` from `roomStore` and `startRoomSchema` from `schemas`; translate result codes to HTTP statuses:
+- [x] T009 [US1] In `backend/src/api/schemas.ts`: add `export const startRoomSchema = z.object({ participantId: z.string().trim().min(1, "Participant ID is required") })`
+- [x] T010 [US1] In `backend/src/api/rooms.ts`: add `POST /:code/start` route after the existing `POST /:code/join` route; import `startGame` from `roomStore` and `startRoomSchema` from `schemas`; translate result codes to HTTP statuses:
   - `NOT_FOUND → 404`
   - `FORBIDDEN → 403`
   - `CONFLICT → 409`
@@ -85,9 +85,9 @@ curl -s -o /dev/null -w "%{http_code}" -X POST http://localhost:3001/rooms/$CODE
 
 **Depends on**: Phase 2 complete (backend must compile so you know the exact shape).
 
-- [ ] T011 [US1] In `frontend/src/services/api.ts`: widen `RoomSnapshot.status` from `"lobby"` to `"lobby" | "playing"`
-- [ ] T012 [US2] In `frontend/src/services/api.ts`: add `drawerParticipantId: string | null`, `currentWord: string | null`, and `viewerRole: "drawer" | "guesser" | null` to the local `RoomSnapshot` interface
-- [ ] T013 [US1] In `frontend/src/services/api.ts`: add `startGame(code: string, participantId: string)` to the `api` object — `POST /rooms/:code/start` with body `{ participantId }`, returning `Promise<RoomSessionResponse>`
+- [x] T011 [US1] In `frontend/src/services/api.ts`: widen `RoomSnapshot.status` from `"lobby"` to `"lobby" | "playing"`
+- [x] T012 [US2] In `frontend/src/services/api.ts`: add `drawerParticipantId: string | null`, `currentWord: string | null`, and `viewerRole: "drawer" | "guesser" | null` to the local `RoomSnapshot` interface
+- [x] T013 [US1] In `frontend/src/services/api.ts`: add `startGame(code: string, participantId: string)` to the `api` object — `POST /rooms/:code/start` with body `{ participantId }`, returning `Promise<RoomSessionResponse>`
 
 **Checkpoint**: `npm run build` in `frontend/` exits 0. TypeScript surfaces `room.viewerRole` and `room.drawerParticipantId` as valid fields in `GamePage.tsx` and `LobbyPage.tsx`.
 
@@ -99,13 +99,13 @@ curl -s -o /dev/null -w "%{http_code}" -X POST http://localhost:3001/rooms/$CODE
 
 **Depends on**: Phase 3 and Phase 4 both complete.
 
-- [ ] T014 [US1] In `frontend/src/pages/LobbyPage.tsx`: add `startError` state (`useState<string | null>(null)`)
-- [ ] T015 [US1] In `frontend/src/pages/LobbyPage.tsx`: replace `onClick={() => navigate("/game")}` on the Start Game button with an async handler that:
+- [x] T014 [US1] In `frontend/src/pages/LobbyPage.tsx`: add `startError` state (`useState<string | null>(null)`)
+- [x] T015 [US1] In `frontend/src/pages/LobbyPage.tsx`: replace `onClick={() => navigate("/game")}` on the Start Game button with an async handler that:
   1. Calls `api.startGame(room.code, participantId)` (import `api` from `../services/api`)
   2. On success: calls `roomStore.setRoomSession(response)` then `navigate("/game")`
   3. On error: sets `startError` to the error message
-- [ ] T016 [US1] In `frontend/src/pages/LobbyPage.tsx`: render `startError` below the Start Game button when non-null
-- [ ] T016a [US1] In `frontend/src/pages/LobbyPage.tsx`: add a `useEffect` that watches `room?.status` and calls `navigate("/game", { replace: true })` when it equals `"playing"` — this is the **only** navigation path for non-host participants
+- [x] T016 [US1] In `frontend/src/pages/LobbyPage.tsx`: render `startError` below the Start Game button when non-null
+- [x] T016a [US1] In `frontend/src/pages/LobbyPage.tsx`: add a `useEffect` that watches `room?.status` and calls `navigate("/game", { replace: true })` when it equals `"playing"` — this is the **only** navigation path for non-host participants
 
 **Checkpoint**: Two-tab test — Tab A (host) clicks Start Game → **Tab B navigates to `/game` automatically within ≤4 seconds** with no user action. Both see their correct role banners on the game screen.
 
@@ -117,13 +117,13 @@ curl -s -o /dev/null -w "%{http_code}" -X POST http://localhost:3001/rooms/$CODE
 
 **Depends on**: Phase 5 complete (game must be startable to test role rendering).
 
-- [ ] T017 [US3] In `frontend/src/pages/GamePage.tsx`: add `useRoomStore` import alongside `useRoomState`; add a `useEffect` with `setInterval(() => { roomStore.fetchRoom().catch(() => {}) }, 2000)` and `clearInterval` cleanup — identical pattern to `LobbyPage`
-- [ ] T018 [US2] In `frontend/src/pages/GamePage.tsx`: derive `drawerName` from `room.participants.find(p => p.id === room.drawerParticipantId)?.name ?? "Unknown"`
-- [ ] T019 [US2] In `frontend/src/pages/GamePage.tsx`: render a role banner above the canvas area:
+- [x] T017 [US3] In `frontend/src/pages/GamePage.tsx`: add `useRoomStore` import alongside `useRoomState`; add a `useEffect` with `setInterval(() => { roomStore.fetchRoom().catch(() => {}) }, 2000)` and `clearInterval` cleanup — identical pattern to `LobbyPage`
+- [x] T018 [US2] In `frontend/src/pages/GamePage.tsx`: derive `drawerName` from `room.participants.find(p => p.id === room.drawerParticipantId)?.name ?? "Unknown"`
+- [x] T019 [US2] In `frontend/src/pages/GamePage.tsx`: render a role banner above the canvas area:
   - `room.viewerRole === "drawer"`: `<p>You are the Drawer — draw: {room.currentWord}</p>`
   - `room.viewerRole === "guesser"`: `<p>You are a Guesser — guess the word!</p>`
   - Show to all: `<p>{drawerName} is drawing</p>`
-- [ ] T020 [US2] In `frontend/src/pages/GamePage.tsx`: pass `disabled={room.viewerRole === "drawer"}` to `<GuessForm />`
+- [x] T020 [US2] In `frontend/src/pages/GamePage.tsx`: pass `disabled={room.viewerRole === "drawer"}` to `<GuessForm />`
 
 **Checkpoint**: 
 - Tab A (drawer): sees "You are the Drawer — draw: rocket", "Alice is drawing", GuessForm disabled
@@ -136,10 +136,10 @@ curl -s -o /dev/null -w "%{http_code}" -X POST http://localhost:3001/rooms/$CODE
 
 **Purpose**: Confirm clean build and no regressions.
 
-- [ ] T021 [P] Run `npm run build` in `backend/` — zero TypeScript errors
-- [ ] T022 [P] Run `npm run build` in `frontend/` — zero TypeScript errors
-- [ ] T023 [P] Run `npm test` in `backend/` — all tests pass
-- [ ] T024 [P] Run `npm test` in `frontend/` — all tests pass
+- [x] T021 [P] Run `npm run build` in `backend/` — zero TypeScript errors
+- [x] T022 [P] Run `npm run build` in `frontend/` — zero TypeScript errors
+- [x] T023 [P] Run `npm test` in `backend/` — all tests pass
+- [x] T024 [P] Run `npm test` in `frontend/` — all tests pass
 
 **Checkpoint**: All four commands exit 0. Group 2 is complete.
 
