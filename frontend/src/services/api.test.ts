@@ -66,6 +66,45 @@ describe("api service", () => {
     );
   });
 
+  it("submitGuess sends POST to /rooms/:code/guess with participantId and text", async () => {
+    const mockResponse = {
+      ok: true,
+      json: () =>
+        Promise.resolve({
+          room: {
+            code: "ABCD",
+            status: "playing",
+            participants: [
+              { id: "p1", name: "Host", joinedAt: "", role: "drawer", score: 0 },
+              { id: "p2", name: "Guest", joinedAt: "", role: "guesser", score: 100 },
+            ],
+            hostId: "p1",
+            currentWord: null,
+            currentWordLength: 6,
+            currentRound: 1,
+            guesses: [
+              { participantId: "p2", participantName: "Guest", text: "rocket", correct: true },
+            ],
+            availableWords: [],
+            roles: [],
+          },
+        }),
+    };
+    vi.mocked(fetch).mockResolvedValue(mockResponse as unknown as Response);
+
+    const result = await api.submitGuess("ABCD", "p2", "rocket");
+
+    expect(fetch).toHaveBeenCalledWith(
+      expect.stringContaining("/rooms/ABCD/guess"),
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({ participantId: "p2", text: "rocket" }),
+      })
+    );
+    expect(result.room.guesses[0].correct).toBe(true);
+    expect(result.room.participants[1].score).toBe(100);
+  });
+
   it("startGame sends POST to /rooms/:code/start with participantId", async () => {
     const mockResponse = {
       ok: true,

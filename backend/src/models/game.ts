@@ -6,6 +6,14 @@ export interface Participant {
   name: string;
   joinedAt: string;
   role: ParticipantRole;
+  score: number;
+}
+
+export interface Guess {
+  participantId: string;
+  participantName: string;
+  text: string;
+  correct: boolean;
 }
 
 export interface Room {
@@ -15,6 +23,7 @@ export interface Room {
   hostId: string;
   currentWord?: string;
   currentRound?: number;
+  guesses: Guess[];
   createdAt: string;
   updatedAt: string;
 }
@@ -27,6 +36,7 @@ export interface RoomSnapshot {
   currentWord: string | null;
   currentWordLength: number;
   currentRound: number;
+  guesses: Guess[];
   availableWords: string[];
   roles: ParticipantRole[];
 }

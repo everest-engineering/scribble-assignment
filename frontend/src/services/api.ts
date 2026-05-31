@@ -1,10 +1,18 @@
 export type ParticipantRole = "drawer" | "guesser";
 
+export interface Guess {
+  participantId: string;
+  participantName: string;
+  text: string;
+  correct: boolean;
+}
+
 export interface Participant {
   id: string;
   name: string;
   joinedAt: string;
   role: ParticipantRole;
+  score: number;
 }
 
 export interface RoomSnapshot {
@@ -15,6 +23,7 @@ export interface RoomSnapshot {
   currentWord: string | null;
   currentWordLength: number;
   currentRound: number;
+  guesses: Guess[];
   availableWords: string[];
   roles: ParticipantRole[];
 }
@@ -67,6 +76,12 @@ export const api = {
     return request<{ room: RoomSnapshot }>(`/rooms/${encodeURIComponent(code)}/start`, {
       method: "POST",
       body: JSON.stringify({ participantId })
+    });
+  },
+  submitGuess(code: string, participantId: string, text: string) {
+    return request<{ room: RoomSnapshot }>(`/rooms/${encodeURIComponent(code)}/guess`, {
+      method: "POST",
+      body: JSON.stringify({ participantId, text })
     });
   }
 };

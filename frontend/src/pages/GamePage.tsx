@@ -1,6 +1,7 @@
 import { useCallback, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card } from "../components/Card";
+import { DrawingCanvas } from "../components/DrawingCanvas";
 import { GuessForm } from "../components/GuessForm";
 import { ResultPanel } from "../components/ResultPanel";
 import { RoomCodeBadge } from "../components/RoomCodeBadge";
@@ -51,8 +52,29 @@ export function GamePage() {
 
       <div className="game-page__layout">
         <aside className="game-page__sidebar game-page__sidebar--left">
-          <Scoreboard />
+          <Scoreboard participants={room.participants} />
           <ResultPanel />
+          <Card title="Guess History">
+            {room.guesses.length === 0 ? (
+              <div className="placeholder-block" style={{ backgroundColor: '#f9fafb' }}>
+                <div className="placeholder-row">
+                  <span>No guesses yet</span>
+                </div>
+              </div>
+            ) : (
+              <ul className="guess-history-list">
+                {room.guesses.map((g, index) => (
+                  <li key={index} className={`guess-history-row ${g.correct ? "guess-history-row--correct" : ""}`}>
+                    <span className="guess-history-name">{g.participantName}</span>
+                    <span className="guess-history-text">{g.text}</span>
+                    <span className={`guess-history-badge ${g.correct ? "guess-history-badge--correct" : "guess-history-badge--incorrect"}`}>
+                      {g.correct ? "Correct" : "Incorrect"}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Card>
         </aside>
 
         <div className="game-page__main">
@@ -66,9 +88,13 @@ export function GamePage() {
             )}
           </Card>
           <Card title="Canvas">
-            <div className="canvas-placeholder" style={{ minHeight: '500px', backgroundColor: '#ffffff', border: '1px solid #e5e7eb' }}>
-              {isDrawer ? "Draw here..." : "Waiting for drawer..."}
-            </div>
+            {isDrawer ? (
+              <DrawingCanvas />
+            ) : (
+              <div className="canvas-placeholder">
+                Waiting for drawer to draw...
+              </div>
+            )}
           </Card>
         </div>
 
