@@ -63,6 +63,17 @@ describe("roomStore", () => {
     expect(result.error).toBe("At least 2 players are required to start");
   });
 
+  it("startGame rejects if game is already started", () => {
+    const host = createRoom("Host");
+    joinRoom(host.room.code, "Guest");
+    startGame(host.room.code, host.participantId);
+
+    const result = startGame(host.room.code, host.participantId);
+
+    expect(result.ok).toBe(false);
+    expect(result.error).toBe("Game has already started");
+  });
+
   it("toRoomSnapshot shows word to drawer and hides from guesser", () => {
     const host = createRoom("Host");
     joinRoom(host.room.code, "Guest");

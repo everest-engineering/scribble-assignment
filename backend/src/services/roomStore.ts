@@ -152,6 +152,9 @@ export function startGame(code: string, participantId: string) {
   if (!room) {
     return { ok: false, error: "Room not found" };
   }
+  if (room.status !== "lobby") {
+    return { ok: false, error: "Game has already started" };
+  }
   if (room.hostId !== participantId) {
     return { ok: false, error: "Only the host can start the game" };
   }
