@@ -124,6 +124,19 @@ export class RoomStore {
     this.setRoomSnapshot(response.room);
     return response.room;
   }
+
+  async restartRoom() {
+    if (!this.state.room || !this.state.participantId) {
+      this.setState({ error: "Room session is missing." });
+      return null;
+    }
+
+    const response = await this.withLoading(() =>
+      api.restartRoom(this.state.room?.code ?? "", this.state.participantId ?? "")
+    );
+    this.setRoomSnapshot(response.room);
+    return response.room;
+  }
 }
 
 const RoomStoreContext = createContext<RoomStore | null>(null);

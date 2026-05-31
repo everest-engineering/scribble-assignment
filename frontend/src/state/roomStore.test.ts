@@ -8,7 +8,8 @@ vi.mock("../services/api", () => ({
     joinRoom: vi.fn(),
     fetchRoom: vi.fn(),
     startRoom: vi.fn(),
-    submitGuess: vi.fn()
+    submitGuess: vi.fn(),
+    restartRoom: vi.fn()
   }
 }));
 
@@ -98,6 +99,24 @@ describe("RoomStore", () => {
     expect(api.submitGuess).toHaveBeenCalledWith("ABCD", "p1", "rocket");
     expect(store.getSnapshot().room?.guessHistory).toHaveLength(1);
     expect(store.getSnapshot().room?.guessHistory[0].guessText).toBe("rocket");
+  });
+
+  it("updates room snapshot when restartRoom succeeds", async () => {
+    const store = new RoomStore();
+    const resultRoom = { ...lobbyRoom, status: "result" as const };
+    store.setRoomSession({ participantId: "p1", room: resultRoom });
+
+    vi.mocked(api.restartRoom).mockResolvedValue({
+      room: {
+        ...lobbyRoom,
+        status: "lobby" as const
+      }
+    });
+
+    await store.restartRoom();
+
+    expect(api.restartRoom).toHaveBeenCalledWith("ABCD", "p1");
+    expect(store.getSnapshot().room?.status).toBe("lobby");
   });
 
   it("verifies that scoreboard displays participants sorted by score descending", () => {

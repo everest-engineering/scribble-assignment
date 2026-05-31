@@ -151,7 +151,8 @@ export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSn
     participants: room.participants.map((participant) => ({ ...participant })),
     availableWords: listWords(),
     roles: [...STARTER_ROLES],
-    guessHistory: room.guessHistory ? room.guessHistory.map((entry) => ({ ...entry })) : []
+    guessHistory: room.guessHistory ? room.guessHistory.map((entry) => ({ ...entry })) : [],
+    correctGuesserId: room.correctGuesserId ?? null
   };
 
   if (room.roundState) {
@@ -159,7 +160,7 @@ export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSn
       drawerId: room.roundState.drawerId
     };
 
-    if (viewerParticipantId === room.roundState.drawerId) {
+    if (viewerParticipantId === room.roundState.drawerId || room.status === "result") {
       snapshot.roundState.secretWord = room.roundState.secretWord;
     }
   }
@@ -174,8 +175,12 @@ export function submitGuess(code: string, participantId: string, guessText: stri
     throw new HttpError(404, "Room could not be found or joined.", "ROOM_NOT_FOUND");
   }
 
-  if (room.status !== "in-game") {
+  if (room.status === "lobby") {
     throw new HttpError(400, "Guesses can only be submitted when the game is in progress", "GAME_NOT_STARTED");
+  }
+
+  if (room.status === "result") {
+    throw new HttpError(400, "Guesses can only be submitted during active gameplay", "GAME_ALREADY_ENDED");
   }
 
   const participant = room.participants.find((p) => p.id === participantId);
@@ -198,6 +203,11 @@ export function submitGuess(code: string, participantId: string, guessText: stri
     if (!alreadyGuessedCorrectly) {
       participant.score += 100;
     }
+
+    if (room.status === "in-game") {
+      room.status = "result";
+      room.correctGuesserId = participantId;
+    }
   }
 
   const guessEntry: GuessEntry = {
@@ -214,4 +224,41 @@ export function submitGuess(code: string, participantId: string, guessText: stri
   rooms.set(room.code, room);
 
   return cloneRoom(room);
+}
+
+export type RestartGameResult =
+  | { ok: true; room: Room }
+  | { ok: false; reason: "room-not-found" | "participant-not-host" | "not-in-result-state" };
+
+export function restartRoom(code: string, participantId: string): RestartGameResult {
+  const room = rooms.get(code);
+
+  if (!room) {
+    return { ok: false, reason: "room-not-found" };
+  }
+
+  if (room.status !== "result") {
+    return { ok: false, reason: "not-in-result-state" };
+  }
+
+  if (room.hostParticipantId !== participantId) {
+    return { ok: false, reason: "participant-not-host" };
+  }
+
+  // Atomic hard reset
+  room.status = "lobby";
+  for (const p of room.participants) {
+    p.score = 0;
+  }
+  room.guessHistory = [];
+  room.correctGuesserId = null;
+  room.roundState = undefined;
+  room.updatedAt = now();
+
+  rooms.set(room.code, room);
+
+  return {
+    ok: true,
+    room: cloneRoom(room)
+  };
 }

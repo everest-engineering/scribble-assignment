@@ -122,4 +122,26 @@ describe("api service", () => {
 
     await expect(api.submitGuess("ABCD", "p1", "rocket")).rejects.toThrow("The drawer is not permitted to submit guesses");
   });
+
+  it("restartRoom sends POST to /rooms/:code/restart with participantId in body", async () => {
+    const mockResponse = {
+      ok: true,
+      json: () =>
+        Promise.resolve({
+          room: { code: "ABCD", status: "lobby", hostParticipantId: "p1", participants: [], guessHistory: [] },
+        }),
+    };
+    vi.mocked(fetch).mockResolvedValue(mockResponse as unknown as Response);
+
+    const res = await api.restartRoom("ABCD", "p1");
+
+    expect(fetch).toHaveBeenCalledWith(
+      expect.stringContaining("/rooms/ABCD/restart"),
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({ participantId: "p1" }),
+      })
+    );
+    expect(res.room.status).toBe("lobby");
+  });
 });

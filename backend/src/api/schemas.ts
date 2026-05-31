@@ -11,7 +11,10 @@ export const errorCodeSchema = z.enum([
   "ROUTE_NOT_FOUND",
   "UNEXPECTED_ERROR",
   "DRAWER_CANNOT_GUESS",
-  "GAME_NOT_STARTED"
+  "GAME_NOT_STARTED",
+  "RESTART_REQUIRES_HOST",
+  "GAME_NOT_IN_RESULT",
+  "GAME_ALREADY_ENDED"
 ]);
 
 export type ErrorCode = z.infer<typeof errorCodeSchema>;
@@ -47,7 +50,11 @@ export const startGameSchema = z.object({
   participantId: nonEmptyTrimmedString
 });
 
-export const roomStatusSchema = z.enum(["lobby", "in-game"]);
+export const restartRoomSchema = z.object({
+  participantId: nonEmptyTrimmedString
+});
+
+export const roomStatusSchema = z.enum(["lobby", "in-game", "result"]);
 
 export const participantSchema = z.object({
   id: z.string(),
@@ -76,7 +83,8 @@ export const roomSnapshotSchema = z.object({
     drawerId: z.string(),
     secretWord: z.string().optional()
   }).optional(),
-  guessHistory: z.array(guessEntrySchema)
+  guessHistory: z.array(guessEntrySchema),
+  correctGuesserId: z.string().nullable().optional()
 });
 
 export const submitGuessSchema = z.object({

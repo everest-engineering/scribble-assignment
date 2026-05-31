@@ -8,9 +8,10 @@ import {
   roomSessionResponseSchema,
   startGameSchema,
   roomViewerQuerySchema,
-  submitGuessSchema
+  submitGuessSchema,
+  restartRoomSchema
 } from "./schemas.js";
-import { createRoom, getRoom, joinRoom, startGame, toRoomSnapshot, submitGuess } from "../services/roomStore.js";
+import { createRoom, getRoom, joinRoom, startGame, toRoomSnapshot, submitGuess, restartRoom } from "../services/roomStore.js";
 
 function parseRoomCode(params: unknown) {
   const parsed = roomCodeParamsSchema.safeParse(params);
@@ -40,6 +41,17 @@ function startGameError(reason: Exclude<ReturnType<typeof startGame>, { ok: true
       return new HttpError(400, "At least two players are required to start.", "START_REQUIRES_TWO_PLAYERS");
     case "room-already-started":
       return new HttpError(409, "Room is no longer in lobby state.", "ROOM_ALREADY_STARTED");
+  }
+}
+
+function restartRoomError(reason: Exclude<ReturnType<typeof restartRoom>, { ok: true }>["reason"]) {
+  switch (reason) {
+    case "room-not-found":
+      return new HttpError(404, "Room could not be found or joined.", "ROOM_NOT_FOUND");
+    case "participant-not-host":
+      return new HttpError(403, "Only the host can restart the game.", "RESTART_REQUIRES_HOST");
+    case "not-in-result-state":
+      return new HttpError(400, "Game is not in result state.", "GAME_NOT_IN_RESULT");
   }
 }
 
@@ -136,6 +148,29 @@ export function createRoomsRouter() {
 
       response.json(validateRoomResponse({
         room: toRoomSnapshot(updatedRoom, participantId)
+      }));
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/:code/restart", (request, response, next) => {
+    try {
+      const code = parseRoomCode(request.params);
+      const body = restartRoomSchema.safeParse(request.body);
+
+      if (!body.success) {
+        throw new HttpError(400, "Participant id is required.", "PARTICIPANT_REQUIRED");
+      }
+
+      const result = restartRoom(code, body.data.participantId);
+
+      if (!result.ok) {
+        throw restartRoomError(result.reason);
+      }
+
+      response.json(validateRoomResponse({
+        room: toRoomSnapshot(result.room, body.data.participantId)
       }));
     } catch (error) {
       next(error);

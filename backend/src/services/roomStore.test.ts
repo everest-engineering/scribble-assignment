@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { clearRoomsForTest, createRoom, getRoom, joinRoom, startGame, toRoomSnapshot, submitGuess } from "./roomStore.js";
+import { clearRoomsForTest, createRoom, getRoom, joinRoom, startGame, toRoomSnapshot, submitGuess, restartRoom } from "./roomStore.js";
  
  describe("roomStore", () => {
    beforeEach(() => {
@@ -94,36 +94,97 @@ import { clearRoomsForTest, createRoom, getRoom, joinRoom, startGame, toRoomSnap
      expect(() => submitGuess(host.room.code, host.participantId, "rocket")).toThrowError(/drawer is not permitted/);
    });
  
-   it("evaluates guesses case-insensitively, awards 100 points for first correct guess, and preserves submission order", () => {
-     const host = createRoom("Host");
-     const guest = joinRoom(host.room.code, "Guest");
-     startGame(host.room.code, host.participantId);
+    it("evaluates guesses case-insensitively, awards 100 points for first correct guess, transitions status to result, and sets correctGuesserId", () => {
+      const host = createRoom("Host");
+      const guest = joinRoom(host.room.code, "Guest");
+      startGame(host.room.code, host.participantId);
  
-     // Submit incorrect guess
-     let updated = submitGuess(host.room.code, guest?.participantId ?? "", "apple");
-     let guestPart = updated.participants.find(p => p.id === guest?.participantId);
-     expect(guestPart?.score).toBe(0);
-     expect(updated.guessHistory).toHaveLength(1);
-     expect(updated.guessHistory[0].guessText).toBe("apple");
-     expect(updated.guessHistory[0].isCorrect).toBe(false);
- 
-     // Submit correct guess with weird casing
-     updated = submitGuess(host.room.code, guest?.participantId ?? "", "RoCkEt");
-     guestPart = updated.participants.find(p => p.id === guest?.participantId);
-     expect(guestPart?.score).toBe(100);
-     expect(updated.guessHistory).toHaveLength(2);
-     expect(updated.guessHistory[1].guessText).toBe("RoCkEt");
-     expect(updated.guessHistory[1].isCorrect).toBe(true);
- 
-     // Submit correct guess again (should award 0 additional points)
-     updated = submitGuess(host.room.code, guest?.participantId ?? "", "rocket");
-     guestPart = updated.participants.find(p => p.id === guest?.participantId);
-     expect(guestPart?.score).toBe(100);
-     expect(updated.guessHistory).toHaveLength(3);
-     expect(updated.guessHistory[2].guessText).toBe("rocket");
-     expect(updated.guessHistory[2].isCorrect).toBe(true);
- 
-     // Validate submission order
-     expect(updated.guessHistory.map(g => g.guessText)).toEqual(["apple", "RoCkEt", "rocket"]);
-   });
- });
+      // Submit incorrect guess
+      let updated = submitGuess(host.room.code, guest?.participantId ?? "", "apple");
+      let guestPart = updated.participants.find(p => p.id === guest?.participantId);
+      expect(guestPart?.score).toBe(0);
+      expect(updated.guessHistory).toHaveLength(1);
+      expect(updated.guessHistory[0].guessText).toBe("apple");
+      expect(updated.guessHistory[0].isCorrect).toBe(false);
+      expect(updated.status).toBe("in-game");
+      expect(updated.correctGuesserId).toBeUndefined();
+  
+      // Submit correct guess with weird casing
+      updated = submitGuess(host.room.code, guest?.participantId ?? "", "RoCkEt");
+      guestPart = updated.participants.find(p => p.id === guest?.participantId);
+      expect(guestPart?.score).toBe(100);
+      expect(updated.guessHistory).toHaveLength(2);
+      expect(updated.guessHistory[1].guessText).toBe("RoCkEt");
+      expect(updated.guessHistory[1].isCorrect).toBe(true);
+      expect(updated.status).toBe("result");
+      expect(updated.correctGuesserId).toBe(guest?.participantId);
+    });
+
+    it("rejects further guess submissions with GAME_ALREADY_ENDED when status is result", () => {
+      const host = createRoom("Host");
+      const guest = joinRoom(host.room.code, "Guest");
+      startGame(host.room.code, host.participantId);
+
+      submitGuess(host.room.code, guest?.participantId ?? "", "rocket");
+
+      expect(() => submitGuess(host.room.code, guest?.participantId ?? "", "rocket")).toThrowError(/active gameplay/);
+      try {
+        submitGuess(host.room.code, guest?.participantId ?? "", "rocket");
+      } catch (error: any) {
+        expect(error.code).toBe("GAME_ALREADY_ENDED");
+      }
+    });
+
+    it("restartRoom atomically resets all round state and participant scores, and is idempotent", () => {
+      const host = createRoom("Host");
+      const guest = joinRoom(host.room.code, "Guest");
+      startGame(host.room.code, host.participantId);
+
+      // Submit correct guess to enter result state
+      let updated = submitGuess(host.room.code, guest?.participantId ?? "", "rocket");
+      expect(updated.status).toBe("result");
+      expect(updated.participants.find((p: any) => p.id === guest?.participantId)?.score).toBe(100);
+
+      const restartResult = restartRoom(host.room.code, host.participantId);
+
+      expect(restartResult.ok).toBe(true);
+      if (restartResult.ok) {
+        const resetRoom = restartResult.room;
+        expect(resetRoom.status).toBe("lobby");
+        expect(resetRoom.roundState).toBeUndefined();
+        expect(resetRoom.guessHistory).toHaveLength(0);
+        expect(resetRoom.correctGuesserId).toBeNull();
+        expect(resetRoom.participants.find((p: any) => p.id === guest?.participantId)?.score).toBe(0);
+      }
+
+      // Subsequent restarts from lobby should be rejected with GAME_NOT_IN_RESULT
+      const subsequentResult = restartRoom(host.room.code, host.participantId);
+      expect(subsequentResult.ok).toBe(false);
+      if (!subsequentResult.ok) {
+        expect(subsequentResult.reason).toBe("not-in-result-state");
+      }
+    });
+
+    it("restartRoom rejects non-host restarts and requires result state", () => {
+      const host = createRoom("Host");
+      const guest = joinRoom(host.room.code, "Guest");
+      startGame(host.room.code, host.participantId);
+
+      // Attempt restart during in-game state
+      let result = restartRoom(host.room.code, host.participantId);
+      expect(result.ok).toBe(false);
+      if (!result.ok) {
+        expect(result.reason).toBe("not-in-result-state");
+      }
+
+      // Transition to result state
+      submitGuess(host.room.code, guest?.participantId ?? "", "rocket");
+
+      // Attempt restart by guest (non-host)
+      result = restartRoom(host.room.code, guest?.participantId ?? "");
+      expect(result.ok).toBe(false);
+      if (!result.ok) {
+        expect(result.reason).toBe("participant-not-host");
+      }
+    });
+  });

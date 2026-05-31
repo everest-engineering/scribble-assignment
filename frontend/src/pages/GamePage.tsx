@@ -19,11 +19,15 @@ export function GamePage() {
   useEffect(() => {
     if (!room) {
       navigate("/", { replace: true });
+      return;
+    }
+    if (room.status === "lobby") {
+      navigate("/lobby", { replace: true });
     }
   }, [navigate, room]);
 
   useEffect(() => {
-    if (!room || room.status !== "in-game") {
+    if (!room || (room.status !== "in-game" && room.status !== "result")) {
       return undefined;
     }
 
@@ -98,6 +102,82 @@ export function GamePage() {
     if (!ctx) return;
     ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
   };
+
+  if (room.status === "result") {
+    const winnerName = room.participants.find((p) => p.id === room.correctGuesserId)?.name;
+    const isHost = room.hostParticipantId === participantId;
+
+    return (
+      <section className="panel game-page">
+        <div className="game-page__header">
+          <div className="game-page__header-left">
+            <span className="section-kicker" style={{ color: '#f59e0b', fontWeight: 600 }}>Game Over</span>
+            <h1 className="game-page__title">
+              {winnerName ? `${winnerName} Guessed the Word!` : "Nobody Guessed the Word!"}
+            </h1>
+          </div>
+          <RoomCodeBadge code={room.code} />
+        </div>
+
+        <div className="game-page__layout">
+          <aside className="game-page__sidebar game-page__sidebar--left">
+            <Scoreboard />
+            <GuessHistoryPanel />
+          </aside>
+
+          <div className="game-page__main">
+            <Card title="Results Summary">
+              <div style={{ textAlign: "center", padding: "24px 16px" }}>
+                <div style={{ fontSize: "1.25rem", color: "#4b5563", marginBottom: "8px" }}>
+                  The secret word was:
+                </div>
+                <div style={{ fontSize: "2.5rem", fontWeight: 800, color: "#10b981", letterSpacing: "1px", textTransform: "uppercase", marginBottom: "24px" }}>
+                  {room.roundState?.secretWord ?? "Unknown"}
+                </div>
+                
+                {winnerName ? (
+                  <div style={{ padding: "16px", backgroundColor: "#ecfdf5", border: "1px solid #10b981", borderRadius: "12px", color: "#065f46", fontWeight: 600, fontSize: "1.1rem", display: "inline-block", margin: "0 auto" }}>
+                    🎉 {winnerName} won the round by guessing correctly!
+                  </div>
+                ) : (
+                  <div style={{ padding: "16px", backgroundColor: "#fef2f2", border: "1px solid #f87171", borderRadius: "12px", color: "#991b1b", fontWeight: 600, fontSize: "1.1rem", display: "inline-block", margin: "0 auto" }}>
+                    Nobody guessed the correct word.
+                  </div>
+                )}
+              </div>
+            </Card>
+
+            <div style={{ marginTop: "24px", display: "flex", justifyContent: "center" }}>
+              {isHost ? (
+                <button className="button button--primary" onClick={() => void roomStore.restartRoom()}>
+                  Restart Game
+                </button>
+              ) : (
+                <div className="status-line" style={{ backgroundColor: "#f3f4f6", color: "#4b5563", padding: "12px 24px", borderRadius: "12px", border: "1px solid #e5e7eb", fontWeight: 500 }}>
+                  Waiting for host to restart game...
+                </div>
+              )}
+            </div>
+          </div>
+
+          <aside className="game-page__sidebar game-page__sidebar--right">
+            <Card title="Player Info">
+              <dl className="detail-list">
+                <div>
+                  <dt>Name</dt>
+                  <dd>{viewer?.name ?? "Unknown player"}</dd>
+                </div>
+                <div>
+                  <dt>Role</dt>
+                  <dd>{roleDisplay}</dd>
+                </div>
+              </dl>
+            </Card>
+          </aside>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section className="panel game-page">
