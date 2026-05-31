@@ -22,13 +22,15 @@ export function GamePage() {
   }
 
   const viewer = room.participants.find((participant) => participant.id === participantId) ?? null;
+  const isDrawer = participantId === room.currentDrawerId;
+  const drawer = room.participants.find((p) => p.id === room.currentDrawerId) ?? null;
 
   return (
     <section className="panel game-page">
       <div className="game-page__header">
         <div className="game-page__header-left">
           <span className="section-kicker">Round 1</span>
-          <h1 className="game-page__title">Guess the Word!</h1>
+          <h1 className="game-page__title">{isDrawer ? "You are drawing!" : "Guess the Word!"}</h1>
         </div>
         <RoomCodeBadge code={room.code} />
       </div>
@@ -55,15 +57,32 @@ export function GamePage() {
                 <dd>{viewer?.name ?? "Unknown player"}</dd>
               </div>
               <div>
-                <dt>Status</dt>
-                <dd>Playing</dd>
+                <dt>Role</dt>
+                <dd>{isDrawer ? "Drawer" : "Guesser"}</dd>
               </div>
+              <div>
+                <dt>Drawing</dt>
+                <dd>{drawer?.name ?? "Unknown"}</dd>
+              </div>
+              {isDrawer && room.secretWord ? (
+                <div>
+                  <dt>Secret Word</dt>
+                  <dd><strong>{room.secretWord}</strong></dd>
+                </div>
+              ) : !isDrawer ? (
+                <div>
+                  <dt>Secret Word</dt>
+                  <dd>???</dd>
+                </div>
+              ) : null}
             </dl>
           </Card>
 
-          <Card title="Your Guess">
-            <GuessForm />
-          </Card>
+          {!isDrawer && (
+            <Card title="Your Guess">
+              <GuessForm />
+            </Card>
+          )}
         </aside>
       </div>
 

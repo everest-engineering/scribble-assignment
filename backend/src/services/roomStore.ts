@@ -95,9 +95,15 @@ export function startGame(code: string, participantId: string) {
 
   if (!room) return { error: "not-found" as const };
   if (room.hostId !== participantId) return { error: "not-host" as const };
-  if (room.participants.length < 2) return { error: "insufficient-players" as const };
+
+  const currentRound = {
+    roundNumber: 1,
+    drawerId: room.hostId,
+    wordIndex: 0
+  };
 
   room.status = "in-progress";
+  room.currentRound = currentRound;
   room.updatedAt = now();
   rooms.set(room.code, room);
 
@@ -116,9 +122,7 @@ export function saveRoom(room: Room) {
 }
 
 export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSnapshot {
-  void viewerParticipantId;
-
-  return {
+  const snapshot: RoomSnapshot = {
     code: room.code,
     status: room.status,
     hostId: room.hostId,
@@ -126,4 +130,13 @@ export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSn
     availableWords: listWords(),
     roles: [...STARTER_ROLES]
   };
+
+  if (room.currentRound) {
+    snapshot.currentDrawerId = room.currentRound.drawerId;
+    if (viewerParticipantId === room.currentRound.drawerId) {
+      snapshot.secretWord = STARTER_WORDS[room.currentRound.wordIndex];
+    }
+  }
+
+  return snapshot;
 }

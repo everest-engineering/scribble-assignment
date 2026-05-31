@@ -46,7 +46,7 @@ export function LobbyPage() {
   }
 
   const isHost = participantId === room.hostId;
-  const canStart = isHost && room.participants.length >= 2;
+  const canStart = isHost;
 
   return (
     <section className="panel placeholder-page">
@@ -100,7 +100,7 @@ export function LobbyPage() {
             disabled={!canStart || isLoading}
             onClick={handleStartGame}
           >
-            {room.participants.length < 2 ? "Waiting for players… (need 2+)" : "Start Game"}
+            Start Game
           </button>
         </div>
       )}

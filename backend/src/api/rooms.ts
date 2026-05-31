@@ -74,11 +74,10 @@ export function createRoomsRouter() {
 
       if ("error" in result) {
         if (result.error === "not-found") throw new HttpError(404, "Room not found");
-        if (result.error === "not-host") throw new HttpError(403, "Only the host can start the game");
-        throw new HttpError(400, "At least 2 players are required to start the game");
+        throw new HttpError(403, "Only the host can start the game");
       }
 
-      response.json({ room: toRoomSnapshot(result.room) });
+      response.json({ room: toRoomSnapshot(result.room, participantId) });
     } catch (error) {
       next(error);
     }
