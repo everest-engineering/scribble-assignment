@@ -1,14 +1,18 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { CanvasViewer } from "../components/CanvasViewer";
 import { Card } from "../components/Card";
+import { DrawingCanvas } from "../components/DrawingCanvas";
 import { GuessForm } from "../components/GuessForm";
 import { ResultPanel } from "../components/ResultPanel";
 import { RoomCodeBadge } from "../components/RoomCodeBadge";
 import { Scoreboard } from "../components/Scoreboard";
-import { useRoomState } from "../state/roomStore";
+import { api, type GuessEntry, type Point } from "../services/api";
+import { useRoomState, useRoomStore } from "../state/roomStore";
 
 export function GamePage() {
   const navigate = useNavigate();
+  const store = useRoomStore();
   const { room, participantId } = useRoomState();
 
   useEffect(() => {
@@ -17,33 +21,98 @@ export function GamePage() {
     }
   }, [navigate, room]);
 
+  useEffect(() => {
+    if (room?.status === "finished") {
+      navigate("/result", { replace: true });
+    }
+  }, [navigate, room?.status]);
+
+  const [guesses, setGuesses] = useState<GuessEntry[]>([]);
+  const [scores, setScores] = useState<Record<string, number>>({});
+  const [strokes, setStrokes] = useState<Point[][]>([]);
+
+  useEffect(() => {
+    if (!room) return;
+    const interval = setInterval(async () => {
+      try {
+        const data = await api.fetchGuesses(room.code);
+        setGuesses(data.guesses);
+        setScores(data.scores);
+      } catch {
+        // polling failure is non-fatal
+      }
+    }, 2000);
+    return () => clearInterval(interval);
+  }, [room?.code]);
+
+  useEffect(() => {
+    if (!room) return;
+    const interval = setInterval(async () => {
+      try {
+        await store.fetchRoom();
+      } catch {
+        // polling failure is non-fatal
+      }
+    }, 2000);
+    return () => clearInterval(interval);
+  }, [store, room?.code]);
+
+  const isDrawerComputed = participantId === room?.currentDrawerId;
+
+  useEffect(() => {
+    if (!room || isDrawerComputed) return;
+    const interval = setInterval(async () => {
+      try {
+        const data = await api.fetchCanvas(room.code);
+        setStrokes(data.strokes);
+      } catch {
+        // polling failure is non-fatal
+      }
+    }, 2000);
+    return () => clearInterval(interval);
+  }, [room?.code, isDrawerComputed]);
+
   if (!room) {
     return null;
   }
 
   const viewer = room.participants.find((participant) => participant.id === participantId) ?? null;
+  const isHost = participantId === room.hostId;
+  const isDrawer = participantId === room.currentDrawerId;
+  const drawer = room.participants.find((p) => p.id === room.currentDrawerId) ?? null;
+
+  async function handleGuessSubmit(guessText: string): Promise<void> {
+    if (!participantId) return;
+    // room is non-null here — guarded by early return above
+    await api.submitGuess(room!.code, participantId, guessText);
+  }
 
   return (
     <section className="panel game-page">
       <div className="game-page__header">
         <div className="game-page__header-left">
           <span className="section-kicker">Round 1</span>
-          <h1 className="game-page__title">Guess the Word!</h1>
+          <h1 className="game-page__title">{isDrawer ? "You are drawing!" : "Guess the Word!"}</h1>
         </div>
         <RoomCodeBadge code={room.code} />
       </div>
 
       <div className="game-page__layout">
         <aside className="game-page__sidebar game-page__sidebar--left">
-          <Scoreboard />
-          <ResultPanel />
+          <Scoreboard participants={room.participants} scores={scores} />
+          <ResultPanel guesses={guesses} />
         </aside>
 
         <div className="game-page__main">
           <Card title="Canvas">
-            <div className="canvas-placeholder" style={{ minHeight: '500px', backgroundColor: '#ffffff', border: '1px solid #e5e7eb' }}>
-              Waiting for drawer...
-            </div>
+            {isDrawer ? (
+              <DrawingCanvas
+                onStrokeComplete={(path) => { api.saveStroke(room.code, path).catch(() => {}); }}
+                onClearCanvas={() => { api.clearCanvas(room.code).catch(() => {}); }}
+              />
+            ) : (
+              <CanvasViewer strokes={strokes} />
+            )}
           </Card>
         </div>
 
@@ -55,19 +124,41 @@ export function GamePage() {
                 <dd>{viewer?.name ?? "Unknown player"}</dd>
               </div>
               <div>
-                <dt>Status</dt>
-                <dd>Playing</dd>
+                <dt>Role</dt>
+                <dd>{isDrawer ? "Drawer" : "Guesser"}</dd>
               </div>
+              <div>
+                <dt>Drawing</dt>
+                <dd>{drawer?.name ?? "Unknown"}</dd>
+              </div>
+              {isDrawer && room.secretWord ? (
+                <div>
+                  <dt>Secret Word</dt>
+                  <dd><strong>{room.secretWord}</strong></dd>
+                </div>
+              ) : !isDrawer ? (
+                <div>
+                  <dt>Secret Word</dt>
+                  <dd>???</dd>
+                </div>
+              ) : null}
             </dl>
           </Card>
 
-          <Card title="Your Guess">
-            <GuessForm />
-          </Card>
+          {!isDrawer && (
+            <Card title="Your Guess">
+              <GuessForm onSubmit={handleGuessSubmit} />
+            </Card>
+          )}
         </aside>
       </div>
 
       <div className="button-row">
+        {isHost && (
+          <button className="button button--primary" onClick={() => store.endRound()}>
+            End Round
+          </button>
+        )}
         <button className="button button--secondary" onClick={() => navigate("/lobby")}>
           Exit Game
         </button>
