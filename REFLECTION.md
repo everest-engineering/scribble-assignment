@@ -2,34 +2,67 @@
 
 ## What did the starter app already have?
 
-The starter provided a working app shell with routing between all screens (Start, Create Room, Join Room, Lobby, Game), a branded landing page, room creation and join flows with unique 4-character room codes, an in-memory room store on the backend with three API endpoints (`POST /rooms`, `POST /rooms/:code/join`, `GET /rooms/:code`), lobby participant display, seed data (5 words, 2 roles), and placeholder components for the game screen (canvas, guess input, scoreboard, result panel). Vitest test setups existed in both backend and frontend.
+The starter provided a working app shell with routing between all screens (Start, Create Room, Join Room, Lobby, Game), a branded landing page, room creation and join flows with unique 4-character room codes, an in-memory room store on the backend with three API endpoints (`POST /rooms`, `POST /rooms/:code/join`, `GET /rooms/:code`), lobby participant display, seed data (5 words, 2 roles), and placeholder components for the game screen (canvas, guess input, scoreboard, result panel). Vitest test setups existed in both backend and frontend with 4 seed tests.
 
 ## What did you add?
-<!-- Fill in after implementation -->
 
 ### Spec Kit Artifacts
-<!-- List the artifacts created -->
+8 artifacts totalling ~870 lines: discovery notes (5 gaps, 4 assumptions, full file index), constitution (engineering principles, AI rules, review discipline), 4 specification files per scenario (35 acceptance criteria + edge cases), plan (state model, data flow, file-level plan), and tasks (40+ ordered items mapped to acceptance criteria).
 
 ### Scenario 1 — Room Setup & Lobby
-<!-- Describe what was implemented -->
+- `hostId` tracking on Room model, set on creation
+- Zod-based player name validation (trimmed, rejects empty/whitespace-only)
+- Clear error messages ("Room not found") for invalid room codes
+- `POST /rooms/:code/start` with host-only guard + 2-player minimum
+- Frontend lobby auto-polling (2s interval), host badge in participant list, Start Game button gated
+- Client-side name/code trimming and validation on Create/Join forms
 
 ### Scenario 2 — Game Start & Drawer Flow
-<!-- Describe what was implemented -->
+- `Guess`, `Stroke` types and game-round fields on Room (`drawerId`, `secretWord`, `guesses`, `scores`, `strokes`)
+- Deterministic word selection (charCode hash of room code)
+- Drawer = host assignment with scores initialised to 0
+- Viewer-based `toRoomSnapshot` filtering — secret word visible only to drawer (or when finished)
+- Frontend role badge and conditional word/guess form rendering
 
 ### Scenario 3 — Gameplay Interaction
-<!-- Describe what was implemented -->
+- `submitGuess()` with trim, case-insensitive comparison, 100-point scoring, history recording
+- `saveStrokes()` for canvas data sync via polling
+- `POST /rooms/:code/guess` and `POST /rooms/:code/strokes` endpoints
+- Guards: drawer cannot guess, duplicate correct scores 0, empty rejected, finished-round rejection
+- HTML5 Canvas component with mouse drawing + Clear Canvas button
+- Wire GuessForm, Scoreboard, and ResultPanel to live API data
 
 ### Scenario 4 — Result, Restart & Final Validation
-<!-- Describe what was implemented -->
+- `restartGame()` — resets all round state (`drawerId`, `secretWord`, `guesses`, `scores`, `strokes`), preserves participants, host-only
+- `POST /rooms/:code/restart` endpoint
+- GamePage detects `"finished"` status, shows final word/scores/history
+- Restart button for host, auto-navigation to lobby via polling
+- GuessForm disabled when round is over
 
 ## Key Decisions
 
-<!-- Document key architectural decisions, e.g., why drawer = host, why polling interval = 2s, etc. -->
+- **Drawer = host**: Simplest deterministic assignment that avoids drawer-rotation (out of scope)
+- **2s polling interval**: Matches spec guidance, simple `setInterval` with cleanup on unmount
+- **Word selection by room code hash**: Deterministic across clients without extra endpoint
+- **Canvas strokes via REST**: Entire stroke array sent on `mouseup` rather than per-point; keeps request count low
+- **All guessers correct → finish**: Automatic round-end detection; no timer or manual end needed
+- **HttpError in models**: Moved from schemas to models to avoid circular import
 
 ## AI Usage & Tradeoffs
 
-<!-- How was AI used? What got reviewed? What tradeoffs were made? -->
+- AI assisted with drafting spec artifacts, generating test cases, and implementing boilerplate (routes, schemas, store methods)
+- Every AI-suggested change was reviewed for correctness against acceptance criteria
+- Tradeoff: AI-generated Canvas component uses imperative Canvas 2D API rather than a library — simpler but less feature-rich
 
 ## What Would I Do Differently
 
-<!-- Lessons learned, things to improve -->
+- Add a `hasGuessedCorrectly` per-participant flag on the room to simplify duplicate-guess detection
+- Consider using a debounced stroke save rather than per-stroke-end to reduce requests
+- Write more comprehensive frontend component tests (beyond API service tests)
+- Add a loading indicator during game start transition
+
+## Test Results (Final)
+
+- Backend: 46 tests passing, build clean
+- Frontend: 6 tests passing, build clean
+- Manual E2E verified with 2 browser tabs across all 4 scenarios
