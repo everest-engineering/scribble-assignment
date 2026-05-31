@@ -1,14 +1,15 @@
-import { useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card } from "../components/Card";
 import { GuessForm } from "../components/GuessForm";
 import { ResultPanel } from "../components/ResultPanel";
 import { RoomCodeBadge } from "../components/RoomCodeBadge";
 import { Scoreboard } from "../components/Scoreboard";
-import { useRoomState } from "../state/roomStore";
+import { useRoomState, useRoomStore } from "../state/roomStore";
 
 export function GamePage() {
   const navigate = useNavigate();
+  const roomStore = useRoomStore();
   const { room, participantId } = useRoomState();
 
   useEffect(() => {
@@ -17,11 +18,64 @@ export function GamePage() {
     }
   }, [navigate, room]);
 
+  useEffect(() => {
+    const intervalId = setInterval(() => {
+      roomStore.fetchRoom().catch(() => {
+        // Silent: polling recovers on next interval
+      });
+    }, 2000);
+
+    return () => clearInterval(intervalId);
+  }, [roomStore]);
+
+  useEffect(() => {
+    if (room?.status === "result") {
+      navigate("/result");
+    }
+  }, [navigate, room?.status]);
+
   if (!room) {
     return null;
   }
 
   const viewer = room.participants.find((participant) => participant.id === participantId) ?? null;
+  const isDrawer = room.drawerId === participantId;
+  const drawer = room.participants.find((p) => p.id === room.drawerId) ?? null;
+
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const [isDrawing, setIsDrawing] = useState(false);
+
+  function getCtx() {
+    return canvasRef.current?.getContext("2d") ?? null;
+  }
+
+  function handleMouseDown(event: React.MouseEvent<HTMLCanvasElement>) {
+    const ctx = getCtx();
+    if (!ctx || !canvasRef.current) return;
+    const rect = canvasRef.current.getBoundingClientRect();
+    setIsDrawing(true);
+    ctx.beginPath();
+    ctx.moveTo(event.clientX - rect.left, event.clientY - rect.top);
+  }
+
+  function handleMouseMove(event: React.MouseEvent<HTMLCanvasElement>) {
+    if (!isDrawing) return;
+    const ctx = getCtx();
+    if (!ctx || !canvasRef.current) return;
+    const rect = canvasRef.current.getBoundingClientRect();
+    ctx.lineTo(event.clientX - rect.left, event.clientY - rect.top);
+    ctx.stroke();
+  }
+
+  function handleMouseUp() {
+    setIsDrawing(false);
+  }
+
+  function handleClear() {
+    const ctx = getCtx();
+    if (!ctx || !canvasRef.current) return;
+    ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+  }
 
   return (
     <section className="panel game-page">
@@ -33,6 +87,12 @@ export function GamePage() {
         <RoomCodeBadge code={room.code} />
       </div>
 
+      {drawer && (
+        <div className="game-page__drawer-banner">
+          <strong>{drawer.name}</strong> is drawing
+        </div>
+      )}
+
       <div className="game-page__layout">
         <aside className="game-page__sidebar game-page__sidebar--left">
           <Scoreboard />
@@ -41,9 +101,27 @@ export function GamePage() {
 
         <div className="game-page__main">
           <Card title="Canvas">
-            <div className="canvas-placeholder" style={{ minHeight: '500px', backgroundColor: '#ffffff', border: '1px solid #e5e7eb' }}>
-              Waiting for drawer...
-            </div>
+            {isDrawer ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <canvas
+                  ref={canvasRef}
+                  width={600}
+                  height={500}
+                  style={{ backgroundColor: '#ffffff', border: '1px solid #e5e7eb', cursor: 'crosshair', display: 'block', width: '100%' }}
+                  onMouseDown={handleMouseDown}
+                  onMouseMove={handleMouseMove}
+                  onMouseUp={handleMouseUp}
+                  onMouseLeave={handleMouseUp}
+                />
+                <button className="button button--secondary" onClick={handleClear}>
+                  Clear Canvas
+                </button>
+              </div>
+            ) : (
+              <div className="canvas-placeholder" style={{ minHeight: '500px', backgroundColor: '#ffffff', border: '1px solid #e5e7eb' }}>
+                Waiting for drawer...
+              </div>
+            )}
           </Card>
         </div>
 
@@ -55,9 +133,15 @@ export function GamePage() {
                 <dd>{viewer?.name ?? "Unknown player"}</dd>
               </div>
               <div>
-                <dt>Status</dt>
-                <dd>Playing</dd>
+                <dt>Role</dt>
+                <dd>{isDrawer ? "You are drawing" : "You are guessing"}</dd>
               </div>
+              {isDrawer && room.secretWord && (
+                <div>
+                  <dt>Your word</dt>
+                  <dd>{room.secretWord}</dd>
+                </div>
+              )}
             </dl>
           </Card>
 
