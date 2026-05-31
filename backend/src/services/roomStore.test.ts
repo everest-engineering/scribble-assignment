@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createRoom, joinRoom, getRoom, saveRoom, startGame, toRoomSnapshot, updateDrawing, submitGuess, leaveRoom, restartGame } from "./roomStore.js";
+import { createRoom, joinRoom, getRoom, saveRoom, startGame, toRoomSnapshot, updateDrawing, clearDrawing, submitGuess, leaveRoom, restartGame } from "./roomStore.js";
 import { HttpError } from "../api/schemas.js";
 import { STARTER_WORDS } from "../seed/starterData.js";
 
@@ -206,32 +206,48 @@ describe("roomStore", () => {
     });
   });
 
-  it("randomizes secret word and avoids repeating recently used words in consecutive games", () => {
+  it("selects secret word deterministically and sequentially from the starter words list", () => {
     const { room, participantId: hostId } = createRoom("Alice");
     const joinResult = joinRoom(room.code, "Bob");
     const guestId = joinResult!.participantId;
 
-    const chosenWords = new Set<string>();
+    const chosenWords: string[] = [];
 
     for (let i = 0; i < 5; i++) {
       const activeRoom = startGame(room.code, hostId);
       const word = activeRoom.secretWord;
-      expect(word).not.toBeNull();
-      expect(STARTER_WORDS).toContain(word);
-      expect(chosenWords.has(word!)).toBe(false);
-      chosenWords.add(word!);
+      expect(word).toBe(STARTER_WORDS[i]);
+      chosenWords.push(word!);
 
       // Complete the game by correct guess to transition status, then restart
       submitGuess(room.code, guestId, word!);
       restartGame(room.code, hostId);
     }
 
-    // After 5 games, all 5 words should have been used exactly once
-    expect(chosenWords.size).toBe(5);
+    expect(chosenWords).toEqual(STARTER_WORDS);
 
-    // Starting the 6th game should reset the history and pick one of the words again
+    // Starting the 6th game should wrap around to index 0 again
     const activeRoom6 = startGame(room.code, hostId);
-    expect(STARTER_WORDS).toContain(activeRoom6.secretWord);
+    expect(activeRoom6.secretWord).toBe(STARTER_WORDS[0]);
+  });
+
+  it("clearDrawing sets drawingData to empty string if caller is drawer, rejects otherwise", () => {
+    const { room, participantId: hostId } = createRoom("Alice");
+    const joinResult = joinRoom(room.code, "Bob");
+    const guestId = joinResult!.participantId;
+    startGame(room.code, hostId);
+
+    // Set some drawing data first
+    updateDrawing(room.code, hostId, "strokes-data");
+    const drawnRoom = getRoom(room.code);
+    expect(drawnRoom!.drawingData).toBe("strokes-data");
+
+    // Rejects if non-drawer (guesser) tries to clear
+    expect(() => clearDrawing(room.code, guestId)).toThrow(HttpError);
+
+    // Clears successfully if drawer calls it
+    const clearedRoom = clearDrawing(room.code, hostId);
+    expect(clearedRoom.drawingData).toBe("");
   });
 
   it("scenario: Player 3 leaves, then Host restarts, then Host starts game again", () => {

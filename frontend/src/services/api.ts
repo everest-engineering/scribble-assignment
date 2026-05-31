@@ -83,6 +83,11 @@ export const api = {
       body: JSON.stringify({ drawingData })
     });
   },
+  clearDrawing(code: string, participantId: string) {
+    return request<{ room: RoomSnapshot }>(`/rooms/${encodeURIComponent(code)}/clear?participantId=${encodeURIComponent(participantId)}`, {
+      method: "POST"
+    });
+  },
   submitGuess(code: string, participantId: string, guessText: string) {
     return request<{ room: RoomSnapshot }>(`/rooms/${encodeURIComponent(code)}/guess?participantId=${encodeURIComponent(participantId)}`, {
       method: "POST",

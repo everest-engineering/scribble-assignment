@@ -209,6 +209,7 @@ export function GamePage() {
             </button>
             {isHost && (
               <button
+                id="restart-button"
                 className="button button--primary"
                 onClick={async () => {
                   try {
@@ -218,7 +219,7 @@ export function GamePage() {
                   }
                 }}
               >
-                Return to Lobby
+                Restart Game
               </button>
             )}
           </div>
@@ -272,7 +273,13 @@ export function GamePage() {
               <DrawingCanvas
                 readOnly={false}
                 drawingData={room.drawingData || ""}
-                onChange={(data) => roomStore.updateDrawing(data)}
+                onChange={(data) => {
+                  if (data === "" || data === "[]") {
+                    roomStore.clearDrawing();
+                  } else {
+                    roomStore.updateDrawing(data);
+                  }
+                }}
               />
             ) : (
               <DrawingCanvas

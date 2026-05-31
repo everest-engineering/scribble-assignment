@@ -23,11 +23,13 @@ export function DrawingCanvas({ readOnly, drawingData, onChange }: DrawingCanvas
   const strokesRef = useRef<Stroke[]>(strokes);
   strokesRef.current = strokes;
 
-  // Parse strokes from drawingData prop when readOnly is true
+  // Parse strokes from drawingData prop when readOnly is true, or if it is cleared
   useEffect(() => {
-    if (readOnly) {
+    if (!drawingData || drawingData === "[]") {
+      setStrokes([]);
+    } else if (readOnly) {
       try {
-        const parsed = JSON.parse(drawingData || "[]") as Stroke[];
+        const parsed = JSON.parse(drawingData) as Stroke[];
         if (Array.isArray(parsed)) {
           setStrokes(parsed);
         } else {

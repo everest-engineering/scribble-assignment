@@ -8,7 +8,7 @@ import {
   updateDrawingSchema,
   submitGuessSchema
 } from "./schemas.js";
-import { createRoom, getRoom, joinRoom, toRoomSnapshot, startGame, updateDrawing, submitGuess, leaveRoom, restartGame } from "../services/roomStore.js";
+import { createRoom, getRoom, joinRoom, toRoomSnapshot, startGame, updateDrawing, clearDrawing, submitGuess, leaveRoom, restartGame } from "../services/roomStore.js";
 
 export function createRoomsRouter() {
   const router = Router();
@@ -75,6 +75,24 @@ export function createRoomsRouter() {
       }
 
       const room = updateDrawing(code.toUpperCase(), participantId, drawingData);
+      response.json({
+        room: toRoomSnapshot(room, participantId)
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/:code/clear", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId } = roomViewerQuerySchema.parse(request.query);
+
+      if (!participantId) {
+        throw new HttpError(400, "participantId is required");
+      }
+
+      const room = clearDrawing(code.toUpperCase(), participantId);
       response.json({
         room: toRoomSnapshot(room, participantId)
       });

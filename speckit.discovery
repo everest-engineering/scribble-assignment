@@ -6,22 +6,24 @@ This document highlights the discovery findings, identified gaps, assumptions, a
 
 ## 1. Gaps and Incomplete/Missing Behaviors
 
-Based on the README, the following behaviors are missing or incomplete in the starter code:
+Based on the README, the following incomplete behaviors and gaps exist in the starter code:
 
-1. **Lobby State Polling**: The lobby participant list displays only from the latest fetched snapshot when loaded or refreshed manually. Automatic polling (~2s cadence) is not implemented.
-2. **Host Designation and Start Game Controls**: There is no tracking of which participant is the host (creator of the room). The "Start Game" flow and host-only permissions to trigger it are not implemented.
-3. **Drawer and Word Selection**: Selecting the drawer (first player/host) and picking the secret word deterministically from the starter list (`rocket`, `pizza`, `castle`, `guitar`, `sunflower`) is not implemented.
-4. **Drawing Sync and Canvas Actions**: Synchronizing drawer strokes to guessers' canvases, rendering a read-only canvas for guessers, and allowing the drawer to clear the canvas are not implemented.
-5. **Guess Input, Matching, and Scoring**: Rejecting empty/whitespace guesses, case-insensitive comparison against the secret word, awarding 100 points on a correct guess, and transitioning to a result state are not implemented.
-6. **Shared Result State and Game Restart**: Transitioning to a result view showing final scores, the secret word, and guess logs, and letting the host restart the game (returning everyone to lobby with cleared round state) are not implemented.
+*   **Gap 1 (Lobby State Polling)**: The lobby participant list displays only from the latest fetched snapshot when loaded or refreshed manually. Automatic polling (~2s cadence) is not implemented.
+*   **Gap 2 (Host Designation and Start Game Controls)**: There is no tracking of which participant is the host (creator of the room). The "Start Game" flow and host-only permissions to trigger it are not implemented.
+*   **Gap 3 (Drawer and Word Selection)**: Selecting the drawer (first player/host) and picking the secret word deterministically from the starter list (`rocket`, `pizza`, `castle`, `guitar`, `sunflower`) is not implemented.
+*   **Gap 4 (Drawing Sync and Canvas Actions)**: Synchronizing drawer strokes to guessers' canvases, rendering a read-only canvas for guessers, and allowing the drawer to clear the canvas are not implemented.
+*   **Gap 5 (Guess Input, Matching, and Scoring)**: Rejecting empty/whitespace guesses, case-insensitive comparison against the secret word, awarding 100 points on a correct guess, and transitioning to a result state are not implemented.
+*   **Gap 6 (Shared Result State and Game Restart)**: Transitioning to a result view showing final scores, the secret word, and guess logs, and letting the host restart the game (returning everyone to lobby with cleared round state) are not implemented.
 
 ---
 
 ## 2. Assumptions
 
-1. **HTTP Polling Cadence**: Polling will occur at an approximate 2-second interval, which is sufficient for syncing game state, guess logs, and canvas updates without overloading the in-memory Node.js backend.
-2. **Deterministic State Progression**: A single round progress structure is assumed. Once a guesser matches the secret word, the round terminates, scores update, and the game moves to the result state.
-3. **No Stateful Persistency**: All game state exists solely in-memory within the backend node process. Any crash or restart of the backend clears all existing rooms.
+Based on our architectural decisions, we hold the following assumptions:
+
+*   **Assumption 1 (HTTP Polling Cadence)**: Polling will occur at an approximate 2-second interval, which is sufficient for syncing game state, guess logs, and canvas updates without overloading the in-memory Node.js backend.
+*   **Assumption 2 (Deterministic State Progression)**: A single round progress structure is assumed. Once a guesser matches the secret word, the round terminates, scores update, and the game moves to the result state.
+*   **Assumption 3 (No Stateful Persistency)**: All game state exists solely in-memory within the backend node process. Any crash or restart of the backend clears all existing rooms.
 
 ---
 

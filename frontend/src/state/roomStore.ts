@@ -159,6 +159,24 @@ class RoomStore {
     }
   }
 
+  async clearDrawing() {
+    if (!this.state.room || !this.state.participantId) {
+      return null;
+    }
+    try {
+      const response = await api.clearDrawing(
+        this.state.room.code,
+        this.state.participantId
+      );
+      this.setRoomSnapshot(response.room);
+      return response.room;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to clear drawing";
+      this.setState({ error: message });
+      throw error;
+    }
+  }
+
   async submitGuess(guessText: string) {
     if (!this.state.room || !this.state.participantId) {
       return null;

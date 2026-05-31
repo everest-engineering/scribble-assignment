@@ -134,13 +134,8 @@ export function startGame(code: string, participantId: string) {
   if (!room.previousWords) {
     room.previousWords = [];
   }
-  let pool = STARTER_WORDS.filter((word) => !room.previousWords.includes(word));
-  if (pool.length === 0) {
-    room.previousWords = [];
-    pool = [...STARTER_WORDS];
-  }
-  const randomIndex = Math.floor(Math.random() * pool.length);
-  const selectedWord = pool[randomIndex];
+  const wordIndex = room.previousWords.length % STARTER_WORDS.length;
+  const selectedWord = STARTER_WORDS[wordIndex];
 
   room.secretWord = selectedWord;
   room.previousWords.push(selectedWord);
@@ -168,6 +163,27 @@ export function updateDrawing(code: string, participantId: string, drawingData: 
   }
 
   room.drawingData = drawingData;
+  room.updatedAt = now();
+  rooms.set(room.code, room);
+
+  return cloneRoom(room);
+}
+
+export function clearDrawing(code: string, participantId: string) {
+  const room = rooms.get(code);
+  if (!room) {
+    throw new HttpError(404, "Room not found");
+  }
+
+  if (room.status !== "game") {
+    throw new HttpError(400, "Drawing is only allowed during active game");
+  }
+
+  if (room.drawerId !== participantId) {
+    throw new HttpError(403, "Only the drawer can update the drawing");
+  }
+
+  room.drawingData = "";
   room.updatedAt = now();
   rooms.set(room.code, room);
 
