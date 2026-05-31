@@ -25,6 +25,10 @@ export const submitGuessSchema = z.object({
   text: z.string()
 });
 
+export const restartRoomSchema = z.object({
+  participantId: z.string().uuid()
+});
+
 export class HttpError extends Error {
   statusCode: number;
 

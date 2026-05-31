@@ -184,6 +184,32 @@ export function submitGuess(code: string, participantId: string, text: string): 
   return cloneRoom(room);
 }
 
+export function restartRoom(code: string, participantId: string): Room {
+  const room = rooms.get(code);
+
+  if (!room) {
+    throw new HttpError(404, "Room not found");
+  }
+
+  if (room.status !== "ended") {
+    throw new HttpError(409, "Room is not ended");
+  }
+
+  if (participantId !== room.hostId) {
+    throw new HttpError(403, "Only the host can restart");
+  }
+
+  room.status = "lobby";
+  room.drawerId = "";
+  room.secretWord = "";
+  room.guesses = [];
+  room.scores = {};
+  room.updatedAt = now();
+  rooms.set(room.code, room);
+
+  return cloneRoom(room);
+}
+
 export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSnapshot {
   const isActive = room.status === "active";
   const isEnded = room.status === "ended";
