@@ -15,13 +15,21 @@ This document highlights the discovery findings, identified gaps, assumptions, a
 2. **Deterministic State Progression**: A single round progress structure is assumed. Once a guesser matches the secret word, the round terminates, scores update, and the game moves to the result state.
 3. **No Stateful Persistency**: All game state exists solely in-memory within the backend node process; any crash or restart of the backend clears all existing rooms.
 
-## Relevant Files
-* `frontend/src/services/api.ts`
-* `frontend/src/state/roomStore.ts`
-* `frontend/src/pages/LobbyPage.tsx`
-* `frontend/src/pages/GamePage.tsx`
-* `backend/src/models/game.ts`
-* `backend/src/services/roomStore.ts`
-* `backend/src/api/schemas.ts`
-* `backend/src/api/rooms.ts`
+## Relevant Frontend Files & Areas
+*   **`frontend/src/services/api.ts`**: Contains API model interfaces (`RoomSnapshot`, `Participant`) and raw fetch methods. These need updates to match new backend room fields (`hostId`, `drawerId`, `secretWord`, `guesses`, `drawingData`). Service methods for starting the game, sending/clearing drawings, submitting guesses, leaving rooms, and resetting rooms must be added.
+*   **`frontend/src/state/roomStore.ts`**: The state management layer. Update the store state management (external store class) to handle loading flags, errors, current user permissions, canvas actions, guess histories, and round status.
+*   **`frontend/src/pages/LobbyPage.tsx`**: Lobby view. Must incorporate the polling logic (`useEffect` interval) to refresh participants, check host status, and disable/enable the start game button.
+*   **`frontend/src/pages/GamePage.tsx`**: Main gameplay view. Update this screen to render separate layouts for the drawer (interactive drawing canvas, secret word indicator) and guesser (read-only canvas, guess submission form, score cards). Integrate drawing synchronization and guess log polling, and a host-only restart flow.
+
+## Relevant Backend Files & Areas
+*   **`backend/src/models/game.ts`**: Entity representations. Enhance models to track room states (`hostId`, `drawerId`, `secretWord`, `guesses`, `drawingData`, `status` updates like `"game"` and `"result"`). Add `score` tracking to `Participant`.
+*   **`backend/src/services/roomStore.ts`**: Business logic. Modify `createRoom()` and `joinRoom()` to assign the host and validate player inputs (trim names, reject duplicates/empty names). Implement helper services for starting games, saving drawings, clearing drawings, appending guesses, and resetting room state.
+*   **`backend/src/api/schemas.ts`**: Validation layer. Add Zod validation schemas for action queries/payloads (start game parameters, drawing coordinate payloads, guess submissions).
+*   **`backend/src/api/rooms.ts`**: Routing controllers. Setup new routing routes and handler callbacks for game lifecycle status updates (`POST /rooms/:code/start`, `POST /rooms/:code/drawing`, `POST /rooms/:code/guess`, `POST /rooms/:code/restart`).
+
+## Potential Risks and Unknowns
+1.  **Canvas Coordination Bandwidth**: Serializing and transmitting canvas coordinate points over periodic HTTP polling might introduce noticeable stroke lag or high load if drawing data grows too large. Mitigating this with concise coordinate structures or optimized strokes is essential.
+2.  **Lobby Polling Cadence Tuning**: Polling precisely every 2 seconds might create a race condition if players hit endpoints simultaneously. Backend services must ensure operations are synchronous and atomic in-memory to prevent state duplication.
+3.  **Host Leaving Mid-Session**: If the host player leaves the room in the lobby, during gameplay, or in the result state, a mechanism to promote another player to host is needed to prevent rooms from getting orphaned/stuck.
+
 

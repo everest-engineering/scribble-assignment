@@ -14,6 +14,8 @@ export function GamePage() {
   const [searchParams] = useSearchParams();
   const [isRestoring, setIsRestoring] = useState(true);
 
+  const isHost = room?.hostId === participantId;
+
   useEffect(() => {
     const code = searchParams.get("code");
     const pid = searchParams.get("participantId");
@@ -69,7 +71,6 @@ export function GamePage() {
   }
 
   if (room.status === "result") {
-    const isHost = room.hostId === participantId;
     const sortedParticipants = [...room.participants].sort((a, b) => b.score - a.score);
 
     return (
@@ -312,7 +313,7 @@ export function GamePage() {
         </aside>
       </div>
 
-      <div className="button-row">
+      <div className="button-row" style={{ display: "flex", gap: "12px" }}>
         <button
           className="button button--secondary"
           style={{ borderColor: "#fee2e2", color: "#b91c1c", backgroundColor: "#fef2f2" }}
@@ -327,6 +328,21 @@ export function GamePage() {
         >
           Leave Room
         </button>
+        {isHost && (
+          <button
+            id="restart-button"
+            className="button button--primary"
+            onClick={async () => {
+              try {
+                await roomStore.restartGame();
+              } catch (caughtError) {
+                console.error("Restart game failed:", caughtError);
+              }
+            }}
+          >
+            Restart Game
+          </button>
+        )}
       </div>
     </section>
   );
