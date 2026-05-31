@@ -54,6 +54,7 @@ export function createRoom(playerName?: string) {
   const room: Room = {
     code: generateUniqueCode(),
     status: "lobby",
+    hostId: participant.id,
     participants: [participant],
     createdAt: now(),
     updatedAt: now()
@@ -74,6 +75,10 @@ export function joinRoom(code: string, playerName?: string) {
     return null;
   }
 
+  if (room.status === "in-progress") {
+    return { error: "in-progress" as const };
+  }
+
   const participant = createParticipant(playerName);
   room.participants.push(participant);
   room.updatedAt = now();
@@ -83,6 +88,20 @@ export function joinRoom(code: string, playerName?: string) {
     room: cloneRoom(room),
     participantId: participant.id
   };
+}
+
+export function startGame(code: string, participantId: string) {
+  const room = rooms.get(code);
+
+  if (!room) return { error: "not-found" as const };
+  if (room.hostId !== participantId) return { error: "not-host" as const };
+  if (room.participants.length < 2) return { error: "insufficient-players" as const };
+
+  room.status = "in-progress";
+  room.updatedAt = now();
+  rooms.set(room.code, room);
+
+  return { room: cloneRoom(room) };
 }
 
 export function getRoom(code: string) {
@@ -102,6 +121,7 @@ export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSn
   return {
     code: room.code,
     status: room.status,
+    hostId: room.hostId,
     participants: room.participants.map((participant) => ({ ...participant })),
     availableWords: listWords(),
     roles: [...STARTER_ROLES]
