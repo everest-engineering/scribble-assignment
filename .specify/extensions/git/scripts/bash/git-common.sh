@@ -86,8 +86,7 @@ checkout_base_branch() {
     base_branch=$(read_git_config_value "base_branch" "main")
 
     if git show-ref --verify --quiet "refs/heads/${base_branch}"; then
-        git checkout -q "$base_branch"
-        return 0
+        git checkout -q "$base_branch" && return 0
     fi
 
     if git remote | grep -q .; then
@@ -95,8 +94,7 @@ checkout_base_branch() {
     fi
 
     if git show-ref --verify --quiet "refs/remotes/origin/${base_branch}"; then
-        git checkout -q -B "$base_branch" "origin/${base_branch}"
-        return 0
+        git checkout -q -B "$base_branch" "origin/${base_branch}" && return 0
     fi
 
     echo "[specify] Warning: Base branch '${base_branch}' not found; creating feature branch from current HEAD" >&2

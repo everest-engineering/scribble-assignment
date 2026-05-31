@@ -229,6 +229,10 @@ elif [ -f "$SCRIPT_DIR/git-common.sh" ]; then
     _common_loaded=true
 fi
 
+if [ -f "$SCRIPT_DIR/git-common.sh" ]; then
+    source "$SCRIPT_DIR/git-common.sh"
+fi
+
 if [ "$_common_loaded" != "true" ]; then
     echo "Error: Could not locate common.sh or git-common.sh. Please ensure the Specify core scripts are installed." >&2
     exit 1
