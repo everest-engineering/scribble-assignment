@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createRoom, joinRoom, selectWord, startRoom, submitGuess, toRoomSnapshot } from "./roomStore.js";
+import { createRoom, joinRoom, restartRoom, selectWord, startRoom, submitGuess, toRoomSnapshot } from "./roomStore.js";
 import { HttpError } from "../api/schemas.js";
 import { STARTER_WORDS } from "../seed/starterData.js";
 
@@ -355,6 +355,76 @@ describe("roomStore", () => {
       expect(snapshot.guesses[0].index).toBe(0);
       expect(snapshot.guesses[1].index).toBe(1);
       expect(snapshot.guesses[0].participantName).toBe("Bob");
+    });
+  });
+
+  describe("restartRoom", () => {
+    function setupEndedRoom() {
+      const host = createRoom("Alice");
+      const guest = joinRoom(host.room.code, "Bob");
+      const active = startRoom(host.room.code, host.participantId);
+      submitGuess(active.code, guest!.participantId, active.secretWord);
+      return { host, guest: guest!, code: active.code };
+    }
+
+    it("resets all round state and returns room to lobby", () => {
+      const { host, guest, code } = setupEndedRoom();
+
+      const restarted = restartRoom(code, host.participantId);
+
+      expect(restarted.status).toBe("lobby");
+      expect(restarted.drawerId).toBe("");
+      expect(restarted.secretWord).toBe("");
+      expect(restarted.guesses).toEqual([]);
+      expect(restarted.scores).toEqual({});
+      expect(restarted.participants.map((p) => p.id)).toContain(host.participantId);
+      expect(restarted.participants.map((p) => p.id)).toContain(guest.participantId);
+    });
+
+    it("preserves all participants after restart", () => {
+      const { host, guest, code } = setupEndedRoom();
+
+      const restarted = restartRoom(code, host.participantId);
+
+      expect(restarted.participants).toHaveLength(2);
+      expect(restarted.participants[0].name).toBe("Alice");
+      expect(restarted.participants[1].name).toBe("Bob");
+      expect(restarted.hostId).toBe(host.participantId);
+      expect(guest.participantId).toBeDefined();
+    });
+
+    it("throws 409 when room is not ended", () => {
+      const host = createRoom("Alice");
+      joinRoom(host.room.code, "Bob");
+      startRoom(host.room.code, host.participantId);
+
+      try {
+        restartRoom(host.room.code, host.participantId);
+      } catch (error) {
+        expect(error).toBeInstanceOf(HttpError);
+        expect((error as HttpError).statusCode).toBe(409);
+      }
+    });
+
+    it("throws 403 when caller is not the host", () => {
+      const { guest, code } = setupEndedRoom();
+
+      try {
+        restartRoom(code, guest.participantId);
+      } catch (error) {
+        expect(error).toBeInstanceOf(HttpError);
+        expect((error as HttpError).statusCode).toBe(403);
+        expect((error as HttpError).message).toMatch(/host/i);
+      }
+    });
+
+    it("throws 404 for an unknown room code", () => {
+      try {
+        restartRoom("ZZZZ", "00000000-0000-0000-0000-000000000000");
+      } catch (error) {
+        expect(error).toBeInstanceOf(HttpError);
+        expect((error as HttpError).statusCode).toBe(404);
+      }
     });
   });
 
