@@ -4,6 +4,7 @@ export interface Participant {
   id: string;
   name: string;
   joinedAt: string;
+  role: ParticipantRole;
 }
 
 export interface RoomSnapshot {
@@ -11,6 +12,9 @@ export interface RoomSnapshot {
   status: "lobby" | "playing";
   participants: Participant[];
   hostId: string;
+  currentWord: string | null;
+  currentWordLength: number;
+  currentRound: number;
   availableWords: string[];
   roles: ParticipantRole[];
 }

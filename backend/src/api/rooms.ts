@@ -21,7 +21,10 @@ export function createRoomsRouter() {
   router.post("/", (request, response, next) => {
     try {
       const { playerName } = createRoomSchema.parse(request.body);
-      const result = createRoom(playerName);
+      if (!playerName?.trim()) {
+        throw new HttpError(400, "Player name is required");
+      }
+      const result = createRoom(playerName.trim());
 
       response.status(201).json({
         participantId: result.participantId,
@@ -36,7 +39,10 @@ export function createRoomsRouter() {
     try {
       const { code } = roomCodeParamsSchema.parse(request.params);
       const { playerName } = joinRoomSchema.parse(request.body);
-      const result = joinRoom(code.toUpperCase(), playerName);
+      if (!playerName?.trim()) {
+        throw new HttpError(400, "Player name is required");
+      }
+      const result = joinRoom(code.toUpperCase(), playerName.trim());
 
       if (!result) {
         throw new HttpError(404, "Unable to join room");
@@ -78,7 +84,7 @@ export function createRoomsRouter() {
         throw new HttpError(400, result.error!);
       }
       response.json({
-        room: toRoomSnapshot(result.room!),
+        room: toRoomSnapshot(result.room!, participantId),
       });
     } catch (error) {
       next(error);

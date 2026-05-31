@@ -409,6 +409,27 @@ input {
   font-weight: 600;
 }
 
+.player-list__drawer {
+  color: var(--brand);
+  font-weight: 600;
+}
+
+.secret-word {
+  font-size: 2rem;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  text-align: center;
+  padding: 24px;
+  border-radius: 12px;
+  background: var(--surface-strong);
+  color: var(--ink);
+}
+
+.secret-word--hidden {
+  color: var(--ink-soft);
+  letter-spacing: 0.25em;
+}
+
 .status-line,
 .placeholder-note {
   width: max-content;

@@ -12,7 +12,17 @@ describe("api service", () => {
       json: () =>
         Promise.resolve({
           participantId: "p1",
-          room: { code: "ABCD", status: "lobby", participants: [] },
+          room: {
+            code: "ABCD",
+            status: "lobby",
+            participants: [],
+            hostId: "p1",
+            currentWord: null,
+            currentWordLength: 0,
+            currentRound: 0,
+            availableWords: [],
+            roles: [],
+          },
         }),
     };
     vi.mocked(fetch).mockResolvedValue(mockResponse as unknown as Response);
@@ -33,7 +43,17 @@ describe("api service", () => {
       ok: true,
       json: () =>
         Promise.resolve({
-          room: { code: "XYZW", status: "lobby", participants: [] },
+          room: {
+            code: "XYZW",
+            status: "lobby",
+            participants: [],
+            hostId: "p1",
+            currentWord: null,
+            currentWordLength: 0,
+            currentRound: 0,
+            availableWords: [],
+            roles: [],
+          },
         }),
     };
     vi.mocked(fetch).mockResolvedValue(mockResponse as unknown as Response);
@@ -44,5 +64,41 @@ describe("api service", () => {
       expect.stringContaining("/rooms/XYZW?participantId=p1"),
       expect.anything()
     );
+  });
+
+  it("startGame sends POST to /rooms/:code/start with participantId", async () => {
+    const mockResponse = {
+      ok: true,
+      json: () =>
+        Promise.resolve({
+          room: {
+            code: "ABCD",
+            status: "playing",
+            participants: [
+              { id: "p1", name: "Host", joinedAt: "", role: "drawer" },
+              { id: "p2", name: "Guest", joinedAt: "", role: "guesser" },
+            ],
+            hostId: "p1",
+            currentWord: "rocket",
+            currentWordLength: 6,
+            currentRound: 1,
+            availableWords: [],
+            roles: [],
+          },
+        }),
+    };
+    vi.mocked(fetch).mockResolvedValue(mockResponse as unknown as Response);
+
+    const result = await api.startGame("ABCD", "p1");
+
+    expect(fetch).toHaveBeenCalledWith(
+      expect.stringContaining("/rooms/ABCD/start"),
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({ participantId: "p1" }),
+      })
+    );
+    expect(result.room.currentWord).toBe("rocket");
+    expect(result.room.participants[0].role).toBe("drawer");
   });
 });

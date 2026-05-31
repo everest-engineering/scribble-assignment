@@ -33,11 +33,12 @@ function displayName(name?: string) {
   return name || "Player";
 }
 
-function createParticipant(name?: string): Participant {
+function createParticipant(name: string): Participant {
   return {
     id: randomUUID(),
-    name: displayName(name),
+    name,
     joinedAt: now(),
+    role: "guesser",
   };
 }
 
@@ -49,7 +50,7 @@ export function listWords() {
   return [...STARTER_WORDS];
 }
 
-export function createRoom(playerName?: string) {
+export function createRoom(playerName: string) {
   const participant = createParticipant(playerName);
   const room: Room = {
     code: generateUniqueCode(),
@@ -68,7 +69,7 @@ export function createRoom(playerName?: string) {
   };
 }
 
-export function joinRoom(code: string, playerName?: string) {
+export function joinRoom(code: string, playerName: string) {
   const room = rooms.get(code);
 
   if (!room) {
@@ -108,7 +109,15 @@ export function startGame(code: string, participantId: string) {
   if (room.participants.length < 2) {
     return { ok: false, error: "At least 2 players are required to start" };
   }
+
   room.status = "playing";
+  room.currentRound = 1;
+  room.currentWord = STARTER_WORDS[0];
+
+  for (const participant of room.participants) {
+    participant.role = participant.id === room.hostId ? "drawer" : "guesser";
+  }
+
   room.updatedAt = now();
   rooms.set(room.code, room);
   return { ok: true, room: cloneRoom(room) };
@@ -118,13 +127,20 @@ export function toRoomSnapshot(
   room: Room,
   viewerParticipantId?: string,
 ): RoomSnapshot {
-  void viewerParticipantId;
+  const drawerId = room.participants.find(
+    (participant) => participant.role === "drawer",
+  )?.id;
+  const isDrawer =
+    viewerParticipantId !== undefined && drawerId === viewerParticipantId;
 
   return {
     code: room.code,
     status: room.status,
     participants: room.participants.map((participant) => ({ ...participant })),
     hostId: room.hostId,
+    currentWord: isDrawer && room.currentWord ? room.currentWord : null,
+    currentWordLength: room.currentWord?.length ?? 0,
+    currentRound: room.currentRound ?? 0,
     availableWords: listWords(),
     roles: [...STARTER_ROLES],
   };
