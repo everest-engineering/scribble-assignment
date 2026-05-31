@@ -40,3 +40,11 @@ You are working on a monolithic repository for a multiplayer drawing game ("Scri
 -   Give concise, direct answers.
 -   Do not output large blocks of code if a small change suffices.
 -   When creating or editing files, ensure consistency with the existing directory structure detailed above.
+
+<!-- SPECKIT START -->
+Current features:
+- `specs/001-room-setup-lobby/plan.md` — Room Setup & Lobby (host tracking, join validation, lobby polling, host-only game start)
+- `specs/002-game-start-drawer-flow/plan.md` — Game Start & Drawer Flow (role assignment, deterministic word selection, word visibility gating, name validation)
+- `specs/003-gameplay-interaction/plan.md` — Gameplay Interaction (drawing canvas, guess submission, guess history, scoring)
+- `specs/004-results-restart/plan.md` — Results & Restart (round results display, host restart, lobby return, state reset)
+<!-- SPECKIT END -->
