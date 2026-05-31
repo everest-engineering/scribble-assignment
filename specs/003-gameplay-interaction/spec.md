@@ -74,8 +74,9 @@ each case behaves as expected before checking the guess history.
 3. **Given** an active round and the current user is a guesser,
    **When** the guesser submits a guess that matches the secret word after trimming
    and case-insensitive comparison (e.g., secret word is "Apple", guess is "  apple  "),
-   **Then** the guess is recorded as correct and 100 points are added to that
-   guesser's score.
+   **Then** the guess is recorded as correct, 100 points are added to that
+   guesser's score, and the round ends immediately — the room transitions to the
+   `"finished"` state so all players see the result screen.
 
 ---
 

@@ -78,6 +78,7 @@ export function createRoomsRouter() {
 
       if ("error" in result) {
         if (result.error === "not-found") throw new HttpError(404, "Room not found");
+        if (result.error === "not-enough-players") throw new HttpError(409, "At least 2 players are required to start");
         throw new HttpError(403, "Only the host can start the game");
       }
 

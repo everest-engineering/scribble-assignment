@@ -95,6 +95,7 @@ export function startGame(code: string, participantId: string) {
 
   if (!room) return { error: "not-found" as const };
   if (room.hostId !== participantId) return { error: "not-host" as const };
+  if (room.participants.length < 2) return { error: "not-enough-players" as const };
 
   const currentRound = {
     roundNumber: 1,
@@ -141,6 +142,11 @@ export function submitGuess(code: string, participantId: string, rawText: string
     submittedAt: now(),
   };
   round.guesses.push(entry);
+
+  if (isCorrect) {
+    room.status = "finished";
+  }
+
   room.updatedAt = now();
   rooms.set(room.code, room);
 

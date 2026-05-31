@@ -66,7 +66,7 @@ All endpoints that return a `RoomSnapshot` are affected. Two new optional fields
 ## Updated: POST /rooms/:code/start — Start Game
 
 **Changes**:
-1. The ≥2 participants requirement is removed — a single player (the host) may start.
+1. The ≥2 participants requirement is enforced — the host cannot start with fewer than 2 players in the lobby.
 2. The response now includes `currentDrawerId` and `secretWord` (since the caller is the drawer).
 
 **Request body** — unchanged:
@@ -83,7 +83,8 @@ All endpoints that return a `RoomSnapshot` are affected. Two new optional fields
     "status": "in-progress",
     "hostId": "uuid",
     "participants": [
-      { "id": "uuid", "name": "Alice", "joinedAt": "ISO8601" }
+      { "id": "uuid", "name": "Alice", "joinedAt": "ISO8601" },
+      { "id": "uuid", "name": "Bob", "joinedAt": "ISO8601" }
     ],
     "availableWords": ["rocket", "pizza", "castle", "guitar", "sunflower"],
     "roles": ["drawer", "guesser"],
@@ -100,8 +101,7 @@ All endpoints that return a `RoomSnapshot` are affected. Two new optional fields
 | 400 | `participantId` missing |
 | 403 | `participantId` does not match `room.hostId` |
 | 404 | Room code not found |
-
-*Note: The 400 "fewer than 2 participants" error is removed.*
+| 409 | Fewer than 2 participants in the lobby |
 
 ---
 

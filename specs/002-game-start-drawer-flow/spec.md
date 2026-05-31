@@ -21,23 +21,28 @@ secret word; all other players can see who is drawing but not what the word is.
 assignment and word selection, no round can proceed. Everything else in the game
 depends on this flow working correctly.
 
-**Independent Test**: With at least one player in a room, the host triggers "Start
+**Independent Test**: With at least two players in a room, the host triggers "Start
 Game" and lands on a game screen that clearly labels the drawer and (as the drawer)
-displays the secret word. Verifiable with a single browser tab.
+displays the secret word. Verifiable with two browser tabs.
 
 **Acceptance Scenarios**:
 
-1. **Given** a lobby with at least one player (the host),
+1. **Given** a lobby with at least 2 players (host + at least one other),
    **When** the host triggers "Start Game",
    **Then** the game screen loads, the host is marked as the drawer for round 1,
    and the drawer's screen displays the secret word prominently.
 
-2. **Given** a game in progress with multiple players,
+2. **Given** a lobby with only 1 player (the host alone),
+   **When** the host attempts to trigger "Start Game",
+   **Then** the action is rejected and the host remains on the lobby screen with
+   an appropriate error (the game requires at least 2 players).
+
+3. **Given** a game in progress with multiple players,
    **When** the game screen loads for a non-drawer player,
    **Then** that player can see who the current drawer is but the secret word is
    not shown on their screen.
 
-3. **Given** a game just started,
+4. **Given** a game just started,
    **When** the secret word is selected,
    **Then** the word is drawn deterministically from the starter word list — the
    same round number and word list always produce the same word.

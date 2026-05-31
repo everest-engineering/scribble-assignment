@@ -66,6 +66,11 @@ Submit a guess for the active round. Only non-drawer participants may submit.
 | `guess.isCorrect` | `true` if trimmed guess matches secret word (case-insensitive) |
 | `newScore` | The guesser's updated score after this submission |
 
+**Side effect**: When `guess.isCorrect` is `true` the room status transitions to
+`"finished"` atomically with the guess being recorded. Clients polling
+`GET /rooms/:code` will observe `status: "finished"` on their next tick and
+navigate to the result screen automatically.
+
 #### Error Responses
 
 | Status | Code | Condition |
