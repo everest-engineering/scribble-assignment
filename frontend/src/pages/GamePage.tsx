@@ -16,6 +16,8 @@ export function GamePage() {
   useEffect(() => {
     if (!room) {
       navigate("/", { replace: true });
+    } else if (room.status === "lobby") {
+      navigate("/lobby", { replace: true });
     }
   }, [navigate, room]);
 
@@ -40,6 +42,61 @@ export function GamePage() {
   const drawer = room.participants.find((participant) => participant.id === room.drawerId) ?? null;
   const isDrawer = participantId === room.drawerId;
   const isEnded = room.status === "ended";
+  const isHost = participantId === room.hostId;
+
+  if (isEnded) {
+    return (
+      <section className="panel game-page">
+        <div className="game-page__header">
+          <div className="game-page__header-left">
+            <span className="section-kicker">Round Over</span>
+            <h1 className="game-page__title">Results</h1>
+          </div>
+          <RoomCodeBadge code={room.code} />
+        </div>
+
+        <div
+          className="game-banner game-banner--ended"
+          style={{ backgroundColor: "#d1fae5", border: "1px solid #6ee7b7", borderRadius: "0.5rem", padding: "1rem 1.5rem", marginBottom: "1.5rem", textAlign: "center" }}
+        >
+          <p style={{ margin: 0, fontSize: "0.875rem", color: "#065f46", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>The word was</p>
+          <p style={{ margin: "0.25rem 0 0", fontSize: "2rem", fontWeight: 700, color: "#065f46" }}>{room.secretWord}</p>
+        </div>
+
+        <div className="game-page__layout">
+          <aside className="game-page__sidebar game-page__sidebar--left">
+            <Scoreboard participants={room.participants} scores={room.scores ?? {}} />
+          </aside>
+
+          <div className="game-page__main">
+            <ResultPanel guesses={room.guesses ?? []} participants={room.participants} />
+          </div>
+
+          <aside className="game-page__sidebar game-page__sidebar--right">
+            <Card title="Player Info">
+              <dl className="detail-list">
+                <div>
+                  <dt>Name</dt>
+                  <dd>{viewer?.name ?? "Unknown player"}</dd>
+                </div>
+              </dl>
+            </Card>
+          </aside>
+        </div>
+
+        <div className="button-row">
+          {isHost ? (
+            <button className="button button--primary" onClick={() => roomStore.restartRoom()}>
+              Restart
+            </button>
+          ) : null}
+          <button className="button button--secondary" onClick={() => navigate("/lobby")}>
+            Exit Game
+          </button>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section className="panel game-page">
@@ -50,12 +107,6 @@ export function GamePage() {
         </div>
         <RoomCodeBadge code={room.code} />
       </div>
-
-      {isEnded ? (
-        <div className="game-banner game-banner--ended" style={{ backgroundColor: "#d1fae5", border: "1px solid #6ee7b7", borderRadius: "0.5rem", padding: "0.75rem 1rem", marginBottom: "1rem", fontWeight: 600, color: "#065f46", textAlign: "center" }}>
-          Round Ended! {room.secretWord ? `The word was "${room.secretWord}".` : ""}
-        </div>
-      ) : null}
 
       <div className="game-page__layout">
         <aside className="game-page__sidebar game-page__sidebar--left">
@@ -117,7 +168,7 @@ export function GamePage() {
             </dl>
           </Card>
 
-          {!isDrawer && !isEnded ? (
+          {!isDrawer ? (
             <Card title="Your Guess">
               <GuessForm />
             </Card>
