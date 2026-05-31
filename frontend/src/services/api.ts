@@ -4,14 +4,31 @@ export interface Participant {
   id: string;
   name: string;
   joinedAt: string;
+  score: number;
+}
+
+export interface GuessEntry {
+  id: string;
+  participantId: string;
+  playerName: string;
+  guessText: string;
+  isCorrect: boolean;
+  createdAt: string;
 }
 
 export interface RoomSnapshot {
   code: string;
-  status: "lobby";
+  status: "lobby" | "in-game" | "result";
+  hostParticipantId: string;
   participants: Participant[];
   availableWords: string[];
   roles: ParticipantRole[];
+  roundState?: {
+    drawerId: string;
+    secretWord?: string;
+  };
+  guessHistory: GuessEntry[];
+  correctGuesserId?: string | null;
 }
 
 export interface RoomSessionResponse {
@@ -19,7 +36,27 @@ export interface RoomSessionResponse {
   room: RoomSnapshot;
 }
 
-const API_BASE_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3001/bug";
+export interface ApiErrorBody {
+  error?: {
+    code?: string;
+    message?: string;
+  };
+  message?: string;
+}
+
+export class ApiError extends Error {
+  code: string;
+  status: number;
+
+  constructor(message: string, code: string, status: number) {
+    super(message);
+    this.name = "ApiError";
+    this.code = code;
+    this.status = status;
+  }
+}
+
+const API_BASE_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3001";
 
 async function request<T>(path: string, init?: RequestInit) {
   const response = await fetch(`${API_BASE_URL}${path}`, {
@@ -31,11 +68,11 @@ async function request<T>(path: string, init?: RequestInit) {
   });
 
   if (!response.ok) {
-    const errorBody = (await response.json().catch(() => ({ message: "Request failed" }))) as {
-      message?: string;
-    };
+    const errorBody = (await response.json().catch(() => ({ message: "Request failed" }))) as ApiErrorBody;
+    const message = errorBody.error?.message ?? errorBody.message ?? "Request failed";
+    const code = errorBody.error?.code ?? "REQUEST_FAILED";
 
-    throw new Error(errorBody.message ?? "Request failed");
+    throw new ApiError(message, code, response.status);
   }
 
   return (await response.json()) as T;
@@ -57,5 +94,23 @@ export const api = {
   fetchRoom(code: string, participantId?: string) {
     const query = participantId ? `?participantId=${encodeURIComponent(participantId)}` : "";
     return request<{ room: RoomSnapshot }>(`/rooms/${encodeURIComponent(code)}${query}`);
+  },
+  startRoom(code: string, participantId: string) {
+    return request<{ room: RoomSnapshot }>(`/rooms/${encodeURIComponent(code)}/start`, {
+      method: "POST",
+      body: JSON.stringify({ participantId })
+    });
+  },
+  submitGuess(code: string, participantId: string, guessText: string) {
+    return request<{ room: RoomSnapshot }>(`/rooms/${encodeURIComponent(code)}/guesses`, {
+      method: "POST",
+      body: JSON.stringify({ participantId, guessText })
+    });
+  },
+  restartRoom(code: string, participantId: string) {
+    return request<{ room: RoomSnapshot }>(`/rooms/${encodeURIComponent(code)}/restart`, {
+      method: "POST",
+      body: JSON.stringify({ participantId })
+    });
   }
 };

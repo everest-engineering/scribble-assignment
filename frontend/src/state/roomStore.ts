@@ -18,7 +18,7 @@ export interface RoomState {
 
 type Listener = () => void;
 
-class RoomStore {
+export class RoomStore {
   private state: RoomState = {
     room: null,
     participantId: null,
@@ -94,7 +94,46 @@ class RoomStore {
       return null;
     }
 
-    const response = await api.fetchRoom(this.state.room.code, this.state.participantId ?? undefined);
+    const response = await this.withLoading(() =>
+      api.fetchRoom(this.state.room?.code ?? "", this.state.participantId ?? undefined)
+    );
+    this.setRoomSnapshot(response.room);
+    return response.room;
+  }
+
+  async startRoom() {
+    if (!this.state.room || !this.state.participantId) {
+      this.setState({ error: "Room session is missing." });
+      return null;
+    }
+
+    const response = await this.withLoading(() => api.startRoom(this.state.room?.code ?? "", this.state.participantId ?? ""));
+    this.setRoomSnapshot(response.room);
+    return response.room;
+  }
+
+  async submitGuess(guessText: string) {
+    if (!this.state.room || !this.state.participantId) {
+      this.setState({ error: "Room session is missing." });
+      return null;
+    }
+
+    const response = await this.withLoading(() =>
+      api.submitGuess(this.state.room?.code ?? "", this.state.participantId ?? "", guessText)
+    );
+    this.setRoomSnapshot(response.room);
+    return response.room;
+  }
+
+  async restartRoom() {
+    if (!this.state.room || !this.state.participantId) {
+      this.setState({ error: "Room session is missing." });
+      return null;
+    }
+
+    const response = await this.withLoading(() =>
+      api.restartRoom(this.state.room?.code ?? "", this.state.participantId ?? "")
+    );
     this.setRoomSnapshot(response.room);
     return response.room;
   }
