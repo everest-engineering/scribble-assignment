@@ -1,12 +1,13 @@
 import { Router } from "express";
+import { HttpError } from "../models/game.js";
 import {
   createRoomSchema,
-  HttpError,
   joinRoomSchema,
   roomCodeParamsSchema,
-  roomViewerQuerySchema
+  roomViewerQuerySchema,
+  startGameSchema
 } from "./schemas.js";
-import { createRoom, getRoom, joinRoom, toRoomSnapshot } from "../services/roomStore.js";
+import { createRoom, getRoom, joinRoom, startGame, toRoomSnapshot } from "../services/roomStore.js";
 
 export function createRoomsRouter() {
   const router = Router();
@@ -32,7 +33,7 @@ export function createRoomsRouter() {
       const result = joinRoom(code.toUpperCase(), playerName);
 
       if (!result) {
-        throw new HttpError(404, "Unable to join room");
+        throw new HttpError(404, "Room not found");
       }
 
       response.json({
@@ -51,7 +52,25 @@ export function createRoomsRouter() {
       const room = getRoom(code.toUpperCase());
 
       if (!room) {
-        throw new HttpError(404, "Unable to load room");
+        throw new HttpError(404, "Room not found");
+      }
+
+      response.json({
+        room: toRoomSnapshot(room, participantId)
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/:code/start", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId } = startGameSchema.parse(request.body);
+      const room = startGame(code.toUpperCase(), participantId);
+
+      if (!room) {
+        throw new HttpError(404, "Room not found");
       }
 
       response.json({

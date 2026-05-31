@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import type { Participant, Room, RoomSnapshot } from "../models/game.js";
+import { HttpError, type Participant, type Room, type RoomSnapshot } from "../models/game.js";
 import { STARTER_ROLES, STARTER_WORDS } from "../seed/starterData.js";
 
 const rooms = new Map<string, Room>();
@@ -29,14 +29,18 @@ function generateUniqueCode() {
   return code;
 }
 
-function displayName(name?: string) {
-  return name || "Player";
+function validateName(name?: string): string {
+  const trimmed = (name ?? "").trim();
+  if (!trimmed) {
+    throw new HttpError(400, "Player name cannot be empty");
+  }
+  return trimmed;
 }
 
 function createParticipant(name?: string): Participant {
   return {
     id: randomUUID(),
-    name: displayName(name),
+    name: validateName(name),
     joinedAt: now()
   };
 }
@@ -54,6 +58,7 @@ export function createRoom(playerName?: string) {
   const room: Room = {
     code: generateUniqueCode(),
     status: "lobby",
+    hostId: participant.id,
     participants: [participant],
     createdAt: now(),
     updatedAt: now()
@@ -85,6 +90,32 @@ export function joinRoom(code: string, playerName?: string) {
   };
 }
 
+export function startGame(code: string, requesterId: string) {
+  const room = rooms.get(code);
+
+  if (!room) {
+    return null;
+  }
+
+  if (room.status !== "lobby") {
+    throw new HttpError(400, "Game already started");
+  }
+
+  if (room.hostId !== requesterId) {
+    throw new HttpError(403, "Only the host can start the game");
+  }
+
+  if (room.participants.length < 2) {
+    throw new HttpError(400, "Need at least 2 players to start");
+  }
+
+  room.status = "playing";
+  room.updatedAt = now();
+  rooms.set(room.code, room);
+
+  return cloneRoom(room);
+}
+
 export function getRoom(code: string) {
   const room = rooms.get(code);
   return room ? cloneRoom(room) : null;
@@ -102,6 +133,7 @@ export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSn
   return {
     code: room.code,
     status: room.status,
+    hostId: room.hostId,
     participants: room.participants.map((participant) => ({ ...participant })),
     availableWords: listWords(),
     roles: [...STARTER_ROLES]
