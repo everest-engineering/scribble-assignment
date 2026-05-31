@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createRoom, joinRoom, selectWord, startRoom, toRoomSnapshot } from "./roomStore.js";
+import { createRoom, joinRoom, selectWord, startRoom, submitGuess, toRoomSnapshot } from "./roomStore.js";
 import { HttpError } from "../api/schemas.js";
 import { STARTER_WORDS } from "../seed/starterData.js";
 
@@ -181,6 +181,180 @@ describe("roomStore", () => {
       expect(snapshot.secretWord).toBeUndefined();
       expect(snapshot.wordPlaceholder).toBeUndefined();
       expect(snapshot.drawerId).toBe("");
+    });
+  });
+
+  describe("submitGuess", () => {
+    function setupActiveRoom() {
+      const host = createRoom("Alice");
+      const guest = joinRoom(host.room.code, "Bob");
+      const room = startRoom(host.room.code, host.participantId);
+
+      return { host, guest: guest!, room };
+    }
+
+    it("records an incorrect guess with 0 points and keeps room active", () => {
+      const { guest, room } = setupActiveRoom();
+
+      const updated = submitGuess(room.code, guest.participantId, "wrong");
+
+      expect(updated.guesses).toHaveLength(1);
+      expect(updated.guesses[0].text).toBe("wrong");
+      expect(updated.guesses[0].correct).toBe(false);
+      expect(updated.scores[guest.participantId]).toBe(0);
+      expect(updated.status).toBe("active");
+    });
+
+    it("records a correct guess with 100 points and transitions room to ended", () => {
+      const { guest, room } = setupActiveRoom();
+
+      const updated = submitGuess(room.code, guest.participantId, room.secretWord);
+
+      expect(updated.guesses).toHaveLength(1);
+      expect(updated.guesses[0].correct).toBe(true);
+      expect(updated.scores[guest.participantId]).toBe(100);
+      expect(updated.status).toBe("ended");
+    });
+
+    it("treats guess as correct regardless of case", () => {
+      const { guest, room } = setupActiveRoom();
+
+      const upper = room.secretWord.toUpperCase();
+      const updated = submitGuess(room.code, guest.participantId, upper);
+
+      expect(updated.guesses[0].correct).toBe(true);
+      expect(updated.scores[guest.participantId]).toBe(100);
+    });
+
+    it("trims whitespace from guess before comparison", () => {
+      const { guest, room } = setupActiveRoom();
+
+      const padded = `  ${room.secretWord}  `;
+      const updated = submitGuess(room.code, guest.participantId, padded);
+
+      expect(updated.guesses[0].text).toBe(room.secretWord);
+      expect(updated.guesses[0].correct).toBe(true);
+    });
+
+    it("throws 400 for an empty string guess", () => {
+      const { guest, room } = setupActiveRoom();
+
+      try {
+        submitGuess(room.code, guest.participantId, "");
+      } catch (error) {
+        expect(error).toBeInstanceOf(HttpError);
+        expect((error as HttpError).statusCode).toBe(400);
+      }
+    });
+
+    it("throws 400 for a whitespace-only guess", () => {
+      const { guest, room } = setupActiveRoom();
+
+      try {
+        submitGuess(room.code, guest.participantId, "   ");
+      } catch (error) {
+        expect(error).toBeInstanceOf(HttpError);
+        expect((error as HttpError).statusCode).toBe(400);
+      }
+    });
+
+    it("throws 403 when the drawer attempts to guess", () => {
+      const { host, room } = setupActiveRoom();
+
+      try {
+        submitGuess(room.code, host.participantId, "anything");
+      } catch (error) {
+        expect(error).toBeInstanceOf(HttpError);
+        expect((error as HttpError).statusCode).toBe(403);
+        expect((error as HttpError).message).toMatch(/drawer/i);
+      }
+    });
+
+    it("throws 403 for a participantId not in the room", () => {
+      const { room } = setupActiveRoom();
+
+      try {
+        submitGuess(room.code, "00000000-0000-0000-0000-000000000000", "word");
+      } catch (error) {
+        expect(error).toBeInstanceOf(HttpError);
+        expect((error as HttpError).statusCode).toBe(403);
+      }
+    });
+
+    it("throws 409 when room status is ended", () => {
+      const { guest, room } = setupActiveRoom();
+
+      submitGuess(room.code, guest.participantId, room.secretWord);
+
+      try {
+        submitGuess(room.code, guest.participantId, room.secretWord);
+      } catch (error) {
+        expect(error).toBeInstanceOf(HttpError);
+        expect((error as HttpError).statusCode).toBe(409);
+      }
+    });
+
+    it("throws 404 for an unknown room code", () => {
+      const { guest } = setupActiveRoom();
+
+      try {
+        submitGuess("ZZZZ", guest.participantId, "word");
+      } catch (error) {
+        expect(error).toBeInstanceOf(HttpError);
+        expect((error as HttpError).statusCode).toBe(404);
+      }
+    });
+  });
+
+  describe("toRoomSnapshot guesses and scores", () => {
+    it("active room snapshot includes empty guesses and zero scores for all participants", () => {
+      const host = createRoom("Alice");
+      const guest = joinRoom(host.room.code, "Bob");
+      const activeRoom = startRoom(host.room.code, host.participantId);
+
+      const snapshot = toRoomSnapshot(activeRoom, guest!.participantId);
+
+      expect(snapshot.guesses).toEqual([]);
+      expect(snapshot.scores[host.participantId]).toBe(0);
+      expect(snapshot.scores[guest!.participantId]).toBe(0);
+    });
+
+    it("ended room snapshot exposes secretWord to both drawer and guesser", () => {
+      const host = createRoom("Alice");
+      const guest = joinRoom(host.room.code, "Bob");
+      const activeRoom = startRoom(host.room.code, host.participantId);
+
+      submitGuess(activeRoom.code, guest!.participantId, activeRoom.secretWord);
+
+      const hostSnapshot = toRoomSnapshot(
+        { ...activeRoom, status: "ended", scores: { [host.participantId]: 0, [guest!.participantId]: 100 }, guesses: [] },
+        host.participantId
+      );
+      const guestSnapshot = toRoomSnapshot(
+        { ...activeRoom, status: "ended", scores: { [host.participantId]: 0, [guest!.participantId]: 100 }, guesses: [] },
+        guest!.participantId
+      );
+
+      expect(hostSnapshot.secretWord).toBe(activeRoom.secretWord);
+      expect(guestSnapshot.secretWord).toBe(activeRoom.secretWord);
+      expect(hostSnapshot.wordPlaceholder).toBeUndefined();
+      expect(guestSnapshot.wordPlaceholder).toBeUndefined();
+    });
+
+    it("snapshot includes correct guess history after submitGuess", () => {
+      const host = createRoom("Alice");
+      const guest = joinRoom(host.room.code, "Bob");
+      const activeRoom = startRoom(host.room.code, host.participantId);
+
+      submitGuess(activeRoom.code, guest!.participantId, "wrong");
+      const afterIncorrect = submitGuess(activeRoom.code, guest!.participantId, "alsoWrong");
+
+      const snapshot = toRoomSnapshot(afterIncorrect, guest!.participantId);
+
+      expect(snapshot.guesses).toHaveLength(2);
+      expect(snapshot.guesses[0].index).toBe(0);
+      expect(snapshot.guesses[1].index).toBe(1);
+      expect(snapshot.guesses[0].participantName).toBe("Bob");
     });
   });
 
