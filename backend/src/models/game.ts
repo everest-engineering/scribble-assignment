@@ -7,6 +7,14 @@ export interface Participant {
   joinedAt: string;
 }
 
+export interface Guess {
+  participantId: string;
+  participantName: string;
+  text: string;
+  correct: boolean;
+  index: number;
+}
+
 export interface Room {
   code: string;
   hostId: string;
@@ -16,6 +24,8 @@ export interface Room {
   updatedAt: string;
   drawerId: string;
   secretWord: string;
+  guesses: Guess[];
+  scores: Record<string, number>;
 }
 
 export interface RoomSnapshot {
@@ -28,6 +38,8 @@ export interface RoomSnapshot {
   drawerId: string;
   secretWord?: string;
   wordPlaceholder?: string;
+  guesses: Guess[];
+  scores: Record<string, number>;
 }
 
 export interface RoomSessionResponse {
