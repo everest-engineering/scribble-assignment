@@ -8,14 +8,24 @@ import { useRoomState, useRoomStore } from "../state/roomStore";
 export function LobbyPage() {
   const navigate = useNavigate();
   const roomStore = useRoomStore();
-  const { room, error, isLoading } = useRoomState();
+  const { room, error, isLoading, participantId } = useRoomState();
   const [refreshError, setRefreshError] = useState<string | null>(null);
+  const [startError, setStartError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!room) {
       navigate("/", { replace: true });
     }
   }, [navigate, room]);
+
+  useEffect(() => {
+    if (room) {
+      roomStore.startPolling(2000);
+    }
+    return () => {
+      roomStore.stopPolling();
+    };
+  }, [room, roomStore]);
 
   async function handleRefresh() {
     try {
@@ -26,9 +36,24 @@ export function LobbyPage() {
     }
   }
 
+  async function handleStart() {
+    try {
+      setStartError(null);
+      const response = await roomStore.startGame();
+      if (response) {
+        navigate("/game");
+      }
+    } catch (caughtError) {
+      setStartError(caughtError instanceof Error ? caughtError.message : "Unable to start game");
+    }
+  }
+
   if (!room) {
     return null;
   }
+
+  const isHost = participantId === room.hostId;
+  const canStart = isHost && room.participants.length >= 2;
 
   return (
     <section className="panel placeholder-page">
@@ -49,7 +74,12 @@ export function LobbyPage() {
             <ul className="player-list">
               {room.participants.map((participant) => (
                 <li key={participant.id}>
-                  <span>{participant.name}</span>
+                  <span>
+                    {participant.name}
+                    {participant.id === room.hostId ? (
+                      <span className="host-badge"> Host</span>
+                    ) : null}
+                  </span>
                   <span className="player-list__meta">joined</span>
                 </li>
               ))}
@@ -61,7 +91,7 @@ export function LobbyPage() {
           <p className="status-line" style={{ backgroundColor: isLoading ? '#fef3c7' : '#e0e7ff', color: isLoading ? '#b45309' : '#3730a3' }}>
             {isLoading ? "Refreshing players..." : "Ready to play"}
           </p>
-          <p style={{ marginTop: '8px' }}>{error ?? refreshError ?? "Waiting for the host to start the game."}</p>
+          <p style={{ marginTop: '8px' }}>{error ?? refreshError ?? startError ?? "Waiting for the host to start the game."}</p>
         </Card>
       </div>
 
@@ -69,9 +99,18 @@ export function LobbyPage() {
         <button className="button button--secondary" disabled={isLoading} onClick={handleRefresh}>
           {isLoading ? "Refreshing..." : "Refresh Room"}
         </button>
-        <button className="button button--primary" onClick={() => navigate("/game")}>
-          Start Game
-        </button>
+        {isHost ? (
+          <button
+            className="button button--primary"
+            disabled={!canStart || isLoading}
+            onClick={handleStart}
+            title={room.participants.length < 2 ? "Need at least 2 players to start." : undefined}
+          >
+            {room.participants.length < 2 ? "Need 2+ players" : "Start Game"}
+          </button>
+        ) : (
+          <p style={{ fontWeight: 500, color: '#6b7280' }}>Waiting for host to start...</p>
+        )}
       </div>
     </section>
   );

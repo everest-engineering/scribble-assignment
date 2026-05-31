@@ -27,6 +27,7 @@ class RoomStore {
   };
 
   private listeners = new Set<Listener>();
+  private pollTimer: ReturnType<typeof setInterval> | null = null;
 
   subscribe = (listener: Listener) => {
     this.listeners.add(listener);
@@ -89,6 +90,65 @@ class RoomStore {
     return response;
   }
 
+  async startGame() {
+    if (!this.state.room || !this.state.participantId) {
+      return;
+    }
+
+    const response = await this.withLoading(() =>
+      api.startGame(this.state.room!.code, this.state.participantId!)
+    );
+    this.setRoomSnapshot(response.room);
+    return response;
+  }
+
+  async saveDrawing(drawingData: string) {
+    if (!this.state.room || !this.state.participantId) {
+      return;
+    }
+
+    await api.saveDrawing(this.state.room.code, this.state.participantId, drawingData);
+  }
+
+  async restartGame() {
+    if (!this.state.room || !this.state.participantId) {
+      return { error: "No active room" };
+    }
+
+    try {
+      const response = await api.restartGame(this.state.room.code, this.state.participantId);
+      this.setRoomSnapshot(response.room);
+      return { room: response.room };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to restart game";
+      return { error: message };
+    }
+  }
+
+  async clearDrawing() {
+    if (!this.state.room || !this.state.participantId) {
+      return;
+    }
+
+    const response = await api.clearDrawing(this.state.room.code, this.state.participantId);
+    this.setRoomSnapshot(response.room);
+  }
+
+  async submitGuess(text: string) {
+    if (!this.state.room || !this.state.participantId) {
+      return { error: "No active room" };
+    }
+
+    try {
+      const response = await api.submitGuess(this.state.room.code, this.state.participantId, text);
+      this.setRoomSnapshot(response.room);
+      return { room: response.room };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to submit guess";
+      return { error: message };
+    }
+  }
+
   async fetchRoom() {
     if (!this.state.room) {
       return null;
@@ -97,6 +157,20 @@ class RoomStore {
     const response = await api.fetchRoom(this.state.room.code, this.state.participantId ?? undefined);
     this.setRoomSnapshot(response.room);
     return response.room;
+  }
+
+  startPolling(intervalMs: number = 2000) {
+    this.stopPolling();
+    this.pollTimer = setInterval(() => {
+      this.fetchRoom().catch(() => {});
+    }, intervalMs);
+  }
+
+  stopPolling() {
+    if (this.pollTimer !== null) {
+      clearInterval(this.pollTimer);
+      this.pollTimer = null;
+    }
   }
 }
 

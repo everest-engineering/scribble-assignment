@@ -1,0 +1,161 @@
+# Speckit Plan — Scribble Assignment
+
+> Updated incrementally by feature group.
+
+---
+
+## Scenario 1 — Room Setup & Lobby
+
+### Findings
+- Host tracking missing: no `hostId` on Room model
+- RoomStatus is only `"lobby"` — needs `"playing"` and `"finished"`
+- No start-game endpoint exists
+- Player name validation missing (empty names silently become "Player")
+- No auto-polling in lobby (manual refresh only)
+
+### State Model Changes
+
+**Backend — Room type additions:**
+```
+hostId: string          // participantId of the creator
+status: "lobby" | "playing" | "finished"
+```
+
+**Backend — RoomSnapshot additions:**
+```
+hostId: string
+```
+
+**Frontend — RoomSnapshot type additions:**
+```
+status: "lobby" | "playing" | "finished"
+hostId: string
+```
+
+### Data Flow
+
+1. **Create Room** → POST /rooms with `{ playerName }` → backend stores hostId = participantId → returns RoomSnapshot with hostId
+2. **Join Room** → POST /rooms/:code/join with `{ playerName }` → validates name → returns RoomSnapshot
+3. **Poll Lobby** → GET /rooms/:code?participantId=... every 2s → returns updated participant list
+4. **Start Game** → POST /rooms/:code/start with `{ participantId }` → validates host + min 2 players → updates status to "playing" → returns updated RoomSnapshot
+
+### File-Level Changes
+
+| File | Change |
+|------|--------|
+| `backend/src/models/game.ts` | Add `hostId` to Room and RoomSnapshot; expand RoomStatus union |
+| `backend/src/services/roomStore.ts` | Store hostId on create; validate name not empty; add `startGame()`; add `isHost` check |
+| `backend/src/api/schemas.ts` | Add validation that playerName is non-empty string |
+| `backend/src/api/rooms.ts` | Add POST /rooms/:code/start route |
+| `frontend/src/services/api.ts` | Update RoomSnapshot type; add `startGame()` method; add `submitGuess()` and `fetchCanvas()` stubs |
+| `frontend/src/state/roomStore.ts` | Add `startGame()` method; auto-poll room state |
+| `frontend/src/pages/LobbyPage.tsx` | Auto-poll every 2s; gate start button to host only; disable until 2+ players; show host badge |
+| `frontend/src/pages/CreateRoomPage.tsx` | Validate name before submission |
+| `frontend/src/pages/JoinRoomPage.tsx` | Validate name and code before submission |
+| `frontend/src/components/Scoreboard.tsx` | No change in Scenario 1 |
+| `frontend/src/components/ResultPanel.tsx` | No change in Scenario 1 |
+
+### Testing Strategy
+- Manual two-tab validation: create room, join room, verify host badge, verify auto-polling, verify host-only start button.
+- Backend tests: verify hostId on create, verify startGame rejects non-host, verify startGame rejects <2 players.
+
+### Risks
+- Polling interval choice: 2s may cause noticeable lag on poor connections, but per spec.
+- Race condition on rapid join + start: handled by server-side validation (atomicity in single-threaded Node).
+
+---
+
+## Scenario 2 — Game Start & Drawer Flow
+
+### Findings
+- No drawer assignment logic exists
+- No secret word selection exists
+- No role-based filtering in snapshots
+- Player names not validated before game start
+
+### State Model Changes
+
+**Backend — Room type additions:**
+```
+drawerId: string | null
+secretWord: string | null
+round: number
+```
+
+**Frontend — RoomSnapshot type additions:**
+```
+drawerId: string | null
+secretWord: string | null
+round: number
+```
+
+### File-Level Changes
+
+| File | Change |
+|------|--------|
+| `backend/src/models/game.ts` | Add `drawerId`, `secretWord`, `round` to Room and RoomSnapshot |
+| `backend/src/services/roomStore.ts` | Update `startGame()` to assign drawer + word; word visibility logic in `toRoomSnapshot()` |
+| `frontend/src/services/api.ts` | Update types |
+| `frontend/src/pages/GamePage.tsx` | Show role, word, drawer badge; conditional rendering based on drawer/guesser |
+| `frontend/src/pages/LobbyPage.tsx` | Validate all names before starting |
+
+---
+
+## Scenario 3 — Gameplay Interaction
+
+### State Model Changes
+
+**Backend — Room type additions:**
+```
+drawingData: string   // JSON string of strokes
+guesses: Guess[]      // array of guess objects
+```
+
+**Guess type:**
+```
+{ participantId: string, participantName: string, text: string, correct: boolean, timestamp: string }
+```
+
+**RoomSnapshot additions:**
+```
+drawingData: string
+guesses: Guess[]
+scores: Record<string, number>  // participantId -> score
+```
+
+### File-Level Changes
+
+| File | Change |
+|------|--------|
+| `backend/src/models/game.ts` | Add Guess interface, drawing/guesses/scores to Room and RoomSnapshot |
+| `backend/src/services/roomStore.ts` | Add drawing save/clear, guess submission, scoring logic |
+| `backend/src/api/schemas.ts` | Add guess submission schema |
+| `backend/src/api/rooms.ts` | Add POST /rooms/:code/draw, POST /rooms/:code/guess, POST /rooms/:code/clear |
+| `frontend/src/services/api.ts` | Add draw/guess/clear API methods |
+| `frontend/src/state/roomStore.ts` | Add draw/guess/clear actions |
+| `frontend/src/pages/GamePage.tsx` | Replace canvas placeholder with real `<canvas>`; conditional drawing |
+| `frontend/src/components/GuessForm.tsx` | Wire up API call, validation |
+| `frontend/src/components/Scoreboard.tsx` | Render real scores from snapshot |
+| `frontend/src/components/ResultPanel.tsx` | Render guess history from snapshot |
+
+---
+
+## Scenario 4 — Result, Restart & Final Validation
+
+### State Model Changes
+
+No new fields. The existing `"finished"` status and `guesses`/`scores` fields serve the result state.
+
+**Backend — Room additions:**
+- No new fields; restart is a mutation (reset specific fields, preserve participants + host)
+
+### File-Level Changes
+
+| File | Change |
+|------|--------|
+| `backend/src/services/roomStore.ts` | Add `restartGame()` function |
+| `backend/src/api/schemas.ts` | Add restart action schema |
+| `backend/src/api/rooms.ts` | Add POST /rooms/:code/restart |
+| `frontend/src/services/api.ts` | Add restart API method |
+| `frontend/src/state/roomStore.ts` | Add restart action |
+| `frontend/src/pages/GamePage.tsx` | Show result state when finished; conditional restart button |

@@ -1,0 +1,169 @@
+# Speckit Specification — Scribble Assignment
+
+> Updated incrementally by feature group.
+
+---
+
+## Scenario 1 — Room Setup & Lobby
+
+### Acceptance Criteria
+
+**AC1.1 — Host tracking**
+- The player who creates a room is automatically designated as the host.
+- The host is identified by `hostId` on the room.
+- The lobby displays a host badge next to the host's name.
+
+**AC1.2 — Create room with empty name**
+- If the player submits an empty or whitespace-only name, the form shows an inline error: "Player name is required."
+- No API call is made.
+- The room is not created.
+
+**AC1.3 — Join room with empty name**
+- Same validation as AC1.2.
+- No API call is made.
+
+**AC1.4 — Join room with invalid/missing code**
+- If the code is empty or whitespace, the form shows an inline error: "Room code is required."
+- No API call is made.
+- If the code does not match any room, the API returns 404 and the form shows: "Room not found. Check the code and try again."
+
+**AC1.5 — Room isolation**
+- Each room has a unique 4-character code.
+- Participants in one room cannot see or interact with participants in another room.
+- GET /rooms/:code for room A only returns data for room A.
+
+**AC1.6 — Lobby auto-polling**
+- The lobby automatically polls the backend every ~2 seconds.
+- The participant list updates without manual intervention.
+- The polling stops when the user navigates away from the lobby.
+- A loading indicator shows during each poll request.
+
+**AC1.7 — Host-only start game**
+- Only the host can start the game.
+- Non-host participants see a "Waiting for host to start..." message.
+- A minimum of 2 participants (including host) is required to start.
+- If fewer than 2 participants, the start button is disabled with the message: "Need at least 2 players to start."
+- Starting the game calls POST /rooms/:code/start.
+
+### Edge Cases
+
+- Room code is case-insensitive (already handled: uppercased before lookup).
+- Multiple rapid create requests generate unique codes (existing guard).
+- Player can join the same room from multiple tabs (each gets a unique participantId).
+- Polling continues to work after a failed request (the interval is not stopped).
+
+---
+
+## Scenario 2 — Game Start & Drawer Flow
+
+### Acceptance Criteria
+
+**AC2.1 — Player name validation on game start**
+- All player names are trimmed before the game starts.
+- Any player with an empty/whitespace-only name after trim is rejected with: "All players must have a valid name."
+- The game does not start if any name is invalid.
+
+**AC2.2 — Drawer assignment**
+- When the game starts, the host (room creator) becomes the first drawer.
+- The drawer is identified by `drawerId` on the room.
+- The lobby and game screen clearly indicate who the drawer is.
+
+**AC2.3 — Secret word selection**
+- The secret word is selected deterministically from `STARTER_WORDS`.
+- Selection formula: `STARTER_WORDS[participantCount % STARTER_WORDS.length]`.
+- The same room always produces the same word for the same participant set.
+
+**AC2.4 — Drawer-only word visibility**
+- The secret word is included in the room snapshot only when the requesting `participantId` matches the `drawerId`.
+- For guessers, the word field is `null` or omitted.
+- The drawer sees: "Your word: [secret word]" on the game screen.
+- Guessers see: "Waiting for drawer to start drawing..."
+
+### Edge Cases
+
+- If the host leaves (not handled — out of scope for this lab), the drawer assignment remains as-is.
+- Word selection is deterministic per room state (same participants = same word).
+
+---
+
+## Scenario 3 — Gameplay Interaction
+
+### Acceptance Criteria
+
+**AC3.1 — Drawing canvas**
+- The game page renders an interactive HTML5 `<canvas>` element.
+- The canvas is only interactive for the drawer.
+- Guessers see a read-only view of the canvas (latest drawing state).
+- Drawing works via mouse: mousedown starts a stroke, mousemove draws, mouseup ends the stroke.
+- Drawings are serialized and sent to the backend via POST /rooms/:code/draw.
+
+**AC3.2 — Clear canvas**
+- The drawer sees a "Clear Canvas" button.
+- Clicking it sends POST /rooms/:code/clear.
+- The canvas is wiped and the cleared state is synced to all players via polling.
+
+**AC3.3 — Guess submission**
+- Guessers can type a guess and click "Submit Guess".
+- Empty/whitespace-only guesses are rejected with: "Guess cannot be empty."
+- Guesses are trimmed before storage and comparison.
+- The drawer cannot submit guesses (the form is hidden or disabled).
+- Submitting a guess calls POST /rooms/:code/guess.
+
+**AC3.4 — Case-insensitive comparison**
+- A guess is correct if, after trimming and lowercasing, it matches the secret word (lowercased).
+- Example: "Rocket", "ROCKET", " rocket " all match "rocket".
+
+**AC3.5 — Scoring**
+- A correct guess awards exactly 100 points.
+- An incorrect guess awards 0 points.
+- Scores are tracked per participant and persisted in the room state.
+- The scoreboard reflects the latest scores from the room snapshot.
+
+**AC3.6 — Guess history sync**
+- All guesses (correct and incorrect) are stored in the room state.
+- The full guess history is included in the room snapshot.
+- All players see the same guess history via polling.
+
+### Edge Cases
+
+- The drawer cannot guess (their guess button is disabled/hidden).
+- Multiple correct guesses: first correct guess ends the round.
+- Guesses from the same player are all stored (history shows all attempts).
+
+---
+
+## Scenario 4 — Result, Restart & Final Validation
+
+### Acceptance Criteria
+
+**AC4.1 — Result state**
+- When a correct guess is made, the room status changes to `"finished"`.
+- All players see:
+  - The secret word (revealed to everyone).
+  - Final scores for all participants.
+  - Full guess history (who guessed what and whether it was correct).
+- The result state is available via the standard GET /rooms/:code endpoint.
+
+**AC4.2 — Host restart**
+- Only the host sees a "Restart Game" button in the result state.
+- Clicking it calls POST /rooms/:code/restart.
+- Non-host participants see: "Waiting for host to restart..."
+
+**AC4.3 — Restart behavior**
+- Restart resets:
+  - Room status to `"lobby"`.
+  - `drawerId` to `null`.
+  - `secretWord` to `null`.
+  - `drawingData` to empty.
+  - `guesses` to empty.
+  - All participant scores to 0.
+- Restart preserves:
+  - All participants in the room.
+  - The host (hostId unchanged).
+- After restart, all players are redirected to the lobby.
+
+### Edge Cases
+
+- Restart with only 1 player remaining: host cannot start until a second player joins.
+- Restart does not change the room code.
+- Multiple restarts work identically (state is fully reset each time).
