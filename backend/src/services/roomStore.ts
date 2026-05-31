@@ -46,6 +46,11 @@ export function listWords() {
   return [...STARTER_WORDS];
 }
 
+export function selectWord(code: string, words: readonly string[]): string {
+  const index = [...code].reduce((sum, ch) => sum + ch.charCodeAt(0), 0) % words.length;
+  return words[index];
+}
+
 export function createRoom(playerName: string) {
   const participant = createParticipant(playerName);
   const room: Room = {
@@ -54,7 +59,9 @@ export function createRoom(playerName: string) {
     status: "lobby",
     participants: [participant],
     createdAt: now(),
-    updatedAt: now()
+    updatedAt: now(),
+    drawerId: "",
+    secretWord: ""
   };
 
   rooms.set(room.code, room);
@@ -118,6 +125,8 @@ export function startRoom(code: string, participantId: string) {
   }
 
   room.status = "active";
+  room.drawerId = room.hostId;
+  room.secretWord = selectWord(room.code, STARTER_WORDS);
   room.updatedAt = now();
   rooms.set(room.code, room);
 
@@ -125,14 +134,20 @@ export function startRoom(code: string, participantId: string) {
 }
 
 export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSnapshot {
-  void viewerParticipantId;
+  const isActive = room.status === "active";
+  const isDrawer = isActive && viewerParticipantId === room.drawerId;
 
   return {
     code: room.code,
     hostId: room.hostId,
     status: room.status,
     participants: room.participants.map((participant) => ({ ...participant })),
-    availableWords: listWords(),
-    roles: [...STARTER_ROLES]
+    availableWords: isActive && !isDrawer ? [] : listWords(),
+    roles: [...STARTER_ROLES],
+    drawerId: room.drawerId,
+    ...(isActive && isDrawer ? { secretWord: room.secretWord } : {}),
+    ...(isActive && !isDrawer
+      ? { wordPlaceholder: [...room.secretWord].map(() => "_").join(" ") }
+      : {})
   };
 }
