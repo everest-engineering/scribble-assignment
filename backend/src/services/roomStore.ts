@@ -161,6 +161,9 @@ export function submitGuess(code: string, participantId: string, guessText: stri
   const guessRecord: Guess = { participantId, participantName, guess: trimmed, score, correct };
   room.guesses.push(guessRecord);
   room.scores[participantId] = (room.scores[participantId] ?? 0) + score;
+  if (correct) {
+    room.status = "results";
+  }
   saveRoom(room);
 
   return { code: "OK", room: cloneRoom(room) } as const;

@@ -237,12 +237,14 @@ Accept `scores` and `participants` props. Render sorted score list.
 - `GuessForm` props are additive — `disabled` prop already exists and is kept. `onSubmit` and `error` are new additions.
 - `Scoreboard` and `ResultPanel` receive data as props (not from context) — keeps them pure and testable.
 - Multiple correct guesses from the same participant are allowed and scores accumulate (no "already guessed correctly" gating for this group).
+- **Correct guess does not automatically end the round in this implementation** — UPDATED: as of the fix applied addressing evaluation findings, submitGuess now sets room.status = "results" when correct === true, triggering automatic round-end. The host "End Game" button remains as a manual fallback for rounds where no one guesses correctly.
 
 ---
 
 ## Out of Scope for This Group
 
 - Canvas stroke sync to other participants
+- Canvas stroke synchronization to other participants — drawing is local to the drawer only. Syncing strokes over HTTP polling would require binary image encoding or a stroke-delta protocol, neither feasible within the in-memory + 2s polling constraints. Guessers see a static placeholder while the drawer draws. **Deviation from scenario 3 literal wording documented here.**
 - Round end / correct-guess-ends-round logic (Group 4)
 - Restart flow (Group 4)
 - Drawer rotation (out of scope per constitution)

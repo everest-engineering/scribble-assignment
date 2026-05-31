@@ -69,6 +69,7 @@ The backend rejects malformed requests before they touch business logic. Whitesp
 - **Whitespace-only name** (`"   "`): must be rejected with `400`. The schema must use `.trim().min(1)` — a name that trims to empty is not optional, it is invalid.
 - **Host page refresh**: navigating away and returning re-fetches the room from the backend; `hostId` is stored on the `Room` object in-memory and is not lost on frontend reload (only lost if the backend restarts, which is acceptable).
 - **Two concurrent rooms**: joining room `AAAA` must not affect room `BBBB`. Each room's participant list is isolated in the `Map<string, Room>` store.
+- **Empty room code on GET /rooms/:code**: returns 400 (roomCodeParamsSchema uses .min(1, "Room code is required"))
 - **Polling during navigation**: if the user navigates from lobby to another page, the `useEffect` cleanup must call `clearInterval`. No orphaned intervals.
 - **Lobby with 0 participants**: cannot happen in practice (creator is always first participant), but `GET /rooms/:code` always returns at least 1 participant if the room exists.
 
