@@ -13,9 +13,26 @@ export function JoinRoomPage() {
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
+    const trimmedName = playerName.trim();
+    if (!trimmedName) {
+      setError("Name is required");
+      return;
+    }
+
+    const trimmedCode = roomCode.trim();
+    if (!trimmedCode) {
+      setError("Room code is required");
+      return;
+    }
+
+    if (!/^[a-zA-Z0-9]+$/.test(trimmedCode)) {
+      setError("Room code must contain only letters and numbers");
+      return;
+    }
+
     try {
       setError(null);
-      await roomStore.joinRoom(roomCode.toUpperCase(), playerName);
+      await roomStore.joinRoom(trimmedCode.toUpperCase(), trimmedName);
       navigate("/lobby");
     } catch (caughtError) {
       setError(caughtError instanceof Error ? caughtError.message : "Unable to join room");
