@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createRoom, joinRoom, startGame, submitGuess, toRoomSnapshot } from "./roomStore.js";
+import { createRoom, joinRoom, restartGame, startGame, submitGuess, toRoomSnapshot } from "./roomStore.js";
 
 describe("roomStore", () => {
   it("createRoom returns a room with a 4-character uppercase code", () => {
@@ -193,7 +193,74 @@ describe("roomStore", () => {
       expect(result.error).toBe("Drawer cannot submit guesses");
     });
 
-    it("guess history is returned in snapshot", () => {
+    describe("restartGame", () => {
+    function setupGame() {
+      const host = createRoom("Host");
+      joinRoom(host.room.code, "Guest");
+      const started = startGame(host.room.code, host.participantId);
+      const game = started.room!;
+      const guestId = game.participants.find((p) => p.name === "Guest")!.id;
+      submitGuess(host.room.code, guestId, "rocket");
+      return { host, game };
+    }
+
+    it("restart clears current word, guesses, scores, and roles", () => {
+      const { host } = setupGame();
+      const result = restartGame(host.room.code, host.participantId);
+      expect(result.ok).toBe(true);
+
+      const room = result.room!;
+      expect(room.status).toBe("lobby");
+      expect(room.currentWord).toBeUndefined();
+      expect(room.currentRound).toBeUndefined();
+      expect(room.guesses).toEqual([]);
+      for (const p of room.participants) {
+        expect(p.score).toBe(0);
+        expect(p.role).toBe("guesser");
+      }
+    });
+
+    it("all players remain in the room after restart", () => {
+      const { host } = setupGame();
+      const result = restartGame(host.room.code, host.participantId);
+
+      expect(result.room!.participants).toHaveLength(2);
+      expect(result.room!.participants[0].name).toBe("Host");
+      expect(result.room!.participants[1].name).toBe("Guest");
+    });
+
+    it("non-host cannot restart", () => {
+      const { host, game } = setupGame();
+      const guestId = game.participants.find((p) => p.name === "Guest")!.id;
+      const result = restartGame(host.room.code, guestId);
+
+      expect(result.ok).toBe(false);
+      expect(result.error).toBe("Only the host can restart the game");
+    });
+
+    it("restart works a second time", () => {
+      const { host } = setupGame();
+      restartGame(host.room.code, host.participantId);
+
+      const result = restartGame(host.room.code, host.participantId);
+      expect(result.ok).toBe(true);
+      expect(result.room!.status).toBe("lobby");
+    });
+
+    it("toRoomSnapshot shows word to all when status is results", () => {
+      const host = createRoom("Host");
+      joinRoom(host.room.code, "Guest");
+      const started = startGame(host.room.code, host.participantId);
+      const room = started.room!;
+      room.status = "results";
+
+      const guestId = room.participants.find((p) => p.name === "Guest")!.id;
+      const snapshot = toRoomSnapshot(room, guestId);
+      expect(snapshot.currentWord).toBe("rocket");
+    });
+  });
+
+  it("guess history is returned in snapshot", () => {
       const { host, game } = setupGame();
       const guestId = game.participants.find((p) => p.name === "Guest")!.id;
       submitGuess(host.room.code, guestId, "wrong");

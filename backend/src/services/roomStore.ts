@@ -172,22 +172,48 @@ export function startGame(code: string, participantId: string) {
   return { ok: true, room: cloneRoom(room) };
 }
 
+export function restartGame(code: string, participantId: string) {
+  const room = rooms.get(code);
+  if (!room) {
+    return { ok: false, error: "Room not found" } as const;
+  }
+  if (room.hostId !== participantId) {
+    return { ok: false, error: "Only the host can restart the game" } as const;
+  }
+
+  room.currentWord = undefined;
+  room.currentRound = undefined;
+  room.guesses = [];
+
+  for (const participant of room.participants) {
+    participant.score = 0;
+    participant.role = "guesser";
+  }
+
+  room.status = "lobby";
+  room.updatedAt = now();
+  rooms.set(room.code, room);
+
+  return { ok: true, room: cloneRoom(room) } as const;
+}
+
 export function toRoomSnapshot(
   room: Room,
   viewerParticipantId?: string,
 ): RoomSnapshot {
-  const drawerId = room.participants.find(
-    (participant) => participant.role === "drawer",
-  )?.id;
-  const isDrawer =
-    viewerParticipantId !== undefined && drawerId === viewerParticipantId;
+  const canSeeWord =
+    room.status === "results" ||
+    (viewerParticipantId !== undefined &&
+      room.participants.some(
+        (p) => p.id === viewerParticipantId && p.role === "drawer",
+      ));
 
   return {
     code: room.code,
     status: room.status,
     participants: room.participants.map((participant) => ({ ...participant })),
     hostId: room.hostId,
-    currentWord: isDrawer && room.currentWord ? room.currentWord : null,
+    currentWord: canSeeWord && room.currentWord ? room.currentWord : null,
     currentWordLength: room.currentWord?.length ?? 0,
     currentRound: room.currentRound ?? 0,
     guesses: [...room.guesses],

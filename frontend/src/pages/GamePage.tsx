@@ -1,4 +1,4 @@
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card } from "../components/Card";
 import { DrawingCanvas } from "../components/DrawingCanvas";
@@ -12,6 +12,7 @@ export function GamePage() {
   const navigate = useNavigate();
   const roomStore = useRoomStore();
   const { room, participantId } = useRoomState();
+  const [restartError, setRestartError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!room) {
@@ -31,20 +32,36 @@ export function GamePage() {
     return () => clearInterval(interval);
   }, [handleRefresh]);
 
+  async function handleRestart() {
+    try {
+      setRestartError(null);
+      const updatedRoom = await roomStore.restartGame();
+      if (updatedRoom) {
+        navigate("/lobby");
+      }
+    } catch (err) {
+      setRestartError(err instanceof Error ? err.message : "Unable to restart");
+    }
+  }
+
   if (!room) {
     return null;
   }
 
   const viewer = room.participants.find((participant) => participant.id === participantId) ?? null;
   const isDrawer = viewer?.role === "drawer";
+  const isHost = participantId === room.hostId;
+  const isResults = room.status === "results";
 
   return (
     <section className="panel game-page">
       <div className="game-page__header">
         <div className="game-page__header-left">
-          <span className="section-kicker">Round {room.currentRound}</span>
+          <span className="section-kicker">
+            {isResults ? "Round Over" : `Round ${room.currentRound}`}
+          </span>
           <h1 className="game-page__title">
-            {isDrawer ? "Draw the Word!" : "Guess the Word!"}
+            {isResults ? "Results" : isDrawer ? "Draw the Word!" : "Guess the Word!"}
           </h1>
         </div>
         <RoomCodeBadge code={room.code} />
@@ -78,8 +95,8 @@ export function GamePage() {
         </aside>
 
         <div className="game-page__main">
-          <Card title="Secret Word">
-            {isDrawer && room.currentWord ? (
+          <Card title={isResults ? "The Word Was" : "Secret Word"}>
+            {room.currentWord ? (
               <p className="secret-word">{room.currentWord}</p>
             ) : (
               <p className="secret-word secret-word--hidden">
@@ -87,15 +104,17 @@ export function GamePage() {
               </p>
             )}
           </Card>
-          <Card title="Canvas">
-            {isDrawer ? (
-              <DrawingCanvas />
-            ) : (
-              <div className="canvas-placeholder">
-                Waiting for drawer to draw...
-              </div>
-            )}
-          </Card>
+          {!isResults ? (
+            <Card title="Canvas">
+              {isDrawer ? (
+                <DrawingCanvas />
+              ) : (
+                <div className="canvas-placeholder">
+                  Waiting for drawer to draw...
+                </div>
+              )}
+            </Card>
+          ) : null}
         </div>
 
         <aside className="game-page__sidebar game-page__sidebar--right">
@@ -115,7 +134,7 @@ export function GamePage() {
             </dl>
           </Card>
 
-          {!isDrawer ? (
+          {!isDrawer && !isResults ? (
             <Card title="Your Guess">
               <GuessForm />
             </Card>
@@ -127,6 +146,12 @@ export function GamePage() {
         <button className="button button--secondary" onClick={() => navigate("/lobby")}>
           Exit Game
         </button>
+        {isHost && isResults ? (
+          <button className="button button--primary" onClick={handleRestart}>
+            Restart Game
+          </button>
+        ) : null}
+        {restartError ? <p className="form__error">{restartError}</p> : null}
       </div>
     </section>
   );

@@ -12,6 +12,10 @@ export const startGameSchema = z.object({
   participantId: z.string()
 });
 
+export const restartGameSchema = z.object({
+  participantId: z.string()
+});
+
 export const submitGuessSchema = z.object({
   participantId: z.string(),
   text: z.string().min(1, "Guess cannot be empty")
