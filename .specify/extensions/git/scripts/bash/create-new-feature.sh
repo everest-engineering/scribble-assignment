@@ -380,6 +380,15 @@ fi
 if [ "$DRY_RUN" != true ]; then
     if [ "$HAS_GIT" = true ]; then
         branch_create_error=""
+        _creating_new_branch=true
+        if [ "$ALLOW_EXISTING" = true ] && git branch --list "$BRANCH_NAME" | grep -q .; then
+            _creating_new_branch=false
+        fi
+        if [ "$_creating_new_branch" = true ]; then
+            if ! checkout_base_branch; then
+                exit 1
+            fi
+        fi
         if ! branch_create_error=$(git checkout -q -b "$BRANCH_NAME" 2>&1); then
             current_branch="$(git rev-parse --abbrev-ref HEAD 2>/dev/null || true)"
             if git branch --list "$BRANCH_NAME" | grep -q .; then

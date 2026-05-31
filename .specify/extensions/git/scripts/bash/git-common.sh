@@ -52,3 +52,53 @@ check_feature_branch() {
 
     return 0
 }
+
+# Read a top-level string value from git-config.yml (simple key: value parser).
+read_git_config_value() {
+    local key="$1"
+    local default_value="${2:-}"
+    local config_file="${3:-}"
+
+    if [ -z "$config_file" ]; then
+        local repo_root
+        repo_root=$(git rev-parse --show-toplevel 2>/dev/null || pwd)
+        config_file="$repo_root/.specify/extensions/git/git-config.yml"
+    fi
+
+    if [ ! -f "$config_file" ]; then
+        printf '%s\n' "$default_value"
+        return 0
+    fi
+
+    local value
+    value=$(grep -E "^${key}:" "$config_file" 2>/dev/null | head -1 | sed -E 's/^[^:]*:[[:space:]]*//' | sed -E 's/^["'\''"]|["'\''"]$//g')
+
+    if [ -n "$value" ]; then
+        printf '%s\n' "$value"
+    else
+        printf '%s\n' "$default_value"
+    fi
+}
+
+# Checkout the configured base branch before creating a feature branch.
+checkout_base_branch() {
+    local base_branch
+    base_branch=$(read_git_config_value "base_branch" "main")
+
+    if git show-ref --verify --quiet "refs/heads/${base_branch}"; then
+        git checkout -q "$base_branch"
+        return 0
+    fi
+
+    if git remote | grep -q .; then
+        git fetch --quiet origin "$base_branch" 2>/dev/null || true
+    fi
+
+    if git show-ref --verify --quiet "refs/remotes/origin/${base_branch}"; then
+        git checkout -q -B "$base_branch" "origin/${base_branch}"
+        return 0
+    fi
+
+    echo "[specify] Warning: Base branch '${base_branch}' not found; creating feature branch from current HEAD" >&2
+    return 1
+}

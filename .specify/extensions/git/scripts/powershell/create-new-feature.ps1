@@ -223,6 +223,54 @@ Set-Location $repoRoot
 
 $specsDir = Join-Path $repoRoot 'specs'
 
+function Get-GitConfigValue {
+    param(
+        [string]$Key,
+        [string]$DefaultValue = ''
+    )
+
+    $configFile = Join-Path $repoRoot '.specify/extensions/git/git-config.yml'
+    if (-not (Test-Path $configFile)) {
+        return $DefaultValue
+    }
+
+    $line = Select-String -Path $configFile -Pattern "^${Key}:" | Select-Object -First 1
+    if (-not $line) {
+        return $DefaultValue
+    }
+
+    $value = ($line.Line -replace '^[^:]*:\s*', '').Trim('"', "'")
+    if ([string]::IsNullOrWhiteSpace($value)) {
+        return $DefaultValue
+    }
+
+    return $value
+}
+
+function Invoke-CheckoutBaseBranch {
+    $baseBranch = Get-GitConfigValue -Key 'base_branch' -DefaultValue 'main'
+
+    git show-ref --verify --quiet "refs/heads/$baseBranch" 2>$null
+    if ($LASTEXITCODE -eq 0) {
+        git checkout -q $baseBranch
+        return $LASTEXITCODE -eq 0
+    }
+
+    git remote 2>$null | Out-Null
+    if ($LASTEXITCODE -eq 0) {
+        git fetch --quiet origin $baseBranch 2>$null
+    }
+
+    git show-ref --verify --quiet "refs/remotes/origin/$baseBranch" 2>$null
+    if ($LASTEXITCODE -eq 0) {
+        git checkout -q -B $baseBranch "origin/$baseBranch"
+        return $LASTEXITCODE -eq 0
+    }
+
+    Write-Error "[specify] Error: Base branch '$baseBranch' not found. Create it locally or push it to origin."
+    return $false
+}
+
 function Get-BranchName {
     param([string]$Description)
 
@@ -328,6 +376,18 @@ if (-not $DryRun) {
     if ($hasGit) {
         $branchCreated = $false
         $branchCreateError = ''
+        $creatingNewBranch = $true
+        if ($AllowExistingBranch) {
+            git branch --list $branchName 2>$null | Out-Null
+            if ($LASTEXITCODE -eq 0 -and (git branch --list $branchName)) {
+                $creatingNewBranch = $false
+            }
+        }
+        if ($creatingNewBranch) {
+            if (-not (Invoke-CheckoutBaseBranch)) {
+                exit 1
+            }
+        }
         try {
             $branchCreateError = git checkout -q -b $branchName 2>&1 | Out-String
             if ($LASTEXITCODE -eq 0) {

@@ -4,6 +4,9 @@
 # Branch numbering strategy: "sequential" (001, 002, ...) or "timestamp" (YYYYMMDD-HHMMSS)
 branch_numbering: sequential
 
+# Base branch checked out before creating numbered feature branches (lab fork workflow)
+base_branch: scribble-lab
+
 # Commit message used by `git commit` during repository initialization
 init_commit_message: "[Spec Kit] Initial commit"
 
