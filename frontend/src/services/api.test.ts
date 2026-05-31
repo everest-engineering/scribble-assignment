@@ -66,4 +66,25 @@ describe("api service", () => {
       expect.anything()
     );
   });
+
+  it("submitGuess sends POST to /rooms/:code/guess with participantId and text in body", async () => {
+    const mockResponse = {
+      ok: true,
+      json: () =>
+        Promise.resolve({
+          room: { code: "ABCD", status: "active", participants: [], guesses: [], scores: {} },
+        }),
+    };
+    vi.mocked(fetch).mockResolvedValue(mockResponse as unknown as Response);
+
+    await api.submitGuess("ABCD", "p1", "elephant");
+
+    expect(fetch).toHaveBeenCalledWith(
+      expect.stringContaining("/rooms/ABCD/guess"),
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({ participantId: "p1", text: "elephant" }),
+      })
+    );
+  });
 });

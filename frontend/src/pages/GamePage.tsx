@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card } from "../components/Card";
+import { DrawingCanvas } from "../components/DrawingCanvas";
 import { GuessForm } from "../components/GuessForm";
 import { ResultPanel } from "../components/ResultPanel";
 import { RoomCodeBadge } from "../components/RoomCodeBadge";
@@ -38,6 +39,7 @@ export function GamePage() {
   const viewer = room.participants.find((participant) => participant.id === participantId) ?? null;
   const drawer = room.participants.find((participant) => participant.id === room.drawerId) ?? null;
   const isDrawer = participantId === room.drawerId;
+  const isEnded = room.status === "ended";
 
   return (
     <section className="panel game-page">
@@ -49,20 +51,30 @@ export function GamePage() {
         <RoomCodeBadge code={room.code} />
       </div>
 
+      {isEnded ? (
+        <div className="game-banner game-banner--ended" style={{ backgroundColor: "#d1fae5", border: "1px solid #6ee7b7", borderRadius: "0.5rem", padding: "0.75rem 1rem", marginBottom: "1rem", fontWeight: 600, color: "#065f46", textAlign: "center" }}>
+          Round Ended! {room.secretWord ? `The word was "${room.secretWord}".` : ""}
+        </div>
+      ) : null}
+
       <div className="game-page__layout">
         <aside className="game-page__sidebar game-page__sidebar--left">
-          <Scoreboard />
-          <ResultPanel />
+          <Scoreboard participants={room.participants} scores={room.scores ?? {}} />
+          <ResultPanel guesses={room.guesses ?? []} participants={room.participants} />
         </aside>
 
         <div className="game-page__main">
           <Card title="Canvas">
-            <div
-              className="canvas-placeholder"
-              style={{ minHeight: "500px", backgroundColor: "#ffffff", border: "1px solid #e5e7eb" }}
-            >
-              Waiting for drawer...
-            </div>
+            {isDrawer ? (
+              <DrawingCanvas />
+            ) : (
+              <div
+                className="canvas-placeholder"
+                style={{ minHeight: "450px", backgroundColor: "#ffffff", border: "1px solid #e5e7eb", display: "flex", alignItems: "center", justifyContent: "center", color: "#6b7280" }}
+              >
+                Watch the drawer!
+              </div>
+            )}
           </Card>
         </div>
 
@@ -105,9 +117,11 @@ export function GamePage() {
             </dl>
           </Card>
 
-          <Card title="Your Guess">
-            <GuessForm />
-          </Card>
+          {!isDrawer && !isEnded ? (
+            <Card title="Your Guess">
+              <GuessForm />
+            </Card>
+          ) : null}
         </aside>
       </div>
 
