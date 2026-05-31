@@ -1,20 +1,28 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card } from "../components/Card";
 import { PageHeader } from "../components/PageHeader";
 import { RoomCodeBadge } from "../components/RoomCodeBadge";
+import { api } from "../services/api";
 import { useRoomState, useRoomStore } from "../state/roomStore";
 
 export function LobbyPage() {
   const navigate = useNavigate();
   const roomStore = useRoomStore();
   const { room, participantId, error, isLoading } = useRoomState();
+  const [startError, setStartError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!room) {
       navigate("/", { replace: true });
     }
   }, [navigate, room]);
+
+  useEffect(() => {
+    if (room?.status === "playing") {
+      navigate("/game", { replace: true });
+    }
+  }, [room?.status, navigate]);
 
   useEffect(() => {
     const id = setInterval(() => {
@@ -66,13 +74,25 @@ export function LobbyPage() {
 
       <div className="button-row button-row--spread">
         {isHost ? (
-          <button
-            className="button button--primary"
-            disabled={room.participants.length < 2}
-            onClick={() => navigate("/game")}
-          >
-            Start Game
-          </button>
+          <>
+            <button
+              className="button button--primary"
+              disabled={room.participants.length < 2}
+              onClick={async () => {
+                setStartError(null);
+                try {
+                  const response = await api.startGame(room.code, participantId ?? "");
+                  roomStore.setRoomSession(response);
+                  navigate("/game");
+                } catch (err) {
+                  setStartError(err instanceof Error ? err.message : "Failed to start game");
+                }
+              }}
+            >
+              Start Game
+            </button>
+            {startError && <p style={{ color: "red", marginTop: "8px" }}>{startError}</p>}
+          </>
         ) : (
           <p>Waiting for host to start...</p>
         )}

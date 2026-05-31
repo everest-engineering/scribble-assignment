@@ -56,6 +56,8 @@ export function createRoom(playerName?: string) {
     status: "lobby",
     participants: [participant],
     hostId: participant.id,
+    drawerParticipantId: null,
+    currentWord: null,
     createdAt: now(),
     updatedAt: now()
   };
@@ -97,8 +99,42 @@ export function saveRoom(room: Room) {
   return getRoom(room.code);
 }
 
+export function startGame(code: string, participantId: string) {
+  const room = rooms.get(code);
+
+  if (!room) {
+    return { code: "NOT_FOUND" } as const;
+  }
+
+  if (participantId !== room.hostId) {
+    return { code: "FORBIDDEN" } as const;
+  }
+
+  if (room.status === "playing") {
+    return { code: "CONFLICT" } as const;
+  }
+
+  if (room.participants.length < 2) {
+    return { code: "BAD_REQUEST" } as const;
+  }
+
+  room.status = "playing";
+  room.drawerParticipantId = room.participants[0].id;
+  room.currentWord = STARTER_WORDS[0];
+  saveRoom(room);
+
+  return { code: "OK", room: cloneRoom(room) } as const;
+}
+
 export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSnapshot {
-  void viewerParticipantId;
+  const isDrawer =
+    room.drawerParticipantId !== null && viewerParticipantId === room.drawerParticipantId;
+
+  const viewerRole: import("../models/game.js").ParticipantRole | null = viewerParticipantId
+    ? isDrawer
+      ? "drawer"
+      : "guesser"
+    : null;
 
   return {
     code: room.code,
@@ -106,6 +142,9 @@ export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSn
     participants: room.participants.map((participant) => ({ ...participant })),
     availableWords: listWords(),
     roles: [...STARTER_ROLES],
-    hostId: room.hostId
+    hostId: room.hostId,
+    drawerParticipantId: room.drawerParticipantId,
+    currentWord: isDrawer ? room.currentWord : null,
+    viewerRole
   };
 }

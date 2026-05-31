@@ -49,7 +49,8 @@ The host clicks Start Game. The frontend calls `POST /rooms/:code/start`. The ba
 3. **Given** `POST /rooms/:code/start`, **When** the room has fewer than 2 participants, **Then** the response is `400` with a clear message.
 4. **Given** `POST /rooms/:code/start`, **When** the caller's `participantId` does not match `room.hostId`, **Then** the response is `403` with a clear message.
 5. **Given** `POST /rooms/:code/start`, **When** the room is already `"playing"`, **Then** the response is `409` with a clear message.
-6. **Given** a successful start, **When** the frontend receives the response, **Then** it updates the room store snapshot and navigates to `/game`.
+6. **Given** a successful start, **When** the host's frontend receives the response, **Then** it updates the room store snapshot and navigates to `/game`.
+7. **Given** a non-host participant polling the lobby, **When** the polled snapshot has `status === "playing"`, **Then** `LobbyPage` navigates to `/game` automatically — the guesser must not remain stuck in the lobby.
 
 ---
 
@@ -125,6 +126,7 @@ The game screen polls `GET /rooms/:code` every 2 seconds (same pattern as the lo
 - **FR-009**: `RoomSnapshot` in `frontend/src/services/api.ts` MUST add `drawerParticipantId: string | null`, `currentWord: string | null`, and `viewerRole: "drawer" | "guesser" | null`. The `status` field MUST be widened to `"lobby" | "playing"`.
 - **FR-010**: `api.startGame(code, participantId)` MUST be added to `frontend/src/services/api.ts`: `POST /rooms/:code/start` with body `{ participantId }`, returning `RoomSessionResponse`.
 - **FR-011**: `LobbyPage.tsx` Start Game `onClick` MUST call `api.startGame`, update the room store via `roomStore.setRoomSession(response)`, then navigate to `/game`. Any error MUST be displayed to the user.
+- **FR-011a**: `LobbyPage.tsx` MUST add a `useEffect` that watches `room?.status` and calls `navigate("/game", { replace: true })` whenever it becomes `"playing"`. This is the only mechanism by which non-host participants are forwarded to the game screen.
 - **FR-012**: `GamePage.tsx` MUST add a `setInterval` polling loop (2000 ms) with `clearInterval` cleanup on unmount, identical in structure to `LobbyPage`'s polling.
 - **FR-013**: `GamePage.tsx` MUST derive `viewerRole` from `room.viewerRole` and render:
   - When `"drawer"`: a banner "You are the Drawer — draw: {room.currentWord}" and `<GuessForm disabled />`.

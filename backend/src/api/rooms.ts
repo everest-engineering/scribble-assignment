@@ -4,9 +4,10 @@ import {
   HttpError,
   joinRoomSchema,
   roomCodeParamsSchema,
-  roomViewerQuerySchema
+  roomViewerQuerySchema,
+  startRoomSchema
 } from "./schemas.js";
-import { createRoom, getRoom, joinRoom, toRoomSnapshot } from "../services/roomStore.js";
+import { createRoom, getRoom, joinRoom, startGame, toRoomSnapshot } from "../services/roomStore.js";
 
 export function createRoomsRouter() {
   const router = Router();
@@ -38,6 +39,26 @@ export function createRoomsRouter() {
       response.json({
         participantId: result.participantId,
         room: toRoomSnapshot(result.room, result.participantId)
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/:code/start", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId } = startRoomSchema.parse(request.body);
+      const result = startGame(code.toUpperCase(), participantId);
+
+      if (result.code === "NOT_FOUND") throw new HttpError(404, "Room not found");
+      if (result.code === "FORBIDDEN") throw new HttpError(403, "Only the host can start the game");
+      if (result.code === "CONFLICT") throw new HttpError(409, "Game has already started");
+      if (result.code === "BAD_REQUEST") throw new HttpError(400, "Need at least 2 players to start");
+
+      response.json({
+        participantId,
+        room: toRoomSnapshot(result.room, participantId)
       });
     } catch (error) {
       next(error);
