@@ -78,13 +78,31 @@ class RoomStore {
   }
 
   async createRoom(playerName: string) {
-    const response = await this.withLoading(() => api.createRoom(playerName));
+    const trimmedName = playerName.trim();
+    if (!trimmedName) {
+      const error = new Error("Player name cannot be empty");
+      this.setState({ error: error.message });
+      throw error;
+    }
+    const response = await this.withLoading(() => api.createRoom(trimmedName));
     this.setRoomSession(response);
     return response;
   }
 
   async joinRoom(code: string, playerName: string) {
-    const response = await this.withLoading(() => api.joinRoom(code, playerName));
+    const trimmedCode = code.trim();
+    const trimmedName = playerName.trim();
+    if (!trimmedCode) {
+      const error = new Error("Room code cannot be empty");
+      this.setState({ error: error.message });
+      throw error;
+    }
+    if (!trimmedName) {
+      const error = new Error("Player name cannot be empty");
+      this.setState({ error: error.message });
+      throw error;
+    }
+    const response = await this.withLoading(() => api.joinRoom(trimmedCode, trimmedName));
     this.setRoomSession(response);
     return response;
   }
@@ -97,6 +115,113 @@ class RoomStore {
     const response = await api.fetchRoom(this.state.room.code, this.state.participantId ?? undefined);
     this.setRoomSnapshot(response.room);
     return response.room;
+  }
+
+  async initializeFromUrl(code: string, participantId: string) {
+    return this.withLoading(async () => {
+      const response = await api.fetchRoom(code, participantId);
+      this.setState({
+        room: response.room,
+        participantId,
+        error: null
+      });
+      return response.room;
+    });
+  }
+
+  async startGame() {
+    if (!this.state.room || !this.state.participantId) {
+      return null;
+    }
+    return this.withLoading(async () => {
+      const response = await api.startGame(this.state.room!.code, this.state.participantId!);
+      this.setRoomSnapshot(response.room);
+      return response.room;
+    });
+  }
+
+  async updateDrawing(drawingData: string) {
+    if (!this.state.room || !this.state.participantId) {
+      return null;
+    }
+    try {
+      const response = await api.updateDrawing(
+        this.state.room.code,
+        this.state.participantId,
+        drawingData
+      );
+      this.setRoomSnapshot(response.room);
+      return response.room;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to update drawing";
+      this.setState({ error: message });
+      throw error;
+    }
+  }
+
+  async clearDrawing() {
+    if (!this.state.room || !this.state.participantId) {
+      return null;
+    }
+    try {
+      const response = await api.clearDrawing(
+        this.state.room.code,
+        this.state.participantId
+      );
+      this.setRoomSnapshot(response.room);
+      return response.room;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to clear drawing";
+      this.setState({ error: message });
+      throw error;
+    }
+  }
+
+  async submitGuess(guessText: string) {
+    if (!this.state.room || !this.state.participantId) {
+      return null;
+    }
+    return this.withLoading(async () => {
+      const response = await api.submitGuess(
+        this.state.room!.code,
+        this.state.participantId!,
+        guessText
+      );
+      this.setRoomSnapshot(response.room);
+      return response.room;
+    });
+  }
+
+  async leaveRoom() {
+    if (!this.state.room || !this.state.participantId) {
+      return null;
+    }
+    return this.withLoading(async () => {
+      const response = await api.leaveRoom(
+        this.state.room!.code,
+        this.state.participantId!
+      );
+      this.setState({
+        room: null,
+        participantId: null,
+        error: null
+      });
+      return response;
+    });
+  }
+
+  async restartGame() {
+    if (!this.state.room || !this.state.participantId) {
+      return null;
+    }
+    return this.withLoading(async () => {
+      const response = await api.restartGame(
+        this.state.room!.code,
+        this.state.participantId!
+      );
+      this.setRoomSnapshot(response.room);
+      return response.room;
+    });
   }
 }
 

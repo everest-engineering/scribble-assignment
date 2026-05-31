@@ -4,9 +4,11 @@ import {
   HttpError,
   joinRoomSchema,
   roomCodeParamsSchema,
-  roomViewerQuerySchema
+  roomViewerQuerySchema,
+  updateDrawingSchema,
+  submitGuessSchema
 } from "./schemas.js";
-import { createRoom, getRoom, joinRoom, toRoomSnapshot } from "../services/roomStore.js";
+import { createRoom, getRoom, joinRoom, toRoomSnapshot, startGame, updateDrawing, clearDrawing, submitGuess, leaveRoom, restartGame } from "../services/roomStore.js";
 
 export function createRoomsRouter() {
   const router = Router();
@@ -38,6 +40,117 @@ export function createRoomsRouter() {
       response.json({
         participantId: result.participantId,
         room: toRoomSnapshot(result.room, result.participantId)
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/:code/start", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId } = roomViewerQuerySchema.parse(request.query);
+
+      if (!participantId) {
+        throw new HttpError(400, "participantId is required");
+      }
+
+      const room = startGame(code.toUpperCase(), participantId);
+      response.json({
+        room: toRoomSnapshot(room, participantId)
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/:code/drawing", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId } = roomViewerQuerySchema.parse(request.query);
+      const { drawingData } = updateDrawingSchema.parse(request.body);
+
+      if (!participantId) {
+        throw new HttpError(400, "participantId is required");
+      }
+
+      const room = updateDrawing(code.toUpperCase(), participantId, drawingData);
+      response.json({
+        room: toRoomSnapshot(room, participantId)
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/:code/clear", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId } = roomViewerQuerySchema.parse(request.query);
+
+      if (!participantId) {
+        throw new HttpError(400, "participantId is required");
+      }
+
+      const room = clearDrawing(code.toUpperCase(), participantId);
+      response.json({
+        room: toRoomSnapshot(room, participantId)
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/:code/guess", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId } = roomViewerQuerySchema.parse(request.query);
+      const { guessText } = submitGuessSchema.parse(request.body);
+
+      if (!participantId) {
+        throw new HttpError(400, "participantId is required");
+      }
+
+      const room = submitGuess(code.toUpperCase(), participantId, guessText);
+      response.json({
+        room: toRoomSnapshot(room, participantId)
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/:code/leave", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId } = roomViewerQuerySchema.parse(request.query);
+
+      if (!participantId) {
+        throw new HttpError(400, "participantId is required");
+      }
+
+      const room = leaveRoom(code.toUpperCase(), participantId);
+      response.json({
+        success: true,
+        room: room ? toRoomSnapshot(room, participantId) : null
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/:code/restart", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId } = roomViewerQuerySchema.parse(request.query);
+
+      if (!participantId) {
+        throw new HttpError(400, "participantId is required");
+      }
+
+      const room = restartGame(code.toUpperCase(), participantId);
+      response.json({
+        room: toRoomSnapshot(room, participantId)
       });
     } catch (error) {
       next(error);

@@ -1,0 +1,142 @@
+# Spec Kit Tasks: Scribble
+
+A detailed task list to guide the implementation of the Scribble multiplayer drawing game scenarios.
+
+---
+
+## Phase 0: Discovery and Setup
+
+- [ ] **Task 0.1**: Inspect the codebase.
+  - Find state management structures in `/frontend/src/state/roomStore.ts` and models in `/backend/src/models/game.ts`.
+- [ ] **Task 0.2**: Document discovery findings.
+  - Verify that the app builds using `npm run build` in both directories.
+  - Dependencies: None.
+
+---
+
+## Scenario 1: Room Setup & Lobby
+
+### Backend Tasks
+- [ ] **Task 1.1**: Update backend state models.
+  - Add `hostId` to `Room` and `RoomSnapshot` interfaces in `backend/src/models/game.ts`.
+  - Add `score` (starting at 0) to the `Participant` model.
+  - Dependencies: Task 0.1
+- [ ] **Task 1.2**: Implement host assignment logic.
+  - Update `createRoom()` in `backend/src/services/roomStore.ts` to assign the room creator's participant ID to the room's `hostId`.
+  - Dependencies: Task 1.1
+- [ ] **Task 1.3**: Validate join parameters.
+  - Modify `joinRoom()` in `backend/src/services/roomStore.ts` to reject joins if the room status is not `"lobby"`, or if the code does not exist.
+  - Validate username (trim leading/trailing spaces, reject empty or whitespace-only inputs).
+  - Dependencies: Task 1.2
+- [ ] **Task 1.4**: Add schemas.
+  - Add Zod validations in `backend/src/api/schemas.ts` for room codes and input player names.
+  - Dependencies: Task 1.3
+
+### Frontend Tasks
+- [ ] **Task 1.5**: Update frontend API and Store.
+  - Update room models in `frontend/src/services/api.ts` to include `hostId` and `score`.
+  - Update `RoomStore` in `frontend/src/state/roomStore.ts` to reflect model updates.
+  - Dependencies: Task 1.1
+- [ ] **Task 1.6**: Implement Lobby Polling.
+  - Add automated polling using an interval timer (~2s) in `frontend/src/pages/LobbyPage.tsx` to pull latest room states.
+  - Dependencies: Task 1.5
+- [ ] **Task 1.7**: Enable Host controls.
+  - Update `LobbyPage.tsx` to render the "Start Game" button only if the current user's participant ID matches the room's `hostId`.
+  - Enable the "Start Game" button only when the room participant list has $\ge 2$ players.
+  - Dependencies: Task 1.6
+
+### Validation & Verification Tasks
+- [ ] **Task 1.8**: Test Room Setup manually.
+  - Open two browser tabs. Let Alice create a room (verify she is host and Start button is disabled). Let Bob join with room code (verify Bob sees Lobby and Alice sees Bob appear within 2 seconds).
+  - Test joining with empty and invalid names to verify error feedback.
+  - Dependencies: Task 1.7
+
+---
+
+## Scenario 2: Game Start & Drawer Flow
+
+### Backend Tasks
+- [ ] **Task 2.1**: Implement Game Start endpoint.
+  - Add `POST /rooms/:code/start` route. Verify requesting user matches `hostId` and participant count is $\ge 2$.
+  - Change room status to `"game"`.
+  - Deterministically assign the host (or first player in the list) as the room's `drawerId`.
+  - Deterministically pick a secret word from `STARTER_WORDS`.
+  - Dependencies: Task 1.4
+- [ ] **Task 2.2**: Implement Secret Word filtering.
+  - Modify `toRoomSnapshot()` in `backend/src/services/roomStore.ts` to set `secretWord` to `null` if the request query parameter `participantId` does not match the room's `drawerId`.
+  - Dependencies: Task 2.1
+
+### Frontend Tasks
+- [x] **Task 2.3**: Map start actions in store.
+  - Add `startGame()` method to `RoomStore` to post to the start endpoint.
+  - Dependencies: Task 1.5, Task 2.1
+- [x] **Task 2.1**: Modify frontend `Scoreboard.tsx` to read from the RoomStore state and dynamically show player scores.
+- [x] **Task 2.2**: Update `GamePage.tsx` to poll room state every 2 seconds.
+- [x] **Task 2.3**: Update `GamePage.tsx` with conditional redirect logic for room status changes.
+- [x] **Task 2.4**: Implement the Drawer vs. Guesser view partition in `GamePage.tsx` with the correct layout, secret word visibility, and form access.
+- [x] **Task 2.5**: Verify implementation with automated and manual testing.
+
+### Validation & Verification Tasks
+- [x] **Task 2.5**: Test Game Start flow.
+  - Alice starts the game. Verify both Alice and Bob transition to `GamePage` via polling.
+  - Verify Alice (drawer) sees the secret word and Bob (guesser) does not.
+  - Dependencies: Task 2.4
+
+---
+
+## Scenario 3: Gameplay Interaction
+
+### Backend Tasks
+- [x] **Task 3.1**: Implement Canvas Drawing endpoints.
+  - Add `POST /rooms/:code/drawing` route. Keep drawing coordinate state in-memory under `Room`'s `drawingData`.
+  - Implement canvas clearing endpoint or clear payload handling.
+  - Dependencies: Task 2.1
+- [x] **Task 3.2**: Implement Guess Submission endpoint.
+  - Add `POST /rooms/:code/guess` route. Trim and validate input.
+  - Compare guess case-insensitively with `secretWord`.
+  - Log guess in `Room`'s `guesses` log.
+  - If correct, award 100 points to the guesser and set room status to `"result"`.
+  - Dependencies: Task 2.1
+
+### Frontend Tasks
+- [x] **Task 3.3**: Connect Drawing and Guessing state actions.
+  - Add methods to `RoomStore` to post canvas drawing updates and submit guess entries.
+  - Dependencies: Task 2.3
+- [x] **Task 3.4**: Integrate Drawing Canvas interaction.
+  - Connect freehand mouse/touch listeners to the drawer's canvas. Send updates to backend.
+  - Hook canvas clear action to the "Clear Canvas" button.
+  - Setup drawing polling in `GamePage.tsx` for guessers to render the canvas coordinates received from the server.
+  - Dependencies: Task 2.4, Task 3.3
+- [x] **Task 3.5**: Integrate Guessing and Log UI.
+  - Render the guess logs list dynamically on the Game Page.
+  - Connect the guess input form to submit guesses to the backend.
+  - Dependencies: Task 2.4, Task 3.3
+
+### Validation & Verification Tasks
+- [x] **Task 3.6**: Verify gameplay mechanics.
+  - Verify drawing on Alice's screen draws on Bob's screen within the poll interval.
+  - Submit wrong guesses from Bob; verify they show in the log.
+  - Submit correct guess; verify both tabs transition to result status and Bob's score is updated.
+  - Dependencies: Task 3.4, Task 3.5
+
+---
+
+## Scenario 4: Result, Restart & Final Validation
+
+### Backend Tasks
+- [ ] **Task 4.1**: Implement Restart endpoint.
+  - Add `POST /rooms/:code/restart` route. Only allow host execution.
+  - Reset room status to `"lobby"`, clear canvas drawings, empty guess history, and set scores back to 0. Keep the participant list intact.
+  - Dependencies: Task 2.1
+
+### Frontend Tasks
+- [ ] **Task 4.2**: Build Result Screen and Restart triggers.
+  - Build UI layout for the `"result"` status. Show final scores, correct word, and complete guess history.
+  - Add a "Return to Lobby" button visible only to the host that triggers the restart action.
+  - Dependencies: Task 3.3, Task 4.1
+
+### Validation & Verification Tasks
+- [ ] **Task 4.3**: End-to-end flow validation.
+  - Verify Alice restarts the game. Both players must land back on Lobby with empty scores.
+  - Verify that both projects build cleanly using `npm run build`.
+  - Dependencies: Task 4.2

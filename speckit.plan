@@ -1,0 +1,175 @@
+# Spec Kit Plan: Scribble
+
+This document outlines the discovery findings, architecture adjustments, state model changes, data flow, implementation sequence, and testing strategy for the Scribble game.
+
+---
+
+## 1. Discovery Findings
+
+### 1.1 Codebase Inspection and Gaps
+* **Room Schema limitations**: The current `Room` model in the backend (`backend/src/models/game.ts`) only supports the `"lobby"` status and does not store essential round state like the host, current drawer, secret word, drawing data, guesses, or participant scores.
+* **Lack of Host Tracking**: There is no explicit identifier tracking which participant is the room host. The backend currently assigns the creator of the room as a participant but does not designate them as the host in the data model.
+* **No Room Lifecycle Transitions**: No API routes exist to transition a room's status from `"lobby"` to `"game"`, or from `"game"` to `"result"`, or to reset the room state back to `"lobby"`.
+* **Static Snapshot Filtering**: The `toRoomSnapshot` function in the room store service does not hide the secret word from guessers, which violates the requirement that the secret word must only be visible to the drawer.
+* **No Drawing or Guess Handlers**: The API lacks route handlers for submitting drawing data, clearing the canvas, or submitting guesses.
+
+### 1.2 Assumptions
+* **Single Round Lifetime**: A game consists of exactly one round. When a guesser makes a correct guess, scores are updated and the game remains in progress or transitions to the result screen depending on the host's actions.
+* **Canvas Serialization**: Freehand drawings are serialized into a lightweight representation (e.g., an array of strokes, coordinates, or paths) stored in memory on the backend and polled by the frontend.
+* **Transient States**: All room data is stored in memory. Restarting the backend server resets all room sessions.
+
+---
+
+## 2. Affected Code Areas
+
+### 2.1 Backend (`/backend`)
+* `src/models/game.ts`: Enhance `Room`, `Participant`, and `RoomSnapshot` interfaces to include game-state fields.
+* `src/services/roomStore.ts`:
+  * Update `createRoom` and `joinRoom` to handle host assignment and player state.
+  * Implement deterministic word selection, drawer assignment logic, drawing management, and score mapping.
+  * Modify `toRoomSnapshot` to filter the secret word for non-drawers.
+* `src/api/schemas.ts`: Add Zod validation schemas for drawing payloads, guess submissions, name validations, and action routes.
+* `src/api/rooms.ts`: Register new routes for `/rooms/:code/start`, `/rooms/:code/drawing`, `/rooms/:code/guess`, and `/rooms/:code/restart`.
+
+### 2.2 Frontend (`/frontend`)
+* `src/services/api.ts`: Update frontend API signatures and TypeScript models to match backend updates.
+* `src/state/roomStore.ts`:
+  * Add state management logic for drawing strokes, guess history, and room status updates.
+  * Integrate helper methods for starting, drawing, guessing, and restarting the game.
+* `src/pages/LobbyPage.tsx`: Add polling hook (~2 seconds), validate host status, enforce 2-player minimum, and add a start game trigger.
+* `src/pages/GamePage.tsx`: Implement the game screen:
+  * Drawer view (active canvas drawing/clearing, secret word display).
+  * Guesser view (read-only canvas, text guess input, score indicator).
+  * Guess history logs and canvas update polling (~2 seconds).
+  * Transition logic to Result display when the game terminates.
+
+---
+
+## 3. Required State Model Changes
+
+### 3.1 Backend Model Updates (`backend/src/models/game.ts`)
+
+```typescript
+// Add new room statuses
+export type RoomStatus = "lobby" | "game" | "result";
+
+export interface Participant {
+  id: string;
+  name: string;
+  joinedAt: string;
+  score: number; // Track player scores
+}
+
+export interface Guess {
+  senderId: string;
+  senderName: string;
+  text: string;
+  correct: boolean;
+  timestamp: string;
+}
+
+export interface Room {
+  code: string;
+  status: RoomStatus;
+  participants: Participant[];
+  hostId: string; // Identify room host
+  drawerId: string | null; // Identify current drawer
+  secretWord: string | null; // Selected round word
+  drawingData: string; // Serialized drawing canvas state (e.g. JSON string or empty)
+  guesses: Guess[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface RoomSnapshot {
+  code: string;
+  status: RoomStatus;
+  participants: Participant[];
+  hostId: string;
+  drawerId: string | null;
+  secretWord: string | null; // Filtered to null for guessers on snapshot delivery
+  drawingData: string;
+  guesses: Guess[];
+  availableWords: string[];
+}
+```
+
+---
+
+## 4. Data Flow
+
+### 4.1 Room Setup & Lobby Flow
+1. A user fills in their username and clicks **Create Room**. The client issues `POST /rooms` payload. The server returns a 4-character code, registers the user as `hostId`, and initializes the room status as `"lobby"`.
+2. Other players join using `POST /rooms/:code/join` with their name. Name string is trimmed and validated.
+3. Every client in the room starts polling `GET /rooms/:code?participantId=...` every 2 seconds. The server returns the updated participant list.
+4. When the participant list length is $\ge 2$, the host client enables the **Start Game** button.
+
+### 4.2 Game Initiation Flow
+1. The host clicks **Start Game**, executing a `POST /rooms/:code/start`.
+2. The server assigns the host (or first player) as the `drawerId`, deterministically picks a `secretWord` from the starter word list, and transitions `status` to `"game"`.
+3. In the next poll cycle, all clients receive the state update. The client matching the `drawerId` renders the interactive canvas and secret word. Guessers render the read-only canvas and guess text box.
+
+### 4.3 Gameplay & Sync Flow
+1. **Drawing**: The drawer draws on the canvas. As lines are drawn, the client periodically sends drawing coordinates/paths via `POST /rooms/:code/drawing`. The server caches this drawing data in-memory. Guessers download the canvas state during their 2-second poll cycles.
+2. **Guessing**: Guessers type and submit guesses via `POST /rooms/:code/guess`. Guesses are trimmed and verified case-insensitively. The server records guesses in the `guesses` log.
+3. **Scoring**: If a guess matches the secret word, the server awards 100 points to that participant, labels the guess as correct, updates the room status to `"result"`, and updates scores.
+4. **Polling Sync**: Clients poll the backend to display the guess history, canvas, and updated participant list.
+
+### 4.4 Result & Restart Flow
+1. Once the room transitions to `"result"`, all clients update their layout to display the result screen, showing the correct secret word, scores, and guess history.
+2. The host clicks **Restart**, executing `POST /rooms/:code/restart`.
+3. The server clears the drawing data, guess logs, round scores, resets statuses to `"lobby"`, and keeps the participant list. Clients poll the lobby status and transition back to the lobby page.
+
+---
+
+## 5. Implementation Sequence
+
+### 5.1 Scenario 1: Room Setup & Lobby Enhancement
+1. **Backend**: Update `Room` state model with `hostId`. Assign `hostId` to the room creator inside `createRoom()`.
+2. **Backend**: Add a validator in `joinRoom()` to reject joining if the room code does not exist.
+3. **Frontend**: Add a React `useEffect`-based interval hook in `LobbyPage.tsx` to call `fetchRoom()` every 2 seconds.
+4. **Frontend**: Render a "Start Game" action button visible only to the room host when $\ge 2$ players are in the room.
+
+### 5.2 Scenario 2: Game Start & Drawer Assignment
+1. **Backend**: Implement `POST /rooms/:code/start` route. Enforce that only the `hostId` can call it and the room has $\ge 2$ participants.
+2. **Backend**: Implement drawer selection (assign host) and word selection (deterministically pull from list). Update status to `"game"`.
+3. **Backend**: Filter `secretWord` in `toRoomSnapshot()` so it is hidden (set to `null` or omitted) unless `viewerParticipantId === drawerId`.
+4. **Frontend**: Set up polling in `GamePage.tsx`. Split rendering based on whether the current user's ID matches `drawerId`.
+
+### 5.3 Scenario 3: Drawing Sync & Guess Submissions
+1. **Backend**: Implement `POST /rooms/:code/drawing` route. Cache the drawing strokes payload.
+2. **Backend**: Implement `POST /rooms/:code/guess` route. Compare guesses case-insensitively. Record correct/incorrect outcomes. Award 100 points for correct guesses and transition room status to `"result"`.
+3. **Frontend**: Add stroke-drawing logic on the canvas for the drawer, transmitting canvas state periodically.
+4. **Frontend**: Add canvas-render polling and guess-history display for guessers.
+
+### 5.4 Scenario 4: Results & Restart Lifecycle
+1. **Backend**: Implement `POST /rooms/:code/restart` route. Validate that only the host triggers it. Clear room state (reset scores to 0, clear drawings/guesses, set status back to `"lobby"`).
+2. **Frontend**: Implement the Result screen showing all metrics. Enable the restart button for the host.
+
+---
+
+## 6. Testing Strategy
+
+### 6.1 Automated Verification
+* Unit tests in the backend (`backend/src/services/roomStore.test.ts` and `backend/src/api/schemas.test.ts`) checking:
+  * Host assignment on creation.
+  * Correct guess comparison (case-insensitivity, trim handling).
+  * Schema rejection of empty names.
+  * Filtering of the secret word in the snapshot payload.
+
+### 6.2 Manual Verification (Multiplayer Flows)
+* Open two separate web browser sessions side-by-side:
+  1. **Tab 1**: Create a room, entering name "Alice". Verify she is designated host and cannot start yet.
+  2. **Tab 2**: Join the room with code, entering name "Bob". Verify the lobby displays both players within 2 seconds.
+  3. **Tab 1**: Host starts game. Verify drawer screen loads for Alice (shows secret word) and guesser screen loads for Bob (word hidden).
+  4. **Tab 1**: Draw on canvas. Verify strokes appear in Tab 2.
+  5. **Tab 2**: Submit an incorrect guess. Verify it appears in guess history. Submit correct guess. Verify both tabs transition to result page.
+  6. **Tab 1**: Host restarts. Verify both tabs return to lobby with scores cleared.
+
+---
+
+## 7. Risks and Assumptions
+
+* **Out-of-Scope Constraints**: Because WebSockets are not permitted, polling frequency is crucial. Setting it to 2 seconds provides a reasonable balance between synchronization lag and server load.
+* **Race Conditions in Polling**: Multiple players guessing simultaneously will be sequenced by the server's HTTP handler. The first correct guess processed by the server transitions the state to `"result"`.
+* **In-Memory Storage**: There is no persistent data. Any crash or restart of the backend Node.js process immediately deletes all rooms and sessions.
