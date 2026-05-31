@@ -7,10 +7,19 @@ export interface Participant {
   joinedAt: string;
 }
 
+export interface GuessEntry {
+  guesserName: string;
+  guessText: string;
+  isCorrect: boolean;
+  submittedAt: string;
+}
+
 export interface CurrentRound {
   roundNumber: number;
   drawerId: string;
   wordIndex: number;
+  guesses: GuessEntry[];
+  scores: Record<string, number>;
 }
 
 export interface Room {

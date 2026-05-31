@@ -5,9 +5,10 @@ import {
   joinRoomSchema,
   roomCodeParamsSchema,
   roomViewerQuerySchema,
-  startGameSchema
+  startGameSchema,
+  submitGuessSchema
 } from "./schemas.js";
-import { createRoom, getRoom, joinRoom, startGame, toRoomSnapshot } from "../services/roomStore.js";
+import { createRoom, getGuesses, getRoom, joinRoom, startGame, submitGuess, toRoomSnapshot } from "../services/roomStore.js";
 
 export function createRoomsRouter() {
   const router = Router();
@@ -78,6 +79,42 @@ export function createRoomsRouter() {
       }
 
       response.json({ room: toRoomSnapshot(result.room, participantId) });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/:code/guesses", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId, guessText } = submitGuessSchema.parse(request.body);
+      const result = submitGuess(code.toUpperCase(), participantId, guessText);
+
+      if ("error" in result) {
+        if (result.error === "not-found") throw new HttpError(404, "not-found");
+        if (result.error === "not-in-progress") throw new HttpError(409, "not-in-progress");
+        if (result.error === "empty-guess") throw new HttpError(400, "empty-guess");
+        if (result.error === "drawer-cannot-guess") throw new HttpError(403, "drawer-cannot-guess");
+        throw new HttpError(422, "unknown-participant");
+      }
+
+      response.json(result);
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.get("/:code/guesses", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const result = getGuesses(code.toUpperCase());
+
+      if ("error" in result) {
+        if (result.error === "not-found") throw new HttpError(404, "not-found");
+        throw new HttpError(409, "not-in-progress");
+      }
+
+      response.json(result);
     } catch (error) {
       next(error);
     }

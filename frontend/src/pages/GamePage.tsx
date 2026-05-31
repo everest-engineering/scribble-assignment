@@ -1,10 +1,12 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card } from "../components/Card";
+import { DrawingCanvas } from "../components/DrawingCanvas";
 import { GuessForm } from "../components/GuessForm";
 import { ResultPanel } from "../components/ResultPanel";
 import { RoomCodeBadge } from "../components/RoomCodeBadge";
 import { Scoreboard } from "../components/Scoreboard";
+import { api, type GuessEntry } from "../services/api";
 import { useRoomState } from "../state/roomStore";
 
 export function GamePage() {
@@ -17,6 +19,23 @@ export function GamePage() {
     }
   }, [navigate, room]);
 
+  const [guesses, setGuesses] = useState<GuessEntry[]>([]);
+  const [scores, setScores] = useState<Record<string, number>>({});
+
+  useEffect(() => {
+    if (!room) return;
+    const interval = setInterval(async () => {
+      try {
+        const data = await api.fetchGuesses(room.code);
+        setGuesses(data.guesses);
+        setScores(data.scores);
+      } catch {
+        // polling failure is non-fatal
+      }
+    }, 2000);
+    return () => clearInterval(interval);
+  }, [room?.code]);
+
   if (!room) {
     return null;
   }
@@ -24,6 +43,12 @@ export function GamePage() {
   const viewer = room.participants.find((participant) => participant.id === participantId) ?? null;
   const isDrawer = participantId === room.currentDrawerId;
   const drawer = room.participants.find((p) => p.id === room.currentDrawerId) ?? null;
+
+  async function handleGuessSubmit(guessText: string): Promise<void> {
+    if (!participantId) return;
+    // room is non-null here — guarded by early return above
+    await api.submitGuess(room!.code, participantId, guessText);
+  }
 
   return (
     <section className="panel game-page">
@@ -37,15 +62,17 @@ export function GamePage() {
 
       <div className="game-page__layout">
         <aside className="game-page__sidebar game-page__sidebar--left">
-          <Scoreboard />
-          <ResultPanel />
+          <Scoreboard participants={room.participants} scores={scores} />
+          <ResultPanel guesses={guesses} />
         </aside>
 
         <div className="game-page__main">
           <Card title="Canvas">
-            <div className="canvas-placeholder" style={{ minHeight: '500px', backgroundColor: '#ffffff', border: '1px solid #e5e7eb' }}>
-              Waiting for drawer...
-            </div>
+            {isDrawer ? (
+              <DrawingCanvas />
+            ) : (
+              <p className="canvas-placeholder">Drawer is drawing…</p>
+            )}
           </Card>
         </div>
 
@@ -80,7 +107,7 @@ export function GamePage() {
 
           {!isDrawer && (
             <Card title="Your Guess">
-              <GuessForm />
+              <GuessForm onSubmit={handleGuessSubmit} />
             </Card>
           )}
         </aside>

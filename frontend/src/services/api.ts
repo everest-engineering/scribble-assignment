@@ -1,5 +1,12 @@
 export type ParticipantRole = "drawer" | "guesser";
 
+export interface GuessEntry {
+  guesserName: string;
+  guessText: string;
+  isCorrect: boolean;
+  submittedAt: string;
+}
+
 export interface Participant {
   id: string;
   name: string;
@@ -66,5 +73,19 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ participantId })
     });
+  },
+  submitGuess(code: string, participantId: string, guessText: string) {
+    return request<{ guess: GuessEntry; newScore: number }>(
+      `/rooms/${encodeURIComponent(code)}/guesses`,
+      {
+        method: "POST",
+        body: JSON.stringify({ participantId, guessText })
+      }
+    );
+  },
+  fetchGuesses(code: string) {
+    return request<{ guesses: GuessEntry[]; scores: Record<string, number> }>(
+      `/rooms/${encodeURIComponent(code)}/guesses`
+    );
   }
 };

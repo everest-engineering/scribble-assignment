@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import type { Participant, Room, RoomSnapshot } from "../models/game.js";
+import type { GuessEntry, Participant, Room, RoomSnapshot } from "../models/game.js";
 import { STARTER_ROLES, STARTER_WORDS } from "../seed/starterData.js";
 
 const rooms = new Map<string, Room>();
@@ -99,7 +99,9 @@ export function startGame(code: string, participantId: string) {
   const currentRound = {
     roundNumber: 1,
     drawerId: room.hostId,
-    wordIndex: 0
+    wordIndex: 0,
+    guesses: [],
+    scores: Object.fromEntries(room.participants.map((p) => [p.id, 0])),
   };
 
   room.status = "in-progress";
@@ -108,6 +110,47 @@ export function startGame(code: string, participantId: string) {
   rooms.set(room.code, room);
 
   return { room: cloneRoom(room) };
+}
+
+export function submitGuess(code: string, participantId: string, rawText: string) {
+  const room = rooms.get(code);
+  if (!room) return { error: "not-found" as const };
+  if (room.status !== "in-progress" || !room.currentRound) return { error: "not-in-progress" as const };
+
+  const trimmed = rawText.trim();
+  if (!trimmed) return { error: "empty-guess" as const };
+
+  const round = room.currentRound;
+  if (participantId === round.drawerId) return { error: "drawer-cannot-guess" as const };
+
+  const participant = room.participants.find((p) => p.id === participantId);
+  if (!participant) return { error: "unknown-participant" as const };
+
+  const secretWord = STARTER_WORDS[round.wordIndex];
+  const isCorrect = trimmed.toLowerCase() === secretWord.toLowerCase();
+
+  if (isCorrect) {
+    round.scores[participantId] = (round.scores[participantId] ?? 0) + 100;
+  }
+
+  const entry: GuessEntry = {
+    guesserName: participant.name,
+    guessText: trimmed,
+    isCorrect,
+    submittedAt: now(),
+  };
+  round.guesses.push(entry);
+  room.updatedAt = now();
+  rooms.set(room.code, room);
+
+  return { guess: entry, newScore: round.scores[participantId] ?? 0 };
+}
+
+export function getGuesses(code: string) {
+  const room = rooms.get(code);
+  if (!room) return { error: "not-found" as const };
+  if (room.status !== "in-progress" || !room.currentRound) return { error: "not-in-progress" as const };
+  return { guesses: room.currentRound.guesses, scores: room.currentRound.scores };
 }
 
 export function getRoom(code: string) {
