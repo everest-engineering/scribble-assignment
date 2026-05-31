@@ -200,6 +200,33 @@ export function saveStrokes(code: string, participantId: string, strokes: { poin
   return cloneRoom(room);
 }
 
+export function restartGame(code: string, requesterId: string) {
+  const room = rooms.get(code);
+
+  if (!room) {
+    return null;
+  }
+
+  if (room.hostId !== requesterId) {
+    throw new HttpError(403, "Only the host can restart the game");
+  }
+
+  if (room.status !== "finished") {
+    throw new HttpError(400, "Game is not finished");
+  }
+
+  room.status = "lobby";
+  room.drawerId = null;
+  room.secretWord = null;
+  room.guesses = [];
+  room.scores = {};
+  room.strokes = [];
+  room.updatedAt = now();
+  rooms.set(room.code, room);
+
+  return cloneRoom(room);
+}
+
 export function getRoom(code: string) {
   const room = rooms.get(code);
   return room ? cloneRoom(room) : null;

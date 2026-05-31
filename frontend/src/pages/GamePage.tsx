@@ -20,6 +20,12 @@ export function GamePage() {
     }
   }, [navigate, room]);
 
+  useEffect(() => {
+    if (room && room.status === "lobby") {
+      navigate("/lobby", { replace: true });
+    }
+  }, [navigate, room]);
+
   const startPolling = useCallback(() => {
     if (pollingRef.current) return;
     pollingRef.current = setInterval(() => {
@@ -49,29 +55,44 @@ export function GamePage() {
     }
   }
 
+  async function handleRestart() {
+    try {
+      await roomStore.restartGame();
+    } catch {
+      // poll will detect the restart state
+    }
+  }
+
+  async function handleExit() {
+    stopPolling();
+    navigate("/lobby");
+  }
+
   if (!room) {
     return null;
   }
 
   const viewer = room.participants.find((participant) => participant.id === participantId) ?? null;
   const isDrawer = participantId === room.drawerId;
+  const isFinished = room.status === "finished";
+  const isHost = participantId === room.hostId;
 
   return (
     <section className="panel game-page">
       <div className="game-page__header">
         <div className="game-page__header-left">
           <span className="section-kicker">
-            {isDrawer ? "You are the Drawer" : "You are Guessing"}
+            {isFinished ? "Round Over" : isDrawer ? "You are the Drawer" : "You are Guessing"}
           </span>
           <h1 className="game-page__title">
-            {isDrawer ? "Draw the Word!" : "Guess the Word!"}
+            {isFinished ? "The Round is Over!" : isDrawer ? "Draw the Word!" : "Guess the Word!"}
           </h1>
         </div>
         <RoomCodeBadge code={room.code} />
       </div>
 
-      {room.secretWord && isDrawer ? (
-        <Card title="Your Secret Word">
+      {room.secretWord && (isDrawer || isFinished) ? (
+        <Card title={isFinished ? "The Word Was" : "Your Secret Word"}>
           <p style={{ fontSize: "1.5rem", fontWeight: 700, textAlign: "center", letterSpacing: "0.05em" }}>
             {room.secretWord.toUpperCase()}
           </p>
@@ -88,7 +109,7 @@ export function GamePage() {
           <Card title="Canvas">
             <DrawingCanvas
               strokes={room.strokes}
-              isDrawer={isDrawer}
+              isDrawer={isDrawer && !isFinished}
               onStrokesChange={handleStrokesChange}
             />
           </Card>
@@ -108,7 +129,7 @@ export function GamePage() {
             </dl>
           </Card>
 
-          {!isDrawer ? (
+          {!isDrawer && !isFinished ? (
             <Card title="Your Guess">
               <GuessForm />
             </Card>
@@ -117,8 +138,13 @@ export function GamePage() {
       </div>
 
       <div className="button-row">
-        <button className="button button--secondary" onClick={() => navigate("/lobby")}>
-          Exit Game
+        {isFinished && isHost ? (
+          <button className="button button--primary" onClick={handleRestart}>
+            Restart Game
+          </button>
+        ) : null}
+        <button className="button button--secondary" onClick={handleExit}>
+          Exit to Lobby
         </button>
       </div>
     </section>

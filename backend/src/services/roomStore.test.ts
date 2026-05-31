@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createRoom, getRoom, joinRoom, saveStrokes, startGame, submitGuess, toRoomSnapshot } from "./roomStore.js";
+import { createRoom, getRoom, joinRoom, restartGame, saveStrokes, startGame, submitGuess, toRoomSnapshot } from "./roomStore.js";
 import { HttpError } from "../models/game.js";
 
 describe("roomStore", () => {
@@ -275,5 +275,58 @@ describe("roomStore", () => {
     const snapshot = toRoomSnapshot(getRoom(host.room.code)!, guest!.participantId);
 
     expect(snapshot.secretWord).toBe(game!.secretWord);
+  });
+
+  it("restartGame returns null for unknown room", () => {
+    const result = restartGame("ZZZZ", "p1");
+    expect(result).toBeNull();
+  });
+
+  it("restartGame rejects non-host requester", () => {
+    const host = createRoom("Alice");
+    const guest = joinRoom(host.room.code, "Bob");
+    const game = startGame(host.room.code, host.participantId);
+    submitGuess(host.room.code, guest!.participantId, game!.secretWord!);
+
+    expect(() => restartGame(host.room.code, guest!.participantId)).toThrow(HttpError);
+    expect(() => restartGame(host.room.code, guest!.participantId)).toThrow("Only the host can restart the game");
+  });
+
+  it("restartGame rejects when game is not finished", () => {
+    const host = createRoom("Alice");
+
+    expect(() => restartGame(host.room.code, host.participantId)).toThrow(HttpError);
+    expect(() => restartGame(host.room.code, host.participantId)).toThrow("Game is not finished");
+  });
+
+  it("restartGame resets round state but preserves players", () => {
+    const host = createRoom("Alice");
+    const guest = joinRoom(host.room.code, "Bob");
+    const game = startGame(host.room.code, host.participantId);
+    submitGuess(host.room.code, guest!.participantId, game!.secretWord!);
+
+    const result = restartGame(host.room.code, host.participantId);
+
+    expect(result!.status).toBe("lobby");
+    expect(result!.drawerId).toBeNull();
+    expect(result!.secretWord).toBeNull();
+    expect(result!.guesses).toHaveLength(0);
+    expect(result!.strokes).toHaveLength(0);
+    expect(result!.participants).toHaveLength(2);
+    expect(result!.participants[0].id).toBe(host.participantId);
+    expect(result!.participants[1].id).toBe(guest!.participantId);
+  });
+
+  it("restartGame allows starting a new game after restart", () => {
+    const host = createRoom("Alice");
+    const guest = joinRoom(host.room.code, "Bob");
+    const game = startGame(host.room.code, host.participantId);
+    submitGuess(host.room.code, guest!.participantId, game!.secretWord!);
+    restartGame(host.room.code, host.participantId);
+
+    const newGame = startGame(host.room.code, host.participantId);
+
+    expect(newGame!.status).toBe("playing");
+    expect(newGame!.drawerId).toBe(host.participantId);
   });
 });

@@ -102,6 +102,19 @@ class RoomStore {
     return response.room;
   }
 
+  async restartGame() {
+    const room = this.state.room;
+    const participantId = this.state.participantId;
+
+    if (!room || !participantId) {
+      return null;
+    }
+
+    const response = await this.withLoading(() => api.restartGame(room.code, participantId));
+    this.setRoomSnapshot(response.room);
+    return response.room;
+  }
+
   async submitGuess(text: string) {
     const room = this.state.room;
     const participantId = this.state.participantId;
