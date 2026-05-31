@@ -8,9 +8,10 @@ import {
   restartRoomSchema,
   roomCodeParamsSchema,
   roomViewerQuerySchema,
-  startRoomSchema
+  startRoomSchema,
+  strokeSchema
 } from "./schemas.js";
-import { createRoom, endGame, getRoom, joinRoom, restartGame, startGame, submitGuess, toRoomSnapshot } from "../services/roomStore.js";
+import { addStroke, clearStrokes, createRoom, endGame, getRoom, joinRoom, restartGame, startGame, submitGuess, toRoomSnapshot } from "../services/roomStore.js";
 
 export function createRoomsRouter() {
   const router = Router();
@@ -95,6 +96,38 @@ export function createRoomsRouter() {
       if (result.code === "CONFLICT") throw new HttpError(409, "Game is not in results state");
 
       response.json({ participantId, room: toRoomSnapshot(result.room, participantId) });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/:code/clear-canvas", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId } = startRoomSchema.parse(request.body);
+      const result = clearStrokes(code.toUpperCase(), participantId);
+
+      if (result.code === "NOT_FOUND") throw new HttpError(404, "Room not found");
+      if (result.code === "FORBIDDEN") throw new HttpError(403, result.message);
+      if (result.code === "BAD_REQUEST") throw new HttpError(400, result.message);
+
+      response.json({ ok: true });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/:code/stroke", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId, points } = strokeSchema.parse(request.body);
+      const result = addStroke(code.toUpperCase(), participantId, points);
+
+      if (result.code === "NOT_FOUND") throw new HttpError(404, "Room not found");
+      if (result.code === "FORBIDDEN") throw new HttpError(403, result.message);
+      if (result.code === "BAD_REQUEST") throw new HttpError(400, result.message);
+
+      response.json({ ok: true });
     } catch (error) {
       next(error);
     }

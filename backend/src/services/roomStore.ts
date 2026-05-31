@@ -60,6 +60,7 @@ export function createRoom(playerName?: string) {
     currentWord: null,
     guesses: [],
     scores: {},
+    strokes: [],
     createdAt: now(),
     updatedAt: now()
   };
@@ -169,6 +170,48 @@ export function submitGuess(code: string, participantId: string, guessText: stri
   return { code: "OK", room: cloneRoom(room) } as const;
 }
 
+export function clearStrokes(code: string, participantId: string) {
+  const room = rooms.get(code);
+
+  if (!room) {
+    return { code: "NOT_FOUND" } as const;
+  }
+
+  if (room.status !== "playing") {
+    return { code: "BAD_REQUEST", message: "Game is not active" } as const;
+  }
+
+  if (participantId !== room.drawerParticipantId) {
+    return { code: "FORBIDDEN", message: "Only the drawer can clear the canvas" } as const;
+  }
+
+  room.strokes = [];
+  saveRoom(room);
+
+  return { code: "OK" } as const;
+}
+
+export function addStroke(code: string, participantId: string, points: Array<{ x: number; y: number }>) {
+  const room = rooms.get(code);
+
+  if (!room) {
+    return { code: "NOT_FOUND" } as const;
+  }
+
+  if (room.status !== "playing") {
+    return { code: "BAD_REQUEST", message: "Game is not active" } as const;
+  }
+
+  if (participantId !== room.drawerParticipantId) {
+    return { code: "FORBIDDEN", message: "Only the drawer can submit strokes" } as const;
+  }
+
+  room.strokes.push({ points });
+  saveRoom(room);
+
+  return { code: "OK" } as const;
+}
+
 export function endGame(code: string, participantId: string) {
   const room = rooms.get(code);
 
@@ -210,6 +253,7 @@ export function restartGame(code: string, participantId: string) {
   room.currentWord = null;
   room.guesses = [];
   room.scores = {};
+  room.strokes = [];
   saveRoom(room);
 
   return { code: "OK", room: cloneRoom(room) } as const;
@@ -237,6 +281,7 @@ export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSn
     currentWord: showWord ? room.currentWord : null,
     viewerRole,
     guesses: room.guesses.map((g) => ({ ...g })),
-    scores: { ...room.scores }
+    scores: { ...room.scores },
+    strokes: room.strokes.map(s => ({ points: [...s.points] }))
   };
 }

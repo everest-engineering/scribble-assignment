@@ -14,6 +14,10 @@ export interface Guess {
   correct: boolean;
 }
 
+export interface Stroke {
+  points: Array<{ x: number; y: number }>;
+}
+
 export interface RoomSnapshot {
   code: string;
   status: "lobby" | "playing" | "results";
@@ -26,6 +30,7 @@ export interface RoomSnapshot {
   viewerRole: ParticipantRole | null;
   guesses: Guess[];
   scores: Record<string, number>;
+  strokes: Stroke[];
 }
 
 export interface RoomSessionResponse {
@@ -82,6 +87,18 @@ export const api = {
     return request<{ room: RoomSnapshot }>(`/rooms/${encodeURIComponent(code)}/guess`, {
       method: "POST",
       body: JSON.stringify({ participantId, guess })
+    });
+  },
+  clearCanvas(code: string, participantId: string) {
+    return request<{ ok: boolean }>(`/rooms/${encodeURIComponent(code)}/clear-canvas`, {
+      method: "POST",
+      body: JSON.stringify({ participantId })
+    });
+  },
+  addStroke(code: string, participantId: string, points: Array<{ x: number; y: number }>) {
+    return request<{ ok: boolean }>(`/rooms/${encodeURIComponent(code)}/stroke`, {
+      method: "POST",
+      body: JSON.stringify({ participantId, points })
     });
   },
   endGame(code: string, participantId: string) {

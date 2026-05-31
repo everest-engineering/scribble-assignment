@@ -14,6 +14,7 @@ export function GamePage() {
   const { room, participantId } = useRoomState();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const isDrawingRef = useRef(false);
+  const pendingPointsRef = useRef<Array<{ x: number; y: number }>>([]);
   const [guessError, setGuessError] = useState<string | null>(null);
   const [endError, setEndError] = useState<string | null>(null);
 
@@ -53,8 +54,9 @@ export function GamePage() {
     }
 
     function onMouseDown(e: MouseEvent) {
-      isDrawingRef.current = true;
       const { x, y } = getPos(e);
+      pendingPointsRef.current = [{ x, y }];
+      isDrawingRef.current = true;
       ctx!.beginPath();
       ctx!.moveTo(x, y);
     }
@@ -62,15 +64,26 @@ export function GamePage() {
     function onMouseMove(e: MouseEvent) {
       if (!isDrawingRef.current) return;
       const { x, y } = getPos(e);
+      pendingPointsRef.current.push({ x, y });
       ctx!.lineTo(x, y);
       ctx!.stroke();
     }
 
     function onMouseUp() {
       isDrawingRef.current = false;
+      if (pendingPointsRef.current.length > 1 && room && participantId) {
+        const points = [...pendingPointsRef.current];
+        pendingPointsRef.current = [];
+        api.addStroke(room.code, participantId, points).catch(() => {});
+      }
     }
 
     function onMouseLeave() {
+      if (isDrawingRef.current && pendingPointsRef.current.length > 1 && room && participantId) {
+        const points = [...pendingPointsRef.current];
+        pendingPointsRef.current = [];
+        api.addStroke(room.code, participantId, points).catch(() => {});
+      }
       isDrawingRef.current = false;
     }
 
@@ -85,7 +98,30 @@ export function GamePage() {
       canvas.removeEventListener("mouseup", onMouseUp);
       canvas.removeEventListener("mouseleave", onMouseLeave);
     };
-  }, []);
+  }, [room, participantId]);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas || !room || room.viewerRole !== "guesser") return;
+
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.lineWidth = 2;
+    ctx.lineCap = "round";
+    ctx.strokeStyle = "#000000";
+
+    for (const stroke of room.strokes) {
+      if (stroke.points.length < 2) continue;
+      ctx.beginPath();
+      ctx.moveTo(stroke.points[0].x, stroke.points[0].y);
+      for (let i = 1; i < stroke.points.length; i++) {
+        ctx.lineTo(stroke.points[i].x, stroke.points[i].y);
+      }
+      ctx.stroke();
+    }
+  }, [room?.strokes, room?.viewerRole]);
 
   if (!room) {
     return null;
@@ -125,6 +161,9 @@ export function GamePage() {
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
     if (ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
+    if (room && participantId) {
+      api.clearCanvas(room.code, participantId).catch(() => {});
+    }
   }
 
   return (
@@ -170,9 +209,12 @@ export function GamePage() {
                 </div>
               </>
             ) : (
-              <div className="canvas-placeholder" style={{ minHeight: "500px", backgroundColor: "#ffffff", border: "1px solid #e5e7eb" }}>
-                Waiting for drawer...
-              </div>
+              <canvas
+                ref={canvasRef}
+                width={800}
+                height={500}
+                style={{ border: "1px solid #e5e7eb", backgroundColor: "#ffffff", display: "block", maxWidth: "100%", cursor: "default" }}
+              />
             )}
           </Card>
         </div>

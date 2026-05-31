@@ -21,6 +21,11 @@ export const guessSchema = z.object({
   guess: z.string()
 });
 
+export const strokeSchema = z.object({
+  participantId: z.string().trim().min(1, "Participant ID is required"),
+  points: z.array(z.object({ x: z.number(), y: z.number() })).min(1, "Stroke must have at least one point")
+});
+
 export const startRoomSchema = z.object({
   participantId: z.string().trim().min(1, "Participant ID is required")
 });

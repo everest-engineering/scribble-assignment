@@ -9,6 +9,10 @@ export interface Guess {
   correct: boolean;
 }
 
+export interface Stroke {
+  points: Array<{ x: number; y: number }>;
+}
+
 export interface Participant {
   id: string;
   name: string;
@@ -24,6 +28,7 @@ export interface Room {
   currentWord: string | null;
   guesses: Guess[];
   scores: Record<string, number>;
+  strokes: Stroke[];
   createdAt: string;
   updatedAt: string;
 }
@@ -40,6 +45,7 @@ export interface RoomSnapshot {
   viewerRole: ParticipantRole | null;
   guesses: Guess[];
   scores: Record<string, number>;
+  strokes: Stroke[];
 }
 
 export interface RoomSessionResponse {
