@@ -40,7 +40,11 @@ describe("schemas", () => {
       hostParticipantId: "p1",
       participants: [{ id: "p1", name: "Alice", joinedAt: "2026-05-30T00:00:00.000Z" }],
       availableWords: ["rocket"],
-      roles: ["drawer", "guesser"]
+      roles: ["drawer", "guesser"],
+      roundState: {
+        drawerId: "p1",
+        secretWord: "rocket"
+      }
     };
 
     expect(roomSnapshotSchema.parse(snapshot)).toEqual(snapshot);

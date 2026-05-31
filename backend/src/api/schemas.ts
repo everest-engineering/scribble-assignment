@@ -23,12 +23,14 @@ export const errorResponseSchema = z.object({
 
 const nonEmptyTrimmedString = z.string().trim().min(1);
 
+const playerNameSchema = z.string().trim().min(1, "Player name is required");
+
 export const createRoomSchema = z.object({
-  playerName: z.string().optional()
+  playerName: playerNameSchema
 });
 
 export const joinRoomSchema = z.object({
-  playerName: z.string().optional()
+  playerName: playerNameSchema
 });
 
 export const roomCodeParamsSchema = z.object({
@@ -57,7 +59,11 @@ export const roomSnapshotSchema = z.object({
   hostParticipantId: z.string(),
   participants: z.array(participantSchema),
   availableWords: z.array(z.string()),
-  roles: z.array(z.enum(["drawer", "guesser"]))
+  roles: z.array(z.enum(["drawer", "guesser"])),
+  roundState: z.object({
+    drawerId: z.string(),
+    secretWord: z.string().optional()
+  }).optional()
 });
 
 export const roomSessionResponseSchema = z.object({

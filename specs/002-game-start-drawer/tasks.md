@@ -28,7 +28,7 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T001 Define `RoundState` and update `Room` and `RoomSnapshot` interfaces in `backend/src/models/game.ts`
+- [x] T001 Define `RoundState` and update `Room` and `RoomSnapshot` interfaces in `backend/src/models/game.ts`
 
 **Checkpoint**: Foundation ready - user story implementation can now begin in parallel
 
@@ -42,9 +42,9 @@
 
 ### Implementation for User Story 1
 
-- [ ] T002 [P] [US1] Update `createRoomSchema` and `joinRoomSchema` in `backend/src/api/schemas.ts` with `.trim().min(1, "Player name is required")`
-- [ ] T003 [P] [US1] Enforce trimming and display validation errors in `frontend/src/pages/StartPage.tsx`
-- [ ] T004 [P] [US1] Enforce trimming and display validation errors in `frontend/src/pages/JoinRoomPage.tsx`
+- [x] T002 [P] [US1] Update `createRoomSchema` and `joinRoomSchema` in `backend/src/api/schemas.ts` with `.trim().min(1, "Player name is required")`
+- [x] T003 [P] [US1] Enforce trimming and display validation errors in `frontend/src/pages/StartPage.tsx`
+- [x] T004 [P] [US1] Enforce trimming and display validation errors in `frontend/src/pages/JoinRoomPage.tsx`
 
 **Checkpoint**: At this point, User Story 1 should be fully functional and testable independently
 
@@ -58,8 +58,8 @@
 
 ### Implementation for User Story 2
 
-- [ ] T005 [P] [US2] Update `startGame` in `backend/src/services/roomStore.ts` to transition status to `in-game` and assign `hostParticipantId` as `drawerId`
-- [ ] T006 [US2] Update `frontend/src/pages/GamePage.tsx` to display whether the current participant is the drawer or a guesser based on `roundState.drawerId`
+- [x] T005 [P] [US2] Update `startGame` in `backend/src/services/roomStore.ts` to transition status to `in-game` and assign `hostParticipantId` as `drawerId`
+- [x] T006 [US2] Update `frontend/src/pages/GamePage.tsx` to display whether the current participant is the drawer or a guesser based on `roundState.drawerId`
 
 **Checkpoint**: At this point, User Stories 1 AND 2 should both work independently
 
@@ -73,9 +73,9 @@
 
 ### Implementation for User Story 3
 
-- [ ] T007 [US3] Update `startGame` in `backend/src/services/roomStore.ts` to assign the first word from `STARTER_WORDS` to `roundState.secretWord`
-- [ ] T008 [US3] Update `toRoomSnapshot` in `backend/src/services/roomStore.ts` to selectively include `secretWord` in the snapshot only if `participantId === roundState.drawerId`
-- [ ] T009 [US3] Update `frontend/src/pages/GamePage.tsx` to conditionally display `roundState.secretWord` (if it exists in the snapshot)
+- [x] T007 [US3] Update `startGame` in `backend/src/services/roomStore.ts` to assign the first word from `STARTER_WORDS` to `roundState.secretWord`
+- [x] T008 [US3] Update `toRoomSnapshot` in `backend/src/services/roomStore.ts` to selectively include `secretWord` in the snapshot only if `participantId === roundState.drawerId`
+- [x] T009 [US3] Update `frontend/src/pages/GamePage.tsx` to conditionally display `roundState.secretWord` (if it exists in the snapshot)
 
 **Checkpoint**: All user stories should now be independently functional
 
@@ -85,7 +85,7 @@
 
 **Purpose**: Improvements that affect multiple user stories
 
-- [ ] T010 Run quickstart.md manual validation steps
+- [x] T010 Run quickstart.md manual validation steps
 
 ---
 

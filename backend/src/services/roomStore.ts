@@ -117,6 +117,10 @@ export function startGame(code: string, participantId: string): StartGameResult 
   }
 
   room.status = "in-game";
+  room.roundState = {
+    drawerId: room.hostParticipantId,
+    secretWord: STARTER_WORDS[0]
+  };
   room.updatedAt = now();
   rooms.set(room.code, room);
 
@@ -137,9 +141,7 @@ export function clearRoomsForTest() {
 }
 
 export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSnapshot {
-  void viewerParticipantId;
-
-  return {
+  const snapshot: RoomSnapshot = {
     code: room.code,
     status: room.status,
     hostParticipantId: room.hostParticipantId,
@@ -147,4 +149,16 @@ export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSn
     availableWords: listWords(),
     roles: [...STARTER_ROLES]
   };
+
+  if (room.roundState) {
+    snapshot.roundState = {
+      drawerId: room.roundState.drawerId
+    };
+
+    if (viewerParticipantId === room.roundState.drawerId) {
+      snapshot.roundState.secretWord = room.roundState.secretWord;
+    }
+  }
+
+  return snapshot;
 }

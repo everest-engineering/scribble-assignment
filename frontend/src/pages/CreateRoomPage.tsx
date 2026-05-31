@@ -11,10 +11,15 @@ export function CreateRoomPage() {
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    const normalizedName = playerName.trim();
 
     try {
       setError(null);
-      await roomStore.createRoom(playerName);
+      if (!normalizedName) {
+        throw new Error("Player name is required.");
+      }
+
+      await roomStore.createRoom(normalizedName);
       navigate("/lobby");
     } catch (caughtError) {
       setError(caughtError instanceof Error ? caughtError.message : "Unable to create room");

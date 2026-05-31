@@ -5,10 +5,11 @@ import { GuessForm } from "../components/GuessForm";
 import { ResultPanel } from "../components/ResultPanel";
 import { RoomCodeBadge } from "../components/RoomCodeBadge";
 import { Scoreboard } from "../components/Scoreboard";
-import { useRoomState } from "../state/roomStore";
+import { useRoomState, useRoomStore } from "../state/roomStore";
 
 export function GamePage() {
   const navigate = useNavigate();
+  const roomStore = useRoomStore();
   const { room, participantId } = useRoomState();
 
   useEffect(() => {
@@ -17,18 +18,35 @@ export function GamePage() {
     }
   }, [navigate, room]);
 
+  useEffect(() => {
+    if (!room || room.status !== "in-game") {
+      return undefined;
+    }
+
+    const intervalId = window.setInterval(() => {
+      void roomStore.fetchRoom().catch(() => undefined);
+    }, 2000);
+
+    return () => window.clearInterval(intervalId);
+  }, [room, roomStore]);
+
   if (!room) {
     return null;
   }
 
   const viewer = room.participants.find((participant) => participant.id === participantId) ?? null;
+  const isDrawer = room.roundState?.drawerId === participantId;
+  const roleDisplay = isDrawer ? "Drawer" : "Guesser";
+  const secretWord = room.roundState?.secretWord;
 
   return (
     <section className="panel game-page">
       <div className="game-page__header">
         <div className="game-page__header-left">
           <span className="section-kicker">Round 1</span>
-          <h1 className="game-page__title">Guess the Word!</h1>
+          <h1 className="game-page__title">
+            {isDrawer && secretWord ? `Draw: ${secretWord}` : "Guess the Word!"}
+          </h1>
         </div>
         <RoomCodeBadge code={room.code} />
       </div>
@@ -55,8 +73,8 @@ export function GamePage() {
                 <dd>{viewer?.name ?? "Unknown player"}</dd>
               </div>
               <div>
-                <dt>Status</dt>
-                <dd>Playing</dd>
+                <dt>Role</dt>
+                <dd>{roleDisplay}</dd>
               </div>
             </dl>
           </Card>
