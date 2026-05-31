@@ -1,6 +1,7 @@
 import { Router } from "express";
 import {
   createRoomSchema,
+  endRoundSchema,
   HttpError,
   joinRoomSchema,
   restartGameSchema,
@@ -11,6 +12,7 @@ import {
 } from "./schemas.js";
 import {
   createRoom,
+  endRound,
   getRoom,
   joinRoom,
   restartGame,
@@ -84,6 +86,22 @@ export function createRoomsRouter() {
       const { code } = roomCodeParamsSchema.parse(request.params);
       const { participantId, text } = submitGuessSchema.parse(request.body);
       const result = submitGuess(code.toUpperCase(), participantId, text);
+      if (!result.ok) {
+        throw new HttpError(400, result.error!);
+      }
+      response.json({
+        room: toRoomSnapshot(result.room!, participantId),
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/:code/end-round", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId } = endRoundSchema.parse(request.body);
+      const result = endRound(code.toUpperCase(), participantId);
       if (!result.ok) {
         throw new HttpError(400, result.error!);
       }

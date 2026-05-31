@@ -331,6 +331,15 @@ input {
   background: var(--surface-strong);
 }
 
+.button--accent {
+  background: var(--accent);
+  color: #ffffff;
+}
+
+.button--accent:hover:not(:disabled) {
+  background: #d97706;
+}
+
 .form {
   display: grid;
   gap: 24px;

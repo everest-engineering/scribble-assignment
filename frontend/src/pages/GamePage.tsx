@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import { Card } from "../components/Card";
 import { DrawingCanvas } from "../components/DrawingCanvas";
 import { GuessForm } from "../components/GuessForm";
-import { ResultPanel } from "../components/ResultPanel";
 import { RoomCodeBadge } from "../components/RoomCodeBadge";
 import { Scoreboard } from "../components/Scoreboard";
 import { useRoomState, useRoomStore } from "../state/roomStore";
@@ -12,11 +11,13 @@ export function GamePage() {
   const navigate = useNavigate();
   const roomStore = useRoomStore();
   const { room, participantId } = useRoomState();
-  const [restartError, setRestartError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!room) {
       navigate("/", { replace: true });
+    } else if (room.status === "lobby") {
+      navigate("/lobby");
     }
   }, [navigate, room]);
 
@@ -32,15 +33,24 @@ export function GamePage() {
     return () => clearInterval(interval);
   }, [handleRefresh]);
 
+  async function handleEndRound() {
+    try {
+      setActionError(null);
+      await roomStore.endRound();
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : "Unable to end round");
+    }
+  }
+
   async function handleRestart() {
     try {
-      setRestartError(null);
+      setActionError(null);
       const updatedRoom = await roomStore.restartGame();
       if (updatedRoom) {
         navigate("/lobby");
       }
     } catch (err) {
-      setRestartError(err instanceof Error ? err.message : "Unable to restart");
+      setActionError(err instanceof Error ? err.message : "Unable to restart");
     }
   }
 
@@ -70,7 +80,6 @@ export function GamePage() {
       <div className="game-page__layout">
         <aside className="game-page__sidebar game-page__sidebar--left">
           <Scoreboard participants={room.participants} />
-          <ResultPanel />
           <Card title="Guess History">
             {room.guesses.length === 0 ? (
               <div className="placeholder-block" style={{ backgroundColor: '#f9fafb' }}>
@@ -143,7 +152,7 @@ export function GamePage() {
       </div>
 
       <div className="button-row">
-        <button className="button button--secondary" onClick={() => navigate("/lobby")}>
+        <button className="button button--secondary" onClick={() => navigate("/")}>
           Exit Game
         </button>
         {isHost && isResults ? (
@@ -151,7 +160,12 @@ export function GamePage() {
             Restart Game
           </button>
         ) : null}
-        {restartError ? <p className="form__error">{restartError}</p> : null}
+        {isHost && !isResults && room.status === "playing" ? (
+          <button className="button button--accent" onClick={handleEndRound}>
+            End Round
+          </button>
+        ) : null}
+        {actionError ? <p className="form__error">{actionError}</p> : null}
       </div>
     </section>
   );

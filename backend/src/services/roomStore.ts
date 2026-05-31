@@ -175,6 +175,25 @@ export function startGame(code: string, participantId: string) {
   return { ok: true, room: cloneRoom(room) };
 }
 
+export function endRound(code: string, participantId: string) {
+  const room = rooms.get(code);
+  if (!room) {
+    return { ok: false, error: "Room not found" } as const;
+  }
+  if (room.status !== "playing") {
+    return { ok: false, error: "Game is not in progress" } as const;
+  }
+  if (room.hostId !== participantId) {
+    return { ok: false, error: "Only the host can end the round" } as const;
+  }
+
+  room.status = "results";
+  room.updatedAt = now();
+  rooms.set(room.code, room);
+
+  return { ok: true, room: cloneRoom(room) } as const;
+}
+
 export function restartGame(code: string, participantId: string) {
   const room = rooms.get(code);
   if (!room) {
