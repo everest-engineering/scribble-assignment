@@ -40,7 +40,20 @@
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-[Gates determined based on constitution file]
+Reference: `.specify/memory/constitution.md` (Scribble Constitution v1.0.0)
+
+| Gate | Requirement | Pass? |
+|------|-------------|-------|
+| Brownfield First | Plan extends existing starter files; no rewrite-from-scratch | ☐ |
+| Spec traceability | Feature maps to spec acceptance criteria and ordered tasks | ☐ |
+| Scope constraints | HTTP polling only; in-memory state; no auth; no out-of-scope items | ☐ |
+| TypeScript & Zod | Typed changes; backend payloads validated with Zod | ☐ |
+| Deterministic rules | Word selection, scoring, guess validation match spec | ☐ |
+| Incremental validation | Slice can be verified manually (e.g., two browser tabs) | ☐ |
+| Build health | `npm run build` passes in `backend/` and `frontend/` | ☐ |
+
+If any gate fails, document justification in **Complexity Tracking** below or
+revise the plan before implementation.
 
 ## Project Structure
 
