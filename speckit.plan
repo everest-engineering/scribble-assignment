@@ -1,0 +1,241 @@
+# Implementation Plan
+
+## Feature Group 1 — Room Setup & Lobby
+
+### State Model Changes
+
+**Backend (`game.ts`):**
+- Add `hostId: string` to `Room`
+- Expand `RoomStatus` to `"lobby" | "drawing" | "results"`
+
+**Backend (`roomStore.ts`):**
+- `createRoom` stores hostId as the creator's participant ID
+- Validation helpers: `validateName(name)` returns error or sanitized name
+- `toRoomSnapshot` includes `hostId` field
+- `startGame(code, participantId)` — validates host, validates min 2 players, transitions status
+
+**Frontend (`api.ts`):**
+- Add `startGame(code, participantId)` method
+- Fix base URL bug (`/bug` -> should be base URL without path)
+
+**Frontend (`roomStore.ts`):**
+- Add `startGame(code)` method
+- Add polling interval (useEffect with setInterval ~2s)
+- Expose `isHost` computed state
+
+**Frontend (`LobbyPage.tsx`):**
+- Show "You are the host" indicator
+- Use hostId to gate "Start Game" button
+- Disable start when < 2 players
+- Replace manual refresh with automatic polling
+- Navigate to /game on successful start
+
+### API Changes
+
+- `POST /rooms` — unchanged signature, now stores hostId
+- `POST /rooms/:code/join` — validate name, reject empty/whitespace
+- `GET /rooms/:code` — returns hostId in snapshot
+- `POST /rooms/:code/start` — new endpoint
+
+### Data Flow
+
+1. Player creates room -> backend returns hostId + room with status "lobby"
+2. Players join -> name validated on backend
+3. Lobby polls GET /rooms/:code every 2s -> updates participant list
+4. Host clicks Start -> POST /rooms/:code/start -> status becomes "drawing"
+5. On next poll, frontend detects status change -> navigates to /game
+
+### File-Level Changes
+
+| File | Change |
+|------|--------|
+| `backend/src/models/game.ts` | Add `hostId` to Room, expand RoomStatus |
+| `backend/src/services/roomStore.ts` | Host tracking, name validation, startGame, toRoomSnapshot update |
+| `backend/src/api/schemas.ts` | Add startGameSchema, update joinRoomSchema with required name |
+| `backend/src/api/rooms.ts` | Add POST /:code/start route, update join validation |
+| `frontend/src/services/api.ts` | Add startGame, fix base URL |
+| `frontend/src/state/roomStore.ts` | Add polling, startGame, isHost |
+| `frontend/src/pages/LobbyPage.tsx` | Host gating, auto-polling, navigate on start |
+
+### Polling Strategy
+
+- Poll interval: 2000ms
+- Start on LobbyPage mount, clear on unmount
+- On each poll response, check if `room.status` changed from "lobby" to "drawing" -> navigate to /game
+- Frontend only polls when on LobbyPage
+
+### Validation Strategy
+
+- Backend zod schemas enforce name requirements
+- Unit tests for name validation (empty, whitespace, valid)
+- Integration: two tabs, verify host-only start, verify min 2 players
+- Edge case: single player cannot start
+
+---
+
+## Feature Group 2 — Game Start & Drawer Flow
+
+### State Model Changes
+
+**Backend (`game.ts`):**
+- Add `GameRound` interface: `word: string, drawerId: string, status: "drawing" | "results"`
+- Add `currentRound: GameRound | null` to `Room`
+
+**Backend (`roomStore.ts`):**
+- `startGame` assigns drawer (host), selects word (first unused from starter list)
+- `toRoomSnapshot` filters word visibility based on viewerParticipantId
+- Track used words per room to enable deterministic selection
+
+### API Changes
+
+- Existing `POST /rooms/:code/start` returns word for drawer only
+- `GET /rooms/:code` returns `drawerId` and word only for drawer
+
+### Data Flow
+
+1. Host starts game -> backend assigns host as drawer, picks word
+2. Frontend polls -> detects status "drawing" -> navigates to /game
+3. GamePage reads snapshot -> drawer sees word, guessers see "?" or hidden
+
+### File-Level Changes
+
+| File | Change |
+|------|--------|
+| `backend/src/models/game.ts` | Add GameRound, currentRound to Room |
+| `backend/src/services/roomStore.ts` | startGame logic, word selection, word visibility |
+| `backend/src/seed/starterData.ts` | Add function to get words deterministically |
+| `frontend/src/services/api.ts` | Update typings for game state |
+| `frontend/src/pages/GamePage.tsx` | Show/hide word based on role |
+| `frontend/src/state/roomStore.ts` | Update types, handle status transition |
+| `frontend/src/components/Scoreboard.tsx` | Show role (drawer/guesser) |
+
+### Polling Strategy
+
+- GamePage starts polling on mount (~2s)
+- Polls GET /rooms/:code
+- Detects status changes for result transition
+
+### Validation Strategy
+
+- Test drawer assignment correctness
+- Test word is deterministic (same room always picks same first word)
+- Test word hidden from non-drawer participants
+- Test edge case: empty/whitespace names rejected
+
+---
+
+## Feature Group 3 — Gameplay Interaction
+
+### State Model Changes
+
+**Backend (`game.ts`):**
+- Add `Guess` interface: `participantId, participantName, text, isCorrect, timestamp`
+- Add `guesses: Guess[]` to `GameRound`
+- Add `scores: Record<string, number>` to `Room`
+- Add `drawingData: string | null` to `GameRound`
+
+**Backend (`roomStore.ts`):**
+- `submitGuess(code, participantId, text)` — validate guess, compare case-insensitively, award points
+- `updateDrawing(code, participantId, data)` — store canvas data
+- `clearDrawing(code, participantId)` — clear canvas data
+
+**Frontend (`api.ts`):**
+- Add `submitGuess(code, participantId, text)` method
+- Add `updateDrawing(code, participantId, data)` method
+- Add `clearDrawing(code, participantId)` method
+
+**Frontend (`roomStore.ts`):**
+- Add `submitGuess`, drawing interaction methods
+
+### API Changes
+
+- `POST /rooms/:code/guess` — new endpoint
+- `POST /rooms/:code/drawing` — new endpoint
+- `DELETE /rooms/:code/drawing` — new endpoint
+- `GET /rooms/:code` — returns guesses, drawingData, scores
+
+### Data Flow
+
+1. Drawer draws on canvas -> sends drawing data to backend via POST/drawing
+2. All players poll -> receive updated drawingData
+3. Guesser submits guess -> POST /guess -> backend validates -> returns result
+4. All players poll -> receive updated guess history and scores
+5. When word is correctly guessed -> backend sets round status to "results"
+
+### File-Level Changes
+
+| File | Change |
+|------|--------|
+| `backend/src/models/game.ts` | Add Guess, scores, drawingData |
+| `backend/src/services/roomStore.ts` | submitGuess, updateDrawing, clearDrawing, endRound logic |
+| `backend/src/api/schemas.ts` | Add guess schema, drawing schema |
+| `backend/src/api/rooms.ts` | Add guess, drawing endpoints |
+| `frontend/src/services/api.ts` | Add new API methods |
+| `frontend/src/state/roomStore.ts` | Add game interaction methods |
+| `frontend/src/components/GuessForm.tsx` | Wire up actual submit |
+| `frontend/src/components/Scoreboard.tsx` | Show real scores |
+| `frontend/src/components/ResultPanel.tsx` | Show real guess history |
+| `frontend/src/pages/GamePage.tsx` | Add canvas, wire everything together |
+
+### Polling Strategy
+
+- GamePage polls every 2s for game state (drawingData, guesses, scores)
+- Optimistic UI for own guess in GuessForm
+
+### Validation Strategy
+
+- Test guess validation (empty, whitespace, case-insensitive)
+- Test scoring (100 for correct, 0 for incorrect)
+- Test drawing updates visible to all
+- Test guess history consistency
+
+---
+
+## Feature Group 4 — Result & Restart
+
+### State Model Changes
+
+**Backend (`game.ts`):**
+- Round status "results" transition on correct guess
+- All round data preserved in result state
+
+**Backend (`roomStore.ts`):**
+- `getResults(code)` — return result data
+- `restartGame(code, participantId)` — reset round state, preserve players, set status to lobby
+- Reset: clear guesses, scores, drawingData, currentRound
+
+### API Changes
+
+- `POST /rooms/:code/restart` — new endpoint
+
+### Data Flow
+
+1. A player guesses correctly -> backend sets round status to "results"
+2. All players poll -> detect status "results" -> show result UI
+3. Host clicks "Restart" -> POST /restart -> status back to "lobby"
+4. All players poll -> detect "lobby" -> navigate to /lobby
+
+### File-Level Changes
+
+| File | Change |
+|------|--------|
+| `backend/src/services/roomStore.ts` | restartGame logic, result state |
+| `backend/src/api/rooms.ts` | Add POST /:code/restart route |
+| `backend/src/api/schemas.ts` | Add restart schema |
+| `frontend/src/services/api.ts` | Add restartGame method |
+| `frontend/src/state/roomStore.ts` | Add restart, result state handling |
+| `frontend/src/pages/GamePage.tsx` | Result state display, restart button |
+| `frontend/src/components/ResultPanel.tsx` | Show word, scores, guess history |
+| `frontend/src/pages/LobbyPage.tsx` | Preserved players on restart |
+
+### Polling Strategy
+
+- Continue polling on GamePage during results
+- After restart, polling on GamePage detects "lobby" -> frontend navigates to /lobby
+
+### Validation Strategy
+
+- Test result state visible to all players (host + non-host)
+- Test restart preserves participants
+- Test restart clears round data
+- Test multiple restart cycles

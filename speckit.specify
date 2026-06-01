@@ -1,0 +1,126 @@
+# Specification
+
+## Feature Group 1 — Room Setup & Lobby
+
+### Requirements
+
+- Host tracking: the player who creates a room is the host
+- Join validation: empty/whitespace-only names are rejected; invalid room codes show clear feedback
+- Invalid room feedback: attempting to join a non-existent room returns a 404 with a clear message
+- Multi-room isolation: operations in one room do not affect another room
+- Automatic polling: lobby refreshes every ~2 seconds automatically
+- Host-only start game: only the host can start the game
+- Minimum 2 players: host cannot start until at least 2 participants are present
+
+### Acceptance Criteria
+
+- AC1.1: Creating a room returns the creator's participant ID and marks them as host
+- AC1.2: The lobby snapshot exposes the host's participant ID
+- AC1.3: Joining a room with an empty/whitespace name returns a 400 error with message
+- AC1.4: Joining a non-existent room returns a 404 error with message
+- AC1.5: Participants in room A cannot see or affect participants in room B
+- AC1.6: The lobby page polls GET /rooms/:code every ~2 seconds
+- AC1.7: The "Start Game" button is only enabled for the host
+- AC1.8: The "Start Game" button is disabled if fewer than 2 players are in the room
+- AC1.9: Starting the game transitions room status from "lobby" to "drawing"
+
+### Edge Cases
+
+- Empty name string
+- Whitespace-only name ("   ")
+- Room code that doesn't exist
+- Single player in room trying to start
+
+---
+
+## Feature Group 2 — Game Start & Drawer Flow
+
+### Requirements
+
+- Trim player names: leading/trailing whitespace is stripped
+- Reject empty names: names that are empty after trimming are rejected
+- Drawer assignment: the host (first participant) becomes the drawer
+- Deterministic word selection: the first word from the starter list is selected for the round
+- Drawer-only word visibility: only the drawer sees the secret word in the snapshot
+
+### Acceptance Criteria
+
+- AC2.1: Player names are trimmed on create and join
+- AC2.2: A name of only whitespace is rejected with a 400 error
+- AC2.3: When the game starts, the host is assigned as the drawer
+- AC2.4: The selected word is the first word in the starter list that hasn't been used
+- AC2.5: The drawer can see the secret word in their game snapshot
+- AC2.6: Non-drawer players do not see the secret word in their game snapshot
+- AC2.7: Room status transitions to "drawing" after game start
+
+### Edge Cases
+
+- Name with leading/trailing spaces
+- Name that is only spaces
+- All roles assigned correctly with more than 2 players
+
+---
+
+## Feature Group 3 — Gameplay Interaction
+
+### Requirements
+
+- Interactive drawing canvas: the drawer can draw on a canvas
+- Clear canvas: the drawer can clear the canvas
+- Guess validation: empty/whitespace guesses are rejected
+- Guess history synchronization: all players see the same guess history
+- Polling updates: game state refreshes via ~2s polling
+- Case-insensitive matching: guesses match the word regardless of case
+- Deterministic scoring: correct guess = 100 points, incorrect = 0 points
+
+### Acceptance Criteria
+
+- AC3.1: The drawer sees a drawing canvas they can draw on
+- AC3.2: The drawer can clear the canvas
+- AC3.3: All guesses are trimmed before validation
+- AC3.4: Empty/whitespace-only guesses return a 400 error
+- AC3.5: Correct guesses are case-insensitively matched (e.g., "Rocket" matches "rocket")
+- AC3.6: A correct guess awards exactly 100 points
+- AC3.7: An incorrect guess awards 0 points
+- AC3.8: Guess history is synced to all players via polling
+- AC3.9: Multiple correct guesses by different players are all tracked
+
+### Edge Cases
+
+- Guess with leading/trailing spaces
+- Guess in different case
+- Empty guess submission
+- Whitespace-only guess
+
+---
+
+## Feature Group 4 — Result & Restart
+
+### Requirements
+
+- Shared result state: all players see the same result after the round ends
+- Reveal correct word: the secret word is shown to all players
+- Show final scores: scores for all participants are displayed
+- Show full guess history: all guesses from the round are displayed
+- Restart returns everyone to lobby: host triggers restart, all players navigate to lobby
+- Preserve players: the participant list and host are preserved after restart
+- Clear round state: drawing data, guesses, and scores are reset
+
+### Acceptance Criteria
+
+- AC4.1: After the round ends (word guessed), room status transitions to "results"
+- AC4.2: All players see the correct word in the result state
+- AC4.3: All players see final scores for every participant
+- AC4.4: All players see the full guess history
+- AC4.5: The host can trigger a restart
+- AC4.6: On restart, room status transitions back to "lobby"
+- AC4.7: On restart, all participants remain in the room
+- AC4.8: On restart, round-specific data (word, guesses, scores, drawing) is cleared
+- AC4.9: Non-host players see a "Waiting for host to restart" message
+- AC4.10: Restart returns all players to the lobby screen
+
+### Edge Cases
+
+- Restart with only 2 players (should still work)
+- Multiple restarts in sequence
+- Player who joined after game started

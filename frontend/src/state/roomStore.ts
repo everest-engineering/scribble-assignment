@@ -77,6 +77,10 @@ class RoomStore {
     });
   }
 
+  get isHost(): boolean {
+    return this.state.room !== null && this.state.participantId === this.state.room.hostId;
+  }
+
   async createRoom(playerName: string) {
     const response = await this.withLoading(() => api.createRoom(playerName));
     this.setRoomSession(response);
@@ -95,6 +99,58 @@ class RoomStore {
     }
 
     const response = await api.fetchRoom(this.state.room.code, this.state.participantId ?? undefined);
+    this.setRoomSnapshot(response.room);
+    return response.room;
+  }
+
+  async startGame() {
+    if (!this.state.room || !this.state.participantId) {
+      throw new Error("No active room");
+    }
+
+    const response = await this.withLoading(() =>
+      api.startGame(this.state.room!.code, this.state.participantId!)
+    );
+    this.setRoomSnapshot(response.room);
+    return response.room;
+  }
+
+  async submitGuess(text: string) {
+    if (!this.state.room || !this.state.participantId) {
+      throw new Error("No active room");
+    }
+
+    const response = await this.withLoading(() =>
+      api.submitGuess(this.state.room!.code, this.state.participantId!, text)
+    );
+    this.setRoomSnapshot(response.room);
+    return response;
+  }
+
+  async updateDrawing(data: string) {
+    if (!this.state.room || !this.state.participantId) {
+      throw new Error("No active room");
+    }
+
+    await api.updateDrawing(this.state.room.code, this.state.participantId, data);
+  }
+
+  async clearDrawing() {
+    if (!this.state.room || !this.state.participantId) {
+      throw new Error("No active room");
+    }
+
+    await api.clearDrawing(this.state.room.code, this.state.participantId);
+  }
+
+  async restartGame() {
+    if (!this.state.room || !this.state.participantId) {
+      throw new Error("No active room");
+    }
+
+    const response = await this.withLoading(() =>
+      api.restartGame(this.state.room!.code, this.state.participantId!)
+    );
     this.setRoomSnapshot(response.room);
     return response.room;
   }

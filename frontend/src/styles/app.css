@@ -398,6 +398,14 @@ input {
   font-weight: 500;
 }
 
+.player-list__badge {
+  color: var(--brand);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
 .player-list__meta {
   color: var(--ink-soft);
   font-size: 0.875rem;
