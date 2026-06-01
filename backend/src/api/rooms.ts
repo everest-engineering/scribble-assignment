@@ -4,9 +4,12 @@ import {
   HttpError,
   joinRoomSchema,
   roomCodeParamsSchema,
-  roomViewerQuerySchema
+  roomViewerQuerySchema,
+  submitGuessSchema,
+  startGameSchema
 } from "./schemas.js";
-import { createRoom, getRoom, joinRoom, toRoomSnapshot } from "../services/roomStore.js";
+import { createRoom, getRoom, joinRoom, startGame, submitGuess, toRoomSnapshot } from "../services/roomStore.js";
+import { restartRoom } from "../services/roomStore.js";
 
 export function createRoomsRouter() {
   const router = Router();
@@ -39,6 +42,56 @@ export function createRoomsRouter() {
         participantId: result.participantId,
         room: toRoomSnapshot(result.room, result.participantId)
       });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/:code/start", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId } = startGameSchema.parse(request.body);
+      const result = startGame(code, participantId);
+
+      if (!result.ok) {
+        throw new HttpError(result.statusCode, result.message);
+      }
+
+      response.json({
+        room: toRoomSnapshot(result.room, participantId)
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/:code/guesses", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId, guessText } = submitGuessSchema.parse(request.body);
+      const result = submitGuess(code, participantId, guessText);
+
+      if (!result.ok) {
+        throw new HttpError(result.statusCode as number, result.message as string);
+      }
+
+      response.json({ room: toRoomSnapshot(result.room as any, participantId) });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/:code/restart", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId } = startGameSchema.parse(request.body);
+      const result = restartRoom(code, participantId);
+
+      if (!result.ok) {
+        throw new HttpError(result.statusCode as number, result.message as string);
+      }
+
+      response.json({ room: toRoomSnapshot(result.room as any, participantId) });
     } catch (error) {
       next(error);
     }
