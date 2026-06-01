@@ -7,8 +7,11 @@ export function ResultPanel() {
   if (!room || room.guesses.length === 0) {
     return (
       <Card title="Activity">
-        <div className="placeholder-block" style={{ backgroundColor: '#f9fafb' }}>
-          <p style={{ fontSize: '0.875rem', color: '#6b7280' }}>
+        <div
+          className="placeholder-block"
+          style={{ backgroundColor: "#f9fafb" }}
+        >
+          <p style={{ fontSize: "0.875rem", color: "#6b7280" }}>
             Game activity and guesses will appear here.
           </p>
         </div>
@@ -24,8 +27,8 @@ export function ResultPanel() {
             <span>
               <strong>{guess.participantName}:</strong> {guess.guess}
             </span>
-            <span style={{ color: guess.correct ? '#15803d' : '#6b7280' }}>
-              {guess.correct ? 'Correct' : 'Incorrect'}
+            <span style={{ color: guess.correct ? "#15803d" : "#6b7280" }}>
+              {guess.correct ? "Correct" : "Incorrect"}
             </span>
           </li>
         ))}

@@ -6,9 +6,7 @@ import type { DrawingPoint, DrawingPath } from "../services/api";
 const CANVAS_WIDTH = 700;
 const CANVAS_HEIGHT = 320;
 
-function getCanvasPoint(
-  event: PointerEvent<HTMLCanvasElement>,
-): DrawingPoint {
+function getCanvasPoint(event: PointerEvent<HTMLCanvasElement>): DrawingPoint {
   const canvas = event.currentTarget;
   const bounds = canvas.getBoundingClientRect();
 
@@ -77,14 +75,11 @@ export function DrawingCanvas({ readOnly = false }: DrawingCanvasProps) {
     });
 
     if (currentPoints.length > 0) {
-      drawPath(
-        context,
-        {
-          points: currentPoints,
-          color: "#000000",
-          width: 2,
-        },
-      );
+      drawPath(context, {
+        points: currentPoints,
+        color: "#000000",
+        width: 2,
+      });
     }
   }, [room?.drawingPaths, currentPoints, room]);
 

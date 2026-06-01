@@ -39,7 +39,9 @@ export function GuessForm({ disabled = false }: GuessFormProps) {
           className="form__input"
           value={guessText}
           onChange={(event) => setGuessText(event.target.value)}
-          placeholder={isDrawer ? "Drawer cannot guess" : "Type your guess here..."}
+          placeholder={
+            isDrawer ? "Drawer cannot guess" : "Type your guess here..."
+          }
           disabled={disabled || isDrawer}
         />
       </label>

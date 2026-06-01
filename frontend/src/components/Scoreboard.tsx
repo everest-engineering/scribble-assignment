@@ -7,7 +7,10 @@ export function Scoreboard() {
   if (!room) {
     return (
       <Card title="Scoreboard">
-        <div className="placeholder-block" style={{ backgroundColor: '#f9fafb' }}>
+        <div
+          className="placeholder-block"
+          style={{ backgroundColor: "#f9fafb" }}
+        >
           <div className="placeholder-row">
             <span>Waiting for players...</span>
             <strong>0</strong>
