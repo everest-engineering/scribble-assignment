@@ -404,6 +404,20 @@ input {
   font-weight: 400;
 }
 
+.host-badge {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: var(--brand);
+  color: #ffffff;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  vertical-align: middle;
+}
+
 .status-line,
 .placeholder-note {
   width: max-content;

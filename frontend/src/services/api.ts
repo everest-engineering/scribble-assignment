@@ -8,8 +8,12 @@ export interface Participant {
 
 export interface RoomSnapshot {
   code: string;
-  status: "lobby";
+  status: "lobby" | "inGame";
   participants: Participant[];
+  hostParticipantId: string | null;
+  viewerParticipantId: string | null;
+  isHost: boolean;
+  canStart: boolean;
   availableWords: string[];
   roles: ParticipantRole[];
 }
@@ -19,7 +23,11 @@ export interface RoomSessionResponse {
   room: RoomSnapshot;
 }
 
-const API_BASE_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3001/bug";
+export interface StartGameResponse {
+  room: RoomSnapshot;
+}
+
+const API_BASE_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3001";
 
 async function request<T>(path: string, init?: RequestInit) {
   const response = await fetch(`${API_BASE_URL}${path}`, {
@@ -57,5 +65,11 @@ export const api = {
   fetchRoom(code: string, participantId?: string) {
     const query = participantId ? `?participantId=${encodeURIComponent(participantId)}` : "";
     return request<{ room: RoomSnapshot }>(`/rooms/${encodeURIComponent(code)}${query}`);
+  },
+  startRoom(code: string, participantId: string) {
+    return request<StartGameResponse>(`/rooms/${encodeURIComponent(code)}/start`, {
+      method: "POST",
+      body: JSON.stringify({ participantId })
+    });
   }
 };
