@@ -137,6 +137,18 @@ export class RoomStore {
     return response.room;
   }
 
+  async restartRoom() {
+    if (!this.state.room || !this.state.participantId) {
+      throw new Error("Room session is required to restart the game");
+    }
+
+    const response = await this.withLoading(() =>
+      api.restartRoom(this.state.room!.code, this.state.participantId!)
+    );
+    this.setRoomSnapshot(response.room);
+    return response.room;
+  }
+
   startPolling() {
     if (this.pollInterval || !this.state.room) {
       return;

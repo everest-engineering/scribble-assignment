@@ -7,6 +7,8 @@ vi.mock("../services/api", () => ({
     createRoom: vi.fn(),
     joinRoom: vi.fn(),
     startGame: vi.fn(),
+    submitGuess: vi.fn(),
+    restartRoom: vi.fn(),
     fetchRoom: vi.fn(),
   },
 }));
@@ -104,7 +106,8 @@ describe("RoomStore", () => {
         status: "active" as const,
         drawerId: "host-1",
         drawerName: "Alice",
-        guessHistory: []
+        guessHistory: [],
+        totalScore: 0
       }
     };
     vi.mocked(api.startGame).mockResolvedValue({ room: activeSnapshot });
@@ -115,6 +118,44 @@ describe("RoomStore", () => {
 
     expect(api.startGame).toHaveBeenCalledWith("WXYZ", "host-1");
     expect(store.getSnapshot().room).toEqual(activeSnapshot);
+  });
+
+  it("updates room snapshot after restartRoom succeeds", async () => {
+    const activeSnapshot = {
+      code: "WXYZ",
+      hostId: "host-1",
+      gameState: "finished" as const,
+      participants: [],
+      availableWords: [],
+      roles: [] as ParticipantRole[],
+      currentRound: {
+        roundNumber: 1,
+        status: "finished" as const,
+        drawerId: "host-1",
+        drawerName: "Alice",
+        secretWord: "rocket",
+        guessHistory: [],
+        totalScore: 100,
+        result: { correctWord: "rocket", finalizedAt: new Date().toISOString() }
+      }
+    };
+    const lobbySnapshot = {
+      code: "WXYZ",
+      hostId: "host-1",
+      gameState: "lobby" as const,
+      participants: [],
+      availableWords: [],
+      roles: [] as ParticipantRole[]
+    };
+
+    vi.mocked(api.restartRoom).mockResolvedValue({ room: lobbySnapshot });
+
+    const store = new RoomStore();
+    store.setRoomSession({ participantId: "host-1", room: activeSnapshot });
+    await store.restartRoom();
+
+    expect(api.restartRoom).toHaveBeenCalledWith("WXYZ", "host-1");
+    expect(store.getSnapshot().room).toEqual(lobbySnapshot);
   });
 
   it("preserves viewer-specific active round snapshots while polling", async () => {
@@ -131,7 +172,8 @@ describe("RoomStore", () => {
         drawerId: "host-1",
         drawerName: "Alice",
         secretWord: "rocket",
-        guessHistory: []
+        guessHistory: [],
+        totalScore: 0
       }
     };
     vi.mocked(api.fetchRoom).mockResolvedValue({ room: drawerSnapshot });

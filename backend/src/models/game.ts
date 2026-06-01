@@ -1,7 +1,7 @@
 export type ParticipantRole = "drawer" | "guesser";
 export type RoomStatus = "lobby" | "inProgress";
 export type GameState = "lobby" | "inProgress" | "finished";
-export type RoundStatus = "active";
+export type RoundStatus = "active" | "finished";
 
 export interface Participant {
   id: string;
@@ -24,6 +24,8 @@ export interface Room {
   code: string;
   hostId: string;
   status: RoomStatus;
+  /** High-level game state (lobby | inProgress | finished) */
+  gameState: GameState;
   participants: Participant[];
   currentRound?: Round;
   createdAt: string;
@@ -38,6 +40,11 @@ export interface Round {
   startedAt: string;
   guessHistory: Guess[];
   totalScore: number;
+  /** Populated when the round is finished */
+  result?: {
+    correctWord: string;
+    finalizedAt: string;
+  };
 }
 
 export interface RoundSnapshot {
@@ -47,6 +54,11 @@ export interface RoundSnapshot {
   drawerName: string;
   secretWord?: string;
   guessHistory: Guess[];
+  totalScore: number;
+  result?: {
+    correctWord: string;
+    finalizedAt: string;
+  };
 }
 
 export interface RoomSnapshot {

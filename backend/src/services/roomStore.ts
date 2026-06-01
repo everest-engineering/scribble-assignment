@@ -73,6 +73,7 @@ export function createRoom(playerName: string) {
     code: generateUniqueCode(),
     hostId: participant.id,
     status: "lobby",
+    gameState: "lobby",
     participants: [participant],
     createdAt: now(),
     updatedAt: now()
@@ -155,6 +156,7 @@ export function startGame(code: string, participantId: string): StartGameResult 
   }
 
   room.status = "inProgress";
+  room.gameState = "inProgress";
   room.currentRound = {
     roundNumber: 1,
     status: "active",
@@ -164,6 +166,46 @@ export function startGame(code: string, participantId: string): StartGameResult 
     guessHistory: [],
     totalScore: 0
   };
+  room.updatedAt = now();
+  rooms.set(room.code, room);
+
+  return {
+    ok: true,
+    room: cloneRoom(room)
+  };
+}
+
+export function restartRoom(code: string, participantId: string) {
+  const room = rooms.get(code);
+
+  if (!room) {
+    return {
+      ok: false,
+      statusCode: 404,
+      message: "Unable to load room"
+    };
+  }
+
+  if (participantId !== room.hostId) {
+    return {
+      ok: false,
+      statusCode: 403,
+      message: "Only the host can restart the room"
+    };
+  }
+
+  if (room.gameState !== "finished") {
+    return {
+      ok: false,
+      statusCode: 400,
+      message: "Room must be finished before restart"
+    };
+  }
+
+  // Clear round-specific state but preserve participants and host
+  room.status = "lobby";
+  room.gameState = "lobby";
+  room.currentRound = undefined;
   room.updatedAt = now();
   rooms.set(room.code, room);
 
@@ -184,7 +226,7 @@ export function submitGuess(code: string, participantId: string, guessText: stri
     };
   }
 
-  if (!room.currentRound || room.status !== "inProgress") {
+  if (!room.currentRound || room.status !== "inProgress" || room.currentRound.status !== "active") {
     return {
       ok: false,
       statusCode: 409,
@@ -226,6 +268,17 @@ export function submitGuess(code: string, participantId: string, guessText: stri
 
   room.currentRound.guessHistory.push(guess);
   room.currentRound.totalScore += score;
+
+  if (correct) {
+    room.currentRound.status = "finished";
+    room.currentRound.result = {
+      correctWord: room.currentRound.secretWord,
+      finalizedAt: now()
+    };
+    room.status = "inProgress";
+    room.gameState = "finished";
+  }
+
   room.updatedAt = now();
   rooms.set(room.code, room);
 
@@ -240,24 +293,28 @@ export function toRoomSnapshot(room: Room, viewerId?: string): RoomSnapshot {
     ? room.participants.find((participant) => participant.id === room.currentRound?.drawerId)
     : undefined;
 
+  const currentRoundSnapshot = room.currentRound
+    ? {
+        roundNumber: room.currentRound.roundNumber,
+        status: room.currentRound.status,
+        drawerId: room.currentRound.drawerId,
+        drawerName: drawer?.name ?? "",
+        ...(room.currentRound.status === "finished" || viewerId === room.currentRound.drawerId
+          ? { secretWord: room.currentRound.secretWord }
+          : {}),
+        guessHistory: [...room.currentRound.guessHistory],
+        totalScore: room.currentRound.totalScore,
+        ...(room.currentRound.result ? { result: { ...room.currentRound.result } } : {})
+      }
+    : undefined;
+
   return {
     code: room.code,
     hostId: room.hostId,
-    gameState: room.status,
+    gameState: room.gameState,
     participants: room.participants.map((participant) => ({ ...participant })),
     availableWords: listWords(),
     roles: [...STARTER_ROLES],
-    ...(room.currentRound && drawer
-      ? {
-          currentRound: {
-            roundNumber: room.currentRound.roundNumber,
-            status: room.currentRound.status,
-            drawerId: room.currentRound.drawerId,
-            drawerName: drawer.name,
-            ...(viewerId === room.currentRound.drawerId ? { secretWord: room.currentRound.secretWord } : {}),
-            guessHistory: [...room.currentRound.guessHistory]
-          }
-        }
-      : {})
+    ...(currentRoundSnapshot ? { currentRound: currentRoundSnapshot } : {})
   };
 }

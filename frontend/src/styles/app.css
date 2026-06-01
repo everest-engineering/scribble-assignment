@@ -581,6 +581,75 @@ input {
   font-weight: 500;
 }
 
+.result-panel {
+  display: grid;
+  gap: 18px;
+}
+
+.result-summary {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+}
+
+.result-summary div {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--line);
+}
+
+.result-summary dt,
+.result-history h3 {
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: 0.875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.result-summary dd {
+  margin: 0;
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.result-history {
+  display: grid;
+  gap: 10px;
+}
+
+.guess-history-list {
+  display: grid;
+  gap: 10px;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.guess-history-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-strong);
+}
+
+.guess-status {
+  flex: 0 0 auto;
+  color: #991b1b;
+  font-size: 0.8125rem;
+  font-weight: 700;
+}
+
+.guess-status--correct {
+  color: #166534;
+}
+
 @media (max-width: 720px) {
   .app-shell {
     padding: 24px 16px;

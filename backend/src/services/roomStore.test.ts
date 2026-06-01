@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createRoom, joinRoom, getRoom, saveRoom, startGame, submitGuess, toRoomSnapshot } from "./roomStore.js";
+import { createRoom, joinRoom, getRoom, saveRoom, startGame, submitGuess, toRoomSnapshot, restartRoom } from "./roomStore.js";
 
 describe("roomStore", () => {
   it("createRoom returns a room with a 4-character uppercase code and host participant", () => {
@@ -224,5 +224,68 @@ describe("roomStore", () => {
 
     expect(drawerSnapshot.currentRound?.secretWord).toBe("rocket");
     expect(guesserSnapshot.currentRound?.secretWord).toBeUndefined();
+  });
+
+  it("restartRoom lets the host reset round state back to lobby and preserves participants", () => {
+    const host = createRoom("Alice");
+    const bob = joinRoom(host.room.code, "Bob");
+
+    if (!bob) {
+      throw new Error("Expected Bob to join");
+    }
+
+    const startResult = startGame(host.room.code, host.participantId);
+    if (!startResult.ok) {
+      throw new Error(startResult.message);
+    }
+
+    const guessResult = submitGuess(host.room.code, bob.participantId, "rocket");
+    if (!guessResult.ok) {
+      throw new Error(guessResult.message);
+    }
+
+    const restartResult = restartRoom(host.room.code, host.participantId);
+
+    expect(restartResult.ok).toBe(true);
+    if (!restartResult.ok) {
+      throw new Error(restartResult.message);
+    }
+
+    const room = restartResult.room as any;
+    expect(room.status).toBe("lobby");
+    expect(room.gameState).toBe("lobby");
+    expect(room.currentRound).toBeUndefined();
+    expect(room.participants).toHaveLength(2);
+  });
+
+  it("restartRoom rejects non-host participants", () => {
+    const host = createRoom("Alice");
+    const bob = joinRoom(host.room.code, "Bob");
+
+    if (!bob) {
+      throw new Error("Expected Bob to join");
+    }
+
+    const result = restartRoom(host.room.code, bob.participantId);
+
+    expect(result).toEqual({
+      ok: false,
+      statusCode: 403,
+      message: "Only the host can restart the room"
+    });
+  });
+
+  it("restartRoom rejects restart when the room is not finished", () => {
+    const host = createRoom("Alice");
+    joinRoom(host.room.code, "Bob");
+    startGame(host.room.code, host.participantId);
+
+    const result = restartRoom(host.room.code, host.participantId);
+
+    expect(result).toEqual({
+      ok: false,
+      statusCode: 400,
+      message: "Room must be finished before restart"
+    });
   });
 });

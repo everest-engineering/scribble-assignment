@@ -6,17 +6,29 @@ import { ResultPanel } from "../components/ResultPanel";
 import { RoomCodeBadge } from "../components/RoomCodeBadge";
 import { CanvasBoard } from "../components/CanvasBoard";
 import { Scoreboard } from "../components/Scoreboard";
-import { useRoomState } from "../state/roomStore";
+import { useRoomState, useRoomStore } from "../state/roomStore";
 
 export function GamePage() {
   const navigate = useNavigate();
+  const roomStore = useRoomStore();
   const { room, participantId } = useRoomState();
 
   useEffect(() => {
     if (!room) {
       navigate("/", { replace: true });
+      return;
     }
-  }, [navigate, room]);
+
+    if (room.gameState === "lobby") {
+      navigate("/lobby", { replace: true });
+      return;
+    }
+
+    roomStore.startPolling();
+    return () => {
+      roomStore.stopPolling();
+    };
+  }, [navigate, room, roomStore]);
 
   if (!room) {
     return null;
@@ -43,11 +55,15 @@ export function GamePage() {
         </aside>
 
         <div className="game-page__main">
-          <Card title="Canvas">
-            {isDrawer ? (
+          <Card title={room.gameState === "finished" ? "Round Complete" : "Canvas"}>
+            {room.gameState === "finished" ? (
+              <div className="canvas-placeholder">
+                Round complete. Review the results and wait for restart.
+              </div>
+            ) : isDrawer ? (
               <CanvasBoard />
             ) : (
-              <div className="canvas-placeholder" style={{ minHeight: '500px', backgroundColor: '#ffffff', border: '1px solid #e5e7eb' }}>
+              <div className="canvas-placeholder">
                 Waiting for drawer...
               </div>
             )}
@@ -102,7 +118,7 @@ export function GamePage() {
           </Card>
 
           <Card title="Your Guess">
-            <GuessForm />
+            <GuessForm disabled={room.gameState === "finished"} />
           </Card>
         </aside>
       </div>
