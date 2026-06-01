@@ -7,7 +7,7 @@ import {
   useSyncExternalStore,
   type PropsWithChildren
 } from "react";
-import { api, type RoomSessionResponse, type RoomSnapshot } from "../services/api";
+import { api, type DrawingStroke, type RoomSessionResponse, type RoomSnapshot } from "../services/api";
 
 export interface RoomState {
   room: RoomSnapshot | null;
@@ -97,6 +97,69 @@ class RoomStore {
     const response = await api.fetchRoom(this.state.room.code, this.state.participantId ?? undefined);
     this.setRoomSnapshot(response.room);
     return response.room;
+  }
+
+  async startGame() {
+    if (!this.state.room || !this.state.participantId) {
+      return;
+    }
+
+    const response = await this.withLoading(() => api.startGame(this.state.room!.code, this.state.participantId!));
+    this.setRoomSnapshot(response.room);
+    return response.room;
+  }
+
+  async leaveGame() {
+    if (!this.state.room || !this.state.participantId) {
+      return;
+    }
+
+    await this.withLoading(() => api.leaveGame(this.state.room!.code, this.state.participantId!));
+    this.setState({ room: null, participantId: null });
+  }
+
+  async submitStrokes(strokes: DrawingStroke[]) {
+    if (!this.state.room || !this.state.participantId) {
+      return;
+    }
+
+    await api.submitStrokes(this.state.room.code, this.state.participantId, strokes);
+  }
+
+  async clearStrokes() {
+    if (!this.state.room || !this.state.participantId) {
+      return;
+    }
+
+    await api.clearStrokes(this.state.room.code, this.state.participantId);
+  }
+
+  async submitGuess(text: string) {
+    if (!this.state.room || !this.state.participantId) {
+      return null;
+    }
+
+    const response = await this.withLoading(() => api.submitGuess(this.state.room!.code, this.state.participantId!, text));
+    this.setRoomSnapshot(response.room);
+    return response;
+  }
+
+  async revealWord() {
+    if (!this.state.room || !this.state.participantId) {
+      return;
+    }
+
+    const response = await this.withLoading(() => api.revealWord(this.state.room!.code, this.state.participantId!));
+    this.setRoomSnapshot(response.room);
+  }
+
+  async playAgain() {
+    if (!this.state.room || !this.state.participantId) {
+      return;
+    }
+
+    const response = await this.withLoading(() => api.playAgain(this.state.room!.code, this.state.participantId!));
+    this.setRoomSnapshot(response.room);
   }
 }
 

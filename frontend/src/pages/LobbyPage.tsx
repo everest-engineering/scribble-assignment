@@ -1,7 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card } from "../components/Card";
 import { PageHeader } from "../components/PageHeader";
+import { ParticipantList } from "../components/ParticipantList";
 import { RoomCodeBadge } from "../components/RoomCodeBadge";
 import { useRoomState, useRoomStore } from "../state/roomStore";
 
@@ -10,12 +11,33 @@ export function LobbyPage() {
   const roomStore = useRoomStore();
   const { room, error, isLoading } = useRoomState();
   const [refreshError, setRefreshError] = useState<string | null>(null);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
     if (!room) {
       navigate("/", { replace: true });
     }
   }, [navigate, room]);
+
+  useEffect(() => {
+    if (!room) {
+      return;
+    }
+
+    intervalRef.current = setInterval(async () => {
+      try {
+        await roomStore.fetchRoom();
+      } catch {
+        setRefreshError("Unable to reach server");
+      }
+    }, 2000);
+
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
+    };
+  }, [roomStore, room]);
 
   async function handleRefresh() {
     try {
@@ -26,9 +48,21 @@ export function LobbyPage() {
     }
   }
 
+  async function handleStartGame() {
+    try {
+      await roomStore.startGame();
+      navigate("/game");
+    } catch (caughtError) {
+      setRefreshError(caughtError instanceof Error ? caughtError.message : "Unable to start game");
+    }
+  }
+
   if (!room) {
     return null;
   }
+
+  const isHost = roomStore.getSnapshot().participantId === room.hostId;
+  const canStart = room.participants.length >= 2;
 
   return (
     <section className="panel placeholder-page">
@@ -43,18 +77,7 @@ export function LobbyPage() {
 
       <div className="summary-grid">
         <Card title="Participants">
-          {room.participants.length === 0 ? (
-            <p>No participants are connected to this room yet.</p>
-          ) : (
-            <ul className="player-list">
-              {room.participants.map((participant) => (
-                <li key={participant.id}>
-                  <span>{participant.name}</span>
-                  <span className="player-list__meta">joined</span>
-                </li>
-              ))}
-            </ul>
-          )}
+          <ParticipantList participants={room.participants} hostId={room.hostId} />
         </Card>
 
         <Card title="Status">
@@ -69,9 +92,11 @@ export function LobbyPage() {
         <button className="button button--secondary" disabled={isLoading} onClick={handleRefresh}>
           {isLoading ? "Refreshing..." : "Refresh Room"}
         </button>
-        <button className="button button--primary" onClick={() => navigate("/game")}>
-          Start Game
-        </button>
+        {isHost ? (
+          <button className="button button--primary" disabled={!canStart || isLoading} onClick={handleStartGame}>
+            {canStart ? "Start Game" : "Waiting for players..."}
+          </button>
+        ) : null}
       </div>
     </section>
   );

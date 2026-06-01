@@ -11,10 +11,21 @@ export function CreateRoomPage() {
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    setError(null);
+
+    const trimmed = playerName.trim();
+    if (!trimmed) {
+      setError("Player name is required");
+      return;
+    }
+
+    if (trimmed.length > 20) {
+      setError("Player name must be at most 20 characters");
+      return;
+    }
 
     try {
-      setError(null);
-      await roomStore.createRoom(playerName);
+      await roomStore.createRoom(trimmed);
       navigate("/lobby");
     } catch (caughtError) {
       setError(caughtError instanceof Error ? caughtError.message : "Unable to create room");
