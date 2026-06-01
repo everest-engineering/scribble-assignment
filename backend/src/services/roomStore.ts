@@ -46,6 +46,14 @@ function cloneRoom(room: Room) {
   return structuredClone(room);
 }
 
+function selectSecretWord(room: Room) {
+  const seed = [...room.code, room.createdAt]
+    .flatMap((character) => character.codePointAt(0) ?? 0)
+    .reduce((sum, code) => sum + code, 0);
+
+  return STARTER_WORDS[seed % STARTER_WORDS.length];
+}
+
 export function listWords() {
   return [...STARTER_WORDS];
 }
@@ -91,6 +99,29 @@ export function getRoom(code: string) {
   return room ? cloneRoom(room) : null;
 }
 
+export function startRoom(room: Room, participantId: string) {
+  const host = room.participants.find((participant) => participant.isHost);
+
+  if (!host || host.id !== participantId) {
+    throw new Error("Only the host may start the game");
+  }
+
+  if (room.participants.length < 2) {
+    throw new Error("At least two players are required to start the game");
+  }
+
+  if (room.status === "active") {
+    return room;
+  }
+
+  const drawer = host || room.participants[0];
+  room.drawerId = drawer.id;
+  room.secretWord = selectSecretWord(room);
+  room.status = "active";
+
+  return saveRoom(room);
+}
+
 export function saveRoom(room: Room) {
   room.updatedAt = now();
   const savedRoom = cloneRoom(room);
@@ -102,12 +133,12 @@ export function toRoomSnapshot(
   room: Room,
   viewerParticipantId?: string,
 ): RoomSnapshot {
-  void viewerParticipantId;
-
   return {
     code: room.code,
     status: room.status,
     participants: room.participants.map((participant) => ({ ...participant })),
+    drawerId: room.drawerId,
+    secretWord: room.drawerId === viewerParticipantId ? room.secretWord : undefined,
     availableWords: listWords(),
     roles: [...STARTER_ROLES],
   };

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createRoom, joinRoom } from "./roomStore.js";
+import { createRoom, joinRoom, startRoom, getRoom } from "./roomStore.js";
 
 describe("roomStore", () => {
   it("createRoom returns a room with a 4-character uppercase code", () => {
@@ -15,5 +15,26 @@ describe("roomStore", () => {
     const result = joinRoom("ZZZZ", "Bob");
 
     expect(result).toBeNull();
+  });
+
+  it("startRoom assigns the host as drawer and reveals the word only to the drawer", () => {
+    const hostSession = createRoom("Alice");
+    const roomCode = hostSession.room.code;
+
+    const joinResult = joinRoom(roomCode, "Bob");
+    expect(joinResult).not.toBeNull();
+
+    const currentRoom = getRoom(roomCode);
+    expect(currentRoom).not.toBeNull();
+
+    const savedRoom = startRoom(currentRoom!, hostSession.participantId);
+
+    expect(savedRoom.status).toBe("active");
+    expect(savedRoom.drawerId).toBe(hostSession.participantId);
+    expect(savedRoom.secretWord).toBeDefined();
+
+    const reloaded = getRoom(roomCode);
+    expect(reloaded?.drawerId).toBe(hostSession.participantId);
+    expect(reloaded?.secretWord).toBe(savedRoom.secretWord);
   });
 });

@@ -11,8 +11,8 @@ import {
   createRoom,
   getRoom,
   joinRoom,
+  startRoom,
   toRoomSnapshot,
-  saveRoom,
 } from "../services/roomStore.js";
 
 export function createRoomsRouter() {
@@ -76,9 +76,7 @@ export function createRoomsRouter() {
         );
       }
 
-      // transition room status to active
-      room.status = "active";
-      const saved = saveRoom(room);
+      const saved = startRoom(room, parsedParticipantId);
 
       response.json({ room: toRoomSnapshot(saved, parsedParticipantId) });
     } catch (error) {
