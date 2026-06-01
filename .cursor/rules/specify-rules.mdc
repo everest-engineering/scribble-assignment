@@ -4,5 +4,12 @@ alwaysApply: true
 
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
-shell commands, and other important information, read the current plan
+shell commands, and other important information, read the current plan:
+
+- **Active plan**: `specs/001-host-join-rooms/plan.md`
+- **Spec**: `specs/001-host-join-rooms/spec.md`
+- **Data model**: `specs/001-host-join-rooms/data-model.md`
+- **API contract**: `specs/001-host-join-rooms/contracts/rooms-api.md`
+- **Quickstart**: `specs/001-host-join-rooms/quickstart.md`
+- **Tasks**: `specs/001-host-join-rooms/tasks.md`
 <!-- SPECKIT END -->
