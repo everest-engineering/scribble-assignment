@@ -1,21 +1,24 @@
 import { Router } from "express";
 import {
   createRoomSchema,
-  HttpError,
+  gameplayQuerySchema,
   joinRoomSchema,
   roomCodeParamsSchema,
   roomViewerQuerySchema,
-  startGameQuerySchema
+  startGameQuerySchema,
+  submitGuessBodySchema,
+  updateCanvasBodySchema
 } from "./schemas.js";
 import { mapRoomServiceError } from "./roomErrorMapper.js";
 import { RoomServiceError } from "../services/roomErrors.js";
 import {
   createRoom,
-  getRoom,
   getRoomForParticipant,
   joinRoom,
   startGame,
-  toRoomSnapshot
+  submitGuess,
+  toRoomSnapshot,
+  updateCanvas
 } from "../services/roomStore.js";
 
 export function createRoomsRouter() {
@@ -63,6 +66,44 @@ export function createRoomsRouter() {
       const { code } = roomCodeParamsSchema.parse(request.params);
       const { participantId } = roomViewerQuerySchema.parse(request.query);
       const room = getRoomForParticipant(code, participantId);
+
+      response.json({
+        room: toRoomSnapshot(room, participantId)
+      });
+    } catch (error) {
+      if (error instanceof RoomServiceError) {
+        next(mapRoomServiceError(error));
+        return;
+      }
+      next(error);
+    }
+  });
+
+  router.put("/:code/canvas", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId } = gameplayQuerySchema.parse(request.query);
+      const { strokes } = updateCanvasBodySchema.parse(request.body);
+      const room = updateCanvas(code, participantId, strokes);
+
+      response.json({
+        room: toRoomSnapshot(room, participantId)
+      });
+    } catch (error) {
+      if (error instanceof RoomServiceError) {
+        next(mapRoomServiceError(error));
+        return;
+      }
+      next(error);
+    }
+  });
+
+  router.post("/:code/guesses", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId } = gameplayQuerySchema.parse(request.query);
+      const { text } = submitGuessBodySchema.parse(request.body);
+      const room = submitGuess(code, participantId, text);
 
       response.json({
         room: toRoomSnapshot(room, participantId)

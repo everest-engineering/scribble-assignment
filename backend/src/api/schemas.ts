@@ -28,6 +28,29 @@ export const startGameQuerySchema = z.object({
   participantId: z.string().uuid()
 });
 
+const canvasPointSchema = z.object({
+  x: z.number(),
+  y: z.number()
+});
+
+const canvasStrokeSchema = z.object({
+  points: z.array(canvasPointSchema).min(1),
+  color: z.string().optional(),
+  width: z.number().optional()
+});
+
+export const updateCanvasBodySchema = z.object({
+  strokes: z.array(canvasStrokeSchema)
+});
+
+export const submitGuessBodySchema = z.object({
+  text: z.string()
+});
+
+export const gameplayQuerySchema = z.object({
+  participantId: z.string().uuid()
+});
+
 export class HttpError extends Error {
   statusCode: number;
 

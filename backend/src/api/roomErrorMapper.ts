@@ -15,9 +15,14 @@ export function mapRoomServiceError(error: RoomServiceError): HttpError {
     case "NOT_LOBBY":
       return new HttpError(409, error.message);
     case "NOT_HOST":
+    case "NOT_DRAWER":
+    case "DRAWER_CANNOT_GUESS":
       return new HttpError(403, error.message);
+    case "EMPTY_GUESS":
     case "NOT_ENOUGH_PLAYERS":
       return new HttpError(400, error.message);
+    case "NOT_DRAWING":
+      return new HttpError(409, error.message);
     default:
       return new HttpError(500, error.message);
   }

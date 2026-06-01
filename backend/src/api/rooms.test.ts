@@ -59,4 +59,87 @@ describe("rooms API", () => {
     expect(guesserPoll.body.room.viewer.role).toBe("guesser");
     expect(guesserPoll.body.room.viewer.secretWord).toBeUndefined();
   });
+
+  it("PUT /rooms/:code/canvas updates strokes for drawer only", async () => {
+    const created = await request(app).post("/rooms").send({ playerName: "Host" });
+    const hostId = created.body.participantId as string;
+    const code = created.body.room.code as string;
+
+    const joined = await request(app).post(`/rooms/${code}/join`).send({ playerName: "Guest" });
+    const guestId = joined.body.participantId as string;
+
+    await request(app).post(`/rooms/${code}/start`).query({ participantId: hostId });
+
+    const strokes = [{ points: [{ x: 1, y: 2 }], color: "#000", width: 2 }];
+    const updated = await request(app)
+      .put(`/rooms/${code}/canvas`)
+      .query({ participantId: hostId })
+      .send({ strokes });
+
+    expect(updated.status).toBe(200);
+    expect(updated.body.room.canvasStrokes).toEqual(strokes);
+
+    const forbidden = await request(app)
+      .put(`/rooms/${code}/canvas`)
+      .query({ participantId: guestId })
+      .send({ strokes });
+
+    expect(forbidden.status).toBe(403);
+  });
+
+  it("POST /rooms/:code/guesses validates empty guess and drawer role", async () => {
+    const created = await request(app).post("/rooms").send({ playerName: "Host" });
+    const hostId = created.body.participantId as string;
+    const code = created.body.room.code as string;
+
+    const joined = await request(app).post(`/rooms/${code}/join`).send({ playerName: "Guest" });
+    const guestId = joined.body.participantId as string;
+
+    await request(app).post(`/rooms/${code}/start`).query({ participantId: hostId });
+
+    const empty = await request(app)
+      .post(`/rooms/${code}/guesses`)
+      .query({ participantId: guestId })
+      .send({ text: "   " });
+
+    expect(empty.status).toBe(400);
+    expect(empty.body.message).toBe("Guess cannot be empty");
+
+    const drawerGuess = await request(app)
+      .post(`/rooms/${code}/guesses`)
+      .query({ participantId: hostId })
+      .send({ text: "word" });
+
+    expect(drawerGuess.status).toBe(403);
+  });
+
+  it("GET during drawing includes gameplay fields for guesser without secret word", async () => {
+    const created = await request(app).post("/rooms").send({ playerName: "Host" });
+    const hostId = created.body.participantId as string;
+    const code = created.body.room.code as string;
+
+    const joined = await request(app).post(`/rooms/${code}/join`).send({ playerName: "Guest" });
+    const guestId = joined.body.participantId as string;
+
+    await request(app).post(`/rooms/${code}/start`).query({ participantId: hostId });
+
+    await request(app)
+      .put(`/rooms/${code}/canvas`)
+      .query({ participantId: hostId })
+      .send({ strokes: [{ points: [{ x: 3, y: 4 }] }] });
+
+    await request(app)
+      .post(`/rooms/${code}/guesses`)
+      .query({ participantId: guestId })
+      .send({ text: "hello" });
+
+    const poll = await request(app).get(`/rooms/${code}`).query({ participantId: guestId });
+
+    expect(poll.body.room.canvasStrokes).toHaveLength(1);
+    expect(poll.body.room.guesses).toHaveLength(1);
+    expect(poll.body.room.participants.every((entry: { score: number }) => entry.score >= 0)).toBe(
+      true
+    );
+    expect(poll.body.room.viewer.secretWord).toBeUndefined();
+  });
 });

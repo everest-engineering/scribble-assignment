@@ -7,7 +7,11 @@ export type RoomErrorCode =
   | "NOT_HOST"
   | "NOT_ENOUGH_PLAYERS"
   | "NOT_LOBBY"
-  | "PARTICIPANT_NOT_FOUND";
+  | "PARTICIPANT_NOT_FOUND"
+  | "NOT_DRAWING"
+  | "NOT_DRAWER"
+  | "DRAWER_CANNOT_GUESS"
+  | "EMPTY_GUESS";
 
 export class RoomServiceError extends Error {
   readonly code: RoomErrorCode;

@@ -477,15 +477,85 @@ input {
   font-size: 1.125rem;
 }
 
-.canvas-placeholder {
-  min-height: 500px; /* significantly taller canvas */
+.drawing-canvas-wrap {
+  display: grid;
+  gap: 12px;
+}
+
+.drawing-canvas {
+  width: 100%;
+  min-height: 500px;
   border: 1px solid var(--line);
   border-radius: 12px;
-  display: grid;
-  place-items: center;
   background: var(--surface);
+  touch-action: none;
+  cursor: crosshair;
+}
+
+.drawing-canvas--readonly {
+  cursor: default;
+}
+
+.drawing-canvas__actions {
+  justify-content: flex-end;
+}
+
+.scoreboard,
+.guess-history {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.scoreboard__row,
+.guess-history__item {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 12px;
+  align-items: center;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-muted);
+}
+
+.guess-history__item {
+  grid-template-columns: auto 1fr auto;
+}
+
+.guess-history__item--correct {
+  border-color: #86efac;
+  background: #f0fdf4;
+}
+
+.guess-history__name {
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.guess-history__text {
   color: var(--ink-soft);
-  font-size: 1.125rem;
+}
+
+.guess-history__result {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+
+.guess-history__empty,
+.scoreboard__empty,
+.guess-form__disabled {
+  margin: 0;
+  color: var(--ink-soft);
+}
+
+.form__error {
+  margin: 0;
+  color: #b91c1c;
+  font-size: 0.875rem;
   font-weight: 500;
 }
 

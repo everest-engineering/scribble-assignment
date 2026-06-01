@@ -145,6 +145,19 @@ class RoomStore {
     return response.room;
   }
 
+  async submitGuess(text: string) {
+    const code = this.state.room?.code;
+    const participantId = this.state.participantId;
+
+    if (!code || !participantId) {
+      throw new Error("Missing room session");
+    }
+
+    const response = await api.submitGuess(code, participantId, text);
+    this.setRoomSnapshot(response.room);
+    return response.room;
+  }
+
   async hydrateFromSession() {
     const session = loadRoomSession();
 

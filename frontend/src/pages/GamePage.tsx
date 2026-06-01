@@ -1,10 +1,13 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card } from "../components/Card";
+import { DrawingCanvas } from "../components/DrawingCanvas";
 import { GuessForm } from "../components/GuessForm";
+import { GuessHistory } from "../components/GuessHistory";
 import { ResultPanel } from "../components/ResultPanel";
 import { RoomCodeBadge } from "../components/RoomCodeBadge";
 import { Scoreboard } from "../components/Scoreboard";
+import { GAME_POLL_MS } from "../constants/game";
 import { useRoomState, useRoomStore } from "../state/roomStore";
 
 export function GamePage() {
@@ -22,7 +25,20 @@ export function GamePage() {
     }
   }, [navigate, room, roomStore]);
 
-  if (!room || room.status !== "drawing") {
+  useEffect(() => {
+    if (!room || room.status !== "drawing" || !participantId) {
+      return;
+    }
+
+    void roomStore.fetchRoom();
+    const intervalId = window.setInterval(() => {
+      void roomStore.fetchRoom();
+    }, GAME_POLL_MS);
+
+    return () => window.clearInterval(intervalId);
+  }, [participantId, room?.code, room?.status, roomStore]);
+
+  if (!room || room.status !== "drawing" || !participantId) {
     return null;
   }
 
@@ -32,6 +48,7 @@ export function GamePage() {
   const drawer = room.participants.find(
     (participant) => participant.id === room.drawerParticipantId
   );
+  const canvasStrokes = room.canvasStrokes ?? [];
 
   return (
     <section className="panel game-page">
@@ -46,6 +63,7 @@ export function GamePage() {
       <div className="game-page__layout">
         <aside className="game-page__sidebar game-page__sidebar--left">
           <Scoreboard />
+          <GuessHistory />
           <ResultPanel />
 
           <Card title="Players">
@@ -64,9 +82,12 @@ export function GamePage() {
 
         <div className="game-page__main">
           <Card title="Canvas">
-            <div className="canvas-placeholder">
-              {isDrawer ? "Start drawing on the canvas." : `Waiting for ${drawer?.name ?? "drawer"} to draw...`}
-            </div>
+            <DrawingCanvas
+              strokes={canvasStrokes}
+              readOnly={!isDrawer}
+              roomCode={room.code}
+              participantId={participantId}
+            />
           </Card>
         </div>
 

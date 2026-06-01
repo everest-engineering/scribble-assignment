@@ -1,12 +1,33 @@
 export type ParticipantRole = "drawer" | "guesser";
 export type RoomStatus = "lobby" | "drawing" | "result";
 
+export interface CanvasPoint {
+  x: number;
+  y: number;
+}
+
+export interface CanvasStroke {
+  points: CanvasPoint[];
+  color?: string;
+  width?: number;
+}
+
+export interface Guess {
+  id: string;
+  participantId: string;
+  participantName: string;
+  text: string;
+  isCorrect: boolean;
+  createdAt: string;
+}
+
 export interface Participant {
   id: string;
   name: string;
   joinedAt: string;
   lastSeenAt: string;
   role?: ParticipantRole;
+  score?: number;
 }
 
 export interface Room {
@@ -17,6 +38,8 @@ export interface Room {
   roundNumber?: number;
   drawerParticipantId?: string;
   secretWord?: string;
+  canvasStrokes?: CanvasStroke[];
+  guesses?: Guess[];
   createdAt: string;
   updatedAt: string;
 }
@@ -35,6 +58,7 @@ export interface RoomParticipantSnapshot {
   joinedAt: string;
   isHost: boolean;
   role?: ParticipantRole;
+  score?: number;
 }
 
 export interface RoomSnapshot {
@@ -44,6 +68,8 @@ export interface RoomSnapshot {
   roundNumber?: number;
   drawerParticipantId?: string;
   participants: RoomParticipantSnapshot[];
+  canvasStrokes?: CanvasStroke[];
+  guesses?: Guess[];
   viewer?: RoomViewer;
 }
 

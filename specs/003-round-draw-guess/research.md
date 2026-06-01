@@ -29,3 +29,4 @@
 
 - **Decision**: This feature does **not** set `status` to `result`; feature 004 hooks first correct guess.
 - **Rationale**: Spec scope boundary; avoids duplicating 004 logic prematurely.
+- **Implementation note (2026-06-01)**: `003-round-draw-guess` awards +100 on correct guesses but leaves `status` as `drawing`. Transition to `result` on the first correct guess is owned by `004-result-restart-lobby` — do not add round-end logic in 003 unless implementing both features together.

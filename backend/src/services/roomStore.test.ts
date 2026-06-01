@@ -7,8 +7,10 @@ import {
   getRoomForParticipant,
   joinRoom,
   startGame,
+  submitGuess,
   toRoomSnapshot,
-  trimParticipantNames
+  trimParticipantNames,
+  updateCanvas
 } from "./roomStore.js";
 import { RoomServiceError } from "./roomErrors.js";
 import { selectRoundWord } from "./wordSelection.js";
@@ -160,6 +162,90 @@ describe("roomStore", () => {
     const guesserView = toRoomSnapshot(started, guest.participantId);
 
     expect(drawerView.viewer?.secretWord).toBe(started.secretWord);
+    expect(guesserView.viewer?.secretWord).toBeUndefined();
+  });
+
+  it("startGame initializes canvas, guesses, and scores", () => {
+    const host = createRoom("Host");
+    const guest = joinRoom(host.room.code, "Guest");
+    const started = startGame(host.room.code, host.participantId);
+
+    expect(started.canvasStrokes).toEqual([]);
+    expect(started.guesses).toEqual([]);
+    expect(started.participants.every((entry) => entry.score === 0)).toBe(true);
+  });
+
+  it("updateCanvas allows drawer and rejects guesser", () => {
+    const host = createRoom("Host");
+    const guest = joinRoom(host.room.code, "Guest");
+    startGame(host.room.code, host.participantId);
+
+    const strokes = [{ points: [{ x: 1, y: 2 }], color: "#000", width: 2 }];
+    const updated = updateCanvas(host.room.code, host.participantId, strokes);
+
+    expect(updated.canvasStrokes).toEqual(strokes);
+
+    expect(() => updateCanvas(host.room.code, guest.participantId, strokes)).toThrow(
+      /Only the drawer/
+    );
+  });
+
+  it("submitGuess scores correct and incorrect guesses", () => {
+    const host = createRoom("Host");
+    const guest = joinRoom(host.room.code, "Guest");
+    const started = startGame(host.room.code, host.participantId);
+    const secretWord = started.secretWord ?? "";
+
+    const wrong = submitGuess(host.room.code, guest.participantId, "wrong");
+    const guesserAfterWrong = wrong.participants.find(
+      (entry) => entry.id === guest.participantId
+    );
+
+    expect(guesserAfterWrong?.score).toBe(0);
+    expect(wrong.guesses).toHaveLength(1);
+    expect(wrong.guesses?.[0].isCorrect).toBe(false);
+
+    const correct = submitGuess(host.room.code, guest.participantId, `  ${secretWord}  `);
+    const guesserAfterCorrect = correct.participants.find(
+      (entry) => entry.id === guest.participantId
+    );
+
+    expect(guesserAfterCorrect?.score).toBe(100);
+    expect(correct.guesses).toHaveLength(2);
+    expect(correct.guesses?.[1].isCorrect).toBe(true);
+  });
+
+  it("submitGuess rejects empty guess and drawer attempts", () => {
+    const host = createRoom("Host");
+    const guest = joinRoom(host.room.code, "Guest");
+    const started = startGame(host.room.code, host.participantId);
+
+    expect(() => submitGuess(host.room.code, guest.participantId, "   ")).toThrow(
+      /cannot be empty/i
+    );
+    expect(() => submitGuess(host.room.code, host.participantId, "word")).toThrow(
+      /cannot submit guesses/i
+    );
+
+    expect(started.secretWord).toBeDefined();
+  });
+
+  it("toRoomSnapshot includes gameplay fields without leaking secret word to guesser", () => {
+    const host = createRoom("Host");
+    const guest = joinRoom(host.room.code, "Guest");
+    const started = startGame(host.room.code, host.participantId);
+    const strokes = [{ points: [{ x: 5, y: 10 }] }];
+    updateCanvas(host.room.code, host.participantId, strokes);
+    submitGuess(host.room.code, guest.participantId, "test");
+
+    const guesserView = toRoomSnapshot(
+      getRoomForParticipant(host.room.code, guest.participantId),
+      guest.participantId
+    );
+
+    expect(guesserView.canvasStrokes).toEqual(strokes);
+    expect(guesserView.guesses).toHaveLength(1);
+    expect(guesserView.participants[0].score).toBe(0);
     expect(guesserView.viewer?.secretWord).toBeUndefined();
   });
 });

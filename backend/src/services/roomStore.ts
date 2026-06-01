@@ -1,12 +1,18 @@
 import { randomUUID } from "node:crypto";
 import type {
+  CanvasStroke,
   Participant,
   ParticipantRole,
   Room,
   RoomSnapshot,
   RoomViewer
 } from "../models/game.js";
-import { MAX_PARTICIPANTS, PRESENCE_TIMEOUT_MS } from "./roomConstants.js";
+import {
+  CORRECT_GUESS_POINTS,
+  MAX_PARTICIPANTS,
+  PRESENCE_TIMEOUT_MS
+} from "./roomConstants.js";
+import { compareGuessToSecret, isGuessEmpty, trimGuess } from "./guessLogic.js";
 import { RoomServiceError } from "./roomErrors.js";
 import { selectRoundWord } from "./wordSelection.js";
 
@@ -256,6 +262,80 @@ export function startGame(code: string, participantId: string) {
   room.roundNumber = 1;
   room.secretWord = selectRoundWord(room.code, room.roundNumber);
   room.status = "drawing";
+  room.canvasStrokes = [];
+  room.guesses = [];
+
+  for (const participant of room.participants) {
+    participant.score = 0;
+  }
+
+  room.updatedAt = now();
+  rooms.set(room.code, cloneRoom(room));
+
+  return cloneRoom(room);
+}
+
+function assertDrawingRoom(room: Room) {
+  if (room.status !== "drawing") {
+    throw new RoomServiceError("NOT_DRAWING", "Game is not in progress");
+  }
+}
+
+export function updateCanvas(
+  code: string,
+  participantId: string,
+  strokes: CanvasStroke[]
+) {
+  const room = getRoomOrThrow(normalizeRoomCode(code));
+  assertDrawingRoom(room);
+
+  if (room.drawerParticipantId !== participantId) {
+    throw new RoomServiceError("NOT_DRAWER", "Only the drawer can update the canvas");
+  }
+
+  room.canvasStrokes = strokes;
+  room.updatedAt = now();
+  rooms.set(room.code, cloneRoom(room));
+
+  return cloneRoom(room);
+}
+
+export function submitGuess(code: string, participantId: string, text: string) {
+  const room = getRoomOrThrow(normalizeRoomCode(code));
+  assertDrawingRoom(room);
+
+  if (room.drawerParticipantId === participantId) {
+    throw new RoomServiceError("DRAWER_CANNOT_GUESS", "The drawer cannot submit guesses");
+  }
+
+  if (isGuessEmpty(text)) {
+    throw new RoomServiceError("EMPTY_GUESS", "Guess cannot be empty");
+  }
+
+  const participant = room.participants.find((entry) => entry.id === participantId);
+
+  if (!participant) {
+    throw new RoomServiceError("PARTICIPANT_NOT_FOUND", "Participant not found");
+  }
+
+  const trimmedGuess = trimGuess(text);
+  const secretWord = room.secretWord ?? "";
+  const isCorrect = compareGuessToSecret(trimmedGuess, secretWord);
+
+  if (isCorrect) {
+    participant.score = (participant.score ?? 0) + CORRECT_GUESS_POINTS;
+  }
+
+  const guesses = room.guesses ?? [];
+  guesses.push({
+    id: randomUUID(),
+    participantId: participant.id,
+    participantName: participant.name,
+    text: trimmedGuess,
+    isCorrect,
+    createdAt: now()
+  });
+  room.guesses = guesses;
   room.updatedAt = now();
   rooms.set(room.code, cloneRoom(room));
 
@@ -268,7 +348,8 @@ export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSn
     name: participant.name,
     joinedAt: participant.joinedAt,
     isHost: participant.id === room.hostParticipantId,
-    role: participant.role
+    role: participant.role,
+    score: participant.score ?? 0
   }));
 
   const snapshot: RoomSnapshot = {
@@ -277,7 +358,9 @@ export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSn
     hostParticipantId: room.hostParticipantId,
     roundNumber: room.roundNumber,
     drawerParticipantId: room.drawerParticipantId,
-    participants
+    participants,
+    canvasStrokes: room.canvasStrokes ?? [],
+    guesses: room.guesses ?? []
   };
 
   if (!viewerParticipantId) {
