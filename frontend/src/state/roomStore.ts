@@ -27,6 +27,7 @@ class RoomStore {
   };
 
   private listeners = new Set<Listener>();
+  private pollTimer: ReturnType<typeof setInterval> | null = null;
 
   subscribe = (listener: Listener) => {
     this.listeners.add(listener);
@@ -77,6 +78,20 @@ class RoomStore {
     });
   }
 
+  startPolling(intervalMs = 2000) {
+    this.stopPolling();
+    this.pollTimer = setInterval(() => {
+      this.fetchRoom().catch(() => {});
+    }, intervalMs);
+  }
+
+  stopPolling() {
+    if (this.pollTimer !== null) {
+      clearInterval(this.pollTimer);
+      this.pollTimer = null;
+    }
+  }
+
   async createRoom(playerName: string) {
     const response = await this.withLoading(() => api.createRoom(playerName));
     this.setRoomSession(response);
@@ -87,6 +102,39 @@ class RoomStore {
     const response = await this.withLoading(() => api.joinRoom(code, playerName));
     this.setRoomSession(response);
     return response;
+  }
+
+  async startGame() {
+    if (!this.state.room || !this.state.participantId) {
+      return;
+    }
+
+    const response = await this.withLoading(() =>
+      api.startGame(this.state.room!.code, this.state.participantId!)
+    );
+    this.setRoomSnapshot(response.room);
+  }
+
+  async submitGuess(word: string) {
+    if (!this.state.room || !this.state.participantId) {
+      return;
+    }
+
+    const response = await this.withLoading(() =>
+      api.submitGuess(this.state.room!.code, this.state.participantId!, word)
+    );
+    this.setRoomSnapshot(response.room);
+  }
+
+  async restartGame() {
+    if (!this.state.room || !this.state.participantId) {
+      return;
+    }
+
+    const response = await this.withLoading(() =>
+      api.restartGame(this.state.room!.code, this.state.participantId!)
+    );
+    this.setRoomSnapshot(response.room);
   }
 
   async fetchRoom() {
@@ -127,4 +175,18 @@ export function useRoomStore() {
 export function useRoomState() {
   const store = useRoomStore();
   return useSyncExternalStore(store.subscribe, store.getSnapshot, store.getSnapshot);
+}
+
+export function usePolling(enabled: boolean) {
+  const store = useRoomStore();
+
+  useEffect(() => {
+    if (enabled) {
+      store.startPolling();
+    }
+
+    return () => {
+      store.stopPolling();
+    };
+  }, [store, enabled]);
 }
