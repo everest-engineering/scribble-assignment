@@ -144,9 +144,14 @@ export function GamePage() {
       {(error || actionError) && <p className="form__error">{error ?? actionError}</p>}
 
       <div className="button-row">
-        {isResult && room.isHost ? (
-          <button className="button button--primary" disabled={isLoading} onClick={handleRestart}>
-            Restart to Lobby
+        {isResult ? (
+          <button
+            className="button button--primary"
+            disabled={isLoading || !room.isHost}
+            onClick={handleRestart}
+            title={room.isHost ? undefined : "Only the host can restart"}
+          >
+            {room.isHost ? "Restart to Lobby" : "Waiting for host to restart"}
           </button>
         ) : null}
         <button className="button button--secondary" onClick={() => navigate("/lobby")}>

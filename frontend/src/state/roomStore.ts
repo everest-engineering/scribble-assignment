@@ -101,6 +101,20 @@ class RoomStore {
     return response.room;
   }
 
+  async fetchRoomForPoll() {
+    if (!this.state.room || !this.state.participantId) {
+      return null;
+    }
+
+    try {
+      return await this.fetchRoom();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unable to refresh room state";
+      this.setState({ error: message });
+      return null;
+    }
+  }
+
   async startGame() {
     if (!this.state.room || !this.state.participantId) {
       return null;
@@ -203,7 +217,7 @@ export function useRoomPolling(enabled: boolean, intervalMs: number) {
     }
 
     const poll = () => {
-      void roomStore.fetchRoom().catch(() => undefined);
+      void roomStore.fetchRoomForPoll();
     };
 
     poll();

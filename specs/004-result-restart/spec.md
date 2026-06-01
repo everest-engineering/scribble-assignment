@@ -33,7 +33,7 @@ Multiple rounds, leaderboard persistence across sessions.
 
 ## Validation checklist
 
-- [ ] Two tabs: host creates, guest joins, lobby updates without manual refresh.
-- [ ] Host starts with two players; guest lands on game view via polling.
-- [ ] Correct guess shows result for both; scores and history match.
-- [ ] Host restart returns both to lobby; participants unchanged; scores reset.
+- [x] Two tabs: host creates, guest joins, lobby updates without manual refresh.
+- [x] Host starts with two players; guest lands on game view via polling.
+- [x] Correct guess shows result for both; scores and history match.
+- [x] Host restart returns both to lobby; participants unchanged; scores reset.
