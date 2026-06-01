@@ -6,9 +6,33 @@ export interface Participant {
   joinedAt: string;
 }
 
+export interface Point {
+  x: number;
+  y: number;
+}
+
+export interface DrawingStroke {
+  color: string;
+  width: number;
+  points: Point[];
+}
+
+export interface Guess {
+  participantId: string;
+  text: string;
+  isCorrect: boolean;
+  timestamp: string;
+}
+
+export interface PlayerScore {
+  participantId: string;
+  name: string;
+  score: number;
+}
+
 export interface RoomSnapshot {
   code: string;
-  status: "lobby" | "playing";
+  status: "lobby" | "playing" | "round_ended";
   hostId: string;
   drawerId: string | null;
   secretWord?: string;
@@ -16,6 +40,11 @@ export interface RoomSnapshot {
   participants: Participant[];
   availableWords: string[];
   roles: ParticipantRole[];
+  strokes: DrawingStroke[];
+  clearVersion: number;
+  guesses: Guess[];
+  scores: PlayerScore[];
+  allGuessersCorrect: boolean;
 }
 
 export interface RoomSessionResponse {
@@ -70,6 +99,33 @@ export const api = {
   },
   leaveGame(code: string, participantId: string) {
     return request<{ room: RoomSnapshot | null }>(`/rooms/${encodeURIComponent(code)}/leave`, {
+      method: "POST",
+      body: JSON.stringify({ participantId })
+    });
+  },
+  submitStrokes(code: string, participantId: string, strokes: DrawingStroke[]) {
+    return request<{ strokes: DrawingStroke[]; clearVersion: number }>(`/rooms/${encodeURIComponent(code)}/strokes`, {
+      method: "POST",
+      body: JSON.stringify({ participantId, action: "append", strokes })
+    });
+  },
+  clearStrokes(code: string, participantId: string) {
+    return request<{ strokes: DrawingStroke[]; clearVersion: number }>(`/rooms/${encodeURIComponent(code)}/strokes`, {
+      method: "POST",
+      body: JSON.stringify({ participantId, action: "clear" })
+    });
+  },
+  fetchStrokes(code: string) {
+    return request<{ strokes: DrawingStroke[]; clearVersion: number }>(`/rooms/${encodeURIComponent(code)}/strokes`);
+  },
+  submitGuess(code: string, participantId: string, text: string) {
+    return request<{ isCorrect: boolean; allGuessersCorrect: boolean; room: RoomSnapshot }>(`/rooms/${encodeURIComponent(code)}/guesses`, {
+      method: "POST",
+      body: JSON.stringify({ participantId, text })
+    });
+  },
+  revealWord(code: string, participantId: string) {
+    return request<{ room: RoomSnapshot }>(`/rooms/${encodeURIComponent(code)}/reveal`, {
       method: "POST",
       body: JSON.stringify({ participantId })
     });

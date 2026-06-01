@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createRoom, getRoom, joinRoom, leaveRoom, startGame, toRoomSnapshot } from "./roomStore.js";
+import { clearCanvas, createRoom, getRoom, joinRoom, leaveRoom, revealWord, startGame, submitGuess, submitStrokes, toRoomSnapshot } from "./roomStore.js";
 
 describe("roomStore", () => {
   describe("createRoom", () => {
@@ -310,6 +310,355 @@ describe("roomStore", () => {
 
       expect(room).not.toBeNull();
       expect(room!.code).toBe(created.room.code);
+    });
+  });
+
+  describe("submitStrokes", () => {
+    function startRoom() {
+      const host = createRoom("Alice");
+      joinRoom(host.room.code, "Bob");
+      const started = startGame(host.room.code, host.participantId);
+      return { host, started: started as { ok: true; room: import("../models/game.js").Room } };
+    }
+
+    it("accepts strokes from the drawer", () => {
+      const { host, started } = startRoom();
+      const stroke = { color: "#000", width: 2, points: [{ x: 0, y: 0 }, { x: 10, y: 10 }] };
+      const result = submitStrokes(started.room.code, host.participantId, [stroke]);
+
+      expect(result.ok).toBe(true);
+    });
+
+    it("rejects strokes from non-drawer", () => {
+      const { started } = startRoom();
+      const bobResult = joinRoom(started.room.code, "Charlie");
+      const stroke = { color: "#000", width: 2, points: [{ x: 0, y: 0 }] };
+      const result = submitStrokes(started.room.code, bobResult!.participantId, [stroke]);
+
+      expect(result.ok).toBe(false);
+      if (!result.ok) {
+        expect(result.status).toBe(403);
+      }
+    });
+
+    it("rejects strokes when room is not playing", () => {
+      const host = createRoom("Alice");
+      const stroke = { color: "#000", width: 2, points: [{ x: 0, y: 0 }] };
+      const result = submitStrokes(host.room.code, host.participantId, [stroke]);
+
+      expect(result.ok).toBe(false);
+      if (!result.ok) {
+        expect(result.status).toBe(400);
+      }
+    });
+
+    it("stores strokes and returns them in the room snapshot", () => {
+      const { host, started } = startRoom();
+      const stroke = { color: "#000", width: 2, points: [{ x: 0, y: 0 }, { x: 10, y: 10 }] };
+      submitStrokes(started.room.code, host.participantId, [stroke]);
+
+      const updatedRoom = getRoom(started.room.code)!;
+      const snapshot = toRoomSnapshot(updatedRoom, host.participantId);
+      expect(snapshot.strokes).toHaveLength(1);
+      expect(snapshot.strokes[0].color).toBe("#000");
+    });
+
+    it("returns empty strokes array when no strokes submitted", () => {
+      const { host, started } = startRoom();
+      const snapshot = toRoomSnapshot(started.room, host.participantId);
+
+      expect(snapshot.strokes).toEqual([]);
+    });
+
+    it("rejects strokes for unknown room", () => {
+      const result = submitStrokes("ZZZZ", "any-id", []);
+      expect(result.ok).toBe(false);
+      if (!result.ok) expect(result.status).toBe(404);
+    });
+  });
+
+  describe("clearCanvas", () => {
+    function startRoom() {
+      const host = createRoom("Alice");
+      joinRoom(host.room.code, "Bob");
+      const started = startGame(host.room.code, host.participantId);
+      return { host, started: started as { ok: true; room: import("../models/game.js").Room } };
+    }
+
+    it("accepts clear from the drawer", () => {
+      const { host, started } = startRoom();
+      const result = clearCanvas(started.room.code, host.participantId);
+
+      expect(result.ok).toBe(true);
+    });
+
+    it("resets strokes and increments clearVersion on clear", () => {
+      const { host, started } = startRoom();
+      const stroke = { color: "#000", width: 2, points: [{ x: 0, y: 0 }] };
+      submitStrokes(started.room.code, host.participantId, [stroke]);
+      const before = toRoomSnapshot(getRoom(started.room.code)!, host.participantId);
+      expect(before.strokes).toHaveLength(1);
+      expect(before.clearVersion).toBe(0);
+
+      clearCanvas(started.room.code, host.participantId);
+      const after = toRoomSnapshot(getRoom(started.room.code)!, host.participantId);
+      expect(after.strokes).toEqual([]);
+      expect(after.clearVersion).toBe(1);
+    });
+
+    it("rejects clear from non-drawer", () => {
+      const { started } = startRoom();
+      const bobResult = joinRoom(started.room.code, "Charlie");
+      const result = clearCanvas(started.room.code, bobResult!.participantId);
+
+      expect(result.ok).toBe(false);
+      if (!result.ok) expect(result.status).toBe(403);
+    });
+
+    it("rejects clear for unknown room", () => {
+      const result = clearCanvas("ZZZZ", "any-id");
+      expect(result.ok).toBe(false);
+      if (!result.ok) expect(result.status).toBe(404);
+    });
+  });
+
+  describe("submitGuess", () => {
+    function startRoom() {
+      const host = createRoom("Alice");
+      joinRoom(host.room.code, "Bob");
+      const started = startGame(host.room.code, host.participantId);
+      return { host, started: started as { ok: true; room: import("../models/game.js").Room } };
+    }
+
+    it("accepts correct guess case-insensitively", () => {
+      const { host, started } = startRoom();
+      const bobResult = joinRoom(started.room.code, "Charlie")!;
+      const secretWord = started.room.secretWord!;
+      const result = submitGuess(started.room.code, bobResult.participantId, secretWord.toUpperCase());
+
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.isCorrect).toBe(true);
+      }
+    });
+
+    it("returns isCorrect false for incorrect guess", () => {
+      const { host, started } = startRoom();
+      const bobResult = joinRoom(started.room.code, "Charlie")!;
+      const secretWord = started.room.secretWord!;
+      const result = submitGuess(started.room.code, bobResult.participantId, "ZZZ" + secretWord);
+
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.isCorrect).toBe(false);
+      }
+    });
+
+    it("rejects guess from drawer", () => {
+      const { host, started } = startRoom();
+      const result = submitGuess(started.room.code, host.participantId, "apple");
+
+      expect(result.ok).toBe(false);
+      if (!result.ok) expect(result.status).toBe(403);
+    });
+
+    it("rejects empty guess", () => {
+      const { started } = startRoom();
+      const bobResult = joinRoom(started.room.code, "Charlie");
+      const result = submitGuess(started.room.code, bobResult!.participantId, "  ");
+
+      expect(result.ok).toBe(false);
+    });
+
+    it("rejects excessively long guess", () => {
+      const { started } = startRoom();
+      const bobResult = joinRoom(started.room.code, "Charlie");
+      const result = submitGuess(started.room.code, bobResult!.participantId, "A".repeat(201));
+
+      expect(result.ok).toBe(false);
+    });
+
+    it("rejects guess after round_ended", () => {
+      const { host, started } = startRoom();
+      const bobResult = joinRoom(started.room.code, "Charlie")!;
+      revealWord(started.room.code, host.participantId);
+      const result = submitGuess(started.room.code, bobResult.participantId, "apple");
+
+      expect(result.ok).toBe(false);
+      if (!result.ok) expect(result.status).toBe(400);
+    });
+
+    it("silently ignores subsequent guesses from already-correct guesser", () => {
+      const { host, started } = startRoom();
+      const bobResult = joinRoom(started.room.code, "Charlie")!;
+      const secretWord = started.room.secretWord!;
+      submitGuess(started.room.code, bobResult.participantId, secretWord);
+      const result = submitGuess(started.room.code, bobResult.participantId, "wrong guess");
+
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.isCorrect).toBe(true);
+      }
+    });
+
+    it("rejects guess for unknown room", () => {
+      const result = submitGuess("ZZZZ", "any-id", "hello");
+      expect(result.ok).toBe(false);
+      if (!result.ok) expect(result.status).toBe(404);
+    });
+  });
+
+  describe("scoring", () => {
+    it("awards 1 point for correct guess", () => {
+      const host = createRoom("Alice");
+      const charlieResult = joinRoom(host.room.code, "Charlie")!;
+      joinRoom(host.room.code, "Bob");
+      const started = startGame(host.room.code, host.participantId) as { ok: true; room: import("../models/game.js").Room };
+      const secretWord = started.room.secretWord!;
+      submitGuess(started.room.code, charlieResult.participantId, secretWord);
+
+      const updatedRoom = getRoom(started.room.code)!;
+      const snapshot = toRoomSnapshot(updatedRoom, host.participantId);
+      const charlieScore = snapshot.scores.find((s) => s.participantId === charlieResult.participantId);
+      expect(charlieScore?.score).toBe(1);
+    });
+
+    it("scores are deterministic for same inputs", () => {
+      const host = createRoom("Alice");
+      const charlieResult = joinRoom(host.room.code, "Charlie")!;
+      joinRoom(host.room.code, "Bob");
+      const started = startGame(host.room.code, host.participantId) as { ok: true; room: import("../models/game.js").Room };
+      const secretWord = started.room.secretWord!;
+      submitGuess(started.room.code, charlieResult.participantId, secretWord);
+
+      const snapshot1 = toRoomSnapshot(getRoom(started.room.code)!, host.participantId);
+      const snapshot2 = toRoomSnapshot(getRoom(started.room.code)!, host.participantId);
+      expect(snapshot1.scores).toEqual(snapshot2.scores);
+    });
+
+    it("all guessers receive same point value for correct guesses", () => {
+      const host = createRoom("Alice");
+      const charlieResult = joinRoom(host.room.code, "Charlie")!;
+      const dianaResult = joinRoom(host.room.code, "Diana")!;
+      joinRoom(host.room.code, "Bob");
+      const started = startGame(host.room.code, host.participantId) as { ok: true; room: import("../models/game.js").Room };
+      const secretWord = started.room.secretWord!;
+      submitGuess(started.room.code, charlieResult.participantId, secretWord);
+      submitGuess(started.room.code, dianaResult.participantId, secretWord);
+
+      const updatedRoom = getRoom(started.room.code)!;
+      const snapshot = toRoomSnapshot(updatedRoom, host.participantId);
+      const charlieScore = snapshot.scores.find((s) => s.participantId === charlieResult.participantId);
+      const dianaScore = snapshot.scores.find((s) => s.participantId === dianaResult.participantId);
+      expect(charlieScore?.score).toBe(1);
+      expect(dianaScore?.score).toBe(1);
+    });
+
+    it("scores are sorted descending", () => {
+      const host = createRoom("Alice");
+      const charlieResult = joinRoom(host.room.code, "Charlie")!;
+      joinRoom(host.room.code, "Bob");
+      const started = startGame(host.room.code, host.participantId) as { ok: true; room: import("../models/game.js").Room };
+      const secretWord = started.room.secretWord!;
+      submitGuess(started.room.code, charlieResult.participantId, secretWord);
+
+      const updatedRoom = getRoom(started.room.code)!;
+      const snapshot = toRoomSnapshot(updatedRoom, host.participantId);
+      const scores = snapshot.scores;
+      for (let i = 1; i < scores.length; i++) {
+        expect(scores[i - 1].score).toBeGreaterThanOrEqual(scores[i].score);
+      }
+    });
+  });
+
+  describe("revealWord", () => {
+    function startRoom() {
+      const host = createRoom("Alice");
+      joinRoom(host.room.code, "Bob");
+      const started = startGame(host.room.code, host.participantId);
+      return { host, started: started as { ok: true; room: import("../models/game.js").Room } };
+    }
+
+    it("transitions room to round_ended when drawer reveals", () => {
+      const { host, started } = startRoom();
+      const result = revealWord(started.room.code, host.participantId);
+
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.room.status).toBe("round_ended");
+      }
+    });
+
+    it("rejects reveal from non-drawer", () => {
+      const { started } = startRoom();
+      const bobResult = joinRoom(started.room.code, "Charlie");
+      const result = revealWord(started.room.code, bobResult!.participantId);
+
+      expect(result.ok).toBe(false);
+      if (!result.ok) expect(result.status).toBe(403);
+    });
+
+    it("rejects reveal when not playing", () => {
+      const { host, started } = startRoom();
+      revealWord(started.room.code, host.participantId);
+      const result = revealWord(started.room.code, host.participantId);
+
+      expect(result.ok).toBe(false);
+      if (!result.ok) expect(result.status).toBe(400);
+    });
+  });
+
+  describe("auto round-end", () => {
+    it("auto-ends round when all guessers have a correct guess", () => {
+      const host = createRoom("Alice");
+      const bobResult = joinRoom(host.room.code, "Bob")!;
+      const started = startGame(host.room.code, host.participantId) as { ok: true; room: import("../models/game.js").Room };
+      const secretWord = started.room.secretWord!;
+      const result = submitGuess(started.room.code, bobResult.participantId, secretWord);
+
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.allGuessersCorrect).toBe(true);
+        expect(result.room.status).toBe("round_ended");
+      }
+    });
+
+    it("does not auto-end when some guessers are still incorrect", () => {
+      const host = createRoom("Alice");
+      const bobResult = joinRoom(host.room.code, "Bob")!;
+      joinRoom(host.room.code, "Charlie");
+      const started = startGame(host.room.code, host.participantId) as { ok: true; room: import("../models/game.js").Room };
+      const secretWord = started.room.secretWord!;
+      const result = submitGuess(started.room.code, bobResult.participantId, secretWord);
+
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.allGuessersCorrect).toBe(false);
+        expect(result.room.status).toBe("playing");
+      }
+    });
+
+    it("rejects strokes after round_ended", () => {
+      const host = createRoom("Alice");
+      joinRoom(host.room.code, "Bob");
+      const started = startGame(host.room.code, host.participantId) as { ok: true; room: import("../models/game.js").Room };
+      revealWord(started.room.code, host.participantId);
+      const stroke = { color: "#000", width: 2, points: [{ x: 0, y: 0 }] };
+      const result = submitStrokes(started.room.code, host.participantId, [stroke]);
+
+      expect(result.ok).toBe(false);
+      if (!result.ok) expect(result.status).toBe(400);
+    });
+
+    it("reveals secretWord to non-drawer in snapshot after round_ended", () => {
+      const host = createRoom("Alice");
+      const bobResult = joinRoom(host.room.code, "Bob")!;
+      const started = startGame(host.room.code, host.participantId) as { ok: true; room: import("../models/game.js").Room };
+      revealWord(started.room.code, host.participantId);
+
+      const updatedRoom = getRoom(started.room.code)!;
+      const snapshot = toRoomSnapshot(updatedRoom, bobResult.participantId);
+      expect(snapshot.secretWord).toBeDefined();
     });
   });
 });
