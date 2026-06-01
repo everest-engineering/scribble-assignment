@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card } from "../components/Card";
 import { PageHeader } from "../components/PageHeader";
@@ -10,25 +10,50 @@ export function LobbyPage() {
   const roomStore = useRoomStore();
   const { room, error, isLoading } = useRoomState();
   const [refreshError, setRefreshError] = useState<string | null>(null);
+  const [startError, setStartError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!room) {
       navigate("/", { replace: true });
+    } else if (room.status === "playing") {
+      navigate("/game");
     }
   }, [navigate, room]);
 
-  async function handleRefresh() {
+  const handleRefresh = useCallback(async () => {
     try {
       setRefreshError(null);
       await roomStore.fetchRoom();
     } catch (caughtError) {
       setRefreshError(caughtError instanceof Error ? caughtError.message : "Unable to refresh room");
     }
+  }, [roomStore]);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      handleRefresh();
+    }, 2000);
+
+    return () => clearInterval(interval);
+  }, [handleRefresh]);
+
+  async function handleStartGame() {
+    try {
+      setStartError(null);
+      const updatedRoom = await roomStore.startGame();
+      if (updatedRoom) {
+        navigate("/game");
+      }
+    } catch (caughtError) {
+      setStartError(caughtError instanceof Error ? caughtError.message : "Unable to start game");
+    }
   }
 
   if (!room) {
     return null;
   }
+
+  const isHost = roomStore.getSnapshot().participantId === room.hostId;
 
   return (
     <section className="panel placeholder-page">
@@ -50,7 +75,7 @@ export function LobbyPage() {
               {room.participants.map((participant) => (
                 <li key={participant.id}>
                   <span>{participant.name}</span>
-                  <span className="player-list__meta">joined</span>
+                  {participant.id === room.hostId ? <span className="player-list__meta player-list__host">host</span> : <span className="player-list__meta">joined</span>}
                 </li>
               ))}
             </ul>
@@ -61,7 +86,7 @@ export function LobbyPage() {
           <p className="status-line" style={{ backgroundColor: isLoading ? '#fef3c7' : '#e0e7ff', color: isLoading ? '#b45309' : '#3730a3' }}>
             {isLoading ? "Refreshing players..." : "Ready to play"}
           </p>
-          <p style={{ marginTop: '8px' }}>{error ?? refreshError ?? "Waiting for the host to start the game."}</p>
+          <p style={{ marginTop: '8px' }}>{error ?? refreshError ?? startError ?? "Waiting for the host to start the game."}</p>
         </Card>
       </div>
 
@@ -69,9 +94,15 @@ export function LobbyPage() {
         <button className="button button--secondary" disabled={isLoading} onClick={handleRefresh}>
           {isLoading ? "Refreshing..." : "Refresh Room"}
         </button>
-        <button className="button button--primary" onClick={() => navigate("/game")}>
-          Start Game
-        </button>
+        {isHost ? (
+          <button
+            className="button button--primary"
+            disabled={isLoading || room.participants.length < 2}
+            onClick={handleStartGame}
+          >
+            {room.participants.length < 2 ? "Need 2+ Players" : "Start Game"}
+          </button>
+        ) : null}
       </div>
     </section>
   );
