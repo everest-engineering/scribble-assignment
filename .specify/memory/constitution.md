@@ -1,50 +1,99 @@
-# [PROJECT_NAME] Constitution
-<!-- Example: Spec Constitution, TaskFlow Constitution, etc. -->
+<!--
+  Sync Impact Report
+  Version change: N/A → 1.0.0
+  Modified principles: N/A (initial creation)
+  Added sections:
+    - Core Principles (5 principles: AI-Assisted Development, TypeScript & Type Safety, Architecture Constraints, Test-First & Validation, Deterministic Game Logic)
+    - Technology Stack & Boundaries
+    - Development Workflow
+    - Governance
+  Removed sections: N/A
+  Templates requiring updates:
+    - .specify/templates/plan-template.md: ✅ no changes needed (generic Constitution Check gate)
+    - .specify/templates/spec-template.md: ✅ no changes needed (aligned with all principles)
+    - .specify/templates/tasks-template.md: ✅ no changes needed (phase structure aligns with iterative workflow)
+    - .opencode/commands/speckit.constitution.md: ✅ no changes needed
+  Follow-up TODOs: None
+-->
+# Scribble Constitution
 
 ## Core Principles
 
-### [PRINCIPLE_1_NAME]
-<!-- Example: I. Library-First -->
-[PRINCIPLE_1_DESCRIPTION]
-<!-- Example: Every feature starts as a standalone library; Libraries must be self-contained, independently testable, documented; Clear purpose required - no organizational-only libraries -->
+### I. AI-Assisted Development Discipline
+All AI-generated output MUST be reviewed and approved by a human before
+committing. Ambiguity in requirements MUST be clarified before implementation
+begins. AI assistants must disclose confidence levels and flag uncertainties.
+Rationale: The lab exercises AI-assisted workflow where human oversight is the
+critical quality gate.
 
-### [PRINCIPLE_2_NAME]
-<!-- Example: II. CLI Interface -->
-[PRINCIPLE_2_DESCRIPTION]
-<!-- Example: Every library exposes functionality via CLI; Text in/out protocol: stdin/args → stdout, errors → stderr; Support JSON + human-readable formats -->
+### II. TypeScript & Type Safety
+All code MUST be fully typed. The `any` type is forbidden; use `unknown` for
+truly dynamic values. Backend request/response validation MUST use Zod. ES
+Modules MUST be used throughout both backend and frontend. Rationale: Type
+safety prevents runtime errors and makes the codebase self-documenting for
+multi-player game logic.
 
-### [PRINCIPLE_3_NAME]
-<!-- Example: III. Test-First (NON-NEGOTIABLE) -->
-[PRINCIPLE_3_DESCRIPTION]
-<!-- Example: TDD mandatory: Tests written → User approved → Tests fail → Then implement; Red-Green-Refactor cycle strictly enforced -->
+### III. Architecture Constraints (NON-NEGOTIABLE)
+- No WebSockets, Socket.io, or any real-time push protocol. All sync MUST use
+  HTTP polling.
+- No databases (SQL, NoSQL, SQLite, or otherwise). All data MUST be stored
+  in-memory only.
+- No authentication, sessions, JWT, or OAuth.
+- No new state-management or routing libraries beyond what the starter ships.
+Rationale: These constraints keep the lab focused on brownfield enhancement at
+an intermediate difficulty level.
 
-### [PRINCIPLE_4_NAME]
-<!-- Example: IV. Integration Testing -->
-[PRINCIPLE_4_DESCRIPTION]
-<!-- Example: Focus areas requiring integration tests: New library contract tests, Contract changes, Inter-service communication, Shared schemas -->
+### IV. Test-First & Validation
+Tests MUST be written before implementation begins. Acceptance criteria from
+the spec MUST be verifiable through automated or manual tests. Edge cases
+MUST be handled explicitly: empty/whitespace inputs, case-insensitive
+comparisons, multi-room isolation. Rationale: Incremental validation against
+acceptance criteria is the core feedback loop of this lab.
 
-### [PRINCIPLE_5_NAME]
-<!-- Example: V. Observability, VI. Versioning & Breaking Changes, VII. Simplicity -->
-[PRINCIPLE_5_DESCRIPTION]
-<!-- Example: Text I/O ensures debuggability; Structured logging required; Or: MAJOR.MINOR.BUILD format; Or: Start simple, YAGNI principles -->
+### V. Deterministic Game Logic
+Game rules MUST be deterministic: scoring, word selection, and drawer
+assignment must produce the same result given the same inputs. No randomness
+may be introduced without explicit specification. State transitions MUST be
+predictable and documented. Rationale: Deterministic behavior ensures
+consistent gameplay across all clients without real-time sync mechanisms.
 
-## [SECTION_2_NAME]
-<!-- Example: Additional Constraints, Security Requirements, Performance Standards, etc. -->
+## Technology Stack & Boundaries
 
-[SECTION_2_CONTENT]
-<!-- Example: Technology stack requirements, compliance standards, deployment policies, etc. -->
+**Backend**: Node.js, Express, TypeScript, Zod, tsx for execution.
+**Frontend**: React 18, React Router v6, Vite, TypeScript.
+**Testing**: Vitest in both environments.
 
-## [SECTION_3_NAME]
-<!-- Example: Development Workflow, Review Process, Quality Gates, etc. -->
+The following are explicitly OUT OF SCOPE and MUST NOT be introduced:
+WebSockets, databases, authentication, deployment/CI/Docker, multiple rounds
+or drawer rotation, timers or countdowns, custom word packs, spectator mode,
+moderation features, room passwords, rewriting the starter from scratch,
+unjustified top-level dependencies, unrelated refactors.
 
-[SECTION_3_CONTENT]
-<!-- Example: Code review requirements, testing gates, deployment approval process, etc. -->
+## Development Workflow
+
+All feature work MUST follow this iterative loop:
+
+1. **Discovery**: Read relevant starter files, document gaps and assumptions.
+2. **Specify**: Update spec with acceptance criteria per business scenario.
+3. **Clarify**: Resolve ambiguity before planning.
+4. **Plan**: Update state model, file-level changes, and data flow.
+5. **Tasks**: Decompose plan into ordered, testable work items.
+6. **Implement**: Complete one meaningful slice at a time and commit.
+7. **Validate**: Verify acceptance criteria (two-browser test for multiplayer
+   flows). Move forward only after the current scenario passes.
+
+Commits MUST be granular and meaningful. Build validation MUST pass before
+handoff. Each commit MUST be traceable to the spec.
 
 ## Governance
-<!-- Example: Constitution supersedes all other practices; Amendments require documentation, approval, migration plan -->
 
-[GOVERNANCE_RULES]
-<!-- Example: All PRs/reviews must verify compliance; Complexity must be justified; Use [GUIDANCE_FILE] for runtime development guidance -->
+This constitution supersedes all other development practices. Amendments
+require:
+- A documented rationale.
+- A version bump following semantic versioning (MAJOR for incompatible
+  governance changes, MINOR for new principles/sections, PATCH for
+  clarifications).
+- Compliance verification during PR review.
+- Complexity MUST be justified when it deviates from stated principles.
 
-**Version**: [CONSTITUTION_VERSION] | **Ratified**: [RATIFICATION_DATE] | **Last Amended**: [LAST_AMENDED_DATE]
-<!-- Example: Version: 2.1.1 | Ratified: 2025-06-13 | Last Amended: 2025-07-16 -->
+**Version**: 1.0.0 | **Ratified**: 2026-05-18 | **Last Amended**: 2026-06-01
