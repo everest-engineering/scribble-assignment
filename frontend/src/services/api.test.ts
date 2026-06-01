@@ -150,4 +150,108 @@ describe("api service", () => {
       "Only the host can start the game"
     );
   });
+
+  it("fetchRoom returns playing snapshot with currentRound for playing room", async () => {
+    const mockResponse = {
+      ok: true,
+      json: () =>
+        Promise.resolve({
+          room: {
+            code: "ABCD",
+            status: "inGame",
+            participants: [{ id: "p1", name: "Alice", joinedAt: "2026-01-01T00:00:00.000Z" }],
+            hostParticipantId: "p1",
+            viewerParticipantId: "p1",
+            isHost: true,
+            canStart: false,
+            availableWords: [],
+            roles: ["drawer", "guesser"],
+            currentRound: {
+              roundNumber: 1,
+              drawerParticipantId: "p1",
+              drawerName: "Alice"
+            },
+            viewerRole: "drawer",
+            isDrawer: true,
+            secretWord: "rocket"
+          }
+        }),
+    };
+    vi.mocked(fetch).mockResolvedValue(mockResponse as unknown as Response);
+
+    const result = await api.fetchRoom("ABCD", "p1");
+    expect(result.room.currentRound).toBeDefined();
+    expect(result.room.currentRound!.drawerName).toBe("Alice");
+    expect(result.room.viewerRole).toBe("drawer");
+    expect(result.room.isDrawer).toBe(true);
+    expect(result.room.secretWord).toBe("rocket");
+  });
+
+  it("fetchRoom returns guesser snapshot without secretWord", async () => {
+    const mockResponse = {
+      ok: true,
+      json: () =>
+        Promise.resolve({
+          room: {
+            code: "ABCD",
+            status: "inGame",
+            participants: [{ id: "p1", name: "Alice", joinedAt: "2026-01-01T00:00:00.000Z" }],
+            hostParticipantId: "p1",
+            viewerParticipantId: "p2",
+            isHost: false,
+            canStart: false,
+            availableWords: [],
+            roles: ["drawer", "guesser"],
+            currentRound: {
+              roundNumber: 1,
+              drawerParticipantId: "p1",
+              drawerName: "Alice"
+            },
+            viewerRole: "guesser",
+            isDrawer: false
+          }
+        }),
+    };
+    vi.mocked(fetch).mockResolvedValue(mockResponse as unknown as Response);
+
+    const result = await api.fetchRoom("ABCD", "p2");
+    expect(result.room.currentRound).toBeDefined();
+    expect(result.room.currentRound!.drawerName).toBe("Alice");
+    expect(result.room.viewerRole).toBe("guesser");
+    expect(result.room.isDrawer).toBe(false);
+    expect(result.room.secretWord).toBeUndefined();
+  });
+
+  it("startRoom returns playing snapshot with drawer and secretWord for drawer", async () => {
+    const mockResponse = {
+      ok: true,
+      json: () =>
+        Promise.resolve({
+          room: {
+            code: "ABCD",
+            status: "inGame",
+            participants: [{ id: "p1", name: "Alice", joinedAt: "2026-01-01T00:00:00.000Z" }],
+            hostParticipantId: "p1",
+            viewerParticipantId: "p1",
+            isHost: true,
+            canStart: false,
+            availableWords: [],
+            roles: ["drawer", "guesser"],
+            currentRound: {
+              roundNumber: 1,
+              drawerParticipantId: "p1",
+              drawerName: "Alice"
+            },
+            viewerRole: "drawer",
+            isDrawer: true,
+            secretWord: "rocket"
+          }
+        }),
+    };
+    vi.mocked(fetch).mockResolvedValue(mockResponse as unknown as Response);
+
+    const result = await api.startRoom("ABCD", "p1");
+    expect(result.room.currentRound).toBeDefined();
+    expect(result.room.secretWord).toBeDefined();
+  });
 });

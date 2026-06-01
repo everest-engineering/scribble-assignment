@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import type { Participant, Room, RoomSnapshot } from "../models/game.js";
+import type { CurrentRound, Participant, Room, RoomSnapshot, ViewerRole } from "../models/game.js";
 import { STARTER_ROLES, STARTER_WORDS } from "../seed/starterData.js";
 import { HttpError } from "../api/schemas.js";
 
@@ -48,6 +48,22 @@ export function normalizeCode(code: string) {
 
 export function listWords() {
   return [...STARTER_WORDS];
+}
+
+export function selectWord(code: string, wordList?: readonly string[]): string {
+  const words = wordList ?? STARTER_WORDS;
+
+  if (words.length === 0) {
+    throw new HttpError(400, "No starter words available");
+  }
+
+  let hash = 0;
+  for (let index = 0; index < code.length; index += 1) {
+    hash = code.charCodeAt(index) + ((hash << 5) - hash);
+  }
+
+  const index = Math.abs(hash) % words.length;
+  return words[index];
 }
 
 export function createRoom(playerName: string) {
@@ -103,6 +119,26 @@ export function saveRoom(room: Room) {
   return getRoom(room.code);
 }
 
+function selectDrawer(room: Room): Participant {
+  if (room.hostParticipantId) {
+    const hostParticipant = room.participants.find((p) => p.id === room.hostParticipantId);
+    if (hostParticipant) {
+      return hostParticipant;
+    }
+  }
+
+  const sorted = [...room.participants].sort(
+    (a, b) => new Date(a.joinedAt).getTime() - new Date(b.joinedAt).getTime()
+  );
+  const earliest = sorted[0];
+
+  if (!earliest) {
+    throw new HttpError(400, "No participants available to assign as drawer");
+  }
+
+  return earliest;
+}
+
 export function startGame(code: string, participantId: string) {
   const normalized = normalizeCode(code);
   const room = rooms.get(normalized);
@@ -115,7 +151,7 @@ export function startGame(code: string, participantId: string) {
     throw new HttpError(400, "Game has already started");
   }
 
-  if (room.hostParticipantId !== participantId) {
+  if (room.hostParticipantId !== null && room.hostParticipantId !== participantId) {
     throw new HttpError(403, "Only the host can start the game");
   }
 
@@ -127,7 +163,18 @@ export function startGame(code: string, participantId: string) {
     throw new HttpError(404, "Participant not found in room");
   }
 
+  const word = selectWord(room.code);
+  const drawer = selectDrawer(room);
+
+  const currentRound: CurrentRound = {
+    roundNumber: 1,
+    drawerParticipantId: drawer.id,
+    secretWord: word,
+    startedAt: now()
+  };
+
   room.status = "inGame";
+  room.currentRound = currentRound;
   room.updatedAt = now();
   rooms.set(room.code, room);
 
@@ -138,7 +185,21 @@ export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSn
   const isHost = viewerParticipantId ? room.hostParticipantId === viewerParticipantId : false;
   const canStart = isHost && room.status === "lobby" && room.participants.length >= 2;
 
-  return {
+  let viewerRole: ViewerRole = "unknown";
+  let isDrawer = false;
+
+  if (room.currentRound && viewerParticipantId) {
+    isDrawer = room.currentRound.drawerParticipantId === viewerParticipantId;
+    viewerRole = isDrawer ? "drawer" : "guesser";
+  } else if (viewerParticipantId) {
+    viewerRole = room.participants.some((p) => p.id === viewerParticipantId) ? "guesser" : "unknown";
+  }
+
+  const drawerParticipant = room.currentRound
+    ? room.participants.find((p) => p.id === room.currentRound!.drawerParticipantId)
+    : undefined;
+
+  const snapshot: RoomSnapshot = {
     code: room.code,
     status: room.status,
     participants: room.participants.map((participant) => ({ ...participant })),
@@ -147,6 +208,22 @@ export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSn
     isHost,
     canStart,
     availableWords: listWords(),
-    roles: [...STARTER_ROLES]
+    roles: [...STARTER_ROLES],
+    currentRound: room.currentRound
+      ? {
+          roundNumber: room.currentRound.roundNumber,
+          drawerParticipantId: room.currentRound.drawerParticipantId,
+          drawerName: drawerParticipant?.name ?? "Unknown"
+        }
+      : undefined,
+    viewerRole,
+    isDrawer,
+    secretWord: isDrawer && room.currentRound ? room.currentRound.secretWord : undefined
   };
+
+  if (!isDrawer) {
+    delete snapshot.secretWord;
+  }
+
+  return snapshot;
 }

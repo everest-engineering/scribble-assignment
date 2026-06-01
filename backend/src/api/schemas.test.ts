@@ -3,6 +3,7 @@ import {
   createRoomSchema,
   joinRoomSchema,
   roomCodeParamsSchema,
+  roomViewerQuerySchema,
   startGameSchema
 } from "./schemas.js";
 
@@ -20,6 +21,10 @@ describe("createRoomSchema", () => {
   it("rejects empty player name after trimming", () => {
     expect(() => createRoomSchema.parse({ playerName: "   " })).toThrow();
   });
+
+  it("rejects whitespace-only name", () => {
+    expect(() => createRoomSchema.parse({ playerName: " \t\n " })).toThrow();
+  });
 });
 
 describe("joinRoomSchema", () => {
@@ -35,6 +40,10 @@ describe("joinRoomSchema", () => {
 
   it("rejects empty player name", () => {
     expect(() => joinRoomSchema.parse({ playerName: "" })).toThrow();
+  });
+
+  it("rejects whitespace-only name", () => {
+    expect(() => joinRoomSchema.parse({ playerName: "   " })).toThrow();
   });
 });
 
@@ -54,6 +63,18 @@ describe("roomCodeParamsSchema", () => {
 
   it("rejects code longer than 4 characters", () => {
     expect(() => roomCodeParamsSchema.parse({ code: "ABCDE" })).toThrow();
+  });
+});
+
+describe("roomViewerQuerySchema", () => {
+  it("accepts a participantId", () => {
+    const result = roomViewerQuerySchema.parse({ participantId: "some-uuid" });
+    expect(result.participantId).toBe("some-uuid");
+  });
+
+  it("accepts missing participantId", () => {
+    const result = roomViewerQuerySchema.parse({});
+    expect(result.participantId).toBeUndefined();
   });
 });
 
