@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { clearCanvas, createRoom, getRoom, joinRoom, leaveRoom, revealWord, startGame, submitGuess, submitStrokes, toRoomSnapshot } from "./roomStore.js";
+import { clearCanvas, createRoom, getRoom, joinRoom, leaveRoom, playAgain, revealWord, startGame, submitGuess, submitStrokes, toRoomSnapshot } from "./roomStore.js";
 
 describe("roomStore", () => {
   describe("createRoom", () => {
@@ -579,13 +579,13 @@ describe("roomStore", () => {
       return { host, started: started as { ok: true; room: import("../models/game.js").Room } };
     }
 
-    it("transitions room to round_ended when drawer reveals", () => {
+    it("transitions room to results when drawer reveals", () => {
       const { host, started } = startRoom();
       const result = revealWord(started.room.code, host.participantId);
 
       expect(result.ok).toBe(true);
       if (result.ok) {
-        expect(result.room.status).toBe("round_ended");
+        expect(result.room.status).toBe("results");
       }
     });
 
@@ -619,7 +619,7 @@ describe("roomStore", () => {
       expect(result.ok).toBe(true);
       if (result.ok) {
         expect(result.allGuessersCorrect).toBe(true);
-        expect(result.room.status).toBe("round_ended");
+        expect(result.room.status).toBe("results");
       }
     });
 
@@ -638,7 +638,7 @@ describe("roomStore", () => {
       }
     });
 
-    it("rejects strokes after round_ended", () => {
+    it("rejects strokes after round ends", () => {
       const host = createRoom("Alice");
       joinRoom(host.room.code, "Bob");
       const started = startGame(host.room.code, host.participantId) as { ok: true; room: import("../models/game.js").Room };
@@ -650,7 +650,7 @@ describe("roomStore", () => {
       if (!result.ok) expect(result.status).toBe(400);
     });
 
-    it("reveals secretWord to non-drawer in snapshot after round_ended", () => {
+    it("reveals secretWord to non-drawer in snapshot after results", () => {
       const host = createRoom("Alice");
       const bobResult = joinRoom(host.room.code, "Bob")!;
       const started = startGame(host.room.code, host.participantId) as { ok: true; room: import("../models/game.js").Room };
@@ -659,6 +659,93 @@ describe("roomStore", () => {
       const updatedRoom = getRoom(started.room.code)!;
       const snapshot = toRoomSnapshot(updatedRoom, bobResult.participantId);
       expect(snapshot.secretWord).toBeDefined();
+    });
+  });
+
+  describe("playAgain", () => {
+    it("resets round data and transitions to lobby", () => {
+      const host = createRoom("Alice");
+      joinRoom(host.room.code, "Bob");
+      const started = startGame(host.room.code, host.participantId) as { ok: true; room: import("../models/game.js").Room };
+      revealWord(started.room.code, host.participantId);
+
+      const result = playAgain(started.room.code, host.participantId);
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.room.status).toBe("lobby");
+        expect(result.room.drawerId).toBeNull();
+        expect(result.room.secretWord).toBeNull();
+        expect(result.room.strokes).toEqual([]);
+        expect(result.room.clearVersion).toBe(0);
+        expect(result.room.guesses).toEqual([]);
+        expect(result.room.scores).toEqual(new Map());
+        expect(result.room.participants).toHaveLength(2);
+        expect(result.room.code).toBe(host.room.code);
+      }
+    });
+
+    it("preserves player list", () => {
+      const host = createRoom("Alice");
+      joinRoom(host.room.code, "Bob");
+      const started = startGame(host.room.code, host.participantId) as { ok: true; room: import("../models/game.js").Room };
+      revealWord(started.room.code, host.participantId);
+
+      const result = playAgain(started.room.code, host.participantId);
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.room.participants).toHaveLength(2);
+        expect(result.room.participants[0].name).toBe("Alice");
+        expect(result.room.participants[1].name).toBe("Bob");
+      }
+    });
+
+    it("is idempotent when called twice", () => {
+      const host = createRoom("Alice");
+      joinRoom(host.room.code, "Bob");
+      const started = startGame(host.room.code, host.participantId) as { ok: true; room: import("../models/game.js").Room };
+      revealWord(started.room.code, host.participantId);
+
+      playAgain(started.room.code, host.participantId);
+      const result = playAgain(started.room.code, host.participantId);
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.room.status).toBe("lobby");
+      }
+    });
+
+    it("idempotent when already in lobby", () => {
+      const host = createRoom("Alice");
+      const result = playAgain(host.room.code, host.participantId);
+      expect(result.ok).toBe(true);
+    });
+
+    it("rejects non-participant", () => {
+      const host = createRoom("Alice");
+      const result = playAgain(host.room.code, "non-existent-id");
+      expect(result.ok).toBe(false);
+      if (!result.ok) expect(result.status).toBe(404);
+    });
+
+    it("rejects unknown room", () => {
+      const result = playAgain("ZZZZ", "some-id");
+      expect(result.ok).toBe(false);
+      if (!result.ok) expect(result.status).toBe(404);
+    });
+
+    it("allows new game to start after restart", () => {
+      const host = createRoom("Alice");
+      joinRoom(host.room.code, "Bob");
+      const started = startGame(host.room.code, host.participantId) as { ok: true; room: import("../models/game.js").Room };
+      revealWord(started.room.code, host.participantId);
+      playAgain(started.room.code, host.participantId);
+
+      const newGame = startGame(host.room.code, host.participantId);
+      expect(newGame.ok).toBe(true);
+      if (newGame.ok) {
+        expect(newGame.room.status).toBe("playing");
+        expect(newGame.room.drawerId).not.toBeNull();
+        expect(newGame.room.secretWord).not.toBeNull();
+      }
     });
   });
 });

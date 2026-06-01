@@ -32,7 +32,7 @@ export interface PlayerScore {
 
 export interface RoomSnapshot {
   code: string;
-  status: "lobby" | "playing" | "round_ended";
+  status: "lobby" | "playing" | "results";
   hostId: string;
   drawerId: string | null;
   secretWord?: string;
@@ -126,6 +126,13 @@ export const api = {
   },
   revealWord(code: string, participantId: string) {
     return request<{ room: RoomSnapshot }>(`/rooms/${encodeURIComponent(code)}/reveal`, {
+      method: "POST",
+      body: JSON.stringify({ participantId })
+    });
+  },
+
+  playAgain(code: string, participantId: string) {
+    return request<{ room: RoomSnapshot }>(`/rooms/${encodeURIComponent(code)}/play-again`, {
       method: "POST",
       body: JSON.stringify({ participantId })
     });

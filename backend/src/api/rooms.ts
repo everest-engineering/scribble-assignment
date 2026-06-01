@@ -3,6 +3,7 @@ import {
   createRoomSchema,
   HttpError,
   joinRoomSchema,
+  playAgainSchema,
   roomCodeParamsSchema,
   roomViewerQuerySchema,
   leaveRoomSchema,
@@ -11,7 +12,7 @@ import {
   submitGuessSchema,
   revealWordSchema
 } from "./schemas.js";
-import { clearCanvas, createRoom, getRoom, getStrokes, joinRoom, leaveRoom, revealWord, startGame, submitGuess, submitStrokes, toRoomSnapshot } from "../services/roomStore.js";
+import { clearCanvas, createRoom, getRoom, getStrokes, joinRoom, leaveRoom, playAgain, revealWord, startGame, submitGuess, submitStrokes, toRoomSnapshot } from "../services/roomStore.js";
 
 export function createRoomsRouter() {
   const router = Router();
@@ -165,6 +166,21 @@ export function createRoomsRouter() {
       const { code } = roomCodeParamsSchema.parse(request.params);
       const { participantId } = revealWordSchema.parse(request.body);
       const result = revealWord(code.toUpperCase(), participantId);
+      if (!result.ok) throw new HttpError(result.status, result.error);
+
+      response.json({
+        room: toRoomSnapshot(result.room, participantId)
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/:code/play-again", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId } = playAgainSchema.parse(request.body);
+      const result = playAgain(code.toUpperCase(), participantId);
       if (!result.ok) throw new HttpError(result.status, result.error);
 
       response.json({

@@ -46,6 +46,10 @@ export const revealWordSchema = z.object({
   participantId: z.string()
 });
 
+export const playAgainSchema = z.object({
+  participantId: z.string()
+});
+
 export class HttpError extends Error {
   statusCode: number;
 

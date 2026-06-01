@@ -89,13 +89,21 @@ export function GamePage() {
     }
   }
 
+  async function handlePlayAgain() {
+    try {
+      await roomStore.playAgain();
+    } catch {
+      // silently fail
+    }
+  }
+
   if (!room) {
     return null;
   }
 
   const viewer = room.participants.find((participant) => participant.id === participantId) ?? null;
   const isDrawer = room.yourRole === "drawer";
-  const isRoundEnded = room.status === "round_ended";
+  const isRoundEnded = room.status === "results";
 
   return (
     <section className="panel game-page">
@@ -135,7 +143,7 @@ export function GamePage() {
           <Card title="Canvas">
             {isRoundEnded ? (
               <div className="canvas-placeholder" style={{ minHeight: '500px', backgroundColor: '#ffffff', border: '1px solid #e5e7eb', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <p style={{ fontSize: '1rem', color: '#374151' }}>Round ended! The word was: <strong>{room.secretWord}</strong></p>
+                <p style={{ fontSize: '1rem', color: '#374151' }}>Round over! The word was: <strong>{room.secretWord}</strong></p>
               </div>
             ) : (
               <DrawingCanvas
@@ -158,7 +166,7 @@ export function GamePage() {
               </div>
               <div>
                 <dt>Status</dt>
-                <dd>{isRoundEnded ? "Round Ended" : "Playing"}</dd>
+                <dd>{isRoundEnded ? "Results" : "Playing"}</dd>
               </div>
               <div>
                 <dt>Role</dt>
@@ -179,6 +187,11 @@ export function GamePage() {
         {isDrawer && !isRoundEnded ? (
           <button className="button button--primary" onClick={handleReveal}>
             Reveal Word
+          </button>
+        ) : null}
+        {isRoundEnded ? (
+          <button className="button button--primary" onClick={handlePlayAgain}>
+            Play Again
           </button>
         ) : null}
         <button className="button button--secondary" onClick={handleExit}>

@@ -152,6 +152,15 @@ class RoomStore {
     const response = await this.withLoading(() => api.revealWord(this.state.room!.code, this.state.participantId!));
     this.setRoomSnapshot(response.room);
   }
+
+  async playAgain() {
+    if (!this.state.room || !this.state.participantId) {
+      return;
+    }
+
+    const response = await this.withLoading(() => api.playAgain(this.state.room!.code, this.state.participantId!));
+    this.setRoomSnapshot(response.room);
+  }
 }
 
 const RoomStoreContext = createContext<RoomStore | null>(null);

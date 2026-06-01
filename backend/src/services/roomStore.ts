@@ -269,7 +269,7 @@ export function submitGuess(code: string, participantId: string, text: string):
 
   const allCorrect = allGuessersCorrect(room);
   if (allCorrect) {
-    room.status = "round_ended";
+    room.status = "results";
   }
 
   room.updatedAt = now();
@@ -284,7 +284,7 @@ export function revealWord(code: string, participantId: string):
   if (room.status !== "playing") return { ok: false, error: "Game is not in progress", status: 400 };
   if (room.drawerId !== participantId) return { ok: false, error: "Only the drawer can reveal the word", status: 403 };
 
-  room.status = "round_ended";
+  room.status = "results";
   room.updatedAt = now();
   rooms.set(room.code, room);
   return { ok: true, room: cloneRoom(room) };
@@ -292,7 +292,7 @@ export function revealWord(code: string, participantId: string):
 
 export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSnapshot {
   const isDrawer = viewerParticipantId !== undefined && viewerParticipantId === room.drawerId;
-  const showSecretWord = isDrawer && room.secretWord ? true : room.status === "round_ended" && room.secretWord ? true : false;
+  const showSecretWord = isDrawer && room.secretWord ? true : room.status === "results" && room.secretWord ? true : false;
 
   return {
     code: room.code,
@@ -310,6 +310,36 @@ export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSn
     scores: buildScores(room),
     allGuessersCorrect: allGuessersCorrect(room)
   };
+}
+
+export function playAgain(code: string, participantId: string):
+  { ok: true; room: Room } | { ok: false; error: string; status: number } {
+  const room = rooms.get(code);
+
+  if (!room) {
+    return { ok: false, error: "Room not found", status: 404 };
+  }
+
+  const participant = room.participants.find((p) => p.id === participantId);
+  if (!participant) {
+    return { ok: false, error: "Participant not found", status: 404 };
+  }
+
+  if (room.status === "lobby") {
+    return { ok: true, room: cloneRoom(room) };
+  }
+
+  room.status = "lobby";
+  room.drawerId = null;
+  room.secretWord = null;
+  room.strokes = [];
+  room.clearVersion = 0;
+  room.guesses = [];
+  room.scores = new Map();
+  room.updatedAt = now();
+  rooms.set(room.code, room);
+
+  return { ok: true, room: cloneRoom(room) };
 }
 
 export function startGame(code: string, participantId: string):
