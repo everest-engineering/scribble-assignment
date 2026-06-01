@@ -5,9 +5,15 @@ import {
   joinRoomSchema,
   roomCodeParamsSchema,
   roomViewerQuerySchema,
-  startRoomSchema
+  startRoomSchema,
 } from "./schemas.js";
-import { createRoom, getRoom, joinRoom, toRoomSnapshot, saveRoom } from "../services/roomStore.js";
+import {
+  createRoom,
+  getRoom,
+  joinRoom,
+  toRoomSnapshot,
+  saveRoom,
+} from "../services/roomStore.js";
 
 export function createRoomsRouter() {
   const router = Router();
@@ -19,7 +25,7 @@ export function createRoomsRouter() {
 
       response.status(201).json({
         participantId: result.participantId,
-        room: toRoomSnapshot(result.room, result.participantId)
+        room: toRoomSnapshot(result.room, result.participantId),
       });
     } catch (error) {
       next(error);
@@ -38,7 +44,7 @@ export function createRoomsRouter() {
 
       response.json({
         participantId: result.participantId,
-        room: toRoomSnapshot(result.room, result.participantId)
+        room: toRoomSnapshot(result.room, result.participantId),
       });
     } catch (error) {
       next(error);
@@ -48,7 +54,9 @@ export function createRoomsRouter() {
   router.post("/:code/start", (request, response, next) => {
     try {
       const { code } = roomCodeParamsSchema.parse(request.params);
-      const { participantId: parsedParticipantId } = startRoomSchema.parse(request.body);
+      const { participantId: parsedParticipantId } = startRoomSchema.parse(
+        request.body,
+      );
       const room = getRoom(code.toUpperCase());
 
       if (!room) {
@@ -62,7 +70,10 @@ export function createRoomsRouter() {
       }
 
       if (room.participants.length < 2) {
-        throw new HttpError(400, "At least two players are required to start the game");
+        throw new HttpError(
+          400,
+          "At least two players are required to start the game",
+        );
       }
 
       // transition room status to active
@@ -86,7 +97,7 @@ export function createRoomsRouter() {
       }
 
       response.json({
-        room: toRoomSnapshot(room, participantId)
+        room: toRoomSnapshot(room, participantId),
       });
     } catch (error) {
       next(error);

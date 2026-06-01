@@ -38,7 +38,7 @@ function createParticipant(name?: string, isHost = false): Participant {
     id: randomUUID(),
     name: displayName(name),
     joinedAt: now(),
-    isHost
+    isHost,
   };
 }
 
@@ -57,14 +57,14 @@ export function createRoom(playerName?: string) {
     status: "lobby",
     participants: [participant],
     createdAt: now(),
-    updatedAt: now()
+    updatedAt: now(),
   };
 
   rooms.set(room.code, room);
 
   return {
     room: cloneRoom(room),
-    participantId: participant.id
+    participantId: participant.id,
   };
 }
 
@@ -82,7 +82,7 @@ export function joinRoom(code: string, playerName?: string) {
 
   return {
     room: cloneRoom(room),
-    participantId: participant.id
+    participantId: participant.id,
   };
 }
 
@@ -93,11 +93,15 @@ export function getRoom(code: string) {
 
 export function saveRoom(room: Room) {
   room.updatedAt = now();
-  rooms.set(room.code, cloneRoom(room));
-  return getRoom(room.code);
+  const savedRoom = cloneRoom(room);
+  rooms.set(room.code, savedRoom);
+  return savedRoom;
 }
 
-export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSnapshot {
+export function toRoomSnapshot(
+  room: Room,
+  viewerParticipantId?: string,
+): RoomSnapshot {
   void viewerParticipantId;
 
   return {
@@ -105,6 +109,6 @@ export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSn
     status: room.status,
     participants: room.participants.map((participant) => ({ ...participant })),
     availableWords: listWords(),
-    roles: [...STARTER_ROLES]
+    roles: [...STARTER_ROLES],
   };
 }
