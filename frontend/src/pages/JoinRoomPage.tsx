@@ -28,8 +28,15 @@ export function JoinRoomPage() {
 
     try {
       setError(null);
-      await roomStore.joinRoom(trimmedCode, trimmedName);
-      navigate("/lobby");
+      const response = await roomStore.joinRoom(trimmedCode, trimmedName);
+
+      if (response.room.status === "result") {
+        navigate("/results");
+      } else if (response.room.status === "drawing") {
+        navigate("/game");
+      } else {
+        navigate("/lobby");
+      }
     } catch (caughtError) {
       setError(caughtError instanceof Error ? caughtError.message : "Unable to join room");
     }

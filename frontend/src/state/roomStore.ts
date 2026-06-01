@@ -158,6 +158,19 @@ class RoomStore {
     return response.room;
   }
 
+  async restartGame() {
+    const code = this.state.room?.code;
+    const participantId = this.state.participantId;
+
+    if (!code || !participantId) {
+      throw new Error("Missing room session");
+    }
+
+    const response = await this.withLoading(() => api.restartGame(code, participantId));
+    this.setRoomSnapshot(response.room);
+    return response.room;
+  }
+
   async hydrateFromSession() {
     const session = loadRoomSession();
 

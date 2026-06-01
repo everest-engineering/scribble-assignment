@@ -16,8 +16,8 @@
 
 **Purpose**: Verify upstream gameplay and extend join/status enums.
 
-- [ ] T001 Confirm `003-round-draw-guess` delivers `submitGuess`, scores, and `drawing` status in `backend/src/services/roomStore.ts`
-- [ ] T002 [P] Add `RESULT_POLL_MS=2000` alongside existing poll constants in `backend/src/services/roomConstants.ts`
+- [x] T001 Confirm `003-round-draw-guess` delivers `submitGuess`, scores, and `drawing` status in `backend/src/services/roomStore.ts`
+- [x] T002 [P] Add `RESULT_POLL_MS=2000` alongside existing poll constants in `backend/src/services/roomConstants.ts`
 
 ---
 
@@ -27,10 +27,10 @@
 
 **⚠️ CRITICAL**: No user story work until this phase is complete.
 
-- [ ] T003 Extend `RoomStatus` with `"result"` and `Room.revealedWord` in `backend/src/models/game.ts` per `data-model.md`
-- [ ] T004 [P] Extend `RoomSnapshot` with `revealedWord` and result-phase fields in `backend/src/models/game.ts` and `frontend/src/services/api.ts`
-- [ ] T005 [P] Add Zod schemas for restart route in `backend/src/api/schemas.ts`
-- [ ] T006 Update `joinRoom` to allow `status === "result"` and reject only `status === "drawing"` in `backend/src/services/roomStore.ts` (FR-014, 001 alignment)
+- [x] T003 Extend `RoomStatus` with `"result"` and `Room.revealedWord` in `backend/src/models/game.ts` per `data-model.md`
+- [x] T004 [P] Extend `RoomSnapshot` with `revealedWord` and result-phase fields in `backend/src/models/game.ts` and `frontend/src/services/api.ts`
+- [x] T005 [P] Add Zod schemas for restart route in `backend/src/api/schemas.ts`
+- [x] T006 Update `joinRoom` to allow `status === "result"` and reject only `status === "drawing"` in `backend/src/services/roomStore.ts` (FR-014, 001 alignment)
 
 **Checkpoint**: Models and join rules ready.
 
@@ -44,20 +44,20 @@
 
 ### Tests for User Story 1
 
-- [ ] T007 [P] [US1] Add failing tests: first correct guess sets `status` to `result` and `revealedWord`; second guess rejected in `backend/src/services/roomStore.test.ts`
-- [ ] T008 [P] [US1] Add failing tests: join during `result` succeeds; join during `drawing` still fails in `backend/src/services/roomStore.test.ts`
-- [ ] T009 [P] [US1] Add failing contract tests for result snapshot shape in `backend/src/api/rooms.test.ts`
+- [x] T007 [P] [US1] Add failing tests: first correct guess sets `status` to `result` and `revealedWord`; second guess rejected in `backend/src/services/roomStore.test.ts`
+- [x] T008 [P] [US1] Add failing tests: join during `result` succeeds; join during `drawing` still fails in `backend/src/services/roomStore.test.ts`
+- [x] T009 [P] [US1] Add failing contract tests for result snapshot shape in `backend/src/api/rooms.test.ts`
 
 ### Implementation for User Story 1
 
-- [ ] T010 [US1] Implement `endRound(room)` setting `status: "result"` and `revealedWord` from `secretWord` in `backend/src/services/roomStore.ts`
-- [ ] T011 [US1] Call `endRound` from `submitGuess` when guess is correct and room is `drawing` in `backend/src/services/roomStore.ts`
-- [ ] T012 [US1] Return 409 for guesses when `status !== "drawing"` in `backend/src/services/roomStore.ts` and `backend/src/api/rooms.ts`
-- [ ] T013 [US1] Include `revealedWord`, `guesses`, and session scores in `toRoomSnapshot` when `status === "result"` in `backend/src/services/roomStore.ts`
-- [ ] T014 [US1] Wire join route to allow `result` rooms in `backend/src/api/rooms.ts`
-- [ ] T015 [US1] Create `ResultPage` showing revealed word, scoreboard, and guess history in `frontend/src/pages/ResultPage.tsx`
-- [ ] T016 [P] [US1] Replace placeholder content in `frontend/src/components/ResultPanel.tsx` or use dedicated sections on `ResultPage`
-- [ ] T017 [US1] Add `/results` route in `frontend/src/routes/index.tsx`
+- [x] T010 [US1] Implement `endRound(room)` setting `status: "result"` and `revealedWord` from `secretWord` in `backend/src/services/roomStore.ts`
+- [x] T011 [US1] Call `endRound` from `submitGuess` when guess is correct and room is `drawing` in `backend/src/services/roomStore.ts`
+- [x] T012 [US1] Return 409 for guesses when `status !== "drawing"` in `backend/src/services/roomStore.ts` and `backend/src/api/rooms.ts`
+- [x] T013 [US1] Include `revealedWord`, `guesses`, and session scores in `toRoomSnapshot` when `status === "result"` in `backend/src/services/roomStore.ts`
+- [x] T014 [US1] Wire join route to allow `result` rooms in `backend/src/api/rooms.ts`
+- [x] T015 [US1] Create `ResultPage` showing revealed word, scoreboard, and guess history in `frontend/src/pages/ResultPage.tsx`
+- [x] T016 [P] [US1] Replace placeholder content in `frontend/src/components/ResultPanel.tsx` or use dedicated sections on `ResultPage`
+- [x] T017 [US1] Add `/results` route in `frontend/src/routes/index.tsx`
 
 **Checkpoint**: Result screen shows complete summary for all participants.
 
@@ -71,13 +71,13 @@
 
 ### Tests for User Story 2
 
-- [ ] T018 [P] [US2] Add failing test: two viewer snapshots in `result` share same word, scores, guess count in `backend/src/services/roomStore.test.ts`
+- [x] T018 [P] [US2] Add failing test: two viewer snapshots in `result` share same word, scores, guess count in `backend/src/services/roomStore.test.ts`
 
 ### Implementation for User Story 2
 
-- [ ] T019 [US2] Add 2000ms poll on `frontend/src/pages/GamePage.tsx` — navigate to `/results` when `room.status === "result"`
-- [ ] T020 [US2] Add 2000ms poll on `frontend/src/pages/ResultPage.tsx` to refresh result snapshot in `frontend/src/pages/ResultPage.tsx`
-- [ ] T021 [P] [US2] Hydrate room state from poll on result page in `frontend/src/state/roomStore.ts`
+- [x] T019 [US2] Add 2000ms poll on `frontend/src/pages/GamePage.tsx` — navigate to `/results` when `room.status === "result"`
+- [x] T020 [US2] Add 2000ms poll on `frontend/src/pages/ResultPage.tsx` to refresh result snapshot in `frontend/src/pages/ResultPage.tsx`
+- [x] T021 [P] [US2] Hydrate room state from poll on result page in `frontend/src/state/roomStore.ts`
 
 **Checkpoint**: Auto-navigation and synced result view without manual refresh.
 
@@ -91,18 +91,18 @@
 
 ### Tests for User Story 3
 
-- [ ] T022 [P] [US3] Add failing tests for `restartGame`: host-only, clears round fields, scores zeroed, roster preserved in `backend/src/services/roomStore.test.ts`
-- [ ] T023 [P] [US3] Add failing contract tests for `POST /rooms/:code/restart` 200/403/400 in `backend/src/api/rooms.test.ts`
+- [x] T022 [P] [US3] Add failing tests for `restartGame`: host-only, clears round fields, scores zeroed, roster preserved in `backend/src/services/roomStore.test.ts`
+- [x] T023 [P] [US3] Add failing contract tests for `POST /rooms/:code/restart` 200/403/400 in `backend/src/api/rooms.test.ts`
 
 ### Implementation for User Story 3
 
-- [ ] T024 [US3] Implement `restartGame(code, hostParticipantId)` in `backend/src/services/roomStore.ts` per `data-model.md`
-- [ ] T025 [US3] Wire `POST /rooms/:code/restart` host-only in `backend/src/api/rooms.ts`
-- [ ] T026 [US3] Add `api.restartGame` in `frontend/src/services/api.ts`
-- [ ] T027 [US3] Add host-only Restart button on `frontend/src/pages/ResultPage.tsx` calling restart API
-- [ ] T028 [P] [US3] Show non-host message when restart unavailable on `frontend/src/pages/ResultPage.tsx`
-- [ ] T029 [US3] Poll on `ResultPage` and `GamePage` — navigate to `/lobby` when `status === "lobby"` after restart in `frontend/src/pages/ResultPage.tsx`
-- [ ] T030 [US3] Verify `LobbyPage` shows empty canvas/word/history and scores 0 after restart in `frontend/src/pages/LobbyPage.tsx`
+- [x] T024 [US3] Implement `restartGame(code, hostParticipantId)` in `backend/src/services/roomStore.ts` per `data-model.md`
+- [x] T025 [US3] Wire `POST /rooms/:code/restart` host-only in `backend/src/api/rooms.ts`
+- [x] T026 [US3] Add `api.restartGame` in `frontend/src/services/api.ts`
+- [x] T027 [US3] Add host-only Restart button on `frontend/src/pages/ResultPage.tsx` calling restart API
+- [x] T028 [P] [US3] Show non-host message when restart unavailable on `frontend/src/pages/ResultPage.tsx`
+- [x] T029 [US3] Poll on `ResultPage` and `GamePage` — navigate to `/lobby` when `status === "lobby"` after restart in `frontend/src/pages/ResultPage.tsx`
+- [x] T030 [US3] Verify `LobbyPage` shows empty canvas/word/history and scores 0 after restart in `frontend/src/pages/LobbyPage.tsx`
 
 **Checkpoint**: Full lifecycle `lobby → drawing → result → lobby` works.
 
@@ -112,10 +112,10 @@
 
 **Purpose**: Quality gates and end-to-end validation.
 
-- [ ] T031 [P] Run `npm run build` and `npm test` in `backend/` and fix failures
-- [ ] T032 [P] Run `npm run build` in `frontend/` and fix type errors
-- [ ] T033 Execute full checklist in `specs/004-result-restart-lobby/quickstart.md`
-- [ ] T034 [P] Align error messages (“Round has ended”, host-only restart) in `backend/src/api/rooms.ts` and `frontend/src/pages/ResultPage.tsx`
+- [x] T031 [P] Run `npm run build` and `npm test` in `backend/` and fix failures
+- [x] T032 [P] Run `npm run build` in `frontend/` and fix type errors
+- [x] T033 Execute full checklist in `specs/004-result-restart-lobby/quickstart.md`
+- [x] T034 [P] Align error messages (“Round has ended”, host-only restart) in `backend/src/api/rooms.ts` and `frontend/src/pages/ResultPage.tsx`
 
 ---
 

@@ -149,7 +149,7 @@ export function joinRoom(code: string, playerName: string) {
     throw new RoomServiceError("GAME_STARTED", "Game already started");
   }
 
-  if (room.status !== "lobby") {
+  if (room.status !== "lobby" && room.status !== "result") {
     throw new RoomServiceError("GAME_STARTED", "Game already started");
   }
 
@@ -276,9 +276,19 @@ export function startGame(code: string, participantId: string) {
 }
 
 function assertDrawingRoom(room: Room) {
+  if (room.status === "result") {
+    throw new RoomServiceError("ROUND_ENDED", "Round has ended");
+  }
+
   if (room.status !== "drawing") {
     throw new RoomServiceError("NOT_DRAWING", "Game is not in progress");
   }
+}
+
+export function endRound(room: Room) {
+  room.status = "result";
+  room.revealedWord = room.secretWord;
+  room.updatedAt = now();
 }
 
 export function updateCanvas(
@@ -336,6 +346,42 @@ export function submitGuess(code: string, participantId: string, text: string) {
     createdAt: now()
   });
   room.guesses = guesses;
+
+  if (isCorrect) {
+    endRound(room);
+  } else {
+    room.updatedAt = now();
+  }
+
+  rooms.set(room.code, cloneRoom(room));
+
+  return cloneRoom(room);
+}
+
+export function restartGame(code: string, participantId: string) {
+  const room = getRoomOrThrow(normalizeRoomCode(code));
+
+  if (room.status !== "result") {
+    throw new RoomServiceError("NOT_RESULT", "Round has not ended yet");
+  }
+
+  if (room.hostParticipantId !== participantId) {
+    throw new RoomServiceError("NOT_HOST", "Only the host can restart the game");
+  }
+
+  room.status = "lobby";
+  room.revealedWord = undefined;
+  room.secretWord = undefined;
+  room.drawerParticipantId = undefined;
+  room.roundNumber = undefined;
+  room.canvasStrokes = [];
+  room.guesses = [];
+
+  for (const participant of room.participants) {
+    participant.role = undefined;
+    participant.score = 0;
+  }
+
   room.updatedAt = now();
   rooms.set(room.code, cloneRoom(room));
 
@@ -359,8 +405,11 @@ export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSn
     roundNumber: room.roundNumber,
     drawerParticipantId: room.drawerParticipantId,
     participants,
-    canvasStrokes: room.canvasStrokes ?? [],
-    guesses: room.guesses ?? []
+    canvasStrokes: room.status === "lobby" ? [] : (room.canvasStrokes ?? []),
+    guesses: room.status === "lobby" ? [] : (room.guesses ?? []),
+    ...(room.status === "result" && room.revealedWord
+      ? { revealedWord: room.revealedWord }
+      : {})
   };
 
   if (!viewerParticipantId) {
@@ -382,7 +431,7 @@ export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSn
     role: viewerRole
   };
 
-  if (viewerRole === "drawer" && room.secretWord) {
+  if (room.status === "drawing" && viewerRole === "drawer" && room.secretWord) {
     viewer.secretWord = room.secretWord;
   }
 

@@ -45,6 +45,10 @@ export function LobbyPage() {
     if (room?.status === "drawing") {
       navigate("/game", { replace: true });
     }
+
+    if (room?.status === "result") {
+      navigate("/results", { replace: true });
+    }
   }, [navigate, room?.status]);
 
   useEffect(() => {
@@ -130,6 +134,9 @@ export function LobbyPage() {
                   ? "You can start the game when everyone is ready."
                   : "Waiting for at least one more player."
                 : "Waiting for the host to start the game.")}
+          </p>
+          <p className="lobby-scores-note">
+            Session scores reset to 0 after each round restart.
           </p>
         </Card>
       </div>

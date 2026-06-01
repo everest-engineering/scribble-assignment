@@ -26,6 +26,12 @@ export function GamePage() {
   }, [navigate, room, roomStore]);
 
   useEffect(() => {
+    if (room?.status === "result") {
+      navigate("/results", { replace: true });
+    }
+  }, [navigate, room?.status]);
+
+  useEffect(() => {
     if (!room || room.status !== "drawing" || !participantId) {
       return;
     }

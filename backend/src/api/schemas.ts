@@ -28,6 +28,10 @@ export const startGameQuerySchema = z.object({
   participantId: z.string().uuid()
 });
 
+export const restartGameQuerySchema = z.object({
+  participantId: z.string().uuid()
+});
+
 const canvasPointSchema = z.object({
   x: z.number(),
   y: z.number()

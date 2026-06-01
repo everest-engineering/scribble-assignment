@@ -38,6 +38,7 @@ export interface Room {
   roundNumber?: number;
   drawerParticipantId?: string;
   secretWord?: string;
+  revealedWord?: string;
   canvasStrokes?: CanvasStroke[];
   guesses?: Guess[];
   createdAt: string;
@@ -70,6 +71,7 @@ export interface RoomSnapshot {
   participants: RoomParticipantSnapshot[];
   canvasStrokes?: CanvasStroke[];
   guesses?: Guess[];
+  revealedWord?: string;
   viewer?: RoomViewer;
 }
 

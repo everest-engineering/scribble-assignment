@@ -142,4 +142,101 @@ describe("rooms API", () => {
     );
     expect(poll.body.room.viewer.secretWord).toBeUndefined();
   });
+
+  it("POST /rooms/:code/guesses ends round on correct guess", async () => {
+    const created = await request(app).post("/rooms").send({ playerName: "Host" });
+    const hostId = created.body.participantId as string;
+    const code = created.body.room.code as string;
+
+    const joined = await request(app).post(`/rooms/${code}/join`).send({ playerName: "Guest" });
+    const guestId = joined.body.participantId as string;
+
+    const started = await request(app)
+      .post(`/rooms/${code}/start`)
+      .query({ participantId: hostId });
+
+    const secretWord = started.body.room.viewer.secretWord as string;
+
+    const guess = await request(app)
+      .post(`/rooms/${code}/guesses`)
+      .query({ participantId: guestId })
+      .send({ text: secretWord });
+
+    expect(guess.status).toBe(200);
+    expect(guess.body.room.status).toBe("result");
+    expect(guess.body.room.revealedWord).toBe(secretWord);
+
+    const again = await request(app)
+      .post(`/rooms/${code}/guesses`)
+      .query({ participantId: guestId })
+      .send({ text: "nope" });
+
+    expect(again.status).toBe(409);
+    expect(again.body.message).toBe("Round has ended");
+  });
+
+  it("POST /rooms/:code/join during result returns result snapshot", async () => {
+    const created = await request(app).post("/rooms").send({ playerName: "Host" });
+    const hostId = created.body.participantId as string;
+    const code = created.body.room.code as string;
+
+    const joined = await request(app).post(`/rooms/${code}/join`).send({ playerName: "Guest" });
+    const guestId = joined.body.participantId as string;
+
+    const started = await request(app)
+      .post(`/rooms/${code}/start`)
+      .query({ participantId: hostId });
+
+    const secretWord = started.body.room.viewer.secretWord as string;
+
+    await request(app)
+      .post(`/rooms/${code}/guesses`)
+      .query({ participantId: guestId })
+      .send({ text: secretWord });
+
+    const late = await request(app).post(`/rooms/${code}/join`).send({ playerName: "Late" });
+
+    expect(late.status).toBe(200);
+    expect(late.body.room.status).toBe("result");
+    expect(late.body.room.revealedWord).toBe(secretWord);
+    expect(late.body.room.guesses).toHaveLength(1);
+  });
+
+  it("POST /rooms/:code/restart returns lobby for host only", async () => {
+    const created = await request(app).post("/rooms").send({ playerName: "Host" });
+    const hostId = created.body.participantId as string;
+    const code = created.body.room.code as string;
+
+    const joined = await request(app).post(`/rooms/${code}/join`).send({ playerName: "Guest" });
+    const guestId = joined.body.participantId as string;
+
+    const started = await request(app)
+      .post(`/rooms/${code}/start`)
+      .query({ participantId: hostId });
+
+    const secretWord = started.body.room.viewer.secretWord as string;
+
+    await request(app)
+      .post(`/rooms/${code}/guesses`)
+      .query({ participantId: guestId })
+      .send({ text: secretWord });
+
+    const forbidden = await request(app)
+      .post(`/rooms/${code}/restart`)
+      .query({ participantId: guestId });
+
+    expect(forbidden.status).toBe(403);
+
+    const restarted = await request(app)
+      .post(`/rooms/${code}/restart`)
+      .query({ participantId: hostId });
+
+    expect(restarted.status).toBe(200);
+    expect(restarted.body.room.status).toBe("lobby");
+    expect(restarted.body.room.revealedWord).toBeUndefined();
+    expect(restarted.body.room.guesses).toEqual([]);
+    expect(
+      restarted.body.room.participants.every((entry: { score: number }) => entry.score === 0)
+    ).toBe(true);
+  });
 });

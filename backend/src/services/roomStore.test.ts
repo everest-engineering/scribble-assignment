@@ -7,6 +7,7 @@ import {
   getRoomForParticipant,
   joinRoom,
   startGame,
+  restartGame,
   submitGuess,
   toRoomSnapshot,
   trimParticipantNames,
@@ -228,6 +229,112 @@ describe("roomStore", () => {
     );
 
     expect(started.secretWord).toBeDefined();
+  });
+
+  it("joinRoom allows joining during result but not during drawing", () => {
+    const host = createRoom("Host");
+    const guest = joinRoom(host.room.code, "Guest");
+    const started = startGame(host.room.code, host.participantId);
+    const secretWord = started.secretWord ?? "";
+
+    submitGuess(host.room.code, guest.participantId, secretWord);
+
+    const lateJoin = joinRoom(host.room.code, "Late");
+    expect(lateJoin.room.status).toBe("result");
+    expect(lateJoin.room.revealedWord).toBe(secretWord);
+
+    const hostOnly = createRoom("Host2");
+    joinRoom(hostOnly.room.code, "Guest2");
+    startGame(hostOnly.room.code, hostOnly.participantId);
+
+    expect(() => joinRoom(hostOnly.room.code, "Blocked")).toThrow(/Game already started/);
+  });
+
+  it("first correct guess ends round and rejects further guesses", () => {
+    const host = createRoom("Host");
+    const guest = joinRoom(host.room.code, "Guest");
+    const started = startGame(host.room.code, host.participantId);
+    const secretWord = started.secretWord ?? "";
+
+    const ended = submitGuess(host.room.code, guest.participantId, secretWord);
+
+    expect(ended.status).toBe("result");
+    expect(ended.revealedWord).toBe(secretWord);
+
+    expect(() => submitGuess(host.room.code, guest.participantId, "another")).toThrow(
+      /Round has ended/
+    );
+  });
+
+  it("toRoomSnapshot in result exposes revealedWord to all viewers", () => {
+    const host = createRoom("Host");
+    const guest = joinRoom(host.room.code, "Guest");
+    const started = startGame(host.room.code, host.participantId);
+    const secretWord = started.secretWord ?? "";
+
+    submitGuess(host.room.code, guest.participantId, secretWord);
+
+    const hostView = toRoomSnapshot(
+      getRoomForParticipant(host.room.code, host.participantId),
+      host.participantId
+    );
+    const guestView = toRoomSnapshot(
+      getRoomForParticipant(host.room.code, guest.participantId),
+      guest.participantId
+    );
+
+    expect(hostView.revealedWord).toBe(secretWord);
+    expect(guestView.revealedWord).toBe(secretWord);
+    expect(hostView.guesses).toHaveLength(1);
+    expect(guestView.guesses).toHaveLength(1);
+    expect(hostView.participants.find((entry) => entry.id === guest.participantId)?.score).toBe(
+      100
+    );
+    expect(guestView.viewer?.secretWord).toBeUndefined();
+    expect(hostView.viewer?.secretWord).toBeUndefined();
+  });
+
+  it("result snapshots are consistent across viewers", () => {
+    const host = createRoom("Host");
+    const guest = joinRoom(host.room.code, "Guest");
+    const started = startGame(host.room.code, host.participantId);
+
+    submitGuess(host.room.code, guest.participantId, started.secretWord ?? "");
+
+    const hostView = toRoomSnapshot(
+      getRoomForParticipant(host.room.code, host.participantId),
+      host.participantId
+    );
+    const guestView = toRoomSnapshot(
+      getRoomForParticipant(host.room.code, guest.participantId),
+      guest.participantId
+    );
+
+    expect(hostView.revealedWord).toBe(guestView.revealedWord);
+    expect(hostView.guesses?.length).toBe(guestView.guesses?.length);
+    expect(hostView.participants.map((entry) => entry.score)).toEqual(
+      guestView.participants.map((entry) => entry.score)
+    );
+  });
+
+  it("restartGame resets round state and scores for host only", () => {
+    const host = createRoom("Host");
+    const guest = joinRoom(host.room.code, "Guest");
+    const started = startGame(host.room.code, host.participantId);
+
+    submitGuess(host.room.code, guest.participantId, started.secretWord ?? "");
+
+    expect(() => restartGame(host.room.code, guest.participantId)).toThrow(/Only the host/);
+
+    const restarted = restartGame(host.room.code, host.participantId);
+
+    expect(restarted.status).toBe("lobby");
+    expect(restarted.revealedWord).toBeUndefined();
+    expect(restarted.secretWord).toBeUndefined();
+    expect(restarted.guesses).toEqual([]);
+    expect(restarted.canvasStrokes).toEqual([]);
+    expect(restarted.participants.every((entry) => entry.score === 0)).toBe(true);
+    expect(restarted.participants.every((entry) => entry.role === undefined)).toBe(true);
   });
 
   it("toRoomSnapshot includes gameplay fields without leaking secret word to guesser", () => {

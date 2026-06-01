@@ -47,6 +47,7 @@ export interface RoomSnapshot {
   participants: RoomParticipantSnapshot[];
   canvasStrokes?: CanvasStroke[];
   guesses?: Guess[];
+  revealedWord?: string;
   viewer?: RoomViewer;
 }
 
@@ -126,6 +127,13 @@ export const api = {
         method: "POST",
         body: JSON.stringify({ text })
       }
+    );
+  },
+  restartGame(code: string, participantId: string) {
+    const query = `?participantId=${encodeURIComponent(participantId)}`;
+    return request<{ room: RoomSnapshot }>(
+      `/rooms/${encodeURIComponent(code)}/restart${query}`,
+      { method: "POST" }
     );
   }
 };

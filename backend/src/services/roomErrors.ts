@@ -11,7 +11,9 @@ export type RoomErrorCode =
   | "NOT_DRAWING"
   | "NOT_DRAWER"
   | "DRAWER_CANNOT_GUESS"
-  | "EMPTY_GUESS";
+  | "EMPTY_GUESS"
+  | "ROUND_ENDED"
+  | "NOT_RESULT";
 
 export class RoomServiceError extends Error {
   readonly code: RoomErrorCode;
