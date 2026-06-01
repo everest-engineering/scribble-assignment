@@ -110,6 +110,49 @@ input {
   font-size: 0.875rem;
 }
 
+.room-code-badge--prominent {
+  padding: 24px 40px;
+  border-width: 2px;
+  border-color: var(--brand);
+}
+
+.room-code-badge--prominent .room-code-badge__code {
+  font-size: 2.5rem;
+}
+
+.button--compact {
+  padding: 8px 16px;
+  font-size: 0.875rem;
+}
+
+.lobby-guest-note {
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: 0.95rem;
+}
+
+.role-banner {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: var(--brand-strong);
+}
+
+.secret-word {
+  margin: 0;
+  font-size: 2rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: capitalize;
+}
+
+.secret-word-hint,
+.guesser-prompt {
+  margin: 8px 0 0;
+  color: var(--ink-soft);
+  font-size: 0.875rem;
+}
+
 .app-shell__title {
   margin: 0;
   color: var(--ink);
@@ -229,11 +272,6 @@ input {
   border-radius: 16px;
   background: var(--surface);
   box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06); /* subtle shadow for inner cards */
-}
-
-/* Specific fix for game page main cards to look larger */
-.game-page__main .card {
-  padding: 40px;
 }
 
 .card__header {
@@ -456,7 +494,7 @@ input {
 .game-page {
   display: grid;
   gap: 32px;
-  padding: 40px;
+  padding: 32px;
   max-width: 100%;
   background: var(--surface);
   border: 1px solid var(--line);
@@ -470,6 +508,15 @@ input {
   justify-content: space-between;
   gap: 24px;
   flex-wrap: wrap;
+}
+
+.game-page .card {
+  gap: 0;
+  padding: 14px;
+}
+
+.game-page .card__header {
+  margin-bottom: 24px;
 }
 
 .game-page__header-left {

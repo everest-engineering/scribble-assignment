@@ -15,8 +15,8 @@
 
 **Purpose**: Brownfield alignment—no new project scaffold; wire feature constants and verify toolchain.
 
-- [ ] T001 Verify local dev commands in `backend/package.json` and `frontend/package.json` match plan (dev, build, test)
-- [ ] T002 [P] Add room feature constants (`MAX_PARTICIPANTS=10`, `PRESENCE_TIMEOUT_MS=30000`, `LOBBY_POLL_MS=2000`) in `backend/src/services/roomConstants.ts`
+- [x] T001 Verify local dev commands in `backend/package.json` and `frontend/package.json` match plan (dev, build, test)
+- [x] T002 [P] Add room feature constants (`MAX_PARTICIPANTS=10`, `PRESENCE_TIMEOUT_MS=30000`, `LOBBY_POLL_MS=2000`) in `backend/src/services/roomConstants.ts`
 
 ---
 
@@ -26,10 +26,10 @@
 
 **⚠️ CRITICAL**: No user story work until this phase is complete.
 
-- [ ] T003 Extend `Room`, `Participant`, `RoomSnapshot`, and `RoomStatus` (`lobby` | `drawing` | `result`) in `backend/src/models/game.ts` per `data-model.md` (`hostParticipantId`, `lastSeenAt`, `viewer` fields)
-- [ ] T004 [P] Add trimmed `playerName` Zod schemas and `roomCode` normalization in `backend/src/api/schemas.ts`
-- [ ] T005 [P] Extend `HttpError` usage and central error handler mapping for 400/404/409 in `backend/src/api/errorHandler.ts` (or existing error middleware in `backend/src/app.ts`)
-- [ ] T006 [P] Mirror snapshot/viewer types in `frontend/src/services/api.ts` for typed client responses
+- [x] T003 Extend `Room`, `Participant`, `RoomSnapshot`, and `RoomStatus` (`lobby` | `drawing` | `result`) in `backend/src/models/game.ts` per `data-model.md` (`hostParticipantId`, `lastSeenAt`, `viewer` fields)
+- [x] T004 [P] Add trimmed `playerName` Zod schemas and `roomCode` normalization in `backend/src/api/schemas.ts`
+- [x] T005 [P] Extend `HttpError` usage and central error handler mapping for 400/404/409 in `backend/src/api/errorHandler.ts` (or existing error middleware in `backend/src/app.ts`)
+- [x] T006 [P] Mirror snapshot/viewer types in `frontend/src/services/api.ts` for typed client responses
 
 **Checkpoint**: Types and validation ready—user story phases can begin.
 
@@ -45,19 +45,19 @@
 
 > Write tests FIRST; ensure they FAIL before implementation.
 
-- [ ] T007 [P] [US1] Add failing tests for `createRoom` host assignment, name trim, and empty-name rejection in `backend/src/services/roomStore.test.ts`
-- [ ] T008 [P] [US1] Add failing contract test for `POST /rooms` 201/400 in `backend/src/api/rooms.test.ts`
+- [x] T007 [P] [US1] Add failing tests for `createRoom` host assignment, name trim, and empty-name rejection in `backend/src/services/roomStore.test.ts`
+- [x] T008 [P] [US1] Add failing contract test for `POST /rooms` 201/400 in `backend/src/api/rooms.test.ts`
 
 ### Implementation for User Story 1
 
-- [ ] T009 [US1] Implement `createRoom` with `hostParticipantId`, trim/reject name, and `lastSeenAt` in `backend/src/services/roomStore.ts`
-- [ ] T010 [US1] Update `toRoomSnapshot` with `hostParticipantId` and `viewer.isHost` / `canStart` in `backend/src/services/roomStore.ts`
-- [ ] T011 [US1] Wire `POST /rooms` validation and 400 responses in `backend/src/api/rooms.ts`
-- [ ] T012 [P] [US1] Add client-side name trim and validation UX in `frontend/src/pages/CreateRoomPage.tsx`
-- [ ] T013 [US1] Persist `{ roomCode, participantId }` to sessionStorage on create in `frontend/src/state/roomStore.ts`
-- [ ] T014 [US1] Show host badge for host participant in `frontend/src/pages/LobbyPage.tsx`
-- [ ] T015 [P] [US1] Display room code prominently in lobby (large/copy-friendly UI per FR-012) in `frontend/src/pages/LobbyPage.tsx`
-- [ ] T016 [P] [US1] Render full participant list with display names, updating on poll (FR-013) in `frontend/src/pages/LobbyPage.tsx`
+- [x] T009 [US1] Implement `createRoom` with `hostParticipantId`, trim/reject name, and `lastSeenAt` in `backend/src/services/roomStore.ts`
+- [x] T010 [US1] Update `toRoomSnapshot` with `hostParticipantId` and `viewer.isHost` / `canStart` in `backend/src/services/roomStore.ts`
+- [x] T011 [US1] Wire `POST /rooms` validation and 400 responses in `backend/src/api/rooms.ts`
+- [x] T012 [P] [US1] Add client-side name trim and validation UX in `frontend/src/pages/CreateRoomPage.tsx`
+- [x] T013 [US1] Persist `{ roomCode, participantId }` to sessionStorage on create in `frontend/src/state/roomStore.ts`
+- [x] T014 [US1] Show host badge for host participant in `frontend/src/pages/LobbyPage.tsx`
+- [x] T015 [P] [US1] Display room code prominently in lobby (large/copy-friendly UI per FR-012) in `frontend/src/pages/LobbyPage.tsx`
+- [x] T016 [P] [US1] Render full participant list with display names, updating on poll (FR-013) in `frontend/src/pages/LobbyPage.tsx`
 
 **Checkpoint**: User Story 1 independently testable (create + lobby host UI, visible code, participant list).
 
@@ -71,16 +71,16 @@
 
 ### Tests for User Story 2
 
-- [ ] T017 [P] [US2] Add failing tests for join not-found, room-full (10), join blocked when `status === drawing` (not `result`), case-insensitive code, and name trim in `backend/src/services/roomStore.test.ts`
-- [ ] T018 [P] [US2] Add failing contract tests for `POST /rooms/:code/join` 404/409/400 in `backend/src/api/rooms.test.ts`
+- [x] T017 [P] [US2] Add failing tests for join not-found, room-full (10), join blocked when `status === drawing` (not `result`), case-insensitive code, and name trim in `backend/src/services/roomStore.test.ts`
+- [x] T018 [P] [US2] Add failing contract tests for `POST /rooms/:code/join` 404/409/400 in `backend/src/api/rooms.test.ts`
 
 ### Implementation for User Story 2
 
-- [ ] T019 [US2] Implement join guards (`lobby` only; 409 when `drawing`; max participants) and uppercase code lookup in `backend/src/services/roomStore.ts`
-- [ ] T020 [US2] Implement `pruneStaleParticipants` and delete room when empty in `backend/src/services/roomStore.ts`
-- [ ] T021 [US2] Wire join route errors per `contracts/rooms-api.md` in `backend/src/api/rooms.ts`
-- [ ] T022 [P] [US2] Add client-side code/name validation messages in `frontend/src/pages/JoinRoomPage.tsx`
-- [ ] T023 [US2] Persist session on join and map API error messages in `frontend/src/state/roomStore.ts` and `frontend/src/services/api.ts`
+- [x] T019 [US2] Implement join guards (`lobby` only; 409 when `drawing`; max participants) and uppercase code lookup in `backend/src/services/roomStore.ts`
+- [x] T020 [US2] Implement `pruneStaleParticipants` and delete room when empty in `backend/src/services/roomStore.ts`
+- [x] T021 [US2] Wire join route errors per `contracts/rooms-api.md` in `backend/src/api/rooms.ts`
+- [x] T022 [P] [US2] Add client-side code/name validation messages in `frontend/src/pages/JoinRoomPage.tsx`
+- [x] T023 [US2] Persist session on join and map API error messages in `frontend/src/state/roomStore.ts` and `frontend/src/services/api.ts`
 
 **Checkpoint**: User Stories 1 and 2 work—create, join, isolation, and join error paths.
 
@@ -94,18 +94,18 @@
 
 ### Tests for User Story 3
 
-- [ ] T024 [P] [US3] Add failing tests for `getRoomForParticipant` resume, `startGame` host-only and min players in `backend/src/services/roomStore.test.ts`
-- [ ] T025 [P] [US3] Add failing contract tests for `GET /rooms/:code` viewer flags and `POST /rooms/:code/start` in `backend/src/api/rooms.test.ts`
+- [x] T024 [P] [US3] Add failing tests for `getRoomForParticipant` resume, `startGame` host-only and min players in `backend/src/services/roomStore.test.ts`
+- [x] T025 [P] [US3] Add failing contract tests for `GET /rooms/:code` viewer flags and `POST /rooms/:code/start` in `backend/src/api/rooms.test.ts`
 
 ### Implementation for User Story 3
 
-- [ ] T026 [US3] Implement `getRoomForParticipant` (resume `lastSeenAt`, no duplicate row) in `backend/src/services/roomStore.ts`
-- [ ] T027 [US3] Implement `startGame(hostParticipantId)` transitioning `lobby` → `drawing` in `backend/src/services/roomStore.ts`
-- [ ] T028 [US3] Wire `GET /rooms/:code` and `POST /rooms/:code/start` in `backend/src/api/rooms.ts`
-- [ ] T029 [US3] Add `startGame` API method in `frontend/src/services/api.ts`
-- [ ] T030 [US3] Add 2000ms lobby polling `useEffect` and hydrate session on mount in `frontend/src/pages/LobbyPage.tsx`
-- [ ] T031 [US3] Replace direct `navigate('/game')` with host-only Start calling API when `viewer.canStart` in `frontend/src/pages/LobbyPage.tsx`
-- [ ] T032 [P] [US3] Show non-host messaging when start unavailable in `frontend/src/pages/LobbyPage.tsx`
+- [x] T026 [US3] Implement `getRoomForParticipant` (resume `lastSeenAt`, no duplicate row) in `backend/src/services/roomStore.ts`
+- [x] T027 [US3] Implement `startGame(hostParticipantId)` transitioning `lobby` → `drawing` in `backend/src/services/roomStore.ts`
+- [x] T028 [US3] Wire `GET /rooms/:code` and `POST /rooms/:code/start` in `backend/src/api/rooms.ts`
+- [x] T029 [US3] Add `startGame` API method in `frontend/src/services/api.ts`
+- [x] T030 [US3] Add 2000ms lobby polling `useEffect` and hydrate session on mount in `frontend/src/pages/LobbyPage.tsx`
+- [x] T031 [US3] Replace direct `navigate('/game')` with host-only Start calling API when `viewer.canStart` in `frontend/src/pages/LobbyPage.tsx`
+- [x] T032 [P] [US3] Show non-host messaging when start unavailable in `frontend/src/pages/LobbyPage.tsx`
 
 **Checkpoint**: All three user stories independently functional per spec acceptance scenarios.
 
@@ -115,10 +115,10 @@
 
 **Purpose**: Quality gates, distinct error copy, and manual validation.
 
-- [ ] T033 [P] Run `npm run build` and `npm test` in `backend/` and fix any type or test failures
-- [ ] T034 [P] Run `npm run build` in `frontend/` and fix type errors from snapshot changes
-- [ ] T035 Execute full two-browser checklist in `specs/001-host-join-rooms/quickstart.md` and note gaps
-- [ ] T036 [P] Align distinct user-visible join/create error strings per FR-005/FR-006 in `backend/src/api/rooms.ts` and frontend pages: (1) empty code → “Room code is required”; (2) unknown/destroyed room → “Room not found”; (3) room full → “Room is full”; (4) `drawing` status → “Game already started”; (5) empty name → “Name is required”
+- [x] T033 [P] Run `npm run build` and `npm test` in `backend/` and fix any type or test failures
+- [x] T034 [P] Run `npm run build` in `frontend/` and fix type errors from snapshot changes
+- [x] T035 Execute full two-browser checklist in `specs/001-host-join-rooms/quickstart.md` and note gaps
+- [x] T036 [P] Align distinct user-visible join/create error strings per FR-005/FR-006 in `backend/src/api/rooms.ts` and frontend pages: (1) empty code → “Room code is required”; (2) unknown/destroyed room → “Room not found”; (3) room full → “Room is full”; (4) `drawing` status → “Game already started”; (5) empty name → “Name is required”
 
 ---
 

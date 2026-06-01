@@ -1,17 +1,30 @@
 export type ParticipantRole = "drawer" | "guesser";
+export type RoomStatus = "lobby" | "drawing" | "result";
 
-export interface Participant {
+export interface RoomParticipantSnapshot {
   id: string;
   name: string;
   joinedAt: string;
+  isHost: boolean;
+  role?: ParticipantRole;
+}
+
+export interface RoomViewer {
+  participantId: string;
+  isHost: boolean;
+  canStart: boolean;
+  role?: ParticipantRole;
+  secretWord?: string;
 }
 
 export interface RoomSnapshot {
   code: string;
-  status: "lobby";
-  participants: Participant[];
-  availableWords: string[];
-  roles: ParticipantRole[];
+  status: RoomStatus;
+  hostParticipantId: string;
+  roundNumber?: number;
+  drawerParticipantId?: string;
+  participants: RoomParticipantSnapshot[];
+  viewer?: RoomViewer;
 }
 
 export interface RoomSessionResponse {
@@ -25,9 +38,9 @@ async function request<T>(path: string, init?: RequestInit) {
   const response = await fetch(`${API_BASE_URL}${path}`, {
     headers: {
       "Content-Type": "application/json",
-      ...(init?.headers ?? {}),
+      ...(init?.headers ?? {})
     },
-    ...init,
+    ...init
   });
 
   if (!response.ok) {
@@ -47,24 +60,29 @@ export const api = {
   createRoom(playerName: string) {
     return request<RoomSessionResponse>("/rooms", {
       method: "POST",
-      body: JSON.stringify({ playerName }),
+      body: JSON.stringify({ playerName: playerName.trim() })
     });
   },
   joinRoom(code: string, playerName: string) {
     return request<RoomSessionResponse>(
-      `/rooms/${encodeURIComponent(code)}/join`,
+      `/rooms/${encodeURIComponent(code.trim().toUpperCase())}/join`,
       {
         method: "POST",
-        body: JSON.stringify({ playerName }),
-      },
+        body: JSON.stringify({ playerName: playerName.trim() })
+      }
     );
   },
-  fetchRoom(code: string, participantId?: string) {
-    const query = participantId
-      ? `?participantId=${encodeURIComponent(participantId)}`
-      : "";
+  fetchRoom(code: string, participantId: string) {
+    const query = `?participantId=${encodeURIComponent(participantId)}`;
     return request<{ room: RoomSnapshot }>(
-      `/rooms/${encodeURIComponent(code)}${query}`,
+      `/rooms/${encodeURIComponent(code)}${query}`
     );
   },
+  startGame(code: string, participantId: string) {
+    const query = `?participantId=${encodeURIComponent(participantId)}`;
+    return request<{ room: RoomSnapshot }>(
+      `/rooms/${encodeURIComponent(code)}/start${query}`,
+      { method: "POST" }
+    );
+  }
 };

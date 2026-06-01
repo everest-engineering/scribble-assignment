@@ -5,28 +5,81 @@ import { PageHeader } from "../components/PageHeader";
 import { RoomCodeBadge } from "../components/RoomCodeBadge";
 import { useRoomState, useRoomStore } from "../state/roomStore";
 
+const LOBBY_POLL_MS = 2000;
+
 export function LobbyPage() {
   const navigate = useNavigate();
   const roomStore = useRoomStore();
-  const { room, error, isLoading } = useRoomState();
-  const [refreshError, setRefreshError] = useState<string | null>(null);
+  const { room, participantId, error, isLoading } = useRoomState();
+  const [hydrated, setHydrated] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
+
+  const viewer = room?.viewer;
+  const isHost = viewer?.isHost ?? false;
+  const canStart = viewer?.canStart ?? false;
 
   useEffect(() => {
-    if (!room) {
-      navigate("/", { replace: true });
-    }
-  }, [navigate, room]);
+    let cancelled = false;
 
-  async function handleRefresh() {
+    async function hydrate() {
+      if (!room) {
+        const restored = await roomStore.hydrateFromSession();
+        if (!cancelled && !restored) {
+          navigate("/", { replace: true });
+        }
+      }
+
+      if (!cancelled) {
+        setHydrated(true);
+      }
+    }
+
+    void hydrate();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [navigate, room, roomStore]);
+
+  useEffect(() => {
+    if (room?.status === "drawing") {
+      navigate("/game", { replace: true });
+    }
+  }, [navigate, room?.status]);
+
+  useEffect(() => {
+    if (!room || !participantId || room.status !== "lobby") {
+      return;
+    }
+
+    void roomStore.fetchRoom().catch(() => undefined);
+
+    const intervalId = window.setInterval(() => {
+      void roomStore.fetchRoom().catch(() => undefined);
+    }, LOBBY_POLL_MS);
+
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, [participantId, room, roomStore]);
+
+  async function handleStart() {
+    if (!canStart) {
+      return;
+    }
+
     try {
-      setRefreshError(null);
-      await roomStore.fetchRoom();
+      setActionError(null);
+      await roomStore.startGame();
+      navigate("/game");
     } catch (caughtError) {
-      setRefreshError(caughtError instanceof Error ? caughtError.message : "Unable to refresh room");
+      setActionError(
+        caughtError instanceof Error ? caughtError.message : "Unable to start game"
+      );
     }
   }
 
-  if (!room) {
+  if (!hydrated || !room) {
     return null;
   }
 
@@ -38,7 +91,7 @@ export function LobbyPage() {
           title="Lobby"
           description="Share the room code with friends so they can join your game."
         />
-        <RoomCodeBadge code={room.code} />
+        <RoomCodeBadge code={room.code} prominent />
       </div>
 
       <div className="summary-grid">
@@ -50,7 +103,9 @@ export function LobbyPage() {
               {room.participants.map((participant) => (
                 <li key={participant.id}>
                   <span>{participant.name}</span>
-                  <span className="player-list__meta">joined</span>
+                  <span className="player-list__meta">
+                    {participant.isHost ? "host" : "player"}
+                  </span>
                 </li>
               ))}
             </ul>
@@ -58,20 +113,39 @@ export function LobbyPage() {
         </Card>
 
         <Card title="Status">
-          <p className="status-line" style={{ backgroundColor: isLoading ? '#fef3c7' : '#e0e7ff', color: isLoading ? '#b45309' : '#3730a3' }}>
+          <p
+            className="status-line"
+            style={{
+              backgroundColor: isLoading ? "#fef3c7" : "#e0e7ff",
+              color: isLoading ? "#b45309" : "#3730a3"
+            }}
+          >
             {isLoading ? "Refreshing players..." : "Ready to play"}
           </p>
-          <p style={{ marginTop: '8px' }}>{error ?? refreshError ?? "Waiting for the host to start the game."}</p>
+          <p style={{ marginTop: "8px" }}>
+            {actionError ??
+              error ??
+              (isHost
+                ? canStart
+                  ? "You can start the game when everyone is ready."
+                  : "Waiting for at least one more player."
+                : "Waiting for the host to start the game.")}
+          </p>
         </Card>
       </div>
 
       <div className="button-row button-row--spread">
-        <button className="button button--secondary" disabled={isLoading} onClick={handleRefresh}>
-          {isLoading ? "Refreshing..." : "Refresh Room"}
-        </button>
-        <button className="button button--primary" onClick={() => navigate("/game")}>
-          Start Game
-        </button>
+        {isHost ? (
+          <button
+            className="button button--primary"
+            disabled={!canStart || isLoading}
+            onClick={() => void handleStart()}
+          >
+            Start Game
+          </button>
+        ) : (
+          <p className="lobby-guest-note">Only the host can start the game.</p>
+        )}
       </div>
     </section>
   );

@@ -16,8 +16,8 @@
 
 **Purpose**: Verify dependency on 001 and shared starter data.
 
-- [ ] T001 Confirm `001-host-join-rooms` start path exists (`POST /rooms/:code/start`, `hostParticipantId`) or implement 001 Phase 5 tasks first in `backend/src/api/rooms.ts` and `backend/src/services/roomStore.ts`
-- [ ] T002 [P] Verify `STARTER_WORDS` in `backend/src/seed/starterData.ts` matches spec (rocket, pizza, castle, guitar, sunflower)
+- [x] T001 Confirm `001-host-join-rooms` start path exists (`POST /rooms/:code/start`, `hostParticipantId`) or implement 001 Phase 5 tasks first in `backend/src/api/rooms.ts` and `backend/src/services/roomStore.ts`
+- [x] T002 [P] Verify `STARTER_WORDS` in `backend/src/seed/starterData.ts` matches spec (rocket, pizza, castle, guitar, sunflower)
 
 ---
 
@@ -27,10 +27,10 @@
 
 **⚠️ CRITICAL**: No user story work until this phase is complete.
 
-- [ ] T003 Extend `RoomStatus`, `Participant` (`role`), and `Room` (`roundNumber`, `drawerParticipantId`, `secretWord`, `hostParticipantId`) in `backend/src/models/game.ts` per `data-model.md`
-- [ ] T004 [P] Implement pure `selectRoundWord(roomCode, roundNumber)` in `backend/src/services/wordSelection.ts` using deterministic index into `STARTER_WORDS`
-- [ ] T005 [P] Add Zod schemas for start response / viewer fields (`role`, optional `secretWord`) in `backend/src/api/schemas.ts`
-- [ ] T006 [P] Extend frontend snapshot types (`drawerParticipantId`, `viewer.role`, `viewer.secretWord?`) in `frontend/src/services/api.ts`
+- [x] T003 Extend `RoomStatus`, `Participant` (`role`), and `Room` (`roundNumber`, `drawerParticipantId`, `secretWord`, `hostParticipantId`) in `backend/src/models/game.ts` per `data-model.md`
+- [x] T004 [P] Implement pure `selectRoundWord(roomCode, roundNumber)` in `backend/src/services/wordSelection.ts` using deterministic index into `STARTER_WORDS`
+- [x] T005 [P] Add Zod schemas for start response / viewer fields (`role`, optional `secretWord`) in `backend/src/api/schemas.ts`
+- [x] T006 [P] Extend frontend snapshot types (`drawerParticipantId`, `viewer.role`, `viewer.secretWord?`) in `frontend/src/services/api.ts`
 
 **Checkpoint**: Models and word selection ready.
 
@@ -44,14 +44,14 @@
 
 ### Tests for User Story 1
 
-- [ ] T007 [P] [US1] Add failing tests for trim-all-names and reject start when any participant name empty after trim in `backend/src/services/roomStore.test.ts`
-- [ ] T008 [P] [US1] Add failing contract test for `POST /rooms/:code/start` 400 on invalid roster names in `backend/src/api/rooms.test.ts`
+- [x] T007 [P] [US1] Add failing tests for trim-all-names and reject start when any participant name empty after trim in `backend/src/services/roomStore.test.ts`
+- [x] T008 [P] [US1] Add failing contract test for `POST /rooms/:code/start` 400 on invalid roster names in `backend/src/api/rooms.test.ts`
 
 ### Implementation for User Story 1
 
-- [ ] T009 [US1] Add `trimParticipantNames(room)` helper and invoke at start of `startGame` in `backend/src/services/roomStore.ts`
-- [ ] T010 [US1] Return 400 with clear message when any participant name invalid after trim in `backend/src/api/rooms.ts`
-- [ ] T011 [P] [US1] Ensure lobby displays trimmed names after poll in `frontend/src/pages/LobbyPage.tsx` (if names updated server-side)
+- [x] T009 [US1] Add `trimParticipantNames(room)` helper and invoke at start of `startGame` in `backend/src/services/roomStore.ts`
+- [x] T010 [US1] Return 400 with clear message when any participant name invalid after trim in `backend/src/api/rooms.ts`
+- [x] T011 [P] [US1] Ensure lobby displays trimmed names after poll in `frontend/src/pages/LobbyPage.tsx` (if names updated server-side)
 
 **Checkpoint**: Start blocked until every participant has valid trimmed name.
 
@@ -65,15 +65,15 @@
 
 ### Tests for User Story 2
 
-- [ ] T012 [P] [US2] Add failing tests: host is drawer when present; earliest joiner if no host; exactly one drawer in `backend/src/services/roomStore.test.ts`
-- [ ] T013 [P] [US2] Add failing contract test that snapshot includes `drawerParticipantId` and per-participant `role` for all viewers in `backend/src/api/rooms.test.ts`
+- [x] T012 [P] [US2] Add failing tests: host is drawer when present; earliest joiner if no host; exactly one drawer in `backend/src/services/roomStore.test.ts`
+- [x] T013 [P] [US2] Add failing contract test that snapshot includes `drawerParticipantId` and per-participant `role` for all viewers in `backend/src/api/rooms.test.ts`
 
 ### Implementation for User Story 2
 
-- [ ] T014 [US2] Implement `assignRoundOneRoles(room)` setting `drawerParticipantId` and participant `role` fields in `backend/src/services/roomStore.ts`
-- [ ] T015 [US2] Include `drawerParticipantId` and participant roles in `toRoomSnapshot` in `backend/src/services/roomStore.ts`
-- [ ] T016 [US2] Show drawer vs guesser labels on `frontend/src/pages/GamePage.tsx` using `drawerParticipantId` and `viewer.role`
-- [ ] T017 [P] [US2] Highlight current viewer role (“You are drawing” / “You are guessing”) in `frontend/src/pages/GamePage.tsx`
+- [x] T014 [US2] Implement `assignRoundOneRoles(room)` setting `drawerParticipantId` and participant `role` fields in `backend/src/services/roomStore.ts`
+- [x] T015 [US2] Include `drawerParticipantId` and participant roles in `toRoomSnapshot` in `backend/src/services/roomStore.ts`
+- [x] T016 [US2] Show drawer vs guesser labels on `frontend/src/pages/GamePage.tsx` using `drawerParticipantId` and `viewer.role`
+- [x] T017 [P] [US2] Highlight current viewer role (“You are drawing” / “You are guessing”) in `frontend/src/pages/GamePage.tsx`
 
 **Checkpoint**: Drawer identity obvious to all participants.
 
@@ -87,19 +87,19 @@
 
 ### Tests for User Story 3
 
-- [ ] T018 [P] [US3] Add failing unit tests for `selectRoundWord` determinism and starter-list bounds in `backend/src/services/wordSelection.test.ts`
-- [ ] T019 [P] [US3] Add failing tests: guesser snapshot omits `secretWord`; drawer snapshot includes it in `backend/src/services/roomStore.test.ts`
-- [ ] T020 [P] [US3] Add failing contract test: two `participantId` values get different `viewer.secretWord` presence in `backend/src/api/rooms.test.ts`
+- [x] T018 [P] [US3] Add failing unit tests for `selectRoundWord` determinism and starter-list bounds in `backend/src/services/wordSelection.test.ts`
+- [x] T019 [P] [US3] Add failing tests: guesser snapshot omits `secretWord`; drawer snapshot includes it in `backend/src/services/roomStore.test.ts`
+- [x] T020 [P] [US3] Add failing contract test: two `participantId` values get different `viewer.secretWord` presence in `backend/src/api/rooms.test.ts`
 
 ### Implementation for User Story 3
 
-- [ ] T021 [US3] Set `room.secretWord` via `selectRoundWord(room.code, 1)` inside `startGame` in `backend/src/services/roomStore.ts`
-- [ ] T022 [US3] Add `viewer.secretWord` only when `viewer.role === "drawer"` in `toRoomSnapshot` in `backend/src/services/roomStore.ts`
-- [ ] T023 [US3] Complete `startGame`: set `status` to `drawing`, `roundNumber` to 1, assign roles and word in `backend/src/services/roomStore.ts`
-- [ ] T024 [US3] Wire host-only `POST /rooms/:code/start` response per `contracts/game-start-api.md` in `backend/src/api/rooms.ts`
-- [ ] T025 [US3] Navigate host and guests to game route after successful start from `frontend/src/pages/LobbyPage.tsx`
-- [ ] T026 [US3] Show secret word panel for drawer only; guesser sees non-revealing prompt per FR-012 in `frontend/src/pages/GamePage.tsx`
-- [ ] T027 [P] [US3] Remove or gate any UI that lists `availableWords` to guessers on `frontend/src/pages/GamePage.tsx`
+- [x] T021 [US3] Set `room.secretWord` via `selectRoundWord(room.code, 1)` inside `startGame` in `backend/src/services/roomStore.ts`
+- [x] T022 [US3] Add `viewer.secretWord` only when `viewer.role === "drawer"` in `toRoomSnapshot` in `backend/src/services/roomStore.ts`
+- [x] T023 [US3] Complete `startGame`: set `status` to `drawing`, `roundNumber` to 1, assign roles and word in `backend/src/services/roomStore.ts`
+- [x] T024 [US3] Wire host-only `POST /rooms/:code/start` response per `contracts/game-start-api.md` in `backend/src/api/rooms.ts`
+- [x] T025 [US3] Navigate host and guests to game route after successful start from `frontend/src/pages/LobbyPage.tsx`
+- [x] T026 [US3] Show secret word panel for drawer only; guesser sees non-revealing prompt per FR-012 in `frontend/src/pages/GamePage.tsx`
+- [x] T027 [P] [US3] Remove or gate any UI that lists `availableWords` to guessers on `frontend/src/pages/GamePage.tsx`
 
 **Checkpoint**: Word hidden from guessers; deterministic selection verified.
 
@@ -109,10 +109,10 @@
 
 **Purpose**: Quality gates and manual validation.
 
-- [ ] T028 [P] Run `npm run build` and `npm test` in `backend/` and fix failures
-- [ ] T029 [P] Run `npm run build` in `frontend/` and fix type errors
-- [ ] T030 Execute two-browser checklist in `specs/002-first-round-drawer/quickstart.md`
-- [ ] T031 [P] Document deterministic word function inputs in `specs/002-first-round-drawer/research.md` if implementation detail differs from planned hash
+- [x] T028 [P] Run `npm run build` and `npm test` in `backend/` and fix failures
+- [x] T029 [P] Run `npm run build` in `frontend/` and fix type errors
+- [x] T030 Execute two-browser checklist in `specs/002-first-round-drawer/quickstart.md`
+- [x] T031 [P] Document deterministic word function inputs in `specs/002-first-round-drawer/research.md` if implementation detail differs from planned hash
 
 ---
 
