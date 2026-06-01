@@ -98,6 +98,20 @@ class RoomStore {
     this.setRoomSnapshot(response.room);
     return response.room;
   }
+
+  async startGame() {
+    if (!this.state.room) {
+      throw new Error("No room available to start");
+    }
+
+    if (!this.state.participantId) {
+      throw new Error("Missing participantId for start request");
+    }
+
+    const response = await this.withLoading(() => api.startGame(this.state.room!.code, this.state.participantId!));
+    this.setRoomSnapshot(response.room);
+    return response.room;
+  }
 }
 
 const RoomStoreContext = createContext<RoomStore | null>(null);

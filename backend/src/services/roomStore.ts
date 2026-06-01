@@ -33,11 +33,12 @@ function displayName(name?: string) {
   return name || "Player";
 }
 
-function createParticipant(name?: string): Participant {
+function createParticipant(name?: string, isHost = false): Participant {
   return {
     id: randomUUID(),
     name: displayName(name),
-    joinedAt: now()
+    joinedAt: now(),
+    isHost
   };
 }
 
@@ -50,7 +51,7 @@ export function listWords() {
 }
 
 export function createRoom(playerName?: string) {
-  const participant = createParticipant(playerName);
+  const participant = createParticipant(playerName, true);
   const room: Room = {
     code: generateUniqueCode(),
     status: "lobby",
@@ -74,7 +75,7 @@ export function joinRoom(code: string, playerName?: string) {
     return null;
   }
 
-  const participant = createParticipant(playerName);
+  const participant = createParticipant(playerName, false);
   room.participants.push(participant);
   room.updatedAt = now();
   rooms.set(room.code, room);

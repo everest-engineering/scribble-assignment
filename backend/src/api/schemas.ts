@@ -1,11 +1,13 @@
 import { z } from "zod";
 
+const trimmedNonEmpty = () => z.string().transform((s) => s.trim()).refine((s) => s.length > 0, { message: "playerName is required" });
+
 export const createRoomSchema = z.object({
-  playerName: z.string().optional()
+  playerName: trimmedNonEmpty()
 });
 
 export const joinRoomSchema = z.object({
-  playerName: z.string().optional()
+  playerName: trimmedNonEmpty()
 });
 
 export const roomCodeParamsSchema = z.object({
@@ -14,6 +16,10 @@ export const roomCodeParamsSchema = z.object({
 
 export const roomViewerQuerySchema = z.object({
   participantId: z.string().optional()
+});
+
+export const startRoomSchema = z.object({
+  participantId: z.string()
 });
 
 export class HttpError extends Error {
