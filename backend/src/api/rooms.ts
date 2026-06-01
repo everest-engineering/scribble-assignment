@@ -4,9 +4,10 @@ import {
   HttpError,
   joinRoomSchema,
   roomCodeParamsSchema,
-  roomViewerQuerySchema
+  roomViewerQuerySchema,
+  startGameBodySchema
 } from "./schemas.js";
-import { createRoom, getRoom, joinRoom, toRoomSnapshot } from "../services/roomStore.js";
+import { createRoom, getRoom, joinRoom, startGame, toRoomSnapshot } from "../services/roomStore.js";
 
 export function createRoomsRouter() {
   const router = Router();
@@ -62,5 +63,21 @@ export function createRoomsRouter() {
     }
   });
 
+  router.post("/:code/start", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId } = startGameBodySchema.parse(request.body);
+      const room = startGame(code.toUpperCase(), participantId);
+
+      response.json({
+        room: toRoomSnapshot(room, participantId)
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
+
   return router;
 }
+
+export { createRoomSchema, HttpError, joinRoomSchema, roomCodeParamsSchema, roomViewerQuerySchema, startGameBodySchema };
