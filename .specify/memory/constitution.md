@@ -1,50 +1,70 @@
-# [PROJECT_NAME] Constitution
-<!-- Example: Spec Constitution, TaskFlow Constitution, etc. -->
+# Scribble Constitution
 
 ## Core Principles
 
-### [PRINCIPLE_1_NAME]
-<!-- Example: I. Library-First -->
-[PRINCIPLE_1_DESCRIPTION]
-<!-- Example: Every feature starts as a standalone library; Libraries must be self-contained, independently testable, documented; Clear purpose required - no organizational-only libraries -->
+### I. TypeScript-First Development
 
-### [PRINCIPLE_2_NAME]
-<!-- Example: II. CLI Interface -->
-[PRINCIPLE_2_DESCRIPTION]
-<!-- Example: Every library exposes functionality via CLI; Text in/out protocol: stdin/args → stdout, errors → stderr; Support JSON + human-readable formats -->
+All code MUST be written in TypeScript with full type coverage. Avoid `any` types; use `unknown` for genuinely dynamic values. Both backend (Node.js + Express) and frontend (React + Vite) enforce strict typing. This ensures compile-time safety and improves maintainability across the monolith.
 
-### [PRINCIPLE_3_NAME]
-<!-- Example: III. Test-First (NON-NEGOTIABLE) -->
-[PRINCIPLE_3_DESCRIPTION]
-<!-- Example: TDD mandatory: Tests written → User approved → Tests fail → Then implement; Red-Green-Refactor cycle strictly enforced -->
+### II. In-Memory State Management
 
-### [PRINCIPLE_4_NAME]
-<!-- Example: IV. Integration Testing -->
-[PRINCIPLE_4_DESCRIPTION]
-<!-- Example: Focus areas requiring integration tests: New library contract tests, Contract changes, Inter-service communication, Shared schemas -->
+Game state is stored exclusively in-memory; no persistent databases are permitted. Rooms, players, scores, and drawings exist only during active sessions. The backend uses an in-memory room store to manage game lifecycle. Sessions are lost on server restart; this is acceptable for the current product scope.
 
-### [PRINCIPLE_5_NAME]
-<!-- Example: V. Observability, VI. Versioning & Breaking Changes, VII. Simplicity -->
-[PRINCIPLE_5_DESCRIPTION]
-<!-- Example: Text I/O ensures debuggability; Structured logging required; Or: MAJOR.MINOR.BUILD format; Or: Start simple, YAGNI principles -->
+### III. HTTP Polling Architecture (No WebSockets)
 
-## [SECTION_2_NAME]
-<!-- Example: Additional Constraints, Security Requirements, Performance Standards, etc. -->
+All client-server synchronization uses HTTP polling; WebSockets and real-time push protocols are strictly forbidden. The frontend polls the backend at regular intervals to fetch room snapshots and game state updates. This simplifies infrastructure and aligns with the brownfield constraints.
 
-[SECTION_2_CONTENT]
-<!-- Example: Technology stack requirements, compliance standards, deployment policies, etc. -->
+### IV. Structured Validation with Zod
 
-## [SECTION_3_NAME]
-<!-- Example: Development Workflow, Review Process, Quality Gates, etc. -->
+All request payloads and API responses MUST be validated using Zod schemas on the backend. Schemas are defined centrally in `src/api/schemas.ts` and enforced at route entry points. This ensures type safety at runtime and provides clear API contracts.
 
-[SECTION_3_CONTENT]
-<!-- Example: Code review requirements, testing gates, deployment approval process, etc. -->
+### V. React Hooks & Functional Components
+
+Frontend components MUST be functional components using React hooks (`useState`, `useEffect`, etc.). Complex state is managed centrally in `src/state` (e.g., `roomStore.ts`). Avoid class components and lifecycle methods. Follow react-router-dom v6 for routing and keep component logic focused and testable.
+
+## Technology Constraints
+
+All development MUST adhere to the following hard requirements:
+
+- **Backend**: Node.js 18+, Express, TypeScript, Zod for validation, `tsx` for execution.
+- **Frontend**: React 18+, React Router 6+, Vite, TypeScript.
+- **No WebSockets**: All real-time sync via HTTP polling only.
+- **No Databases**: In-memory state only; no SQL, NoSQL, SQLite, or any persistence layer.
+- **No Authentication**: No JWT, OAuth, sessions, or user accounts.
+- **Immutability**: Prefer immutable data structures and pure functions wherever possible.
+- **Error Handling**: Fail fast and gracefully; centralized error handlers on backend, graceful UI fallbacks on frontend.
+
+## Code Organization & Quality
+
+**Backend Structure** (`/backend`):
+
+- `src/api`: Routes and request handling with Zod validation
+- `src/services`: Core business logic (e.g., room management, game state)
+- `src/models`: TypeScript types and entity definitions
+- Keep room store minimal; explicitly clean up inactive rooms to prevent memory leaks
+
+**Frontend Structure** (`/frontend`):
+
+- `src/pages`: Page-level React components (Create, Join, Lobby, Game, etc.)
+- `src/components`: Reusable UI components
+- `src/state`: Centralized state management (e.g., `roomStore.ts`)
+- `src/services`: API client logic
+- `src/styles`: CSS modules or global styles
+- Ensure UI handles API errors gracefully; do not crash on fetch failures
+
+**Testing**:
+
+- Unit tests for business logic and components
+- Integration tests for API routes and state updates
+- Tests MUST be meaningful and verify real behavior, not just coverage metrics
 
 ## Governance
-<!-- Example: Constitution supersedes all other practices; Amendments require documentation, approval, migration plan -->
 
-[GOVERNANCE_RULES]
-<!-- Example: All PRs/reviews must verify compliance; Complexity must be justified; Use [GUIDANCE_FILE] for runtime development guidance -->
+This constitution supersedes all other development guidance. Changes to this document require explicit amendment:
 
-**Version**: [CONSTITUTION_VERSION] | **Ratified**: [RATIFICATION_DATE] | **Last Amended**: [LAST_AMENDED_DATE]
-<!-- Example: Version: 2.1.1 | Ratified: 2025-06-13 | Last Amended: 2025-07-16 -->
+1. Proposed changes MUST be documented in a pull request with rationale
+2. All amendments trigger a version bump (semantic versioning: MAJOR.MINOR.PATCH)
+3. Templates (`spec.md`, `plan.md`, `tasks.md`) MUST be reviewed for alignment after any amendment
+4. Compliance is verified during code review; violations block merge
+
+**Version**: 1.0.0 | **Ratified**: 2026-06-01 | **Last Amended**: 2026-06-01
