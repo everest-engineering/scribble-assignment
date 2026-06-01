@@ -1,6 +1,34 @@
 export type ParticipantRole = "drawer" | "guesser";
 export type ViewerRole = "drawer" | "guesser" | "unknown";
 
+export interface DrawingPoint {
+  x: number;
+  y: number;
+}
+
+export interface DrawingStroke {
+  id: string;
+  color: string;
+  size: number;
+  points: DrawingPoint[];
+}
+
+export interface Guess {
+  id: string;
+  participantId: string;
+  participantName: string;
+  text: string;
+  isCorrect: boolean;
+  pointsAwarded: number;
+  createdAt: string;
+}
+
+export interface ScoreEntry {
+  participantId: string;
+  participantName: string;
+  score: number;
+}
+
 export interface Participant {
   id: string;
   name: string;
@@ -11,6 +39,11 @@ export interface RoundSnapshot {
   roundNumber: number;
   drawerParticipantId: string;
   drawerName: string;
+  canvas?: {
+    strokes: DrawingStroke[];
+    updatedAt: string;
+  };
+  guesses?: Guess[];
 }
 
 export interface RoomSnapshot {
@@ -27,6 +60,7 @@ export interface RoomSnapshot {
   viewerRole: ViewerRole;
   isDrawer: boolean;
   secretWord?: string;
+  scores?: ScoreEntry[];
 }
 
 export interface RoomSessionResponse {
@@ -81,6 +115,27 @@ export const api = {
     return request<StartGameResponse>(`/rooms/${encodeURIComponent(code)}/start`, {
       method: "POST",
       body: JSON.stringify({ participantId })
+    });
+  },
+
+  submitDrawingStroke(code: string, participantId: string, stroke: { color: string; size: number; points: { x: number; y: number }[] }) {
+    return request<StartGameResponse>(`/rooms/${encodeURIComponent(code)}/drawing`, {
+      method: "POST",
+      body: JSON.stringify({ participantId, stroke })
+    });
+  },
+
+  clearDrawing(code: string, participantId: string) {
+    return request<StartGameResponse>(`/rooms/${encodeURIComponent(code)}/drawing/clear`, {
+      method: "POST",
+      body: JSON.stringify({ participantId })
+    });
+  },
+
+  submitGuess(code: string, participantId: string, guess: string) {
+    return request<StartGameResponse>(`/rooms/${encodeURIComponent(code)}/guesses`, {
+      method: "POST",
+      body: JSON.stringify({ participantId, guess })
     });
   }
 };

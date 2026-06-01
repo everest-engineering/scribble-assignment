@@ -24,6 +24,33 @@ export const startGameSchema = z.object({
   participantId: z.string()
 });
 
+const hexColorRegex = /^#[0-9a-fA-F]{6}$/;
+
+export const drawingPointSchema = z.object({
+  x: z.number().finite().min(0).max(1),
+  y: z.number().finite().min(0).max(1)
+});
+
+export const drawingStrokeSchema = z.object({
+  color: z.string().regex(hexColorRegex, "Color must be a valid hex color"),
+  size: z.number().int().min(1).max(20),
+  points: z.array(drawingPointSchema).min(2, "Stroke must have at least 2 points").max(500)
+});
+
+export const appendDrawingSchema = z.object({
+  participantId: z.string(),
+  stroke: drawingStrokeSchema
+});
+
+export const clearDrawingSchema = z.object({
+  participantId: z.string()
+});
+
+export const submitGuessSchema = z.object({
+  participantId: z.string(),
+  guess: trimmedRequiredString
+});
+
 export class HttpError extends Error {
   statusCode: number;
 

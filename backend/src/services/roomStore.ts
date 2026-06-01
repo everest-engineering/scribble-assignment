@@ -73,6 +73,7 @@ export function createRoom(playerName: string) {
     status: "lobby",
     participants: [participant],
     hostParticipantId: participant.id,
+    scores: {},
     createdAt: now(),
     updatedAt: now()
   };
@@ -166,15 +167,140 @@ export function startGame(code: string, participantId: string) {
   const word = selectWord(room.code);
   const drawer = selectDrawer(room);
 
+  const scores: Record<string, number> = {};
+  for (const participant of room.participants) {
+    scores[participant.id] = 0;
+  }
+
   const currentRound: CurrentRound = {
     roundNumber: 1,
     drawerParticipantId: drawer.id,
     secretWord: word,
-    startedAt: now()
+    startedAt: now(),
+    canvas: {
+      strokes: [],
+      updatedAt: now()
+    },
+    guesses: [],
+    correctGuessParticipantIds: []
   };
 
   room.status = "inGame";
   room.currentRound = currentRound;
+  room.scores = scores;
+  room.updatedAt = now();
+  rooms.set(room.code, room);
+
+  return cloneRoom(room);
+}
+
+export function appendDrawingStroke(
+  code: string,
+  participantId: string,
+  stroke: { color: string; size: number; points: { x: number; y: number }[] }
+) {
+  const normalized = normalizeCode(code);
+  const room = rooms.get(normalized);
+
+  if (!room) {
+    throw new HttpError(404, "Room not found");
+  }
+
+  if (room.status !== "inGame" || !room.currentRound) {
+    throw new HttpError(400, "Game is not in progress");
+  }
+
+  if (room.currentRound.drawerParticipantId !== participantId) {
+    throw new HttpError(403, "Only the drawer can draw");
+  }
+
+  const newStroke = {
+    id: randomUUID(),
+    color: stroke.color,
+    size: stroke.size,
+    points: stroke.points.map((p) => ({ x: p.x, y: p.y }))
+  };
+
+  room.currentRound.canvas.strokes.push(newStroke);
+  room.currentRound.canvas.updatedAt = now();
+  room.updatedAt = now();
+  rooms.set(room.code, room);
+
+  return cloneRoom(room);
+}
+
+export function submitGuess(code: string, participantId: string, guessText: string) {
+  const normalized = normalizeCode(code);
+  const room = rooms.get(normalized);
+
+  if (!room) {
+    throw new HttpError(404, "Room not found");
+  }
+
+  if (room.status !== "inGame" || !room.currentRound) {
+    throw new HttpError(400, "Game is not in progress");
+  }
+
+  const participant = room.participants.find((p) => p.id === participantId);
+  if (!participant) {
+    throw new HttpError(404, "Participant not found in room");
+  }
+
+  if (room.currentRound.drawerParticipantId === participantId) {
+    throw new HttpError(403, "Drawer cannot submit guesses");
+  }
+
+  const trimmed = guessText.trim();
+  if (trimmed.length === 0) {
+    throw new HttpError(400, "Guess cannot be empty");
+  }
+
+  const isCorrect = trimmed.toLowerCase() === room.currentRound.secretWord.toLowerCase();
+
+  const alreadyAwarded = room.currentRound.correctGuessParticipantIds.includes(participantId);
+  const pointsAwarded = isCorrect && !alreadyAwarded ? 100 : 0;
+
+  const guess = {
+    id: randomUUID(),
+    participantId,
+    participantName: participant.name,
+    text: trimmed,
+    isCorrect,
+    pointsAwarded,
+    createdAt: now()
+  };
+
+  room.currentRound.guesses.push(guess);
+
+  if (isCorrect && !alreadyAwarded) {
+    room.currentRound.correctGuessParticipantIds.push(participantId);
+    room.scores[participantId] = (room.scores[participantId] ?? 0) + 100;
+  }
+
+  room.updatedAt = now();
+  rooms.set(room.code, room);
+
+  return cloneRoom(room);
+}
+
+export function clearDrawing(code: string, participantId: string) {
+  const normalized = normalizeCode(code);
+  const room = rooms.get(normalized);
+
+  if (!room) {
+    throw new HttpError(404, "Room not found");
+  }
+
+  if (room.status !== "inGame" || !room.currentRound) {
+    throw new HttpError(400, "Game is not in progress");
+  }
+
+  if (room.currentRound.drawerParticipantId !== participantId) {
+    throw new HttpError(403, "Only the drawer can draw");
+  }
+
+  room.currentRound.canvas.strokes = [];
+  room.currentRound.canvas.updatedAt = now();
   room.updatedAt = now();
   rooms.set(room.code, room);
 
@@ -213,12 +339,27 @@ export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSn
       ? {
           roundNumber: room.currentRound.roundNumber,
           drawerParticipantId: room.currentRound.drawerParticipantId,
-          drawerName: drawerParticipant?.name ?? "Unknown"
+          drawerName: drawerParticipant?.name ?? "Unknown",
+          canvas: {
+            strokes: room.currentRound.canvas.strokes.map((s) => ({
+              ...s,
+              points: s.points.map((p) => ({ ...p }))
+            })),
+            updatedAt: room.currentRound.canvas.updatedAt
+          },
+          guesses: room.currentRound.guesses.map((g) => ({ ...g }))
         }
       : undefined,
     viewerRole,
     isDrawer,
-    secretWord: isDrawer && room.currentRound ? room.currentRound.secretWord : undefined
+    secretWord: isDrawer && room.currentRound ? room.currentRound.secretWord : undefined,
+    scores: room.scores
+      ? room.participants.map((participant) => ({
+          participantId: participant.id,
+          participantName: participant.name,
+          score: room.scores[participant.id] ?? 0
+        }))
+      : undefined
   };
 
   if (!isDrawer) {

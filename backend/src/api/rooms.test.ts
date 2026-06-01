@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { createRoom, getRoom, joinRoom, normalizeCode, saveRoom, startGame, toRoomSnapshot } from "../services/roomStore.js";
-import { createRoomSchema, joinRoomSchema } from "./schemas.js";
+import { appendDrawingStroke, clearDrawing, createRoom, getRoom, joinRoom, normalizeCode, saveRoom, selectWord, startGame, submitGuess, toRoomSnapshot } from "../services/roomStore.js";
+import { appendDrawingSchema, clearDrawingSchema, createRoomSchema, joinRoomSchema, submitGuessSchema } from "./schemas.js";
 
 describe("startGame API behavior", () => {
   it("startGame returns playing status with drawer identity", () => {
@@ -83,5 +83,180 @@ describe("drawer vs guesser snapshots", () => {
     const guesserSnap = toRoomSnapshot(room, joiner.participantId);
     expect(drawerSnap.currentRound!.roundNumber).toBe(guesserSnap.currentRound!.roundNumber);
     expect(drawerSnap.currentRound!.drawerParticipantId).toBe(guesserSnap.currentRound!.drawerParticipantId);
+  });
+});
+
+describe("appendDrawingSchema", () => {
+  it("accepts valid drawing payload", () => {
+    const result = appendDrawingSchema.parse({
+      participantId: "p1",
+      stroke: {
+        color: "#111827",
+        size: 4,
+        points: [{ x: 0.1, y: 0.2 }, { x: 0.3, y: 0.4 }]
+      }
+    });
+    expect(result.participantId).toBe("p1");
+  });
+
+  it("rejects missing stroke", () => {
+    expect(() => appendDrawingSchema.parse({ participantId: "p1" })).toThrow();
+  });
+});
+
+describe("clearDrawingSchema", () => {
+  it("accepts valid clear payload", () => {
+    const result = clearDrawingSchema.parse({ participantId: "p1" });
+    expect(result.participantId).toBe("p1");
+  });
+});
+
+describe("submitGuessSchema", () => {
+  it("accepts valid guess payload", () => {
+    const result = submitGuessSchema.parse({ participantId: "p1", guess: "rocket" });
+    expect(result.guess).toBe("rocket");
+  });
+});
+
+describe("appendDrawingStroke service", () => {
+  it("appends a stroke for the drawer", () => {
+    const created = createRoom("Alice");
+    joinRoom(created.room.code, "Bob");
+    startGame(created.room.code, created.participantId);
+    const room = appendDrawingStroke(created.room.code, created.participantId, {
+      color: "#111827",
+      size: 4,
+      points: [{ x: 0.1, y: 0.2 }, { x: 0.3, y: 0.4 }]
+    });
+    expect(room.currentRound!.canvas.strokes).toHaveLength(1);
+  });
+
+  it("rejects stroke append from non-drawer", () => {
+    const created = createRoom("Alice");
+    const joiner = joinRoom(created.room.code, "Bob")!;
+    startGame(created.room.code, created.participantId);
+    expect(() =>
+      appendDrawingStroke(created.room.code, joiner.participantId, {
+        color: "#111827",
+        size: 4,
+        points: [{ x: 0.1, y: 0.2 }, { x: 0.3, y: 0.4 }]
+      })
+    ).toThrow();
+  });
+
+  it("rejects stroke append in non-existent room", () => {
+    expect(() =>
+      appendDrawingStroke("ZZZZ", "p1", {
+        color: "#111827",
+        size: 4,
+        points: [{ x: 0.1, y: 0.2 }, { x: 0.3, y: 0.4 }]
+      })
+    ).toThrow();
+  });
+});
+
+describe("clearDrawing service", () => {
+  it("clears canvas for the drawer", () => {
+    const created = createRoom("Alice");
+    joinRoom(created.room.code, "Bob");
+    startGame(created.room.code, created.participantId);
+    appendDrawingStroke(created.room.code, created.participantId, {
+      color: "#111827",
+      size: 4,
+      points: [{ x: 0.1, y: 0.2 }, { x: 0.3, y: 0.4 }]
+    });
+    const room = clearDrawing(created.room.code, created.participantId);
+    expect(room.currentRound!.canvas.strokes).toHaveLength(0);
+  });
+
+  it("rejects clear from non-drawer", () => {
+    const created = createRoom("Alice");
+    const joiner = joinRoom(created.room.code, "Bob")!;
+    startGame(created.room.code, created.participantId);
+    expect(() => clearDrawing(created.room.code, joiner.participantId)).toThrow();
+  });
+});
+
+describe("submitGuess service", () => {
+  it("accepts a valid guess from a guesser", () => {
+    const created = createRoom("Alice");
+    const joiner = joinRoom(created.room.code, "Bob")!;
+    startGame(created.room.code, created.participantId);
+    const room = submitGuess(created.room.code, joiner.participantId, "rocket");
+    expect(room.currentRound!.guesses).toHaveLength(1);
+  });
+
+  it("rejects empty guess", () => {
+    const created = createRoom("Alice");
+    const joiner = joinRoom(created.room.code, "Bob")!;
+    startGame(created.room.code, created.participantId);
+    expect(() => submitGuess(created.room.code, joiner.participantId, "   ")).toThrow();
+  });
+
+  it("rejects guess from drawer", () => {
+    const created = createRoom("Alice");
+    joinRoom(created.room.code, "Bob");
+    startGame(created.room.code, created.participantId);
+    expect(() => submitGuess(created.room.code, created.participantId, "guess")).toThrow();
+  });
+
+  it("rejects guess in non-existent room", () => {
+    expect(() => submitGuess("ZZZZ", "p1", "guess")).toThrow();
+  });
+});
+
+describe("polling snapshots", () => {
+  it("GET /rooms/:code returns canvas after drawing", () => {
+    const created = createRoom("Alice");
+    joinRoom(created.room.code, "Bob");
+    startGame(created.room.code, created.participantId);
+    appendDrawingStroke(created.room.code, created.participantId, {
+      color: "#111827", size: 4,
+      points: [{ x: 0.1, y: 0.2 }, { x: 0.3, y: 0.4 }]
+    });
+    const room = getRoom(created.room.code)!;
+    const snapshot = toRoomSnapshot(room, created.participantId);
+    expect(snapshot.currentRound!.canvas!.strokes).toHaveLength(1);
+  });
+
+  it("GET /rooms/:code returns empty canvas after clear", () => {
+    const created = createRoom("Alice");
+    joinRoom(created.room.code, "Bob");
+    startGame(created.room.code, created.participantId);
+    appendDrawingStroke(created.room.code, created.participantId, {
+      color: "#111827", size: 4,
+      points: [{ x: 0.1, y: 0.2 }, { x: 0.3, y: 0.4 }]
+    });
+    clearDrawing(created.room.code, created.participantId);
+    const room = getRoom(created.room.code)!;
+    const snapshot = toRoomSnapshot(room, created.participantId);
+    expect(snapshot.currentRound!.canvas!.strokes).toHaveLength(0);
+  });
+
+  it("GET /rooms/:code returns guess history and scores", () => {
+    const created = createRoom("Alice");
+    const joiner = joinRoom(created.room.code, "Bob")!;
+    startGame(created.room.code, created.participantId);
+    const word = selectWord(created.room.code);
+    submitGuess(created.room.code, joiner.participantId, word);
+    const room = getRoom(created.room.code)!;
+    const snapshot = toRoomSnapshot(room, joiner.participantId);
+    expect(snapshot.currentRound!.guesses).toHaveLength(1);
+    expect(snapshot.scores).toBeDefined();
+    expect(snapshot.scores!.length).toBeGreaterThan(0);
+  });
+
+  it("polling snapshot omits secretWord for guesser after mutations", () => {
+    const created = createRoom("Alice");
+    const joiner = joinRoom(created.room.code, "Bob")!;
+    startGame(created.room.code, created.participantId);
+    appendDrawingStroke(created.room.code, created.participantId, {
+      color: "#111827", size: 4,
+      points: [{ x: 0.1, y: 0.2 }, { x: 0.3, y: 0.4 }]
+    });
+    const room = getRoom(created.room.code)!;
+    const snapshot = toRoomSnapshot(room, joiner.participantId);
+    expect(snapshot.secretWord).toBeUndefined();
+    expect(snapshot.currentRound!.canvas!.strokes).toHaveLength(1);
   });
 });

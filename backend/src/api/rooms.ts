@@ -1,17 +1,23 @@
 import { Router } from "express";
 import {
+  appendDrawingSchema,
+  clearDrawingSchema,
   createRoomSchema,
   HttpError,
   joinRoomSchema,
   roomCodeParamsSchema,
   roomViewerQuerySchema,
-  startGameSchema
+  startGameSchema,
+  submitGuessSchema
 } from "./schemas.js";
 import {
+  appendDrawingStroke,
+  clearDrawing,
   createRoom,
   getRoom,
   joinRoom,
   startGame,
+  submitGuess,
   toRoomSnapshot
 } from "../services/roomStore.js";
 
@@ -74,6 +80,48 @@ export function createRoomsRouter() {
       const { code } = roomCodeParamsSchema.parse(request.params);
       const { participantId } = startGameSchema.parse(request.body);
       const room = startGame(code, participantId);
+
+      response.json({
+        room: toRoomSnapshot(room, participantId)
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/:code/drawing", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId, stroke } = appendDrawingSchema.parse(request.body);
+      const room = appendDrawingStroke(code, participantId, stroke);
+
+      response.json({
+        room: toRoomSnapshot(room, participantId)
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/:code/drawing/clear", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId } = clearDrawingSchema.parse(request.body);
+      const room = clearDrawing(code, participantId);
+
+      response.json({
+        room: toRoomSnapshot(room, participantId)
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/:code/guesses", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId, guess } = submitGuessSchema.parse(request.body);
+      const room = submitGuess(code, participantId, guess);
 
       response.json({
         room: toRoomSnapshot(room, participantId)
