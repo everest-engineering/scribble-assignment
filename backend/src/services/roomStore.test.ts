@@ -21,6 +21,22 @@ afterEach(() => {
 });
 
 describe("roomStore", () => {
+  it("rooms are isolated from each other", () => {
+    const roomA = createRoom("Alice");
+    const roomB = createRoom("Bob");
+    const guestA = joinRoom(roomA.room.code, "GuestA");
+    const guestB = joinRoom(roomB.room.code, "GuestB");
+
+    expect(roomA.room.code).not.toBe(roomB.room.code);
+    expect(guestA.room.participants).toHaveLength(2);
+    expect(guestB.room.participants).toHaveLength(2);
+
+    const roomAParticipantIds = new Set(guestA.room.participants.map((p) => p.id));
+    for (const participant of guestB.room.participants) {
+      expect(roomAParticipantIds.has(participant.id)).toBe(false);
+    }
+  });
+
   it("createRoom assigns host and trims name", () => {
     const result = createRoom("  Alice  ");
 
