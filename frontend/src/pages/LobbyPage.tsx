@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card } from "../components/Card";
 import { PageHeader } from "../components/PageHeader";
@@ -35,6 +35,16 @@ export function LobbyPage() {
       await roomStore.fetchRoom();
     } catch (caughtError) {
       setRefreshError(caughtError instanceof Error ? caughtError.message : "Unable to refresh room");
+    }
+  }
+
+  async function handleStartGame() {
+    try {
+      setRefreshError(null);
+      await roomStore.startGame();
+      navigate("/game");
+    } catch (caughtError) {
+      setRefreshError(caughtError instanceof Error ? caughtError.message : "Unable to start game");
     }
   }
 
@@ -89,10 +99,10 @@ export function LobbyPage() {
         {participantId === room.hostId ? (
           <button
             className="button button--primary"
-            disabled={room.participants.length < 2}
-            onClick={() => navigate("/game")}
+            disabled={room.participants.length < 2 || isLoading}
+            onClick={handleStartGame}
           >
-            {room.participants.length < 2 ? "Waiting for players..." : "Start Game"}
+            {isLoading ? "Starting..." : room.participants.length < 2 ? "Waiting for players..." : "Start Game"}
           </button>
         ) : null}
       </div>

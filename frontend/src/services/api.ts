@@ -6,10 +6,28 @@ export interface Participant {
   joinedAt: string;
 }
 
+export interface Stroke {
+  points: { x: number; y: number }[];
+}
+
+export interface Guess {
+  participantId: string;
+  playerName: string;
+  text: string;
+  correct: boolean;
+  timestamp: string;
+}
+
 export interface RoomSnapshot {
   code: string;
   hostId: string;
   status: "lobby" | "playing" | "finished";
+  drawerId: string | null;
+  myRole: ParticipantRole | null;
+  secretWord: string | null;
+  scores: Record<string, number>;
+  canvasStrokes: Stroke[];
+  guesses: Guess[];
   participants: Participant[];
   availableWords: string[];
   roles: ParticipantRole[];
@@ -58,5 +76,11 @@ export const api = {
   fetchRoom(code: string, participantId?: string) {
     const query = participantId ? `?participantId=${encodeURIComponent(participantId)}` : "";
     return request<{ room: RoomSnapshot }>(`/rooms/${encodeURIComponent(code)}${query}`);
+  },
+  startGame(code: string, participantId: string) {
+    return request<{ room: RoomSnapshot }>(`/rooms/${encodeURIComponent(code)}/start`, {
+      method: "POST",
+      body: JSON.stringify({ participantId })
+    });
   }
 };
