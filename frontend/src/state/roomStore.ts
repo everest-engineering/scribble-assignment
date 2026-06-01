@@ -7,7 +7,7 @@ import {
   useSyncExternalStore,
   type PropsWithChildren
 } from "react";
-import { api, type RoomSessionResponse, type RoomSnapshot } from "../services/api";
+import { api, type DrawingStroke, type RoomSessionResponse, type RoomSnapshot } from "../services/api";
 
 export interface RoomState {
   room: RoomSnapshot | null;
@@ -78,23 +78,99 @@ class RoomStore {
   }
 
   async createRoom(playerName: string) {
-    const response = await this.withLoading(() => api.createRoom(playerName));
+    const response = await this.withLoading(() => api.createRoom(playerName.trim()));
     this.setRoomSession(response);
     return response;
   }
 
   async joinRoom(code: string, playerName: string) {
-    const response = await this.withLoading(() => api.joinRoom(code, playerName));
+    const response = await this.withLoading(() =>
+      api.joinRoom(code.trim().toUpperCase(), playerName.trim())
+    );
     this.setRoomSession(response);
     return response;
   }
 
   async fetchRoom() {
-    if (!this.state.room) {
+    if (!this.state.room || !this.state.participantId) {
       return null;
     }
 
-    const response = await api.fetchRoom(this.state.room.code, this.state.participantId ?? undefined);
+    const response = await api.fetchRoom(this.state.room.code, this.state.participantId);
+    this.setRoomSnapshot(response.room);
+    return response.room;
+  }
+
+  async fetchRoomForPoll() {
+    if (!this.state.room || !this.state.participantId) {
+      return null;
+    }
+
+    try {
+      return await this.fetchRoom();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unable to refresh room state";
+      this.setState({ error: message });
+      return null;
+    }
+  }
+
+  async startGame() {
+    if (!this.state.room || !this.state.participantId) {
+      return null;
+    }
+
+    const response = await this.withLoading(() =>
+      api.startGame(this.state.room!.code, this.state.participantId!)
+    );
+    this.setRoomSnapshot(response.room);
+    return response.room;
+  }
+
+  async submitGuess(text: string) {
+    if (!this.state.room || !this.state.participantId) {
+      return null;
+    }
+
+    const response = await this.withLoading(() =>
+      api.submitGuess(this.state.room!.code, this.state.participantId!, text)
+    );
+    this.setRoomSnapshot(response.room);
+    return response.room;
+  }
+
+  async updateDrawing(strokes: DrawingStroke[]) {
+    if (!this.state.room || !this.state.participantId) {
+      return null;
+    }
+
+    const response = await api.updateDrawing(
+      this.state.room.code,
+      this.state.participantId,
+      strokes
+    );
+    this.setRoomSnapshot(response.room);
+    return response.room;
+  }
+
+  async clearDrawing() {
+    if (!this.state.room || !this.state.participantId) {
+      return null;
+    }
+
+    const response = await api.clearDrawing(this.state.room.code, this.state.participantId);
+    this.setRoomSnapshot(response.room);
+    return response.room;
+  }
+
+  async restartGame() {
+    if (!this.state.room || !this.state.participantId) {
+      return null;
+    }
+
+    const response = await this.withLoading(() =>
+      api.restartGame(this.state.room!.code, this.state.participantId!)
+    );
     this.setRoomSnapshot(response.room);
     return response.room;
   }
@@ -127,4 +203,25 @@ export function useRoomStore() {
 export function useRoomState() {
   const store = useRoomStore();
   return useSyncExternalStore(store.subscribe, store.getSnapshot, store.getSnapshot);
+}
+
+export const LOBBY_POLL_MS = 2000;
+export const GAME_POLL_MS = 2000;
+
+export function useRoomPolling(enabled: boolean, intervalMs: number) {
+  const roomStore = useRoomStore();
+
+  useEffect(() => {
+    if (!enabled) {
+      return undefined;
+    }
+
+    const poll = () => {
+      void roomStore.fetchRoomForPoll();
+    };
+
+    poll();
+    const timer = window.setInterval(poll, intervalMs);
+    return () => window.clearInterval(timer);
+  }, [enabled, intervalMs, roomStore]);
 }
