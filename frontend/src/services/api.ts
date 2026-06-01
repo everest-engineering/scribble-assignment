@@ -9,6 +9,7 @@ export interface Participant {
 export interface RoomSnapshot {
   code: string;
   status: "lobby";
+  hostId: string;
   participants: Participant[];
   availableWords: string[];
   roles: ParticipantRole[];
@@ -57,5 +58,11 @@ export const api = {
   fetchRoom(code: string, participantId?: string) {
     const query = participantId ? `?participantId=${encodeURIComponent(participantId)}` : "";
     return request<{ room: RoomSnapshot }>(`/rooms/${encodeURIComponent(code)}${query}`);
+  },
+  startGame(code: string, participantId: string) {
+    return request<{ room: RoomSnapshot }>(`/rooms/${encodeURIComponent(code)}/start`, {
+      method: "POST",
+      body: JSON.stringify({ participantId })
+    });
   }
 };
