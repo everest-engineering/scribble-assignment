@@ -126,6 +126,14 @@ class RoomStore {
     this.setRoomSnapshot(response.room);
   }
 
+  async updateCanvas(dataUrl: string) {
+    if (!this.state.room || !this.state.participantId) {
+      return;
+    }
+
+    await api.updateCanvas(this.state.room.code, this.state.participantId, dataUrl);
+  }
+
   async restartGame() {
     if (!this.state.room || !this.state.participantId) {
       return;
