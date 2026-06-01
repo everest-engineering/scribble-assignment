@@ -1,11 +1,15 @@
 import { z } from "zod";
 
+const trimmedName = z.string()
+  .trim()
+  .min(1, "Name cannot be empty");
+
 export const createRoomSchema = z.object({
-  playerName: z.string().optional()
+  playerName: trimmedName.optional()
 });
 
 export const joinRoomSchema = z.object({
-  playerName: z.string().optional()
+  playerName: trimmedName.optional()
 });
 
 export const roomCodeParamsSchema = z.object({
