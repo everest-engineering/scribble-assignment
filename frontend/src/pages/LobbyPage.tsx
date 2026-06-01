@@ -1,33 +1,33 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card } from "../components/Card";
 import { PageHeader } from "../components/PageHeader";
 import { RoomCodeBadge } from "../components/RoomCodeBadge";
-import { useRoomState, useRoomStore } from "../state/roomStore";
+import { usePolling, useRoomState, useRoomStore } from "../state/roomStore";
 
 export function LobbyPage() {
   const navigate = useNavigate();
   const roomStore = useRoomStore();
-  const { room, error, isLoading } = useRoomState();
-  const [refreshError, setRefreshError] = useState<string | null>(null);
+  const { room, participantId, error, isLoading } = useRoomState();
+  const [startError, setStartError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!room) {
-      navigate("/", { replace: true });
-    }
-  }, [navigate, room]);
-
-  async function handleRefresh() {
-    try {
-      setRefreshError(null);
-      await roomStore.fetchRoom();
-    } catch (caughtError) {
-      setRefreshError(caughtError instanceof Error ? caughtError.message : "Unable to refresh room");
-    }
-  }
+  usePolling(true);
 
   if (!room) {
     return null;
+  }
+
+  const isHost = participantId === room.hostId;
+  const canStart = room.participants.length >= 2;
+
+  async function handleStart() {
+    try {
+      setStartError(null);
+      await roomStore.startGame();
+      navigate("/game");
+    } catch (caughtError) {
+      setStartError(caughtError instanceof Error ? caughtError.message : "Unable to start game");
+    }
   }
 
   return (
@@ -61,17 +61,18 @@ export function LobbyPage() {
           <p className="status-line" style={{ backgroundColor: isLoading ? '#fef3c7' : '#e0e7ff', color: isLoading ? '#b45309' : '#3730a3' }}>
             {isLoading ? "Refreshing players..." : "Ready to play"}
           </p>
-          <p style={{ marginTop: '8px' }}>{error ?? refreshError ?? "Waiting for the host to start the game."}</p>
+          <p style={{ marginTop: '8px' }}>{error ?? startError ?? (isHost ? "" : "Waiting for the host to start the game.")}</p>
         </Card>
       </div>
 
       <div className="button-row button-row--spread">
-        <button className="button button--secondary" disabled={isLoading} onClick={handleRefresh}>
-          {isLoading ? "Refreshing..." : "Refresh Room"}
-        </button>
-        <button className="button button--primary" onClick={() => navigate("/game")}>
-          Start Game
-        </button>
+        {isHost ? (
+          <button className="button button--primary" disabled={!canStart || isLoading} onClick={handleStart}>
+            {!canStart ? `Waiting for players... (${room.participants.length}/2)` : "Start Game"}
+          </button>
+        ) : (
+          <p className="waiting-message">Waiting for the host to start the game...</p>
+        )}
       </div>
     </section>
   );
