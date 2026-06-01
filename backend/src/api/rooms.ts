@@ -1,6 +1,8 @@
 import { Router } from "express";
 import {
   createRoomSchema,
+  drawingPathSchema,
+  guessSchema,
   HttpError,
   joinRoomSchema,
   roomCodeParamsSchema,
@@ -8,10 +10,13 @@ import {
   startRoomSchema,
 } from "./schemas.js";
 import {
+  appendDrawing,
   createRoom,
+  clearDrawing,
   getRoom,
   joinRoom,
   startRoom,
+  submitGuess,
   toRoomSnapshot,
 } from "../services/roomStore.js";
 
@@ -79,6 +84,57 @@ export function createRoomsRouter() {
       const saved = startRoom(room, parsedParticipantId);
 
       response.json({ room: toRoomSnapshot(saved, parsedParticipantId) });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/:code/guess", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId, guess } = guessSchema.parse(request.body);
+      const room = getRoom(code.toUpperCase());
+
+      if (!room) {
+        throw new HttpError(404, "Unable to load room");
+      }
+
+      const saved = submitGuess(room, participantId, guess);
+      response.json({ room: toRoomSnapshot(saved, participantId) });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/:code/drawing", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId, path } = drawingPathSchema.parse(request.body);
+      const room = getRoom(code.toUpperCase());
+
+      if (!room) {
+        throw new HttpError(404, "Unable to load room");
+      }
+
+      const saved = appendDrawing(room, participantId, path);
+      response.json({ room: toRoomSnapshot(saved, participantId) });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.delete("/:code/drawing", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId } = startRoomSchema.parse(request.body);
+      const room = getRoom(code.toUpperCase());
+
+      if (!room) {
+        throw new HttpError(404, "Unable to load room");
+      }
+
+      const saved = clearDrawing(room, participantId);
+      response.json({ room: toRoomSnapshot(saved, participantId) });
     } catch (error) {
       next(error);
     }

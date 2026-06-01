@@ -7,12 +7,34 @@ export interface Participant {
   isHost: boolean;
 }
 
+export interface DrawingPoint {
+  x: number;
+  y: number;
+}
+
+export interface DrawingPath {
+  points: DrawingPoint[];
+  color: string;
+  width: number;
+}
+
+export interface Guess {
+  participantId: string;
+  participantName: string;
+  guess: string;
+  correct: boolean;
+  createdAt: string;
+}
+
 export interface RoomSnapshot {
   code: string;
   status: "lobby" | "active";
   participants: Participant[];
   drawerId?: string;
   secretWord?: string;
+  scores: Record<string, number>;
+  guesses: Guess[];
+  drawingPaths: DrawingPath[];
   availableWords: string[];
   roles: ParticipantRole[];
 }
@@ -76,6 +98,33 @@ export const api = {
       `/rooms/${encodeURIComponent(code)}/start`,
       {
         method: "POST",
+        body: JSON.stringify({ participantId }),
+      },
+    );
+  },
+  submitGuess(code: string, participantId: string, guess: string) {
+    return request<{ room: RoomSnapshot }>(
+      `/rooms/${encodeURIComponent(code)}/guess`,
+      {
+        method: "POST",
+        body: JSON.stringify({ participantId, guess }),
+      },
+    );
+  },
+  appendDrawing(code: string, participantId: string, path: DrawingPath) {
+    return request<{ room: RoomSnapshot }>(
+      `/rooms/${encodeURIComponent(code)}/drawing`,
+      {
+        method: "POST",
+        body: JSON.stringify({ participantId, path }),
+      },
+    );
+  },
+  clearDrawing(code: string, participantId: string) {
+    return request<{ room: RoomSnapshot }>(
+      `/rooms/${encodeURIComponent(code)}/drawing`,
+      {
+        method: "DELETE",
         body: JSON.stringify({ participantId }),
       },
     );

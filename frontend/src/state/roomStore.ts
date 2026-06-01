@@ -124,6 +124,54 @@ class RoomStore {
     this.setRoomSnapshot(response.room);
     return response.room;
   }
+
+  async submitGuess(guess: string) {
+    if (!this.state.room) {
+      throw new Error("No room available to submit a guess");
+    }
+
+    if (!this.state.participantId) {
+      throw new Error("Missing participantId for guess request");
+    }
+
+    const response = await this.withLoading(() =>
+      api.submitGuess(this.state.room!.code, this.state.participantId!, guess),
+    );
+    this.setRoomSnapshot(response.room);
+    return response.room;
+  }
+
+  async appendDrawing(path: Parameters<typeof api.appendDrawing>[2]) {
+    if (!this.state.room) {
+      throw new Error("No room available to draw on");
+    }
+
+    if (!this.state.participantId) {
+      throw new Error("Missing participantId for drawing request");
+    }
+
+    const response = await this.withLoading(() =>
+      api.appendDrawing(this.state.room!.code, this.state.participantId!, path),
+    );
+    this.setRoomSnapshot(response.room);
+    return response.room;
+  }
+
+  async clearDrawing() {
+    if (!this.state.room) {
+      throw new Error("No room available to clear drawing");
+    }
+
+    if (!this.state.participantId) {
+      throw new Error("Missing participantId for drawing request");
+    }
+
+    const response = await this.withLoading(() =>
+      api.clearDrawing(this.state.room!.code, this.state.participantId!),
+    );
+    this.setRoomSnapshot(response.room);
+    return response.room;
+  }
 }
 
 const RoomStoreContext = createContext<RoomStore | null>(null);

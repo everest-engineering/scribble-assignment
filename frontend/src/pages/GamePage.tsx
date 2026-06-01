@@ -1,21 +1,49 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card } from "../components/Card";
+import { DrawingCanvas } from "../components/DrawingCanvas";
 import { GuessForm } from "../components/GuessForm";
 import { ResultPanel } from "../components/ResultPanel";
 import { RoomCodeBadge } from "../components/RoomCodeBadge";
 import { Scoreboard } from "../components/Scoreboard";
-import { useRoomState } from "../state/roomStore";
+import { useRoomState, useRoomStore } from "../state/roomStore";
 
 export function GamePage() {
   const navigate = useNavigate();
+  const roomStore = useRoomStore();
   const { room, participantId } = useRoomState();
 
   useEffect(() => {
     if (!room) {
       navigate("/", { replace: true });
+      return;
+    }
+
+    if (room.status !== "active") {
+      navigate("/lobby", { replace: true });
+      return;
     }
   }, [navigate, room]);
+
+  useEffect(() => {
+    if (!room || room.status !== "active") {
+      return undefined;
+    }
+
+    async function refresh() {
+      try {
+        await roomStore.fetchRoom();
+      } catch {
+        // errors are handled by store state
+      }
+    }
+
+    refresh();
+    const interval = window.setInterval(refresh, 2000);
+    return () => {
+      window.clearInterval(interval);
+    };
+  }, [room?.code, room?.status, roomStore]);
 
   if (!room) {
     return null;
@@ -42,10 +70,8 @@ export function GamePage() {
         </aside>
 
         <div className="game-page__main">
-          <Card title="Canvas">
-            <div className="canvas-placeholder" style={{ minHeight: '500px', backgroundColor: '#ffffff', border: '1px solid #e5e7eb' }}>
-              Waiting for drawer...
-            </div>
+          <Card title={isDrawer ? "Canvas" : "Drawing"}>
+            <DrawingCanvas readOnly={!isDrawer} />
           </Card>
         </div>
 
