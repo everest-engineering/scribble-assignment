@@ -8,12 +8,12 @@ This lab starts from a runnable but intentionally incomplete Scribble-style gues
 
 Granular, meaningful commits are encouraged so implementation decisions remain easy to assess.
 
-| Item | Details |
-|------|---------|
-| Project type | Brownfield enhancement |
-| Tech model | Frontend + minimal REST backend, in-memory store, manual room refresh in the starter; polling added by learners |
-| Difficulty | Intermediate |
-| Prerequisites | Comfort reading an existing codebase. |
+| Item          | Details                                                                                                         |
+| ------------- | --------------------------------------------------------------------------------------------------------------- |
+| Project type  | Brownfield enhancement                                                                                          |
+| Tech model    | Frontend + minimal REST backend, in-memory store, manual room refresh in the starter; polling added by learners |
+| Difficulty    | Intermediate                                                                                                    |
+| Prerequisites | Comfort reading an existing codebase.                                                                           |
 
 It already provides:
 
@@ -106,7 +106,50 @@ Backend endpoints currently available:
 - `POST /rooms/:code/join`
 - `GET /rooms/:code`
 
+Client polling and TTL
+
+- Lobby polling: the frontend polls `GET /rooms/:code` by default every ~2000ms with a small jitter (~±500ms) so multiple clients don't synchronize requests.
+- `ROOM_TTL_MS`: backend removes inactive rooms after `ROOM_TTL_MS` milliseconds (default `300000` / 5 minutes).
+
 The backend stores all room data in memory only. Restarting the backend clears all rooms.
+
+## Deterministic Word Selection
+
+To make round behavior reproducible for tests and debugging, the server selects
+the secret word deterministically from the configured starter list using an
+HMAC-SHA256 based algorithm.
+
+Algorithm summary:
+
+- Input: `seed` (string), `roundIndex` (non-negative integer), `starterWordList` (non-empty array of strings)
+- Compute HMAC-SHA256 using `seed` as the key and `String(roundIndex)` as the message
+- Interpret the resulting 32-byte digest as a big-endian unsigned integer `N`
+- Compute `index = Number(N % BigInt(starterWordList.length))`
+- Selected word is `starterWordList[index]`
+
+This approach avoids platform-specific RNG differences and makes the word
+selection auditable in tests and logs.
+
+Example test vectors
+
+For seed `test-seed-123` and list `["apple","banana","cherry"]` the
+deterministic outputs are:
+
+- roundIndex 0 → `cherry`
+- roundIndex 1 → `banana`
+- roundIndex 2 → `apple`
+
+You can reproduce these values locally with node (from the `backend` folder):
+
+```bash
+node -e "const crypto=require('crypto'); const seed='test-seed-123'; const list=['apple','banana','cherry']; [0,1,2].forEach(i=>{const h=crypto.createHmac('sha256',seed).update(String(i)).digest(); const N=BigInt('0x'+h.toString('hex')); const idx=Number(N%BigInt(list.length)); console.log(i+':', list[idx]);});"
+```
+
+Recommended regression test
+
+- Add a unit test in `backend/src/services/wordSelector.test.ts` asserting
+  known outputs for a short list and seed (see vectors above). This prevents
+  accidental algorithm regressions.
 
 ## Run The Backend
 
@@ -187,12 +230,12 @@ Maintain these artifacts throughout the lab:
 
 Work through the scenarios in order and complete each checkpoint before moving to the next one.
 
-| Group | Scenario | What You Should Have By The End |
-|-------|----------|-------------------------------|
-| 1. Room setup and lobby | Scenario 1 | Host tracking on room creation, join validation with clear error messages, verified multi-room isolation, automatic lobby polling within about 2 seconds, host-only start with 2-player minimum |
-| 2. Game start and drawer flow | Scenario 2 | Player name validation (trim, reject empty), drawer assignment, deterministic secret word selection, drawer-only word visibility |
-| 3. Gameplay interaction | Scenario 3 | Interactive drawing canvas, clear canvas, guess submission with validation, synced guess history via polling, deterministic scoring |
-| 4. Result, restart, and final validation | Scenario 4 | Shared result state visible to all players, clean restart to lobby with players preserved and round state cleared |
+| Group                                    | Scenario   | What You Should Have By The End                                                                                                                                                                 |
+| ---------------------------------------- | ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1. Room setup and lobby                  | Scenario 1 | Host tracking on room creation, join validation with clear error messages, verified multi-room isolation, automatic lobby polling within about 2 seconds, host-only start with 2-player minimum |
+| 2. Game start and drawer flow            | Scenario 2 | Player name validation (trim, reject empty), drawer assignment, deterministic secret word selection, drawer-only word visibility                                                                |
+| 3. Gameplay interaction                  | Scenario 3 | Interactive drawing canvas, clear canvas, guess submission with validation, synced guess history via polling, deterministic scoring                                                             |
+| 4. Result, restart, and final validation | Scenario 4 | Shared result state visible to all players, clean restart to lobby with players preserved and round state cleared                                                                               |
 
 Complete a minimum of 4 specify iterations.
 
@@ -229,15 +272,15 @@ The following items are intentionally out of scope for this lab.
 
 Artifacts are graded for internal consistency, traceability to implementation, and quality of reasoning, not for rigid wording or template mimicry.
 
-| Area | What Good Looks Like |
-|------|---------------------|
-| Discovery | ≥3 gaps + ≥2 assumptions documented; relevant files listed |
-| Spec Kit artifacts | Constitution, spec, plan, tasks committed and internally consistent |
-| Working game flow | Two browsers can join a room, play one round, see synced result, restart |
-| Edge cases & validation | Empty/invalid inputs, case-insensitive guess, multi-room isolation handled |
-| Implementation alignment | Code behavior matches the spec; deviations are documented |
-| Reflection | Reflection explains decisions, AI usage, tradeoffs |
-| Submission clarity (code optional for product roles) | Submission is easy to review |
+| Area                                                 | What Good Looks Like                                                       |
+| ---------------------------------------------------- | -------------------------------------------------------------------------- |
+| Discovery                                            | ≥3 gaps + ≥2 assumptions documented; relevant files listed                 |
+| Spec Kit artifacts                                   | Constitution, spec, plan, tasks committed and internally consistent        |
+| Working game flow                                    | Two browsers can join a room, play one round, see synced result, restart   |
+| Edge cases & validation                              | Empty/invalid inputs, case-insensitive guess, multi-room isolation handled |
+| Implementation alignment                             | Code behavior matches the spec; deviations are documented                  |
+| Reflection                                           | Reflection explains decisions, AI usage, tradeoffs                         |
+| Submission clarity (code optional for product roles) | Submission is easy to review                                               |
 
 ## Reflection Report
 

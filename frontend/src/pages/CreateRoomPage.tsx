@@ -12,12 +12,22 @@ export function CreateRoomPage() {
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
+    const name = playerName.trim();
+    if (!name) {
+      setError("Please enter a name.");
+      return;
+    }
+
     try {
       setError(null);
-      await roomStore.createRoom(playerName);
+      await roomStore.createRoom(name);
       navigate("/lobby");
     } catch (caughtError) {
-      setError(caughtError instanceof Error ? caughtError.message : "Unable to create room");
+      setError(
+        caughtError instanceof Error
+          ? caughtError.message
+          : "Unable to create room"
+      );
     }
   }
 
@@ -43,7 +53,11 @@ export function CreateRoomPage() {
           <button className="button button--primary" type="submit">
             Create and Continue
           </button>
-          <button className="button button--secondary" type="button" onClick={() => navigate("/")}>
+          <button
+            className="button button--secondary"
+            type="button"
+            onClick={() => navigate("/")}
+          >
             Back
           </button>
         </div>

@@ -1,0 +1,13 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Frontend Runtime Config",
+  "type": "object",
+  "properties": {
+    "VITE_API_URL": { "type": "string", "format": "uri" },
+    "VITE_FEATURE_DRAWING_ENABLED": {
+      "type": "string",
+      "enum": ["true", "false"]
+    }
+  },
+  "required": ["VITE_API_URL"]
+}

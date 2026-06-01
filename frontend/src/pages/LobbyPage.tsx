@@ -4,11 +4,12 @@ import { Card } from "../components/Card";
 import { PageHeader } from "../components/PageHeader";
 import { RoomCodeBadge } from "../components/RoomCodeBadge";
 import { useRoomState, useRoomStore } from "../state/roomStore";
+import { createPoller } from "../services/polling";
 
 export function LobbyPage() {
   const navigate = useNavigate();
   const roomStore = useRoomStore();
-  const { room, error, isLoading } = useRoomState();
+  const { room, error, isLoading, participantId } = useRoomState();
   const [refreshError, setRefreshError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -17,12 +18,35 @@ export function LobbyPage() {
     }
   }, [navigate, room]);
 
+  useEffect(() => {
+    if (!room) return;
+    const poller = createPoller(() => roomStore.fetchRoom(), 2000, 500);
+    poller.start();
+
+    return () => {
+      poller.stop();
+    };
+  }, [room, roomStore]);
+
+  // If the room status changes to in-game (started by host), navigate all
+  // participants to the GamePage so they see the active round.
+  useEffect(() => {
+    if (!room) return;
+    if (room.status === "in-game") {
+      navigate("/game");
+    }
+  }, [room, navigate]);
+
   async function handleRefresh() {
     try {
       setRefreshError(null);
       await roomStore.fetchRoom();
     } catch (caughtError) {
-      setRefreshError(caughtError instanceof Error ? caughtError.message : "Unable to refresh room");
+      setRefreshError(
+        caughtError instanceof Error
+          ? caughtError.message
+          : "Unable to refresh room"
+      );
     }
   }
 
@@ -58,19 +82,61 @@ export function LobbyPage() {
         </Card>
 
         <Card title="Status">
-          <p className="status-line" style={{ backgroundColor: isLoading ? '#fef3c7' : '#e0e7ff', color: isLoading ? '#b45309' : '#3730a3' }}>
+          <p
+            className="status-line"
+            style={{
+              backgroundColor: isLoading ? "#fef3c7" : "#e0e7ff",
+              color: isLoading ? "#b45309" : "#3730a3"
+            }}
+          >
             {isLoading ? "Refreshing players..." : "Ready to play"}
           </p>
-          <p style={{ marginTop: '8px' }}>{error ?? refreshError ?? "Waiting for the host to start the game."}</p>
+          <p style={{ marginTop: "8px" }}>
+            {error ?? refreshError ?? "Waiting for the host to start the game."}
+          </p>
         </Card>
       </div>
 
       <div className="button-row button-row--spread">
-        <button className="button button--secondary" disabled={isLoading} onClick={handleRefresh}>
+        <button
+          className="button button--secondary"
+          disabled={isLoading}
+          onClick={handleRefresh}
+        >
           {isLoading ? "Refreshing..." : "Refresh Room"}
         </button>
-        <button className="button button--primary" onClick={() => navigate("/game")}>
-          Start Game
+        <button
+          className="button button--primary"
+          disabled={
+            isLoading ||
+            room.participants.length < 2 ||
+            room.hostId !== participantId
+          }
+          onClick={async () => {
+            try {
+              await roomStore.startRoom();
+              navigate("/game");
+            } catch (err) {
+              // Surface friendly message for missing starter words
+              const code = (err as any)?.code;
+              if (code === "ERR_NO_WORDS") {
+                setRefreshError(
+                  "Cannot start game: no starter words configured."
+                );
+                return;
+              }
+
+              setRefreshError(
+                err instanceof Error ? err.message : "Unable to start game"
+              );
+            }
+          }}
+        >
+          {room.hostId !== participantId
+            ? "Only host can start"
+            : isLoading
+              ? "Starting..."
+              : "Start Game"}
         </button>
       </div>
     </section>

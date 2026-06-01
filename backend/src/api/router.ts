@@ -35,7 +35,12 @@ export function errorHandler(
   }
 
   const statusCode = error.statusCode ?? 500;
-  response.status(statusCode).json({
+  // If the error exposes a code property (HttpError), include it in the JSON
+  const anyErr = error as any;
+  const payload: { message: string; code?: string } = {
     message: error.message || "Unexpected server error"
-  });
+  };
+  if (anyErr.code) payload.code = anyErr.code;
+
+  response.status(statusCode).json(payload);
 }

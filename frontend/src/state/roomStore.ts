@@ -7,23 +7,30 @@ import {
   useSyncExternalStore,
   type PropsWithChildren
 } from "react";
-import { api, type RoomSessionResponse, type RoomSnapshot } from "../services/api";
+import { createPoller } from "../services/polling";
+import {
+  api,
+  type RoomSessionResponse,
+  type RoomSnapshot
+} from "../services/api";
 
 export interface RoomState {
   room: RoomSnapshot | null;
   participantId: string | null;
   error: string | null;
   isLoading: boolean;
+  guesses: unknown[];
 }
 
 type Listener = () => void;
 
-class RoomStore {
+export class RoomStore {
   private state: RoomState = {
     room: null,
     participantId: null,
     error: null,
-    isLoading: false
+    isLoading: false,
+    guesses: []
   };
 
   private listeners = new Set<Listener>();
@@ -54,7 +61,8 @@ class RoomStore {
     try {
       return await operation();
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Unexpected request failure";
+      const message =
+        error instanceof Error ? error.message : "Unexpected request failure";
       this.setState({ error: message });
       throw error;
     } finally {
@@ -71,8 +79,26 @@ class RoomStore {
   }
 
   setRoomSnapshot(room: RoomSnapshot) {
+    // Merge participants when server snapshot may omit transient roster info
+    const mergedRoom = (() => {
+      if (!this.state.room) return room;
+      // if server returned no participants but we have an existing list, keep it
+      if (
+        (!room.participants || room.participants.length === 0) &&
+        this.state.room.participants &&
+        this.state.room.participants.length > 0
+      ) {
+        return {
+          ...room,
+          participants: this.state.room.participants
+        } as RoomSnapshot;
+      }
+      // otherwise prefer server snapshot
+      return room;
+    })();
+
     this.setState({
-      room,
+      room: mergedRoom,
       error: null
     });
   }
@@ -84,7 +110,9 @@ class RoomStore {
   }
 
   async joinRoom(code: string, playerName: string) {
-    const response = await this.withLoading(() => api.joinRoom(code, playerName));
+    const response = await this.withLoading(() =>
+      api.joinRoom(code, playerName)
+    );
     this.setRoomSession(response);
     return response;
   }
@@ -94,7 +122,93 @@ class RoomStore {
       return null;
     }
 
-    const response = await api.fetchRoom(this.state.room.code, this.state.participantId ?? undefined);
+    try {
+      const response = await api.fetchRoom(
+        this.state.room.code,
+        this.state.participantId ?? undefined
+      );
+      this.setRoomSnapshot(response.room);
+      return response.room;
+    } catch (err) {
+      // If the room was not found for this participant, attempt a reconnect
+      if (
+        this.state.participantId &&
+        err instanceof Error &&
+        (err as any).status === 404
+      ) {
+        try {
+          const reconnectResp = await api.reconnect(
+            this.state.room.code,
+            this.state.participantId
+          );
+          // on successful reconnect, update session and room
+          this.setRoomSession(reconnectResp);
+          return reconnectResp.room;
+        } catch (reErr) {
+          // swallow reconnect errors; caller can surface UI feedback
+        }
+      }
+
+      throw err;
+    }
+  }
+
+  async fetchGuesses() {
+    if (!this.state.room) return [];
+    const { guesses } = await api.fetchGuesses(this.state.room.code);
+    this.setState({ guesses: guesses ?? [] });
+    return guesses ?? [];
+  }
+
+  startGuessPolling(intervalMs = 2000) {
+    if (this._poller) return;
+    this._poller = createPoller(() => this.fetchGuesses(), intervalMs, 400);
+    this._poller.start();
+  }
+
+  stopGuessPolling() {
+    if (this._poller) {
+      this._poller.stop();
+      this._poller = undefined;
+    }
+  }
+
+  private _poller: ReturnType<typeof createPoller> | undefined;
+
+  private _snapshotPoller: ReturnType<typeof createPoller> | undefined;
+
+  startSnapshotPolling(intervalMs = 2000) {
+    if (this._snapshotPoller) return;
+    this._snapshotPoller = createPoller(
+      async () => {
+        if (!this.state.room) return;
+        try {
+          await this.fetchRoom();
+        } catch (e) {
+          // swallow - poller is best-effort
+        }
+      },
+      intervalMs,
+      400
+    );
+    this._snapshotPoller.start();
+  }
+
+  stopSnapshotPolling() {
+    if (this._snapshotPoller) {
+      this._snapshotPoller.stop();
+      this._snapshotPoller = undefined;
+    }
+  }
+
+  async startRoom() {
+    if (!this.state.room || !this.state.participantId) {
+      throw new Error("Missing room or participantId");
+    }
+
+    const response = await this.withLoading(() =>
+      api.startRoom(this.state.room!.code, this.state.participantId!)
+    );
     this.setRoomSnapshot(response.room);
     return response.room;
   }
@@ -111,7 +225,11 @@ export function RoomStoreProvider({ children }: PropsWithChildren) {
 
   useEffect(() => undefined, []);
 
-  return createElement(RoomStoreContext.Provider, { value: storeRef.current }, children);
+  return createElement(
+    RoomStoreContext.Provider,
+    { value: storeRef.current },
+    children
+  );
 }
 
 export function useRoomStore() {
@@ -126,5 +244,9 @@ export function useRoomStore() {
 
 export function useRoomState() {
   const store = useRoomStore();
-  return useSyncExternalStore(store.subscribe, store.getSnapshot, store.getSnapshot);
+  return useSyncExternalStore(
+    store.subscribe,
+    store.getSnapshot,
+    store.getSnapshot
+  );
 }

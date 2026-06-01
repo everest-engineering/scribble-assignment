@@ -1,0 +1,103 @@
+{
+  "POST /rooms/:code/guesses": {
+    "description": "Submit a guess for the room. Server validates and returns 201 on success.",
+    "request": {
+      "participantId": "string",
+      "text": "string"
+    },
+    "responses": {
+      "201": {
+        "body": { "guessId": "string", "text": "string", "correct": "boolean" }
+      },
+      "400": { "body": { "code": "ERR_GUESS_REQUIRED|ERR_GUESS_TOO_LONG" } }
+    }
+  },
+  "GET /rooms/:code/guesses": {
+    "description": "List recent guesses in chronological order",
+    "responses": {
+      "200": {
+        "body": {
+          "guesses": [
+            {
+              "participantId": "string",
+              "text": "string",
+              "correct": "boolean",
+              "createdAt": "ISO8601"
+            }
+          ]
+        }
+      }
+    }
+  }
+    },
+    "POST /rooms/:code/guesses": {
+      "description": "Submit a guess for the room. Server validates and returns 201 on success.",
+      "request": {
+        "content-type": "application/json",
+        "body": {
+          "participantId": "string (uuid)",
+          "text": "string (trimmed, max 200 chars)"
+        }
+      },
+      "responses": {
+        "201": {
+          "description": "Created",
+          "body": {
+            "guessId": "string (uuid)",
+            "text": "string",
+            "textTrimmed": "string",
+            "correct": "boolean",
+            "createdAt": "ISO8601"
+          },
+          "example": {
+            "guessId": "8a3f...",
+            "text": "  apple  ",
+            "textTrimmed": "apple",
+            "correct": false,
+            "createdAt": "2026-06-01T00:00:00Z"
+          }
+        },
+        "400": {
+          "description": "Validation error",
+          "body": {
+            "code": "ERR_GUESS_REQUIRED | ERR_GUESS_TOO_LONG",
+            "message": "human-friendly"
+          },
+          "example": { "code": "ERR_GUESS_TOO_LONG", "message": "Guess must be 200 characters or fewer" }
+        }
+      }
+    },
+    "GET /rooms/:code/guesses": {
+      "description": "List recent guesses in chronological order with pagination",
+      "request": {
+        "query": {
+          "limit": "int (optional, default 50, max 200)",
+          "offset": "int (optional, default 0)",
+          "after": "string (optional cursor - ISO timestamp or id)"
+        }
+      },
+      "responses": {
+        "200": {
+          "description": "OK",
+          "headers": { "X-Total-Count": "int (optional)" },
+          "body": {
+            "guesses": [
+              {
+                "id": "string (uuid)",
+                "participantId": "string",
+                "text": "string",
+                "textTrimmed": "string",
+                "correct": "boolean",
+                "createdAt": "ISO8601"
+              }
+            ]
+          },
+          "example": {
+            "guesses": [
+              { "id": "g1", "participantId": "p1", "text": "Hello", "textTrimmed": "hello", "correct": false, "createdAt": "2026-06-01T00:00:00Z" },
+              { "id": "g2", "participantId": "p2", "text": "Apple", "textTrimmed": "apple", "correct": true, "createdAt": "2026-06-01T00:00:05Z" }
+            ]
+          }
+        }
+      }
+    }
