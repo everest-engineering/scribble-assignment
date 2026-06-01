@@ -57,6 +57,10 @@ input {
   margin: 0 auto;
 }
 
+.app-shell__main:has(.game-page) {
+  width: min(1400px, 100%);
+}
+
 .app-shell__header {
   display: flex;
   align-items: flex-start;
@@ -106,6 +110,49 @@ input {
 }
 
 .room-code-badge__hint {
+  color: var(--ink-soft);
+  font-size: 0.875rem;
+}
+
+.room-code-badge--prominent {
+  padding: 24px 40px;
+  border-width: 2px;
+  border-color: var(--brand);
+}
+
+.room-code-badge--prominent .room-code-badge__code {
+  font-size: 2.5rem;
+}
+
+.button--compact {
+  padding: 8px 16px;
+  font-size: 0.875rem;
+}
+
+.lobby-guest-note {
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: 0.95rem;
+}
+
+.role-banner {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: var(--brand-strong);
+}
+
+.secret-word {
+  margin: 0;
+  font-size: 2rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: capitalize;
+}
+
+.secret-word-hint,
+.guesser-prompt {
+  margin: 8px 0 0;
   color: var(--ink-soft);
   font-size: 0.875rem;
 }
@@ -229,11 +276,6 @@ input {
   border-radius: 16px;
   background: var(--surface);
   box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06); /* subtle shadow for inner cards */
-}
-
-/* Specific fix for game page main cards to look larger */
-.game-page__main .card {
-  padding: 40px;
 }
 
 .card__header {
@@ -439,16 +481,112 @@ input {
   font-size: 1.125rem;
 }
 
-.canvas-placeholder {
-  min-height: 500px; /* significantly taller canvas */
+.drawing-canvas-wrap {
+  display: grid;
+  gap: 12px;
+}
+
+.drawing-canvas {
+  width: 100%;
+  min-height: 500px;
   border: 1px solid var(--line);
   border-radius: 12px;
-  display: grid;
-  place-items: center;
   background: var(--surface);
+  touch-action: none;
+  cursor: crosshair;
+}
+
+.drawing-canvas--readonly {
+  cursor: default;
+}
+
+.drawing-canvas__actions {
+  justify-content: flex-end;
+}
+
+.scoreboard,
+.guess-history {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.scoreboard__row,
+.guess-history__item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-muted);
+  min-width: 0;
+}
+
+.scoreboard__row span:first-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.guess-history__item {
+  grid-template-columns: minmax(0, auto) minmax(0, 1fr) auto;
+}
+
+.guess-history__item--correct {
+  border-color: #86efac;
+  background: #f0fdf4;
+}
+
+.guess-history__name {
+  font-weight: 600;
+  color: var(--ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.guess-history__text {
   color: var(--ink-soft);
-  font-size: 1.125rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.guess-history__result {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+
+.guess-history__empty,
+.scoreboard__empty,
+.guess-form__disabled {
+  margin: 0;
+  color: var(--ink-soft);
+}
+
+.form__error {
+  margin: 0;
+  color: #b91c1c;
+  font-size: 0.875rem;
   font-weight: 500;
+}
+
+.result-page__word {
+  text-align: center;
+}
+
+.lobby-scores-note {
+  margin: 12px 0 0;
+  color: var(--ink-soft);
+  font-size: 0.875rem;
 }
 
 /* --- GAME PAGE LAYOUT --- */
@@ -456,7 +594,7 @@ input {
 .game-page {
   display: grid;
   gap: 32px;
-  padding: 40px;
+  padding: 32px;
   max-width: 100%;
   background: var(--surface);
   border: 1px solid var(--line);
@@ -470,6 +608,34 @@ input {
   justify-content: space-between;
   gap: 24px;
   flex-wrap: wrap;
+}
+
+.game-page .card {
+  gap: 0;
+  min-height: auto;
+  width: 100%;
+  padding: 16px;
+  box-sizing: border-box;
+}
+
+.game-page .card__header {
+  margin-bottom: 12px;
+  min-width: 0;
+}
+
+.game-page .card__body {
+  min-width: 0;
+  overflow: visible;
+}
+
+.game-page .status-line {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  white-space: normal;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
 }
 
 .game-page__header-left {
@@ -489,24 +655,46 @@ input {
 /* Responsive grid: 3-column layout */
 .game-page__layout {
   display: grid;
-  grid-template-columns: minmax(240px, 1fr) minmax(0, 3fr) minmax(280px, 1fr);
-  gap: 32px;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 2.5fr) minmax(0, 1fr);
+  gap: 24px;
   align-items: start;
+  width: 100%;
+}
+
+.game-page__main,
+.game-page__sidebar {
+  min-width: 0;
+  max-width: 100%;
 }
 
 .game-page__main {
   display: grid;
-  gap: 32px;
+  gap: 24px;
 }
 
 .game-page__sidebar {
-  display: grid;
-  gap: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  max-height: calc(100dvh - 220px);
+}
+
+.game-page__sidebar > * {
+  flex-shrink: 0;
+  min-width: 0;
+  max-width: 100%;
 }
 
 @media (max-width: 1024px) {
   .game-page__layout {
     grid-template-columns: 1fr;
+  }
+
+  .game-page__sidebar {
+    max-height: none;
+    overflow-y: visible;
   }
 }
 

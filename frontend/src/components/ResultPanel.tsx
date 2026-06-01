@@ -1,11 +1,16 @@
 import { Card } from "./Card";
+import { useRoomState } from "../state/roomStore";
 
 export function ResultPanel() {
+  const { room } = useRoomState();
+
+  if (room?.status !== "drawing") {
+    return null;
+  }
+
   return (
-    <Card title="Activity">
-      <div className="placeholder-block" style={{ backgroundColor: '#f9fafb' }}>
-        <p style={{ fontSize: '0.875rem', color: '#6b7280' }}>Game activity and guesses will appear here.</p>
-      </div>
+    <Card title="Round Status">
+      <p className="status-line">Round in progress — results appear when someone guesses correctly.</p>
     </Card>
   );
 }

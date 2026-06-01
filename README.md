@@ -69,44 +69,39 @@ By the end of this lab you should be able to:
 
 ## Current Implementation
 
-The current branch is scaffold-only.
+This fork implements **all four business scenarios** (Spec Kit features `001`–`004`) on top of the starter scaffold.
 
-Implemented today:
+### Implemented
 
-- app shell and page routing
-- branded landing page and cleaned starter UI
-- create room flow
-- join room by code flow
-- fetch room snapshot flow
-- in-memory room storage on the backend
-- lobby participant display from the latest fetched snapshot
-- game screen placeholders for canvas, guess input, scoreboard, and results
-- basic light UI styling
+| Scenario | Highlights |
+|----------|------------|
+| **1 — Lobby** | Host on create, join validation, ~2s lobby polling, host-only start (≥2 players), join blocked during `drawing` |
+| **2 — Drawer** | Round 1 drawer assignment, deterministic secret word, drawer-only word visibility while drawing |
+| **3 — Gameplay** | Canvas draw/clear (drawer), guess trim/validate/score, guess history + scoreboard sync via ~2s poll |
+| **4 — Result** | First correct guess → `result`, shared results page, host restart → clean lobby (scores 0) |
 
-Not implemented yet:
+### Documentation for reviewers
 
-- host behavior or host-only permissions
-- automatic lobby polling
-- start game flow
-- drawer assignment
-- secret word visibility rules
-- drawing interaction
-- clear canvas action
-- guess submission and synced history
-- scoring
-- result state
-- restart flow
+| Document | Purpose |
+|----------|---------|
+| [DISCOVERY.md](./DISCOVERY.md) | Starter gaps (≥3), assumptions (≥2), relevant files |
+| [REFLECTION.md](./REFLECTION.md) | **Required reflection** — starter vs added, AI usage, tradeoffs |
+| [IMPLEMENTATION-ALIGNMENT.md](./IMPLEMENTATION-ALIGNMENT.md) | Spec ↔ code traceability and deviations |
+| `.specify/memory/constitution.md` | Engineering + game rules |
+| `specs/001-host-join-rooms/` … `specs/004-result-restart-lobby/` | Per-feature spec, plan, tasks, contracts, quickstart |
 
-## API Included In The Starter
-
-Backend endpoints currently available:
+### API (current)
 
 - `GET /health`
-- `POST /rooms`
-- `POST /rooms/:code/join`
-- `GET /rooms/:code`
+- `POST /rooms` — create room (host)
+- `POST /rooms/:code/join` — join (`lobby` or `result`)
+- `GET /rooms/:code?participantId=` — poll snapshot (touch presence)
+- `POST /rooms/:code/start` — host starts game
+- `PUT /rooms/:code/canvas` — drawer updates strokes
+- `POST /rooms/:code/guesses` — guesser submits guess
+- `POST /rooms/:code/restart` — host returns to lobby after result
 
-The backend stores all room data in memory only. Restarting the backend clears all rooms.
+All room data is **in-memory**; restarting the backend clears rooms.
 
 ## Run The Backend
 
@@ -130,17 +125,24 @@ The frontend runs on `http://localhost:5173`.
 
 If needed, point the frontend at a different backend with `VITE_API_URL`.
 
-## Quick Verification
+## Quick Verification (starter smoke test)
 
-Use this to confirm the starter works from a clean clone:
+1. Start backend → `http://localhost:3001/health` returns `{ "ok": true }`.
+2. Start frontend → `http://localhost:5173`.
+3. Create room → lobby shows room code and participants.
 
-1. Start the backend and confirm `http://localhost:3001/health` returns `{ "ok": true }`.
-2. Start the frontend and open `http://localhost:5173`.
-3. Confirm the Start screen shows `Create Room` and `Join Room`.
-4. Create a room and confirm you land on the Lobby screen.
-5. Open another tab, join the same room, and use the Lobby refresh button to load the latest participant list.
-6. Open the Game screen and confirm the canvas, guess input, scoreboard, and result areas are placeholders only.
-7. Treat any start-page marketing copy as presentational only; use this README for actual supported scope.
+## Verify full game (two browsers — evaluation flow)
+
+1. **Browser A**: Create room (host). **Browser B**: Join with code.
+2. Wait ~2s — both see two players in lobby. **Host** starts game.
+3. Both reach game screen. **Drawer** draws; **guesser** sees strokes within ~2s.
+4. **Guesser** submits correct word (case-insensitive OK) → both auto-navigate to **Results** within ~2s.
+5. Confirm same revealed word, scores, and guess history on both.
+6. **Host** clicks **Restart to Lobby** → both return to lobby; scores 0; host can start again.
+
+Automated: `cd backend && npm test` (42 tests). Builds: `npm run build` in `backend/` and `frontend/`.
+
+Detailed checklists: `specs/*/quickstart.md`.
 
 ## Recommended Build Order
 
@@ -241,10 +243,7 @@ Artifacts are graded for internal consistency, traceability to implementation, a
 
 ## Reflection Report
 
-Provide a brief reflection report in an `.md` file. Use these prompts as a starting point:
-
-- What did the starter app already have?
-- What did you add?
+**Submitted**: [REFLECTION.md](./REFLECTION.md) (also covers discovery pointers in [DISCOVERY.md](./DISCOVERY.md)).
 
 > Spec Kit is the focus of this lab. The game is the vehicle. Each commit should remain explainable and traceable to your spec.
 

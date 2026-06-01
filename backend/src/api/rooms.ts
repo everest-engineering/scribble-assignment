@@ -1,12 +1,27 @@
 import { Router } from "express";
 import {
   createRoomSchema,
-  HttpError,
+  gameplayQuerySchema,
   joinRoomSchema,
   roomCodeParamsSchema,
-  roomViewerQuerySchema
+  restartGameQuerySchema,
+  roomViewerQuerySchema,
+  startGameQuerySchema,
+  submitGuessBodySchema,
+  updateCanvasBodySchema
 } from "./schemas.js";
-import { createRoom, getRoom, joinRoom, toRoomSnapshot } from "../services/roomStore.js";
+import { mapRoomServiceError } from "./roomErrorMapper.js";
+import { RoomServiceError } from "../services/roomErrors.js";
+import {
+  createRoom,
+  getRoomForParticipant,
+  joinRoom,
+  restartGame,
+  startGame,
+  submitGuess,
+  toRoomSnapshot,
+  updateCanvas
+} from "../services/roomStore.js";
 
 export function createRoomsRouter() {
   const router = Router();
@@ -21,6 +36,10 @@ export function createRoomsRouter() {
         room: toRoomSnapshot(result.room, result.participantId)
       });
     } catch (error) {
+      if (error instanceof RoomServiceError) {
+        next(mapRoomServiceError(error));
+        return;
+      }
       next(error);
     }
   });
@@ -29,17 +48,17 @@ export function createRoomsRouter() {
     try {
       const { code } = roomCodeParamsSchema.parse(request.params);
       const { playerName } = joinRoomSchema.parse(request.body);
-      const result = joinRoom(code.toUpperCase(), playerName);
-
-      if (!result) {
-        throw new HttpError(404, "Unable to join room");
-      }
+      const result = joinRoom(code, playerName);
 
       response.json({
         participantId: result.participantId,
         room: toRoomSnapshot(result.room, result.participantId)
       });
     } catch (error) {
+      if (error instanceof RoomServiceError) {
+        next(mapRoomServiceError(error));
+        return;
+      }
       next(error);
     }
   });
@@ -48,16 +67,90 @@ export function createRoomsRouter() {
     try {
       const { code } = roomCodeParamsSchema.parse(request.params);
       const { participantId } = roomViewerQuerySchema.parse(request.query);
-      const room = getRoom(code.toUpperCase());
-
-      if (!room) {
-        throw new HttpError(404, "Unable to load room");
-      }
+      const room = getRoomForParticipant(code, participantId);
 
       response.json({
         room: toRoomSnapshot(room, participantId)
       });
     } catch (error) {
+      if (error instanceof RoomServiceError) {
+        next(mapRoomServiceError(error));
+        return;
+      }
+      next(error);
+    }
+  });
+
+  router.put("/:code/canvas", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId } = gameplayQuerySchema.parse(request.query);
+      const { strokes } = updateCanvasBodySchema.parse(request.body);
+      const room = updateCanvas(code, participantId, strokes);
+
+      response.json({
+        room: toRoomSnapshot(room, participantId)
+      });
+    } catch (error) {
+      if (error instanceof RoomServiceError) {
+        next(mapRoomServiceError(error));
+        return;
+      }
+      next(error);
+    }
+  });
+
+  router.post("/:code/guesses", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId } = gameplayQuerySchema.parse(request.query);
+      const { text } = submitGuessBodySchema.parse(request.body);
+      const room = submitGuess(code, participantId, text);
+
+      response.json({
+        room: toRoomSnapshot(room, participantId)
+      });
+    } catch (error) {
+      if (error instanceof RoomServiceError) {
+        next(mapRoomServiceError(error));
+        return;
+      }
+      next(error);
+    }
+  });
+
+  router.post("/:code/restart", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId } = restartGameQuerySchema.parse(request.query);
+      const room = restartGame(code, participantId);
+
+      response.json({
+        room: toRoomSnapshot(room, participantId)
+      });
+    } catch (error) {
+      if (error instanceof RoomServiceError) {
+        next(mapRoomServiceError(error));
+        return;
+      }
+      next(error);
+    }
+  });
+
+  router.post("/:code/start", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId } = startGameQuerySchema.parse(request.query);
+      const room = startGame(code, participantId);
+
+      response.json({
+        room: toRoomSnapshot(room, participantId)
+      });
+    } catch (error) {
+      if (error instanceof RoomServiceError) {
+        next(mapRoomServiceError(error));
+        return;
+      }
       next(error);
     }
   });

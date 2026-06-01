@@ -1,19 +1,374 @@
-import { describe, expect, it } from "vitest";
-import { createRoom, joinRoom } from "./roomStore.js";
+import { afterEach, describe, expect, it } from "vitest";
+import type { Room } from "../models/game.js";
+import {
+  assignRoundOneRoles,
+  clearAllRoomsForTests,
+  createRoom,
+  getRoomForParticipant,
+  joinRoom,
+  startGame,
+  restartGame,
+  submitGuess,
+  toRoomSnapshot,
+  trimParticipantNames,
+  updateCanvas
+} from "./roomStore.js";
+import { RoomServiceError } from "./roomErrors.js";
+import { selectRoundWord } from "./wordSelection.js";
+
+afterEach(() => {
+  clearAllRoomsForTests();
+});
 
 describe("roomStore", () => {
-  it("createRoom returns a room with a 4-character uppercase code", () => {
-    const result = createRoom("Alice");
+  it("rooms are isolated from each other", () => {
+    const roomA = createRoom("Alice");
+    const roomB = createRoom("Bob");
+    const guestA = joinRoom(roomA.room.code, "GuestA");
+    const guestB = joinRoom(roomB.room.code, "GuestB");
 
-    expect(result.room.code).toMatch(/^[A-Z0-9]{4}$/);
-    expect(result.room.participants).toHaveLength(1);
-    expect(result.room.participants[0].name).toBe("Alice");
-    expect(result.participantId).toBeDefined();
+    expect(roomA.room.code).not.toBe(roomB.room.code);
+    expect(guestA.room.participants).toHaveLength(2);
+    expect(guestB.room.participants).toHaveLength(2);
+
+    const roomAParticipantIds = new Set(guestA.room.participants.map((p) => p.id));
+    for (const participant of guestB.room.participants) {
+      expect(roomAParticipantIds.has(participant.id)).toBe(false);
+    }
   });
 
-  it("joinRoom returns null for an unknown room code", () => {
-    const result = joinRoom("ZZZZ", "Bob");
+  it("createRoom assigns host and trims name", () => {
+    const result = createRoom("  Alice  ");
 
-    expect(result).toBeNull();
+    expect(result.room.code).toMatch(/^[A-Z0-9]{4}$/);
+    expect(result.room.hostParticipantId).toBe(result.participantId);
+    expect(result.room.participants[0].name).toBe("Alice");
+  });
+
+  it("createRoom rejects empty name", () => {
+    expect(() => createRoom("   ")).toThrow(RoomServiceError);
+  });
+
+  it("trimParticipantNames rejects whitespace-only roster names", () => {
+    const room = {
+      participants: [{ name: "   " }]
+    } as Room;
+
+    expect(() => trimParticipantNames(room)).toThrow(/Name is required/);
+  });
+
+  it("joinRoom is case-insensitive for room code", () => {
+    const host = createRoom("Host");
+    const guest = joinRoom(host.room.code.toLowerCase(), "Guest");
+
+    expect(guest.room.participants).toHaveLength(2);
+  });
+
+  it("joinRoom rejects unknown room", () => {
+    expect(() => joinRoom("ZZZZ", "Bob")).toThrow(RoomServiceError);
+  });
+
+  it("joinRoom rejects when room is full", () => {
+    const host = createRoom("Host");
+
+    for (let index = 0; index < 9; index += 1) {
+      joinRoom(host.room.code, `Guest${index}`);
+    }
+
+    expect(() => joinRoom(host.room.code, "OneTooMany")).toThrow(/Room is full/);
+  });
+
+  it("joinRoom rejects when game already started", () => {
+    const host = createRoom("Host");
+    joinRoom(host.room.code, "Guest");
+    startGame(host.room.code, host.participantId);
+
+    expect(() => joinRoom(host.room.code, "Late")).toThrow(/Game already started/);
+  });
+
+  it("toRoomSnapshot exposes canStart only for host with two players", () => {
+    const host = createRoom("Host");
+    const alone = toRoomSnapshot(host.room, host.participantId);
+
+    expect(alone.viewer?.canStart).toBe(false);
+
+    const guest = joinRoom(host.room.code, "Guest");
+    const ready = toRoomSnapshot(guest.room, host.participantId);
+
+    expect(ready.viewer?.canStart).toBe(true);
+    expect(toRoomSnapshot(guest.room, guest.participantId).viewer?.canStart).toBe(false);
+  });
+
+  it("getRoomForParticipant resumes participant without duplicating", () => {
+    const host = createRoom("Host");
+    joinRoom(host.room.code, "Guest");
+    const refreshed = getRoomForParticipant(host.room.code, host.participantId);
+
+    expect(refreshed.participants).toHaveLength(2);
+  });
+
+  it("startGame requires host and two players", () => {
+    const host = createRoom("Host");
+
+    expect(() => startGame(host.room.code, host.participantId)).toThrow(/two players/i);
+
+    const guest = joinRoom(host.room.code, "Guest");
+
+    expect(() => startGame(guest.room.code, guest.participantId)).toThrow(/Only the host/);
+
+    const started = startGame(host.room.code, host.participantId);
+    expect(started.status).toBe("drawing");
+  });
+
+  it("startGame assigns host as drawer for round one", () => {
+    const host = createRoom("Host");
+    const guest = joinRoom(host.room.code, "Guest");
+    const started = startGame(host.room.code, host.participantId);
+
+    expect(started.drawerParticipantId).toBe(host.participantId);
+    expect(started.participants.find((entry) => entry.id === host.participantId)?.role).toBe(
+      "drawer"
+    );
+    expect(started.participants.find((entry) => entry.id === guest.participantId)?.role).toBe(
+      "guesser"
+    );
+  });
+
+  it("assignRoundOneRoles uses earliest joiner when host absent", () => {
+    const room = {
+      code: "TEST",
+      status: "lobby",
+      hostParticipantId: "missing-host",
+      participants: [
+        {
+          id: "first",
+          name: "First",
+          joinedAt: "2020-01-01T00:00:00.000Z",
+          lastSeenAt: "2020-01-01T00:00:00.000Z"
+        },
+        {
+          id: "second",
+          name: "Second",
+          joinedAt: "2020-01-02T00:00:00.000Z",
+          lastSeenAt: "2020-01-02T00:00:00.000Z"
+        }
+      ],
+      createdAt: "2020-01-01T00:00:00.000Z",
+      updatedAt: "2020-01-01T00:00:00.000Z"
+    } as Room;
+
+    assignRoundOneRoles(room);
+
+    expect(room.drawerParticipantId).toBe("first");
+  });
+
+  it("startGame selects deterministic secret word", () => {
+    const host = createRoom("Host");
+    joinRoom(host.room.code, "Guest");
+    const started = startGame(host.room.code, host.participantId);
+
+    expect(started.secretWord).toBe(selectRoundWord(started.code, 1));
+  });
+
+  it("toRoomSnapshot exposes secret word only to drawer viewer", () => {
+    const host = createRoom("Host");
+    const guest = joinRoom(host.room.code, "Guest");
+    const started = startGame(host.room.code, host.participantId);
+
+    const drawerView = toRoomSnapshot(started, host.participantId);
+    const guesserView = toRoomSnapshot(started, guest.participantId);
+
+    expect(drawerView.viewer?.secretWord).toBe(started.secretWord);
+    expect(guesserView.viewer?.secretWord).toBeUndefined();
+  });
+
+  it("startGame initializes canvas, guesses, and scores", () => {
+    const host = createRoom("Host");
+    const guest = joinRoom(host.room.code, "Guest");
+    const started = startGame(host.room.code, host.participantId);
+
+    expect(started.canvasStrokes).toEqual([]);
+    expect(started.guesses).toEqual([]);
+    expect(started.participants.every((entry) => entry.score === 0)).toBe(true);
+  });
+
+  it("updateCanvas allows drawer and rejects guesser", () => {
+    const host = createRoom("Host");
+    const guest = joinRoom(host.room.code, "Guest");
+    startGame(host.room.code, host.participantId);
+
+    const strokes = [{ points: [{ x: 1, y: 2 }], color: "#000", width: 2 }];
+    const updated = updateCanvas(host.room.code, host.participantId, strokes);
+
+    expect(updated.canvasStrokes).toEqual(strokes);
+
+    expect(() => updateCanvas(host.room.code, guest.participantId, strokes)).toThrow(
+      /Only the drawer/
+    );
+  });
+
+  it("submitGuess scores correct and incorrect guesses", () => {
+    const host = createRoom("Host");
+    const guest = joinRoom(host.room.code, "Guest");
+    const started = startGame(host.room.code, host.participantId);
+    const secretWord = started.secretWord ?? "";
+
+    const wrong = submitGuess(host.room.code, guest.participantId, "wrong");
+    const guesserAfterWrong = wrong.participants.find(
+      (entry) => entry.id === guest.participantId
+    );
+
+    expect(guesserAfterWrong?.score).toBe(0);
+    expect(wrong.guesses).toHaveLength(1);
+    expect(wrong.guesses?.[0].isCorrect).toBe(false);
+
+    const correct = submitGuess(host.room.code, guest.participantId, `  ${secretWord}  `);
+    const guesserAfterCorrect = correct.participants.find(
+      (entry) => entry.id === guest.participantId
+    );
+
+    expect(guesserAfterCorrect?.score).toBe(100);
+    expect(correct.guesses).toHaveLength(2);
+    expect(correct.guesses?.[1].isCorrect).toBe(true);
+  });
+
+  it("submitGuess rejects empty guess and drawer attempts", () => {
+    const host = createRoom("Host");
+    const guest = joinRoom(host.room.code, "Guest");
+    const started = startGame(host.room.code, host.participantId);
+
+    expect(() => submitGuess(host.room.code, guest.participantId, "   ")).toThrow(
+      /cannot be empty/i
+    );
+    expect(() => submitGuess(host.room.code, host.participantId, "word")).toThrow(
+      /cannot submit guesses/i
+    );
+
+    expect(started.secretWord).toBeDefined();
+  });
+
+  it("joinRoom allows joining during result but not during drawing", () => {
+    const host = createRoom("Host");
+    const guest = joinRoom(host.room.code, "Guest");
+    const started = startGame(host.room.code, host.participantId);
+    const secretWord = started.secretWord ?? "";
+
+    submitGuess(host.room.code, guest.participantId, secretWord);
+
+    const lateJoin = joinRoom(host.room.code, "Late");
+    expect(lateJoin.room.status).toBe("result");
+    expect(lateJoin.room.revealedWord).toBe(secretWord);
+
+    const hostOnly = createRoom("Host2");
+    joinRoom(hostOnly.room.code, "Guest2");
+    startGame(hostOnly.room.code, hostOnly.participantId);
+
+    expect(() => joinRoom(hostOnly.room.code, "Blocked")).toThrow(/Game already started/);
+  });
+
+  it("first correct guess ends round and rejects further guesses", () => {
+    const host = createRoom("Host");
+    const guest = joinRoom(host.room.code, "Guest");
+    const started = startGame(host.room.code, host.participantId);
+    const secretWord = started.secretWord ?? "";
+
+    const ended = submitGuess(host.room.code, guest.participantId, secretWord);
+
+    expect(ended.status).toBe("result");
+    expect(ended.revealedWord).toBe(secretWord);
+
+    expect(() => submitGuess(host.room.code, guest.participantId, "another")).toThrow(
+      /Round has ended/
+    );
+  });
+
+  it("toRoomSnapshot in result exposes revealedWord to all viewers", () => {
+    const host = createRoom("Host");
+    const guest = joinRoom(host.room.code, "Guest");
+    const started = startGame(host.room.code, host.participantId);
+    const secretWord = started.secretWord ?? "";
+
+    submitGuess(host.room.code, guest.participantId, secretWord);
+
+    const hostView = toRoomSnapshot(
+      getRoomForParticipant(host.room.code, host.participantId),
+      host.participantId
+    );
+    const guestView = toRoomSnapshot(
+      getRoomForParticipant(host.room.code, guest.participantId),
+      guest.participantId
+    );
+
+    expect(hostView.revealedWord).toBe(secretWord);
+    expect(guestView.revealedWord).toBe(secretWord);
+    expect(hostView.guesses).toHaveLength(1);
+    expect(guestView.guesses).toHaveLength(1);
+    expect(hostView.participants.find((entry) => entry.id === guest.participantId)?.score).toBe(
+      100
+    );
+    expect(guestView.viewer?.secretWord).toBeUndefined();
+    expect(hostView.viewer?.secretWord).toBeUndefined();
+  });
+
+  it("result snapshots are consistent across viewers", () => {
+    const host = createRoom("Host");
+    const guest = joinRoom(host.room.code, "Guest");
+    const started = startGame(host.room.code, host.participantId);
+
+    submitGuess(host.room.code, guest.participantId, started.secretWord ?? "");
+
+    const hostView = toRoomSnapshot(
+      getRoomForParticipant(host.room.code, host.participantId),
+      host.participantId
+    );
+    const guestView = toRoomSnapshot(
+      getRoomForParticipant(host.room.code, guest.participantId),
+      guest.participantId
+    );
+
+    expect(hostView.revealedWord).toBe(guestView.revealedWord);
+    expect(hostView.guesses?.length).toBe(guestView.guesses?.length);
+    expect(hostView.participants.map((entry) => entry.score)).toEqual(
+      guestView.participants.map((entry) => entry.score)
+    );
+  });
+
+  it("restartGame resets round state and scores for host only", () => {
+    const host = createRoom("Host");
+    const guest = joinRoom(host.room.code, "Guest");
+    const started = startGame(host.room.code, host.participantId);
+
+    submitGuess(host.room.code, guest.participantId, started.secretWord ?? "");
+
+    expect(() => restartGame(host.room.code, guest.participantId)).toThrow(/Only the host/);
+
+    const restarted = restartGame(host.room.code, host.participantId);
+
+    expect(restarted.status).toBe("lobby");
+    expect(restarted.revealedWord).toBeUndefined();
+    expect(restarted.secretWord).toBeUndefined();
+    expect(restarted.guesses).toEqual([]);
+    expect(restarted.canvasStrokes).toEqual([]);
+    expect(restarted.participants.every((entry) => entry.score === 0)).toBe(true);
+    expect(restarted.participants.every((entry) => entry.role === undefined)).toBe(true);
+  });
+
+  it("toRoomSnapshot includes gameplay fields without leaking secret word to guesser", () => {
+    const host = createRoom("Host");
+    const guest = joinRoom(host.room.code, "Guest");
+    const started = startGame(host.room.code, host.participantId);
+    const strokes = [{ points: [{ x: 5, y: 10 }] }];
+    updateCanvas(host.room.code, host.participantId, strokes);
+    submitGuess(host.room.code, guest.participantId, "test");
+
+    const guesserView = toRoomSnapshot(
+      getRoomForParticipant(host.room.code, guest.participantId),
+      guest.participantId
+    );
+
+    expect(guesserView.canvasStrokes).toEqual(strokes);
+    expect(guesserView.guesses).toHaveLength(1);
+    expect(guesserView.participants[0].score).toBe(0);
+    expect(guesserView.viewer?.secretWord).toBeUndefined();
   });
 });
