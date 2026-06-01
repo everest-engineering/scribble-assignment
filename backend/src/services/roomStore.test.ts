@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createRoom, joinRoom, getRoom, saveRoom, startGame, toRoomSnapshot } from "./roomStore.js";
+import { createRoom, joinRoom, getRoom, saveRoom, startGame, submitGuess, toRoomSnapshot } from "./roomStore.js";
 
 describe("roomStore", () => {
   it("createRoom returns a room with a 4-character uppercase code and host participant", () => {
@@ -147,6 +147,48 @@ describe("roomStore", () => {
       statusCode: 409,
       message: "Game has already started"
     });
+  });
+
+  it("submitGuess rejects whitespace-only guesses", () => {
+    const host = createRoom("Alice");
+    joinRoom(host.room.code, "Bob");
+    startGame(host.room.code, host.participantId);
+
+    const result = submitGuess(host.room.code, host.participantId, "   ");
+
+    expect(result).toEqual({
+      ok: false,
+      statusCode: 422,
+      message: "Guess is required"
+    });
+  });
+
+  it("submitGuess trims guess input, scores case-insensitively, and appends history", () => {
+    const host = createRoom("Alice");
+    const bob = joinRoom(host.room.code, "Bob");
+    if (!bob) {
+      throw new Error("Expected Bob to join");
+    }
+
+    const startResult = startGame(host.room.code, host.participantId);
+    if (!startResult.ok) {
+      throw new Error(startResult.message);
+    }
+
+    const guessResult = submitGuess(host.room.code, bob.participantId, "  RoCkEt  ");
+
+    expect(guessResult.ok).toBe(true);
+    if (!guessResult.ok) {
+      throw new Error(guessResult.message);
+    }
+    const room = guessResult.room as any;
+    expect(room?.currentRound?.guessHistory).toHaveLength(1);
+    const guess = room?.currentRound?.guessHistory[0];
+    expect(guess?.text).toBe("RoCkEt");
+    expect(guess?.correct).toBe(true);
+    expect(guess?.score).toBe(100);
+    expect(guess?.participantName).toBe("Bob");
+    expect(room?.currentRound?.totalScore).toBe(100);
   });
 
   it("toRoomSnapshot exposes the active drawer name to all viewers", () => {

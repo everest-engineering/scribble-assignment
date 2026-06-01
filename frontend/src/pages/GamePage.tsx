@@ -4,6 +4,7 @@ import { Card } from "../components/Card";
 import { GuessForm } from "../components/GuessForm";
 import { ResultPanel } from "../components/ResultPanel";
 import { RoomCodeBadge } from "../components/RoomCodeBadge";
+import { CanvasBoard } from "../components/CanvasBoard";
 import { Scoreboard } from "../components/Scoreboard";
 import { useRoomState } from "../state/roomStore";
 
@@ -43,9 +44,13 @@ export function GamePage() {
 
         <div className="game-page__main">
           <Card title="Canvas">
-            <div className="canvas-placeholder" style={{ minHeight: '500px', backgroundColor: '#ffffff', border: '1px solid #e5e7eb' }}>
-              Waiting for drawer...
-            </div>
+            {isDrawer ? (
+              <CanvasBoard />
+            ) : (
+              <div className="canvas-placeholder" style={{ minHeight: '500px', backgroundColor: '#ffffff', border: '1px solid #e5e7eb' }}>
+                Waiting for drawer...
+              </div>
+            )}
           </Card>
         </div>
 
@@ -77,6 +82,23 @@ export function GamePage() {
                 </dd>
               </div>
             </dl>
+          </Card>
+
+          <Card title="Guess History">
+            {currentRound?.guessHistory?.length ? (
+              <ul className="guess-history-list">
+                {currentRound.guessHistory.map((guess) => (
+                  <li key={guess.id} className="guess-history-item">
+                    <strong>{guess.participantName}</strong>: {guess.text}{" "}
+                    <span className={guess.correct ? "guess-status guess-status--correct" : "guess-status"}>
+                      {guess.correct ? "Correct" : "Incorrect"}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p>No guesses yet.</p>
+            )}
           </Card>
 
           <Card title="Your Guess">

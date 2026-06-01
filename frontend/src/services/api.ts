@@ -14,6 +14,15 @@ export interface RoundSnapshot {
   drawerId: string;
   drawerName: string;
   secretWord?: string;
+  guessHistory: {
+    id: string;
+    participantId: string;
+    participantName: string;
+    text: string;
+    correct: boolean;
+    score: number;
+    submittedAt: string;
+  }[];
 }
 
 export interface RoomSnapshot {
@@ -70,6 +79,12 @@ export const api = {
     return request<{ room: RoomSnapshot }>(`/rooms/${encodeURIComponent(code)}/start`, {
       method: "POST",
       body: JSON.stringify({ participantId })
+    });
+  },
+  submitGuess(code: string, participantId: string, guessText: string) {
+    return request<{ room: RoomSnapshot }>(`/rooms/${encodeURIComponent(code)}/guesses`, {
+      method: "POST",
+      body: JSON.stringify({ participantId, guessText })
     });
   },
   fetchRoom(code: string, participantId?: string) {

@@ -10,6 +10,16 @@ export interface Participant {
   isHost: boolean;
 }
 
+export interface Guess {
+  id: string;
+  participantId: string;
+  participantName: string;
+  text: string;
+  correct: boolean;
+  score: number;
+  submittedAt: string;
+}
+
 export interface Room {
   code: string;
   hostId: string;
@@ -26,6 +36,8 @@ export interface Round {
   drawerId: string;
   secretWord: string;
   startedAt: string;
+  guessHistory: Guess[];
+  totalScore: number;
 }
 
 export interface RoundSnapshot {
@@ -34,6 +46,7 @@ export interface RoundSnapshot {
   drawerId: string;
   drawerName: string;
   secretWord?: string;
+  guessHistory: Guess[];
 }
 
 export interface RoomSnapshot {

@@ -103,7 +103,8 @@ describe("RoomStore", () => {
         roundNumber: 1,
         status: "active" as const,
         drawerId: "host-1",
-        drawerName: "Alice"
+        drawerName: "Alice",
+        guessHistory: []
       }
     };
     vi.mocked(api.startGame).mockResolvedValue({ room: activeSnapshot });
@@ -129,7 +130,8 @@ describe("RoomStore", () => {
         status: "active" as const,
         drawerId: "host-1",
         drawerName: "Alice",
-        secretWord: "rocket"
+        secretWord: "rocket",
+        guessHistory: []
       }
     };
     vi.mocked(api.fetchRoom).mockResolvedValue({ room: drawerSnapshot });

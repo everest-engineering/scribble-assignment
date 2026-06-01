@@ -125,6 +125,18 @@ export class RoomStore {
     return response.room;
   }
 
+  async submitGuess(guessText: string) {
+    if (!this.state.room || !this.state.participantId) {
+      throw new Error("Room session is required to submit a guess");
+    }
+
+    const response = await this.withLoading(() =>
+      api.submitGuess(this.state.room!.code, this.state.participantId!, guessText)
+    );
+    this.setRoomSnapshot(response.room);
+    return response.room;
+  }
+
   startPolling() {
     if (this.pollInterval || !this.state.room) {
       return;

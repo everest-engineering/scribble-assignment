@@ -160,8 +160,72 @@ export function startGame(code: string, participantId: string): StartGameResult 
     status: "active",
     drawerId: drawer.id,
     secretWord: STARTER_WORDS[0],
-    startedAt: now()
+    startedAt: now(),
+    guessHistory: [],
+    totalScore: 0
   };
+  room.updatedAt = now();
+  rooms.set(room.code, room);
+
+  return {
+    ok: true,
+    room: cloneRoom(room)
+  };
+}
+
+export function submitGuess(code: string, participantId: string, guessText: string) {
+  const room = rooms.get(code);
+
+  if (!room) {
+    return {
+      ok: false,
+      statusCode: 404,
+      message: "Unable to load room"
+    };
+  }
+
+  if (!room.currentRound || room.status !== "inProgress") {
+    return {
+      ok: false,
+      statusCode: 409,
+      message: "No active round is available"
+    };
+  }
+
+  const participant = room.participants.find((item) => item.id === participantId);
+
+  if (!participant) {
+    return {
+      ok: false,
+      statusCode: 403,
+      message: "Unable to identify submitting player"
+    };
+  }
+
+  const normalizedGuess = guessText.trim();
+
+  if (!normalizedGuess) {
+    return {
+      ok: false,
+      statusCode: 422,
+      message: "Guess is required"
+    };
+  }
+
+  const correct = normalizedGuess.toLowerCase() === room.currentRound.secretWord.toLowerCase();
+  const score = correct ? 100 : 0;
+  const guess = {
+    id: randomUUID(),
+    participantId: participant.id,
+    participantName: participant.name,
+    text: normalizedGuess,
+    correct,
+    score,
+    submittedAt: now()
+  };
+
+  room.currentRound.guessHistory.push(guess);
+  room.currentRound.totalScore += score;
   room.updatedAt = now();
   rooms.set(room.code, room);
 
@@ -190,7 +254,8 @@ export function toRoomSnapshot(room: Room, viewerId?: string): RoomSnapshot {
             status: room.currentRound.status,
             drawerId: room.currentRound.drawerId,
             drawerName: drawer.name,
-            ...(viewerId === room.currentRound.drawerId ? { secretWord: room.currentRound.secretWord } : {})
+            ...(viewerId === room.currentRound.drawerId ? { secretWord: room.currentRound.secretWord } : {}),
+            guessHistory: [...room.currentRound.guessHistory]
           }
         }
       : {})

@@ -67,6 +67,27 @@ describe("api service", () => {
     );
   });
 
+  it("submitGuess sends POST to /rooms/:code/guesses with player and guess text", async () => {
+    const mockResponse = {
+      ok: true,
+      json: () =>
+        Promise.resolve({
+          room: { code: "ABCD", hostId: "p1", gameState: "inProgress", participants: [] },
+        }),
+    };
+    vi.mocked(fetch).mockResolvedValue(mockResponse as unknown as Response);
+
+    await api.submitGuess("ABCD", "p1", " hello ");
+
+    expect(fetch).toHaveBeenCalledWith(
+      expect.stringContaining("/rooms/ABCD/guesses"),
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({ participantId: "p1", guessText: " hello " }),
+      })
+    );
+  });
+
   it("throws response error messages for invalid player names", async () => {
     const mockResponse = {
       ok: false,
