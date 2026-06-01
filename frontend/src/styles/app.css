@@ -451,6 +451,44 @@ input {
   font-size: 1.125rem;
 }
 
+.role-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-size: 1.125rem;
+  font-weight: 600;
+}
+
+.role-badge--drawer {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.role-badge--guesser {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.secret-word-display {
+  padding: 20px 24px;
+  border-radius: 12px;
+  background: #fef3c7;
+  color: #92400e;
+  font-size: 2rem;
+  font-weight: 700;
+  text-align: center;
+  letter-spacing: 0.05em;
+}
+
+.secret-word-display--hidden {
+  background: var(--surface-muted);
+  color: var(--ink-soft);
+  font-size: 1rem;
+  font-weight: 500;
+}
+
 .canvas-placeholder {
   min-height: 500px; /* significantly taller canvas */
   border: 1px solid var(--line);

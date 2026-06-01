@@ -1,14 +1,18 @@
 import { z } from "zod";
 
 export const createRoomSchema = z.object({
-  playerName: z.string().trim().min(1, "Player name is required")
+  playerName: z.string().trim().min(1, "Player name is required").max(20, "Player name must be at most 20 characters")
 });
 
 export const joinRoomSchema = z.object({
-  playerName: z.string().trim().min(1, "Player name is required")
+  playerName: z.string().trim().min(1, "Player name is required").max(20, "Player name must be at most 20 characters")
 });
 
 export const startGameSchema = z.object({
+  participantId: z.string()
+});
+
+export const leaveRoomSchema = z.object({
   participantId: z.string()
 });
 

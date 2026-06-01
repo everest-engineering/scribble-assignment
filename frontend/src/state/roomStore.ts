@@ -108,6 +108,15 @@ class RoomStore {
     this.setRoomSnapshot(response.room);
     return response.room;
   }
+
+  async leaveGame() {
+    if (!this.state.room || !this.state.participantId) {
+      return;
+    }
+
+    await this.withLoading(() => api.leaveGame(this.state.room!.code, this.state.participantId!));
+    this.setState({ room: null, participantId: null });
+  }
 }
 
 const RoomStoreContext = createContext<RoomStore | null>(null);

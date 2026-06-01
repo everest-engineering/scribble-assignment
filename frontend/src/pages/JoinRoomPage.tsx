@@ -27,6 +27,11 @@ export function JoinRoomPage() {
       return;
     }
 
+    if (trimmedName.length > 20) {
+      setError("Player name must be at most 20 characters");
+      return;
+    }
+
     try {
       await roomStore.joinRoom(trimmedCode, trimmedName);
       navigate("/lobby");

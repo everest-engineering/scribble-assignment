@@ -1,27 +1,59 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card } from "../components/Card";
 import { GuessForm } from "../components/GuessForm";
 import { ResultPanel } from "../components/ResultPanel";
 import { RoomCodeBadge } from "../components/RoomCodeBadge";
 import { Scoreboard } from "../components/Scoreboard";
-import { useRoomState } from "../state/roomStore";
+import { useRoomState, useRoomStore } from "../state/roomStore";
 
 export function GamePage() {
   const navigate = useNavigate();
+  const roomStore = useRoomStore();
   const { room, participantId } = useRoomState();
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
     if (!room) {
       navigate("/", { replace: true });
+      return;
     }
-  }, [navigate, room]);
+
+    if (room.status === "lobby") {
+      navigate("/lobby", { replace: true });
+      return;
+    }
+
+    intervalRef.current = setInterval(async () => {
+      try {
+        await roomStore.fetchRoom();
+      } catch {
+        // Polling error silently retries
+      }
+    }, 2000);
+
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
+    };
+  }, [navigate, roomStore, room]);
+
+  async function handleExit() {
+    try {
+      await roomStore.leaveGame();
+    } catch {
+      // Leave even if API call fails
+    }
+    navigate("/", { replace: true });
+  }
 
   if (!room) {
     return null;
   }
 
   const viewer = room.participants.find((participant) => participant.id === participantId) ?? null;
+  const isDrawer = room.yourRole === "drawer";
 
   return (
     <section className="panel game-page">
@@ -40,9 +72,27 @@ export function GamePage() {
         </aside>
 
         <div className="game-page__main">
+          <Card title="Your Role">
+            <div className={`role-badge role-badge--${isDrawer ? "drawer" : "guesser"}`}>
+              {isDrawer ? "You are the Drawer" : `You are a Guesser`}
+            </div>
+          </Card>
+
+          {isDrawer && room.secretWord ? (
+            <Card title="Secret Word">
+              <div className="secret-word-display">{room.secretWord}</div>
+            </Card>
+          ) : (
+            <Card title="Secret Word">
+              <div className="secret-word-display secret-word-display--hidden">
+                Word has been selected
+              </div>
+            </Card>
+          )}
+
           <Card title="Canvas">
             <div className="canvas-placeholder" style={{ minHeight: '500px', backgroundColor: '#ffffff', border: '1px solid #e5e7eb' }}>
-              Waiting for drawer...
+              {isDrawer ? "Draw the word above!" : "Waiting for drawer to start drawing..."}
             </div>
           </Card>
         </div>
@@ -58,17 +108,23 @@ export function GamePage() {
                 <dt>Status</dt>
                 <dd>Playing</dd>
               </div>
+              <div>
+                <dt>Role</dt>
+                <dd>{isDrawer ? "Drawer" : "Guesser"}</dd>
+              </div>
             </dl>
           </Card>
 
-          <Card title="Your Guess">
-            <GuessForm />
-          </Card>
+          {!isDrawer ? (
+            <Card title="Your Guess">
+              <GuessForm />
+            </Card>
+          ) : null}
         </aside>
       </div>
 
       <div className="button-row">
-        <button className="button button--secondary" onClick={() => navigate("/lobby")}>
+        <button className="button button--secondary" onClick={handleExit}>
           Exit Game
         </button>
       </div>

@@ -19,6 +19,11 @@ export function CreateRoomPage() {
       return;
     }
 
+    if (trimmed.length > 20) {
+      setError("Player name must be at most 20 characters");
+      return;
+    }
+
     try {
       await roomStore.createRoom(trimmed);
       navigate("/lobby");
