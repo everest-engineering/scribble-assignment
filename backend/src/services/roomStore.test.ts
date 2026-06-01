@@ -5,6 +5,7 @@ import {
   createRoom,
   getRoom,
   joinRoom,
+  restartRoom,
   startRoom,
   submitGuess,
 } from "./roomStore.js";
@@ -67,6 +68,39 @@ describe("roomStore", () => {
     expect(guessResult.guesses).toHaveLength(1);
     expect(guessResult.guesses[0].correct).toBe(true);
     expect(guessResult.scores[joinResult!.participantId]).toBe(100);
+    expect(guessResult.status).toBe("results");
+  });
+
+  it("restartRoom resets round state while preserving participants and scores", () => {
+    const hostSession = createRoom("Alice");
+    const roomCode = hostSession.room.code;
+    const joinResult = joinRoom(roomCode, "Bob");
+    expect(joinResult).not.toBeNull();
+
+    const currentRoom = getRoom(roomCode);
+    expect(currentRoom).not.toBeNull();
+
+    const startedRoom = startRoom(currentRoom!, hostSession.participantId);
+    expect(startedRoom.status).toBe("active");
+    expect(startedRoom.secretWord).toBeDefined();
+
+    const guessedRoom = submitGuess(
+      startedRoom,
+      joinResult!.participantId,
+      startedRoom.secretWord!,
+    );
+    expect(guessedRoom.status).toBe("results");
+    expect(guessedRoom.guesses).toHaveLength(1);
+
+    const restartedRoom = restartRoom(guessedRoom, hostSession.participantId);
+
+    expect(restartedRoom.status).toBe("lobby");
+    expect(restartedRoom.drawerId).toBeUndefined();
+    expect(restartedRoom.secretWord).toBeUndefined();
+    expect(restartedRoom.guesses).toHaveLength(0);
+    expect(restartedRoom.drawingPaths).toHaveLength(0);
+    expect(restartedRoom.participants).toHaveLength(2);
+    expect(restartedRoom.scores[joinResult!.participantId]).toBe(100);
   });
 
   it("clearDrawing removes stored drawing paths for the active drawer", () => {
@@ -88,7 +122,11 @@ describe("roomStore", () => {
       width: 2,
     };
 
-    const drawnRoom = appendDrawing(startedRoom, hostSession.participantId, path);
+    const drawnRoom = appendDrawing(
+      startedRoom,
+      hostSession.participantId,
+      path,
+    );
     expect(drawnRoom.drawingPaths).toHaveLength(1);
 
     const clearedRoom = clearDrawing(drawnRoom, hostSession.participantId);

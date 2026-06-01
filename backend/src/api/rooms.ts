@@ -15,6 +15,7 @@ import {
   clearDrawing,
   getRoom,
   joinRoom,
+  restartRoom,
   startRoom,
   submitGuess,
   toRoomSnapshot,
@@ -134,6 +135,23 @@ export function createRoomsRouter() {
       }
 
       const saved = clearDrawing(room, participantId);
+      response.json({ room: toRoomSnapshot(saved, participantId) });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/:code/restart", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId } = startRoomSchema.parse(request.body);
+      const room = getRoom(code.toUpperCase());
+
+      if (!room) {
+        throw new HttpError(404, "Unable to load room");
+      }
+
+      const saved = restartRoom(room, participantId);
       response.json({ room: toRoomSnapshot(saved, participantId) });
     } catch (error) {
       next(error);

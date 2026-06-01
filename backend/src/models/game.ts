@@ -42,7 +42,7 @@ export interface Room {
 
 export interface RoomSnapshot {
   code: string;
-  status: RoomStatus;
+  status: "lobby" | "active" | "results";
   participants: Participant[];
   drawerId?: string;
   secretWord?: string;

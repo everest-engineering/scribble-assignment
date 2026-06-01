@@ -1,5 +1,10 @@
 import { randomUUID } from "node:crypto";
-import type { DrawingPath, Participant, Room, RoomSnapshot } from "../models/game.js";
+import type {
+  DrawingPath,
+  Participant,
+  Room,
+  RoomSnapshot,
+} from "../models/game.js";
 import { STARTER_ROLES, STARTER_WORDS } from "../seed/starterData.js";
 
 const rooms = new Map<string, Room>();
@@ -137,6 +142,10 @@ export function submitGuess(room: Room, participantId: string, guess: string) {
     throw new Error("The drawer cannot submit guesses");
   }
 
+  if (room.status !== "active") {
+    throw new Error("Guessing is only allowed during an active game");
+  }
+
   const trimmedGuess = guess.trim();
 
   if (!trimmedGuess) {
@@ -159,13 +168,38 @@ export function submitGuess(room: Room, participantId: string, guess: string) {
     createdAt: now(),
   });
 
+  if (correct) {
+    room.status = "results";
+  }
+
+  return saveRoom(room);
+}
+
+export function restartRoom(room: Room, participantId: string) {
+  const host = room.participants.find((participant) => participant.isHost);
+
+  if (!host || host.id !== participantId) {
+    throw new Error("Only the host may restart the game");
+  }
+
+  if (room.status === "lobby") {
+    return room;
+  }
+
+  room.status = "lobby";
+  room.drawerId = undefined;
+  room.secretWord = undefined;
+  room.drawingPaths = [];
+  room.guesses = [];
+
   return saveRoom(room);
 }
 
 export function appendDrawing(
   room: Room,
   participantId: string,
-  path: Pick<DrawingPath, "points"> & Partial<Pick<DrawingPath, "color" | "width">>,
+  path: Pick<DrawingPath, "points"> &
+    Partial<Pick<DrawingPath, "color" | "width">>,
 ) {
   if (room.drawerId !== participantId) {
     throw new Error("Only the drawer can draw on the canvas");
@@ -217,7 +251,12 @@ export function toRoomSnapshot(
     status: room.status,
     participants: room.participants.map((participant) => ({ ...participant })),
     drawerId: room.drawerId,
-    secretWord: room.drawerId === viewerParticipantId ? room.secretWord : undefined,
+    secretWord:
+      room.status === "results"
+        ? room.secretWord
+        : room.drawerId === viewerParticipantId
+        ? room.secretWord
+        : undefined,
     scores: { ...room.scores },
     guesses: room.guesses.map((guess) => ({ ...guess })),
     drawingPaths: room.drawingPaths.map((path) => ({ ...path })),
