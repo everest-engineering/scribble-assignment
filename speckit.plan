@@ -1,0 +1,146 @@
+# Plan
+
+## Findings
+
+The starter is a brownfield project with working room create/join flows but no game logic. All scaffolding for a game exists as placeholders. The key gaps are: host tracking, name validation, auto-polling, game lifecycle (start → playing → finished), drawing, guessing, scoring, and restart.
+
+### Bug
+- `frontend/src/services/api.ts:22`: Default API URL has spurious `/bug` suffix.
+
+## State Model Changes
+
+### Backend Types (`backend/src/models/game.ts`)
+
+```
+RoomStatus: "lobby" | "playing" | "finished"   // expanded from single value
+
+Stroke {
+  points: { x: number; y: number }[]
+}
+
+Guess {
+  participantId: string
+  playerName: string
+  text: string
+  correct: boolean
+  timestamp: string
+}
+
+Room {
+  code: string
+  status: RoomStatus
+  hostId: string                               // NEW
+  drawerId: string | null                      // NEW
+  secretWord: string | null                    // NEW
+  scores: Record<string, number>               // NEW  (participantId → score)
+  canvasStrokes: Stroke[]                      // NEW
+  guesses: Guess[]                             // NEW
+  participants: Participant[]
+  createdAt: string
+  updatedAt: string
+}
+
+RoomSnapshot {
+  code, status, participants
+  hostId: string                               // NEW
+  drawerId: string | null                      // NEW
+  myRole: ParticipantRole | null               // NEW
+  secretWord: string | null                    // NEW (filtered per viewer)
+  scores: Record<string, number>               // NEW
+  canvasStrokes: Stroke[]                      // NEW
+  guesses: Guess[]                             // NEW
+  availableWords: string[]                     // kept for drawer reference
+  roles: ParticipantRole[]                     // kept
+}
+```
+
+## Data Flow
+
+```
+Frontend                    Backend
+--------                    -------
+                            rooms: Map<string, Room>
+
+POST /rooms                 createRoom(name)
+  → participantId, room       → generate code, create participant, set hostId
+  ← snapshot                  → store room, return snapshot
+
+POST /rooms/:code/join     joinRoom(code, name)
+  → participantId, room       → validate name, find room, add participant
+  ← snapshot                  → return snapshot
+
+GET /rooms/:code            getRoom(code, viewerParticipantId)
+  ?participantId=xyz          → find room, filter snapshot for viewer role
+  ← snapshot                  → return viewer-scoped snapshot
+
+POST /rooms/:code/start     startGame(code, participantId)
+  → room                      → verify: host, ≥2 players, status=lobby
+  ← snapshot                  → assign drawer, pick word, status=playing
+
+POST /rooms/:code/draw      addStroke(code, participantId, stroke)
+  → { stroke }                → verify: drawer, status=playing
+  ← snapshot                  → append stroke, return snapshot
+
+POST /rooms/:code/clear     clearDrawing(code, participantId)
+  → room                      → verify: drawer, status=playing
+  ← snapshot                  → reset strokes array, return snapshot
+
+POST /rooms/:code/guess     addGuess(code, participantId, { text })
+  → { text }                  → verify: guesser, status=playing
+  ← snapshot                  → trim, compare case-insensitive
+                                → if correct: +100, status=finished
+                                → append guess, return snapshot
+
+POST /rooms/:code/restart   restartGame(code, participantId)
+  → room                      → verify: host, status=finished
+  ← snapshot                  → reset word, drawer, scores, strokes, guesses
+                                → status=lobby, return snapshot
+```
+
+## Implementation Sequence
+
+### Phase 1 — Room Setup & Lobby
+1. Fix URL bug in `api.ts`
+2. Update `game.ts` models (add hostId, expand status)
+3. Update `roomStore.ts` (host tracking, name validation, host in snapshot)
+4. Update `schemas.ts` (name validation)
+5. Update frontend types (`api.ts`, `roomStore.ts`)
+6. Update `LobbyPage.tsx` (auto-polling, host gating, start button)
+7. Validate Scenario 1
+
+### Phase 2 — Game Start & Drawer Flow
+1. Add `startGame()` to `roomStore.ts`
+2. Add `POST /rooms/:code/start` route
+3. Update `toRoomSnapshot()` for viewer-specific filtering
+4. Update frontend API and store with startGame
+5. Wire LobbyPage start button to API
+6. Validate Scenario 2
+
+### Phase 3 — Gameplay Interaction
+1. Create `DrawingCanvas.tsx` component (HTML5 Canvas with mouse events)
+2. Add draw/clear to backend store and routes
+3. Add draw/clear to frontend API and store
+4. Implement guess logic in backend store
+5. Add guess endpoint and frontend wiring
+6. Update `GuessForm`, `Scoreboard`, `ResultPanel` with real data
+7. Wire GamePage polling
+8. Validate Scenario 3
+
+### Phase 4 — Result, Restart & Final Validation
+1. End round on correct guess (status → "finished")
+2. Add `restartGame()` to backend
+3. Add restart endpoint and frontend wiring
+4. Update GamePage result view and restart button
+5. Auto-navigate to lobby on restart
+6. Validate Scenario 4 end-to-end
+
+## Testing Strategy
+- Backend unit tests for store functions (start, guess, scoring, restart)
+- Frontend unit tests for API methods
+- Manual validation with 2 browser tabs for each scenario
+- Build check (`npm run build`) before each commit
+
+## Risks
+- Canvas polling may feel laggy without WebSockets — acceptable for this lab
+- Large canvas stroke data could grow the snapshot — mitigated by clear canvas
+- Race condition: two guessers submit correct guess simultaneously — handled by server check of status before accepting
