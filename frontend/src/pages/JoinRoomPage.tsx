@@ -13,9 +13,20 @@ export function JoinRoomPage() {
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
+    const code = roomCode.trim().toUpperCase();
+    if (!code) {
+      setError("Room code cannot be empty");
+      return;
+    }
+
+    if (!/^[A-Z0-9]{6}$/.test(code)) {
+      setError("Room code must be exactly 6 alphanumeric characters");
+      return;
+    }
+
     try {
       setError(null);
-      await roomStore.joinRoom(roomCode.toUpperCase(), playerName);
+      await roomStore.joinRoom(code, playerName);
       navigate("/lobby");
     } catch (caughtError) {
       setError(caughtError instanceof Error ? caughtError.message : "Unable to join room");
@@ -46,12 +57,12 @@ export function JoinRoomPage() {
             className="form__input form__input--code"
             value={roomCode}
             onChange={(event) => setRoomCode(event.target.value.toUpperCase())}
-            placeholder="ABCD"
+            placeholder="A1B2C3"
           />
         </label>
         {error ? <p className="form__error">{error}</p> : null}
         <div className="button-row">
-          <button className="button button--primary" type="submit">
+          <button className="button button--primary" type="submit" disabled={playerName.trim().length === 0}>
             Join Lobby
           </button>
           <button className="button button--secondary" type="button" onClick={() => navigate("/")}>
