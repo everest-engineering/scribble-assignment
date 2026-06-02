@@ -8,6 +8,16 @@
 
 **Input**: User description: "Scribble Room Setup & Lobby navigation — create a room to host the drawing game; join a created room via unique code; creator is automatically the host; invalid/empty codes are rejected with clear feedback; rooms are fully isolated; the lobby refreshes via polling (~2s); only the host can start the game once at least 2 players are present."
 
+## Clarifications
+
+### Session 2026-06-02
+
+- Q: How do non-host players get navigated to the Game screen when the host presses "Start Game"? → A: Polling returns room status; when `in-progress`, all polling clients auto-navigate to the Game screen.
+- Q: What happens when the host disconnects or leaves the lobby before starting the game? → A: Out of scope for this feature; documented as a known limitation.
+- Q: Is there a maximum number of players allowed per room? → A: Max 4 players per room.
+- Q: What loading state should be shown when Create Room or Join Room is submitted? → A: Disable the submit button and show an inline spinner while the request is in-flight.
+- Q: Should the polling error indicator clear automatically when polling resumes successfully? → A: Yes, the error indicator clears automatically on the next successful poll.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Create a Room and Reach the Lobby (Priority: P1)
@@ -89,7 +99,9 @@ the "Start Game" button becomes enabled for the host only.
    is displayed, **Then** the "Start Game" button is either absent or permanently disabled for
    that player.
 5. **Given** the host presses "Start Game" with at least 2 players present, **When** the action
-   is confirmed, **Then** the host is navigated to the Game screen.
+   is confirmed, **Then** all players in the room are navigated to the Game screen: the host is
+   navigated immediately, and non-host players are auto-navigated when their next polling response
+   returns a room status of `in-progress`.
 
 ---
 
@@ -99,11 +111,13 @@ the "Start Game" button becomes enabled for the host only.
   room? → They should be redirected to the Start screen.
 - What happens when the polling request fails (e.g., network error)? → The existing participant
   list is retained and a non-blocking error indicator is shown; polling continues on the next
-  interval.
+  interval. The error indicator clears automatically when the next poll succeeds.
 - What happens when a player name contains only whitespace? → The form rejects it with the same
   validation feedback as an empty name.
 - What happens when the room code is entered in lower-case? → The system accepts it
   case-insensitively and resolves to the correct room.
+- What happens when a player attempts to join a room that already has 4 participants? → The join
+  attempt is rejected with a clear error message; the player remains on the Join Room screen.
 
 ## Requirements *(mandatory)*
 
@@ -125,14 +139,20 @@ the "Start Game" button becomes enabled for the host only.
 - **FR-009**: The "Start Game" button in the lobby MUST be enabled only for the host and only
   when at least 2 participants are present in the room.
 - **FR-010**: Non-host players MUST NOT be able to trigger the start-game action.
-- **FR-011**: Pressing "Start Game" MUST navigate the host to the Game screen.
+- **FR-011**: Pressing "Start Game" MUST navigate all players to the Game screen: the host
+  immediately, and non-host players automatically when their next polling response returns room
+  status `in-progress`.
 - **FR-012**: A player who navigates directly to the Lobby URL without a valid session MUST be
   redirected to the Start screen.
+- **FR-013**: A room MUST NOT accept more than 4 participants; a join attempt when the room is
+  full MUST be rejected with a clear error message.
+- **FR-014**: While a Create Room or Join Room request is in-flight, the submit button MUST be
+  disabled and an inline spinner MUST be displayed to prevent duplicate submissions.
 
 ### Key Entities *(include if feature involves data)*
 
-- **Room**: Identified by a unique code; holds a list of participants; has a status (waiting,
-  in-progress); exists only for the lifetime of the server process (no persistence).
+- **Room**: Identified by a unique code; holds a list of up to 4 participants; has a status
+  (waiting, in-progress); exists only for the lifetime of the server process (no persistence).
 - **Participant**: Belongs to exactly one room; has a name and a unique identifier; one
   participant per room is designated the host.
 
@@ -168,5 +188,7 @@ the "Start Game" button becomes enabled for the host only.
   implementation details outside the scope of this spec.
 - The Game screen itself (gameplay, drawing, guessing) is out of scope for this feature; this
   spec covers only room creation, joining, lobby display, and the host start-game trigger.
+- Host disconnection or departure from the lobby before starting the game is a known limitation;
+  behaviour in this scenario is undefined and deferred to a future feature.
 - The starter codebase already provides `CreateRoomPage`, `JoinRoomPage`, and `LobbyPage`
   scaffolds; this feature completes their behaviour rather than introducing new pages.
