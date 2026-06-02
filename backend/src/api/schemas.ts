@@ -24,6 +24,27 @@ export const startGameBodySchema = z.object({
   participantId: z.string()
 });
 
+const pointSchema = z.object({
+  x: z.number(),
+  y: z.number()
+});
+
+export const drawStrokeBodySchema = z.object({
+  participantId: z.string(),
+  stroke: z.object({
+    points: z.array(pointSchema)
+  })
+});
+
+export const actionBodySchema = z.object({
+  participantId: z.string()
+});
+
+export const guessBodySchema = z.object({
+  participantId: z.string(),
+  text: z.string()
+});
+
 export class HttpError extends Error {
   statusCode: number;
 

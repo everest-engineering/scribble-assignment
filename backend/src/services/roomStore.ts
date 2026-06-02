@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import type { Participant, Room, RoomSnapshot } from "../models/game.js";
+import type { Guess, Participant, Room, RoomSnapshot, Stroke } from "../models/game.js";
 import { STARTER_ROLES, STARTER_WORDS } from "../seed/starterData.js";
 import { HttpError } from "../api/schemas.js";
 
@@ -116,7 +116,7 @@ export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSn
     status: room.status,
     drawerId: room.drawerId,
     myRole,
-    secretWord: isDrawer ? room.secretWord : null,
+    secretWord: (isDrawer || room.status === "finished") ? room.secretWord : null,
     scores: { ...room.scores },
     canvasStrokes: structuredClone(room.canvasStrokes),
     guesses: structuredClone(room.guesses),
@@ -152,6 +152,121 @@ export function startGame(code: string, participantId: string) {
   room.canvasStrokes = [];
   room.guesses = [];
   room.status = "playing";
+  room.updatedAt = now();
+  rooms.set(room.code, room);
+
+  return cloneRoom(room);
+}
+
+export function addStroke(code: string, participantId: string, stroke: Stroke) {
+  const room = rooms.get(code);
+
+  if (!room) {
+    throw new HttpError(404, "Room not found");
+  }
+
+  if (room.status !== "playing") {
+    throw new HttpError(400, "Game is not in progress");
+  }
+
+  if (room.drawerId !== participantId) {
+    throw new HttpError(403, "Only the drawer can draw");
+  }
+
+  room.canvasStrokes.push(stroke);
+  room.updatedAt = now();
+  rooms.set(room.code, room);
+
+  return cloneRoom(room);
+}
+
+export function clearDrawing(code: string, participantId: string) {
+  const room = rooms.get(code);
+
+  if (!room) {
+    throw new HttpError(404, "Room not found");
+  }
+
+  if (room.status !== "playing") {
+    throw new HttpError(400, "Game is not in progress");
+  }
+
+  if (room.drawerId !== participantId) {
+    throw new HttpError(403, "Only the drawer can clear the drawing");
+  }
+
+  room.canvasStrokes = [];
+  room.updatedAt = now();
+  rooms.set(room.code, room);
+
+  return cloneRoom(room);
+}
+
+export function addGuess(code: string, participantId: string, text: string) {
+  const room = rooms.get(code);
+
+  if (!room) {
+    throw new HttpError(404, "Room not found");
+  }
+
+  if (room.status !== "playing") {
+    throw new HttpError(400, "Game is not in progress");
+  }
+
+  if (room.drawerId === participantId) {
+    throw new HttpError(403, "The drawer cannot guess");
+  }
+
+  const trimmed = text.trim();
+
+  if (!trimmed) {
+    throw new HttpError(400, "Guess cannot be empty");
+  }
+
+  const guesser = room.participants.find((p) => p.id === participantId);
+  const correct = trimmed.toLowerCase() === (room.secretWord ?? "").toLowerCase();
+  const guess: Guess = {
+    participantId,
+    playerName: guesser?.name ?? "Unknown",
+    text: trimmed,
+    correct,
+    timestamp: now()
+  };
+
+  room.guesses.push(guess);
+
+  if (correct) {
+    room.scores[participantId] = (room.scores[participantId] ?? 0) + 100;
+    room.status = "finished";
+  }
+
+  room.updatedAt = now();
+  rooms.set(room.code, room);
+
+  return cloneRoom(room);
+}
+
+export function restartGame(code: string, participantId: string) {
+  const room = rooms.get(code);
+
+  if (!room) {
+    throw new HttpError(404, "Room not found");
+  }
+
+  if (room.hostId !== participantId) {
+    throw new HttpError(403, "Only the host can restart the game");
+  }
+
+  if (room.status !== "finished") {
+    throw new HttpError(400, "Game is not finished");
+  }
+
+  room.drawerId = null;
+  room.secretWord = null;
+  room.scores = {};
+  room.canvasStrokes = [];
+  room.guesses = [];
+  room.status = "lobby";
   room.updatedAt = now();
   rooms.set(room.code, room);
 

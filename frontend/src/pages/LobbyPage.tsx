@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card } from "../components/Card";
 import { PageHeader } from "../components/PageHeader";
@@ -10,24 +10,24 @@ export function LobbyPage() {
   const roomStore = useRoomStore();
   const { room, participantId, error, isLoading } = useRoomState();
   const [refreshError, setRefreshError] = useState<string | null>(null);
-  const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
     if (!room) {
       navigate("/", { replace: true });
+    }
+  }, [navigate, room]);
+
+  useEffect(() => {
+    if (!room) {
       return;
     }
 
-    pollingRef.current = setInterval(() => {
+    const interval = setInterval(() => {
       roomStore.fetchRoom().catch(() => {});
     }, 2000);
 
-    return () => {
-      if (pollingRef.current) {
-        clearInterval(pollingRef.current);
-      }
-    };
-  }, [navigate, room, roomStore]);
+    return () => clearInterval(interval);
+  }, [roomStore, room?.code]);
 
   async function handleRefresh() {
     try {
