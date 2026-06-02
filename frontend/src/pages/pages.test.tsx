@@ -4,6 +4,7 @@ import { MemoryRouter } from "react-router-dom";
 import { CreateRoomPage } from "./CreateRoomPage";
 import { JoinRoomPage } from "./JoinRoomPage";
 import { LobbyPage } from "./LobbyPage";
+import { GamePage } from "./GamePage";
 import { flushRender } from "../test-utils";
 
 const useRoomStateMock = vi.fn();
@@ -127,5 +128,52 @@ describe("frontend pages", () => {
 
     expect(container.textContent).toContain("Player name is required");
     expect(joinRoomMock).not.toHaveBeenCalled();
+  });
+
+  it("GamePage hides secret word from guessers", async () => {
+    // Drawer case
+    useRoomStateMock.mockReturnValue({
+      room: { 
+        code: "ABCD", 
+        participants: [
+          { id: "h1", name: "Host", isHost: true },
+          { id: "p2", name: "Bob", isHost: false }
+        ],
+        status: "active",
+        drawerId: "h1",
+        secretWord: "rocket",
+        scores: { h1: 0, p2: 0 },
+        guesses: []
+      },
+      participantId: "h1",
+    });
+
+    root?.render(<MemoryRouter><GamePage /></MemoryRouter>);
+    await flushRender();
+    expect(container.textContent).toContain("rocket");
+    expect(container.textContent).toContain("Only you can see this word.");
+
+    // Guesser case
+    useRoomStateMock.mockReturnValue({
+      room: { 
+        code: "ABCD", 
+        participants: [
+          { id: "h1", name: "Host", isHost: true },
+          { id: "p2", name: "Bob", isHost: false }
+        ],
+        status: "active",
+        drawerId: "h1",
+        secretWord: undefined,
+        scores: { h1: 0, p2: 0 },
+        guesses: []
+      },
+      participantId: "p2",
+    });
+
+    root?.render(<MemoryRouter><GamePage /></MemoryRouter>);
+    await flushRender();
+    expect(container.textContent).not.toContain("rocket");
+    expect(container.textContent).not.toContain("Secret word");
+    expect(container.textContent).not.toContain("Only you can see this word.");
   });
 });

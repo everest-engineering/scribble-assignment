@@ -132,4 +132,45 @@ describe("rooms API integration", () => {
     expect(bodyB.room.code).toBe(roomB.code);
     expect(bodyB.room.code).not.toBe(roomA.code);
   });
+
+  it("reveals the secret word to the drawer but hides it from guessers", async () => {
+    // Create Room
+    const createRes = await fetch(`${baseUrl}/rooms`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ playerName: "Host" }),
+    });
+    const { room, participantId: hostId } = await createRes.json();
+    const roomCode = room.code;
+
+    // Join as Bob
+    const joinRes = await fetch(`${baseUrl}/rooms/${roomCode}/join`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ playerName: "Bob" }),
+    });
+    const { participantId: bobId } = await joinRes.json();
+
+    // Start Game
+    await fetch(`${baseUrl}/rooms/${roomCode}/start`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ participantId: hostId }),
+    });
+
+    // Check Drawer's snapshot (Host)
+    const hostSnapshotRes = await fetch(
+      `${baseUrl}/rooms/${roomCode}?participantId=${hostId}`,
+    );
+    const hostBody = await hostSnapshotRes.json();
+    expect(hostBody.room.secretWord).toBeDefined();
+    expect(typeof hostBody.room.secretWord).toBe("string");
+
+    // Check Guesser's snapshot (Bob)
+    const bobSnapshotRes = await fetch(
+      `${baseUrl}/rooms/${roomCode}?participantId=${bobId}`,
+    );
+    const bobBody = await bobSnapshotRes.json();
+    expect(bobBody.room.secretWord).toBeUndefined();
+  });
 });
