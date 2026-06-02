@@ -101,7 +101,7 @@ describe("roomStore", () => {
     expect(restartedRoom.guesses).toHaveLength(0);
     expect(restartedRoom.drawingPaths).toHaveLength(0);
     expect(restartedRoom.participants).toHaveLength(2);
-    expect(restartedRoom.scores[joinResult!.participantId]).toBe(100);
+    expect(restartedRoom.scores[joinResult!.participantId]).toBe(0);
   });
 
   it("clearDrawing removes stored drawing paths for the active drawer", () => {

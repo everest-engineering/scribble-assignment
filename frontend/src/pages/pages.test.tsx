@@ -176,4 +176,71 @@ describe("frontend pages", () => {
     expect(container.textContent).not.toContain("Secret word");
     expect(container.textContent).not.toContain("Only you can see this word.");
   });
+
+  it("GamePage shows restart button only for host in results state", async () => {
+    // Host case
+    useRoomStateMock.mockReturnValue({
+      room: { 
+        code: "ABCD", 
+        participants: [{ id: "h1", name: "Host", isHost: true }],
+        status: "results",
+        drawerId: "h1",
+        secretWord: "rocket",
+        scores: { h1: 100 },
+        guesses: []
+      },
+      participantId: "h1",
+    });
+
+    root?.render(<MemoryRouter><GamePage /></MemoryRouter>);
+    await flushRender();
+    expect(container.textContent).toContain("Restart Round");
+
+    // Non-host case
+    useRoomStateMock.mockReturnValue({
+      room: { 
+        code: "ABCD", 
+        participants: [
+          { id: "h1", name: "Host", isHost: true },
+          { id: "p2", name: "Bob", isHost: false }
+        ],
+        status: "results",
+        drawerId: "h1",
+        secretWord: "rocket",
+        scores: { h1: 0, p2: 100 },
+        guesses: []
+      },
+      participantId: "p2",
+    });
+
+    root?.render(<MemoryRouter><GamePage /></MemoryRouter>);
+    await flushRender();
+    expect(container.textContent).not.toContain("Restart Round");
+    expect(container.textContent).toContain("Waiting for the host to restart the game.");
+  });
+
+  it("GamePage reveals the secret word to everyone in results state", async () => {
+    useRoomStateMock.mockReturnValue({
+      room: { 
+        code: "ABCD", 
+        participants: [
+          { id: "h1", name: "Host", isHost: true },
+          { id: "p2", name: "Bob", isHost: false }
+        ],
+        status: "results",
+        drawerId: "h1",
+        secretWord: "rocket",
+        scores: { h1: 0, p2: 100 },
+        guesses: []
+      },
+      participantId: "p2", // Bob is a guesser
+    });
+
+    root?.render(<MemoryRouter><GamePage /></MemoryRouter>);
+    await flushRender();
+    
+    // In results state, even guessers should see the word
+    expect(container.textContent).toContain("rocket");
+    expect(container.textContent).toContain("Round complete. Review the results below.");
+  });
 });

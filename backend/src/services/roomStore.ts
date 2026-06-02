@@ -226,6 +226,11 @@ export function restartRoom(room: Room, participantId: string) {
   room.drawingPaths = [];
   room.guesses = [];
 
+  // Reset all participant scores to zero
+  for (const participantId of Object.keys(room.scores)) {
+    room.scores[participantId] = 0;
+  }
+
   return saveRoom(room);
 }
 

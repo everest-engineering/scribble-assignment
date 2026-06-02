@@ -102,7 +102,7 @@ describe("rooms API integration", () => {
     expect(restartBody.room.guesses).toHaveLength(0);
     expect(restartBody.room.drawingPaths).toHaveLength(0);
     expect(restartBody.room.participants).toHaveLength(2);
-    expect(restartBody.room.scores[guesserId]).toBe(100);
+    expect(restartBody.room.scores[guesserId]).toBe(0);
   });
 
   it("ensures room isolation", async () => {
