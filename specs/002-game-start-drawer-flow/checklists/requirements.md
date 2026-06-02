@@ -31,6 +31,6 @@
 
 ## Notes
 
-- All items pass. Spec is ready for `/speckit-clarify` or `/speckit-plan`.
+- All items pass. Spec is ready for `/speckit-plan`.
+- 5 clarifications integrated on 2026-06-02: word selection (position 0), host definition (room creator), secret word enforcement (server-side), start button UX (disabled < 2 players), disconnect handling (cancel + restore lobby).
 - Assumptions section documents that host-transfer on leave and subsequent round transitions are out of scope for this feature.
-- Deterministic word selection is assumed to mean positional (first word in list for first round); clarify if a hash-based rule is intended.
