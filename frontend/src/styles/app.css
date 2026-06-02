@@ -404,6 +404,20 @@ input {
   font-weight: 400;
 }
 
+.host-badge {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: var(--brand);
+  color: #ffffff;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  vertical-align: middle;
+}
+
 .status-line,
 .placeholder-note {
   width: max-content;
@@ -541,6 +555,159 @@ input {
   color: var(--ink);
   font-size: 1.125rem;
   font-weight: 500;
+}
+
+.role-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.role-badge--drawer {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.role-badge--guesser {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.role-badge--unknown {
+  background: var(--surface-muted);
+  color: var(--ink-soft);
+}
+
+.secret-word {
+  margin: 0;
+  padding: 16px;
+  border-radius: 8px;
+  background: var(--surface-strong);
+  color: var(--brand-strong);
+  font-size: 1.5rem;
+  font-weight: 700;
+  text-align: center;
+  letter-spacing: 0.05em;
+}
+
+.secret-word--revealed {
+  background: #d1fae5;
+  color: #065f46;
+  border: 2px solid #a7f3d0;
+  font-size: 2rem;
+}
+
+.placeholder-text {
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: 0.875rem;
+}
+
+.instruction-text {
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+.canvas-container {
+  position: relative;
+  width: 100%;
+  min-height: 500px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  overflow: hidden;
+  background: #ffffff;
+}
+
+.canvas-board {
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-height: 500px;
+}
+
+.score-list {
+  display: grid;
+  gap: 8px;
+}
+
+.score-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-strong);
+}
+
+.score-row__name {
+  color: var(--ink);
+  font-weight: 500;
+}
+
+.score-row__value {
+  color: var(--brand-strong);
+  font-size: 1.25rem;
+}
+
+.guess-list {
+  display: grid;
+  gap: 8px;
+}
+
+.guess-row {
+  padding: 12px 16px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-strong);
+}
+
+.guess-row--correct {
+  background: #d1fae5;
+  border-color: #a7f3d0;
+}
+
+.guess-row__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.guess-row__author {
+  color: var(--ink-soft);
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.guess-row__points {
+  color: #059669;
+  font-size: 0.875rem;
+  font-weight: 700;
+}
+
+.guess-row__text {
+  margin: 0;
+  color: var(--ink);
+  font-size: 1rem;
+}
+
+.canvas-overlay {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: rgba(255, 255, 255, 0.8);
+  color: var(--ink-soft);
+  font-size: 1.125rem;
+  font-weight: 500;
+  pointer-events: none;
 }
 
 @media (max-width: 720px) {

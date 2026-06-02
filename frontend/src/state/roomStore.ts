@@ -94,7 +94,101 @@ class RoomStore {
       return null;
     }
 
-    const response = await api.fetchRoom(this.state.room.code, this.state.participantId ?? undefined);
+    try {
+      const response = await api.fetchRoom(this.state.room.code, this.state.participantId ?? undefined);
+      this.setRoomSnapshot(response.room);
+      this.setState({ error: null });
+      return response.room;
+    } catch (error) {
+      this.setState({ error: error instanceof Error ? error.message : "Unable to refresh room" });
+      return this.state.room;
+    }
+  }
+
+  async startGame() {
+    const room = this.state.room;
+    const participantId = this.state.participantId;
+
+    if (!room || !participantId) {
+      return;
+    }
+
+    const response = await this.withLoading(() => api.startRoom(room.code, participantId));
+    this.setRoomSnapshot(response.room);
+    return response.room;
+  }
+
+  async submitDrawingStroke(stroke: { color: string; size: number; points: { x: number; y: number }[] }) {
+    const room = this.state.room;
+    const participantId = this.state.participantId;
+
+    if (!room || !participantId) {
+      return;
+    }
+
+    const response = await this.withLoading(() =>
+      api.submitDrawingStroke(room.code, participantId, stroke)
+    );
+    this.setRoomSnapshot(response.room);
+    return response.room;
+  }
+
+  async clearDrawing() {
+    const room = this.state.room;
+    const participantId = this.state.participantId;
+
+    if (!room || !participantId) {
+      return;
+    }
+
+    const response = await this.withLoading(() =>
+      api.clearDrawing(room.code, participantId)
+    );
+    this.setRoomSnapshot(response.room);
+    return response.room;
+  }
+
+  async submitGuess(guess: string) {
+    const room = this.state.room;
+    const participantId = this.state.participantId;
+
+    if (!room || !participantId) {
+      return;
+    }
+
+    const response = await this.withLoading(() =>
+      api.submitGuess(room.code, participantId, guess)
+    );
+    this.setRoomSnapshot(response.room);
+    return response.room;
+  }
+
+  async endRound() {
+    const room = this.state.room;
+    const participantId = this.state.participantId;
+
+    if (!room || !participantId) {
+      return;
+    }
+
+    const response = await this.withLoading(() =>
+      api.endRound(room.code, participantId)
+    );
+    this.setRoomSnapshot(response.room);
+    return response.room;
+  }
+
+  async restartRoom() {
+    const room = this.state.room;
+    const participantId = this.state.participantId;
+
+    if (!room || !participantId) {
+      return;
+    }
+
+    const response = await this.withLoading(() =>
+      api.restartRoom(room.code, participantId)
+    );
     this.setRoomSnapshot(response.room);
     return response.room;
   }
