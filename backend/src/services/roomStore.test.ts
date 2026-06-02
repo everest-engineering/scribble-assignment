@@ -5,6 +5,7 @@ import {
   createRoom,
   getRoom,
   joinRoom,
+  leaveRoom,
   restartRoom,
   startRoom,
   submitGuess,
@@ -131,5 +132,49 @@ describe("roomStore", () => {
 
     const clearedRoom = clearDrawing(drawnRoom, hostSession.participantId);
     expect(clearedRoom.drawingPaths).toHaveLength(0);
+  });
+
+  it("handles case-insensitive room codes during lookup", () => {
+    const { room } = createRoom("Alice");
+    const lowerCode = room.code.toLowerCase();
+
+    expect(getRoom(lowerCode)).not.toBeNull();
+    expect(joinRoom(lowerCode, "Bob")).not.toBeNull();
+  });
+
+  it("reassigns host when the current host leaves", () => {
+    const { room, participantId: hostId } = createRoom("Alice");
+    const { participantId: bobId } = joinRoom(room.code, "Bob")!;
+
+    const updatedRoom = leaveRoom(room.code, hostId);
+    expect(updatedRoom?.participants).toHaveLength(1);
+    expect(updatedRoom?.participants[0].id).toBe(bobId);
+    expect(updatedRoom?.participants[0].isHost).toBe(true);
+  });
+
+  it("deletes the room when the last player leaves", () => {
+    const { room, participantId } = createRoom("Alice");
+
+    const result = leaveRoom(room.code, participantId);
+    expect(result).toBeNull();
+    expect(getRoom(room.code)).toBeNull();
+  });
+
+  it("rejects starting a room with fewer than two players", () => {
+    const { room, participantId } = createRoom("Alice");
+
+    expect(() => startRoom(room, participantId)).toThrow(
+      "At least two players are required to start the game",
+    );
+  });
+
+  it("rejects starting a room by a non-host participant", () => {
+    const { room } = createRoom("Alice");
+    const { participantId: bobId } = joinRoom(room.code, "Bob")!;
+    const currentRoom = getRoom(room.code)!;
+
+    expect(() => startRoom(currentRoom, bobId)).toThrow(
+      "Only the host may start the game",
+    );
   });
 });

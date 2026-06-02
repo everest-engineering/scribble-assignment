@@ -80,7 +80,7 @@ The system rejects invalid room codes and empty player names with clear feedback
 ### Key Entities _(include if feature involves data)_
 
 - **Room**: Represents an active game instance identified by a unique code and containing player list and current phase.
-- **Player**: Represents a participant with a display name, role state, and a host flag.
+- **Player**: Represents a participant with a display name and a host flag.
 - **Lobby Snapshot**: Represents the current room state visible in the lobby, including player names, host identity, and start eligibility.
 - **Host**: The room creator who has exclusive permission to start the game.
 

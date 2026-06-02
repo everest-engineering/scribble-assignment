@@ -9,7 +9,9 @@ describe("rooms API integration", () => {
 
   beforeAll(async () => {
     server = http.createServer(createApp());
-    await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+    await new Promise<void>((resolve) =>
+      server.listen(0, "127.0.0.1", resolve),
+    );
 
     const address = server.address();
     if (!address || typeof address === "string") {
@@ -65,11 +67,17 @@ describe("rooms API integration", () => {
     expect(startBody.room.drawerId).toBe(hostId);
     expect(typeof startBody.room.secretWord).toBe("string");
 
-    const correctGuessResponse = await fetch(`${baseUrl}/rooms/${roomCode}/guess`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ participantId: guesserId, guess: startBody.room.secretWord }),
-    });
+    const correctGuessResponse = await fetch(
+      `${baseUrl}/rooms/${roomCode}/guess`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          participantId: guesserId,
+          guess: startBody.room.secretWord,
+        }),
+      },
+    );
     expect(correctGuessResponse.ok).toBe(true);
 
     const guessBody = await correctGuessResponse.json();
@@ -79,11 +87,14 @@ describe("rooms API integration", () => {
     expect(guessBody.room.scores[guesserId]).toBe(100);
     expect(guessBody.room.secretWord).toBe(startBody.room.secretWord);
 
-    const restartResponse = await fetch(`${baseUrl}/rooms/${roomCode}/restart`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ participantId: hostId }),
-    });
+    const restartResponse = await fetch(
+      `${baseUrl}/rooms/${roomCode}/restart`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ participantId: hostId }),
+      },
+    );
     expect(restartResponse.ok).toBe(true);
 
     const restartBody = await restartResponse.json();
@@ -92,5 +103,33 @@ describe("rooms API integration", () => {
     expect(restartBody.room.drawingPaths).toHaveLength(0);
     expect(restartBody.room.participants).toHaveLength(2);
     expect(restartBody.room.scores[guesserId]).toBe(100);
+  });
+
+  it("ensures room isolation", async () => {
+    // Create Room A
+    const resA = await fetch(`${baseUrl}/rooms`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ playerName: "Alice" }),
+    });
+    const roomA = (await resA.json()).room;
+
+    // Create Room B
+    const resB = await fetch(`${baseUrl}/rooms`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ playerName: "Bob" }),
+    });
+    const roomB = (await resB.json()).room;
+
+    // Try to access Room A with Room B's code (should not happen if logic is correct, 
+    // but here we verify that fetching Room B doesn't contain Room A's players)
+    const getB = await fetch(`${baseUrl}/rooms/${roomB.code}`);
+    const bodyB = await getB.json();
+
+    expect(bodyB.room.participants).toHaveLength(1);
+    expect(bodyB.room.participants[0].name).toBe("Bob");
+    expect(bodyB.room.code).toBe(roomB.code);
+    expect(bodyB.room.code).not.toBe(roomA.code);
   });
 });

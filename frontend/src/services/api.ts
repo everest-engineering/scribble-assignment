@@ -45,7 +45,7 @@ export interface RoomSessionResponse {
 }
 
 const API_BASE_URL =
-  import.meta.env.VITE_API_URL ?? "http://localhost:3001/bug";
+  import.meta.env.VITE_API_URL ?? "http://localhost:3001";
 
 async function request<T>(path: string, init?: RequestInit) {
   const response = await fetch(`${API_BASE_URL}${path}`, {

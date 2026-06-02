@@ -51,7 +51,9 @@ describe("frontend UI components", () => {
     await flushRender();
 
     const input = container.querySelector("input") as HTMLInputElement | null;
-    const button = container.querySelector("button[type='submit']") as HTMLButtonElement | null;
+    const button = container.querySelector(
+      "button[type='submit']",
+    ) as HTMLButtonElement | null;
 
     expect(input).not.toBeNull();
     expect(button).not.toBeNull();

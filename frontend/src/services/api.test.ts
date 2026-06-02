@@ -24,7 +24,7 @@ describe("api service", () => {
       expect.objectContaining({
         method: "POST",
         body: JSON.stringify({ playerName: "Alice" }),
-      })
+      }),
     );
   });
 
@@ -42,7 +42,7 @@ describe("api service", () => {
 
     expect(fetch).toHaveBeenCalledWith(
       expect.stringContaining("/rooms/XYZW?participantId=p1"),
-      expect.anything()
+      expect.anything(),
     );
   });
 
@@ -63,7 +63,7 @@ describe("api service", () => {
       expect.objectContaining({
         method: "POST",
         body: JSON.stringify({ participantId: "p1" }),
-      })
+      }),
     );
   });
 });

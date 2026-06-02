@@ -85,7 +85,7 @@ export function createRoom(playerName?: string) {
 }
 
 export function joinRoom(code: string, playerName?: string) {
-  const room = rooms.get(code);
+  const room = rooms.get(code.toUpperCase());
 
   if (!room) {
     return null;
@@ -104,8 +104,42 @@ export function joinRoom(code: string, playerName?: string) {
 }
 
 export function getRoom(code: string) {
-  const room = rooms.get(code);
+  const room = rooms.get(code.toUpperCase());
   return room ? cloneRoom(room) : null;
+}
+
+export function leaveRoom(code: string, participantId: string) {
+  const room = rooms.get(code.toUpperCase());
+
+  if (!room) {
+    return null;
+  }
+
+  const participantIndex = room.participants.findIndex(
+    (p) => p.id === participantId,
+  );
+
+  if (participantIndex === -1) {
+    return cloneRoom(room);
+  }
+
+  const [removedParticipant] = room.participants.splice(participantIndex, 1);
+  delete room.scores[participantId];
+
+  if (room.participants.length === 0) {
+    rooms.delete(code.toUpperCase());
+    return null;
+  }
+
+  if (removedParticipant.isHost) {
+    // Assign new host
+    room.participants[0].isHost = true;
+  }
+
+  room.updatedAt = now();
+  rooms.set(room.code, room);
+
+  return cloneRoom(room);
 }
 
 export function startRoom(room: Room, participantId: string) {
@@ -255,8 +289,8 @@ export function toRoomSnapshot(
       room.status === "results"
         ? room.secretWord
         : room.drawerId === viewerParticipantId
-        ? room.secretWord
-        : undefined,
+          ? room.secretWord
+          : undefined,
     scores: { ...room.scores },
     guesses: room.guesses.map((guess) => ({ ...guess })),
     drawingPaths: room.drawingPaths.map((path) => ({ ...path })),

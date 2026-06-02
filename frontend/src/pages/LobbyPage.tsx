@@ -12,6 +12,7 @@ export function LobbyPage() {
   const [refreshError, setRefreshError] = useState<string | null>(null);
   const [lastUpdatedAt, setLastUpdatedAt] = useState<string | null>(null);
 
+  // Derive host status: check if any participant is marked as host and matches the current viewer
   const isHost = useMemo(
     () =>
       room?.participants.some(
@@ -20,6 +21,7 @@ export function LobbyPage() {
     [room, participantId],
   );
 
+  // Gating: only host can start, and only if there are at least 2 players
   const canStart = !!room && isHost && room.participants.length >= 2;
 
   useEffect(() => {
@@ -28,6 +30,7 @@ export function LobbyPage() {
       return;
     }
 
+    // Auto-transition when game starts
     if (room.status === "active") {
       navigate("/game", { replace: true });
     }
@@ -40,6 +43,7 @@ export function LobbyPage() {
 
     let isMounted = true;
 
+    // Lobby Polling: Refresh room snapshot every 2 seconds to see new players or status changes
     async function refresh() {
       try {
         await roomStore.fetchRoom();
