@@ -1,6 +1,6 @@
 import { act, createElement, type ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
-import { MemoryRouter } from "react-router-dom";
+import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { api, type RoomSnapshot } from "../services/api";
 import { RoomStoreProvider, useRoomStore } from "../state/roomStore";
@@ -14,10 +14,15 @@ function snapshot(overrides: Partial<RoomSnapshot> = {}): RoomSnapshot {
     status: "lobby",
     hostParticipantId: "host-id",
     participants: [{ id: "host-id", name: "Alice", joinedAt: "2026-01-01T00:00:00.000Z" }],
+    currentRound: null,
     availableWords: [],
     roles: [],
     ...overrides
   };
+}
+
+function GameRouteProbe() {
+  return createElement("div", { "data-testid": "game-route-marker" }, "GAME PAGE");
 }
 
 function StoreSeed({
@@ -65,7 +70,16 @@ describe("LobbyPage", () => {
           createElement(
             RoomStoreProvider,
             null,
-            createElement(StoreSeed, { participantId, room }, createElement(LobbyPage))
+            createElement(
+              StoreSeed,
+              { participantId, room },
+              createElement(
+                Routes,
+                null,
+                createElement(Route, { path: "/lobby", element: createElement(LobbyPage) }),
+                createElement(Route, { path: "/game", element: createElement(GameRouteProbe) })
+              )
+            )
           )
         )
       );
@@ -119,6 +133,23 @@ describe("LobbyPage", () => {
 
     const button = container.querySelector("button.button--primary");
     expect(button).toBeNull();
+  });
+
+  it("navigates to /game when the room's status transitions to playing", async () => {
+    await render(
+      "host-id",
+      snapshot({
+        status: "playing",
+        participants: [
+          { id: "host-id", name: "Alice", joinedAt: "t" },
+          { id: "guest-id", name: "Bob", joinedAt: "t" }
+        ],
+        currentRound: { drawerParticipantId: "host-id", secretWord: "rocket" }
+      })
+    );
+
+    expect(container.querySelector('[data-testid="game-route-marker"]')).not.toBeNull();
+    expect(container.querySelector(".lobby-header")).toBeNull();
   });
 
   it("marks the host participant with a 'host' label and others with 'joined'", async () => {

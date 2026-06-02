@@ -20,6 +20,7 @@ function StoreSeed({ children }: { children?: ReactNode }) {
     status: "lobby",
     hostParticipantId: "p1",
     participants: [],
+    currentRound: null,
     availableWords: [],
     roles: []
   });
@@ -41,6 +42,7 @@ describe("useLobbyPolling", () => {
         status: "lobby",
         hostParticipantId: "p1",
         participants: [],
+        currentRound: null,
         availableWords: [],
         roles: []
       }

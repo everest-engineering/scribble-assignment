@@ -2,7 +2,8 @@ import { describe, expect, it } from "vitest";
 import {
   createRoomSchema,
   joinRoomSchema,
-  roomCodeParamsSchema
+  roomCodeParamsSchema,
+  startRoomSchema
 } from "./schemas.js";
 
 describe("schemas", () => {
@@ -54,5 +55,17 @@ describe("schemas", () => {
     const result = roomCodeParamsSchema.parse({ code: "  abcd  " });
 
     expect(result.code).toBe("abcd");
+  });
+
+  it("startRoomSchema accepts a non-empty participantId", () => {
+    const result = startRoomSchema.parse({ participantId: "host-id" });
+
+    expect(result.participantId).toBe("host-id");
+  });
+
+  it("startRoomSchema rejects missing or empty participantId", () => {
+    expect(() => startRoomSchema.parse({})).toThrow();
+    expect(() => startRoomSchema.parse({ participantId: "" })).toThrow();
+    expect(() => startRoomSchema.parse({ participantId: 42 })).toThrow();
   });
 });

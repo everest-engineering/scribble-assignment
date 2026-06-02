@@ -99,6 +99,18 @@ class RoomStore {
     return response.room;
   }
 
+  async startGame() {
+    const room = this.state.room;
+    const participantId = this.state.participantId;
+    if (!room || !participantId) {
+      throw new Error("Cannot start: no active room or participant identity");
+    }
+
+    const response = await this.withLoading(() => api.startGame(room.code, participantId));
+    this.setRoomSnapshot(response.room);
+    return response.room;
+  }
+
   async hydrateSession(roomCode: string, participantId: string) {
     this.setState({
       participantId,
@@ -107,6 +119,7 @@ class RoomStore {
         status: "lobby",
         hostParticipantId: "",
         participants: [],
+        currentRound: null,
         availableWords: [],
         roles: []
       },

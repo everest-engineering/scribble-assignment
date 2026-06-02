@@ -46,6 +46,23 @@ export function LobbyPage() {
     });
   }, [navigate, room, roomStore]);
 
+  useEffect(() => {
+    if (room?.status === "playing") {
+      navigate("/game", { replace: true });
+    }
+  }, [navigate, room?.status]);
+
+  async function handleStart() {
+    try {
+      setRefreshError(null);
+      await roomStore.startGame();
+    } catch (caughtError) {
+      setRefreshError(
+        caughtError instanceof Error ? caughtError.message : "Unable to start the game"
+      );
+    }
+  }
+
   if (!room) {
     return null;
   }
@@ -99,8 +116,8 @@ export function LobbyPage() {
         <div className="button-row button-row--spread">
           <button
             className="button button--primary"
-            disabled={!canStart}
-            onClick={() => navigate("/game")}
+            disabled={!canStart || isLoading}
+            onClick={handleStart}
           >
             Start Game
           </button>

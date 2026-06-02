@@ -5,11 +5,14 @@ import { GuessForm } from "../components/GuessForm";
 import { ResultPanel } from "../components/ResultPanel";
 import { RoomCodeBadge } from "../components/RoomCodeBadge";
 import { Scoreboard } from "../components/Scoreboard";
+import { useLobbyPolling } from "../state/useLobbyPolling";
 import { useRoomState } from "../state/roomStore";
 
 export function GamePage() {
   const navigate = useNavigate();
   const { room, participantId } = useRoomState();
+
+  useLobbyPolling(room?.code ?? null);
 
   useEffect(() => {
     if (!room) {
@@ -21,6 +24,11 @@ export function GamePage() {
     return null;
   }
 
+  const round = room.currentRound;
+  const drawer = round
+    ? room.participants.find((participant) => participant.id === round.drawerParticipantId) ?? null
+    : null;
+  const isDrawer = !!round && participantId === round.drawerParticipantId;
   const viewer = room.participants.find((participant) => participant.id === participantId) ?? null;
 
   return (
@@ -40,9 +48,25 @@ export function GamePage() {
         </aside>
 
         <div className="game-page__main">
+          {isDrawer ? (
+            <Card title="You're the drawer" badge="Your word">
+              <p className="secret-word" data-testid="secret-word">
+                {round!.secretWord}
+              </p>
+              <p>Draw it so the others can guess!</p>
+            </Card>
+          ) : (
+            <Card title={drawer ? `${drawer.name} is drawing` : "Waiting for the drawer"}>
+              <p className="secret-word-placeholder">Waiting for the drawer to begin…</p>
+            </Card>
+          )}
+
           <Card title="Canvas">
-            <div className="canvas-placeholder" style={{ minHeight: '500px', backgroundColor: '#ffffff', border: '1px solid #e5e7eb' }}>
-              Waiting for drawer...
+            <div
+              className="canvas-placeholder"
+              style={{ minHeight: "500px", backgroundColor: "#ffffff", border: "1px solid #e5e7eb" }}
+            >
+              {isDrawer ? "Drawing canvas (Scenario 3)" : "Watching the drawer (Scenario 3)"}
             </div>
           </Card>
         </div>
@@ -55,8 +79,8 @@ export function GamePage() {
                 <dd>{viewer?.name ?? "Unknown player"}</dd>
               </div>
               <div>
-                <dt>Status</dt>
-                <dd>Playing</dd>
+                <dt>Role</dt>
+                <dd>{isDrawer ? "Drawer" : "Guesser"}</dd>
               </div>
             </dl>
           </Card>
