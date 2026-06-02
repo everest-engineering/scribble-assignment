@@ -7,7 +7,17 @@ import {
   useSyncExternalStore,
   type PropsWithChildren
 } from "react";
-import { api, type RoomSessionResponse, type RoomSnapshot } from "../services/api";
+import { api, type FinalResult, type RoomSessionResponse, type RoomSnapshot } from "../services/api";
+
+export interface GameplayViewModel {
+  isDrawer: boolean;
+  isResultsStage: boolean;
+  isHost: boolean;
+  drawerName: string;
+  scoreByParticipantId: Record<string, number>;
+  finalResult: FinalResult | null;
+  canRestart: boolean;
+}
 
 export interface RoomState {
   room: RoomSnapshot | null;
@@ -71,8 +81,16 @@ class RoomStore {
   }
 
   setRoomSnapshot(room: RoomSnapshot) {
+    const sanitizedRoom =
+      room.viewerRole === "drawer"
+        ? room
+        : {
+            ...room,
+            secretWord: undefined
+          };
+
     this.setState({
-      room,
+      room: sanitizedRoom,
       error: null
     });
   }
@@ -89,12 +107,107 @@ class RoomStore {
     return response;
   }
 
-  async fetchRoom() {
+  async fetchRoom(options?: { silent?: boolean }) {
     if (!this.state.room) {
       return null;
     }
 
-    const response = await api.fetchRoom(this.state.room.code, this.state.participantId ?? undefined);
+    const silent = options?.silent ?? false;
+
+    if (!silent) {
+      this.setState({
+        isLoading: true,
+        error: null
+      });
+    }
+
+    try {
+      const response = await api.fetchRoom(this.state.room.code, this.state.participantId ?? undefined);
+      this.setRoomSnapshot(response.room);
+      return response.room;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unable to fetch room";
+      this.setState({ error: message });
+      throw error;
+    } finally {
+      if (!silent) {
+        this.setState({ isLoading: false });
+      }
+    }
+  }
+
+  async startGame() {
+    const activeRoom = this.state.room;
+    const participantId = this.state.participantId;
+
+    if (!activeRoom || !participantId) {
+      throw new Error("Room session is missing");
+    }
+
+    const roomCode = activeRoom.code;
+
+    const response = await this.withLoading(() => api.startGame(roomCode, participantId));
+    this.setRoomSnapshot(response.room);
+    return response.room;
+  }
+
+  async submitStroke(input: { x: number; y: number; color: string; size: number }) {
+    if (!this.state.room || !this.state.participantId) {
+      throw new Error("Room session is missing");
+    }
+
+    const response = await api.submitStroke(this.state.room.code, {
+      participantId: this.state.participantId,
+      x: input.x,
+      y: input.y,
+      color: input.color,
+      size: input.size
+    });
+
+    this.setRoomSnapshot(response.room);
+    return response.room;
+  }
+
+  async clearCanvas() {
+    const activeRoom = this.state.room;
+    const participantId = this.state.participantId;
+
+    if (!activeRoom || !participantId) {
+      throw new Error("Room session is missing");
+    }
+
+    const response = await this.withLoading(() => api.clearCanvas(activeRoom.code, participantId));
+    this.setRoomSnapshot(response.room);
+    return response.room;
+  }
+
+  async submitGuess(text: string) {
+    const activeRoom = this.state.room;
+    const participantId = this.state.participantId;
+
+    if (!activeRoom || !participantId) {
+      throw new Error("Room session is missing");
+    }
+
+    const trimmedText = text.trim();
+    if (!trimmedText) {
+      throw new Error("Guess is required");
+    }
+
+    const response = await this.withLoading(() => api.submitGuess(activeRoom.code, participantId, trimmedText));
+    this.setRoomSnapshot(response.room);
+    return response.room;
+  }
+
+  async restartGame() {
+    const activeRoom = this.state.room;
+    const participantId = this.state.participantId;
+
+    if (!activeRoom || !participantId) {
+      throw new Error("Room session is missing");
+    }
+
+    const response = await this.withLoading(() => api.restartGame(activeRoom.code, participantId));
     this.setRoomSnapshot(response.room);
     return response.room;
   }
@@ -127,4 +240,34 @@ export function useRoomStore() {
 export function useRoomState() {
   const store = useRoomStore();
   return useSyncExternalStore(store.subscribe, store.getSnapshot, store.getSnapshot);
+}
+
+export function useGameplayViewModel() {
+  const { room, participantId } = useRoomState();
+
+  if (!room || !participantId) {
+    return {
+      isDrawer: false,
+      isResultsStage: false,
+      isHost: false,
+      drawerName: "Unassigned",
+      scoreByParticipantId: {},
+      finalResult: null,
+      canRestart: false
+    } satisfies GameplayViewModel;
+  }
+
+  const viewer = room.participants.find((participant) => participant.id === participantId) ?? null;
+
+  const drawerName = room.participants.find((participant) => participant.id === room.drawerParticipantId)?.name ?? "Unassigned";
+
+  return {
+    isDrawer: room.viewerRole === "drawer",
+    isResultsStage: room.status === "results",
+    isHost: Boolean(viewer?.isHost),
+    drawerName,
+    scoreByParticipantId: room.scores,
+    finalResult: room.result,
+    canRestart: room.canRestart
+  } satisfies GameplayViewModel;
 }
