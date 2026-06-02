@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { HttpError } from "../api/schemas.js";
 import type { Participant, Room, RoomSnapshot } from "../models/game.js";
 import { STARTER_ROLES, STARTER_WORDS } from "../seed/starterData.js";
 
@@ -37,7 +38,7 @@ function createParticipant(name?: string): Participant {
   return {
     id: randomUUID(),
     name: displayName(name),
-    joinedAt: now()
+    joinedAt: now(),
   };
 }
 
@@ -54,16 +55,17 @@ export function createRoom(playerName?: string) {
   const room: Room = {
     code: generateUniqueCode(),
     status: "lobby",
+    hostId: participant.id,
     participants: [participant],
     createdAt: now(),
-    updatedAt: now()
+    updatedAt: now(),
   };
 
   rooms.set(room.code, room);
 
   return {
     room: cloneRoom(room),
-    participantId: participant.id
+    participantId: participant.id,
   };
 }
 
@@ -74,6 +76,10 @@ export function joinRoom(code: string, playerName?: string) {
     return null;
   }
 
+  if (room.status !== "lobby") {
+    throw new HttpError(409, "Game already in progress");
+  }
+
   const participant = createParticipant(playerName);
   room.participants.push(participant);
   room.updatedAt = now();
@@ -81,7 +87,7 @@ export function joinRoom(code: string, playerName?: string) {
 
   return {
     room: cloneRoom(room),
-    participantId: participant.id
+    participantId: participant.id,
   };
 }
 
@@ -96,14 +102,32 @@ export function saveRoom(room: Room) {
   return getRoom(room.code);
 }
 
-export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSnapshot {
+export function toRoomSnapshot(
+  room: Room,
+  viewerParticipantId?: string,
+): RoomSnapshot {
   void viewerParticipantId;
 
   return {
     code: room.code,
     status: room.status,
+    hostId: room.hostId,
     participants: room.participants.map((participant) => ({ ...participant })),
     availableWords: listWords(),
-    roles: [...STARTER_ROLES]
+    roles: [...STARTER_ROLES],
   };
+}
+
+export function startRoom(code: string): RoomSnapshot {
+  const room = rooms.get(code);
+
+  if (!room) {
+    throw new HttpError(404, "Room not found");
+  }
+
+  room.status = "playing";
+  room.updatedAt = now();
+  rooms.set(room.code, room);
+
+  return toRoomSnapshot(cloneRoom(room));
 }

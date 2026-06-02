@@ -24,7 +24,7 @@ describe("api service", () => {
       expect.objectContaining({
         method: "POST",
         body: JSON.stringify({ playerName: "Alice" }),
-      })
+      }),
     );
   });
 
@@ -42,7 +42,48 @@ describe("api service", () => {
 
     expect(fetch).toHaveBeenCalledWith(
       expect.stringContaining("/rooms/XYZW?participantId=p1"),
-      expect.anything()
+      expect.anything(),
+    );
+  });
+
+  it("startRoom sends POST to /rooms/:code/start", async () => {
+    const mockResponse = {
+      ok: true,
+      json: () =>
+        Promise.resolve({
+          room: { code: "ABCD", status: "playing", participants: [] },
+        }),
+    };
+    vi.mocked(fetch).mockResolvedValue(mockResponse as unknown as Response);
+
+    await api.startRoom("ABCD");
+
+    expect(fetch).toHaveBeenCalledWith(
+      expect.stringContaining("/rooms/ABCD/start"),
+      expect.objectContaining({ method: "POST" }),
+    );
+  });
+
+  it("API base URL does not contain /bug or /api suffix", async () => {
+    const mockResponse = {
+      ok: true,
+      json: () =>
+        Promise.resolve({
+          participantId: "p1",
+          room: { code: "ABCD", status: "lobby", participants: [] },
+        }),
+    };
+    vi.mocked(fetch).mockResolvedValue(mockResponse as unknown as Response);
+
+    await api.createRoom("Alice");
+
+    expect(fetch).not.toHaveBeenCalledWith(
+      expect.stringContaining("/bug"),
+      expect.anything(),
+    );
+    expect(fetch).toHaveBeenCalledWith(
+      expect.stringMatching(/^http:\/\/localhost:3001\/rooms/),
+      expect.anything(),
     );
   });
 });
