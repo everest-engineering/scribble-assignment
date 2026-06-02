@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createRoom, joinRoom } from "./roomStore.js";
+import { createRoom, joinRoom, startRoom } from "./roomStore.js";
 
 describe("roomStore", () => {
   it("createRoom returns a room with a 4-character uppercase code", () => {
@@ -11,9 +11,39 @@ describe("roomStore", () => {
     expect(result.participantId).toBeDefined();
   });
 
+  it("createRoom sets hostId to the creator participantId", () => {
+    const result = createRoom("Alice");
+
+    expect(result.room.hostId).toBe(result.participantId);
+    expect(result.room.hostId).toBe(result.room.participants[0].id);
+  });
+
   it("joinRoom returns null for an unknown room code", () => {
     const result = joinRoom("ZZZZ", "Bob");
 
     expect(result).toBeNull();
+  });
+
+  it("joinRoom preserves hostId from the original creator", () => {
+    const host = createRoom("Alice");
+    const joiner = joinRoom(host.room.code, "Bob");
+
+    expect(joiner).not.toBeNull();
+    expect(joiner!.room.hostId).toBe(host.participantId);
+  });
+
+  it("startRoom transitions status to active", () => {
+    const host = createRoom("Alice");
+    joinRoom(host.room.code, "Bob");
+    const snapshot = startRoom(host.room.code);
+
+    expect(snapshot).not.toBeNull();
+    expect(snapshot!.status).toBe("active");
+  });
+
+  it("startRoom returns null for an unknown room code", () => {
+    const snapshot = startRoom("ZZZZ");
+
+    expect(snapshot).toBeNull();
   });
 });
