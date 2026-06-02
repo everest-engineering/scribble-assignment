@@ -9,7 +9,7 @@ function now() {
 }
 
 function generateCode() {
-  const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
   let code = "";
 
   for (let index = 0; index < 4; index += 1) {
@@ -54,6 +54,7 @@ export function createRoom(playerName?: string) {
   const room: Room = {
     code: generateUniqueCode(),
     status: "lobby",
+    hostParticipantId: participant.id,
     participants: [participant],
     createdAt: now(),
     updatedAt: now()
@@ -102,6 +103,7 @@ export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSn
   return {
     code: room.code,
     status: room.status,
+    hostParticipantId: room.hostParticipantId,
     participants: room.participants.map((participant) => ({ ...participant })),
     availableWords: listWords(),
     roles: [...STARTER_ROLES]
