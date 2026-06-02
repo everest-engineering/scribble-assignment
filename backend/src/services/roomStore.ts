@@ -32,7 +32,7 @@ function generateUniqueCode() {
 }
 
 function displayName(name?: string) {
-  return name || "Player";
+  return (name ?? "").trim() || "Player";
 }
 
 function createParticipant(name?: string): Participant {
@@ -51,7 +51,15 @@ export function listWords() {
   return [...STARTER_WORDS];
 }
 
-export function createRoom(playerName?: string) {
+type CreateRoomResult =
+  | { ok: true; room: Room; participantId: string }
+  | { ok: false; reason: "invalid_name" };
+
+export function createRoom(playerName?: string): CreateRoomResult {
+  if ((playerName ?? "").trim().length === 0) {
+    return { ok: false, reason: "invalid_name" };
+  }
+
   const participant = createParticipant(playerName);
   const room: Room = {
     code: generateUniqueCode(),
@@ -59,12 +67,15 @@ export function createRoom(playerName?: string) {
     hostId: participant.id,
     participants: [participant],
     createdAt: now(),
-    updatedAt: now()
+    updatedAt: now(),
+    drawerId: null,
+    currentWord: null
   };
 
   rooms.set(room.code, room);
 
   return {
+    ok: true,
     room: cloneRoom(room),
     participantId: participant.id
   };
@@ -72,9 +83,13 @@ export function createRoom(playerName?: string) {
 
 type JoinRoomResult =
   | { ok: true; room: Room; participantId: string }
-  | { ok: false; reason: "not_found" | "full" };
+  | { ok: false; reason: "not_found" | "full" | "invalid_name" };
 
 export function joinRoom(code: string, playerName?: string): JoinRoomResult | null {
+  if ((playerName ?? "").trim().length === 0) {
+    return { ok: false, reason: "invalid_name" };
+  }
+
   const room = rooms.get(code);
 
   if (!room) {
@@ -99,7 +114,7 @@ export function joinRoom(code: string, playerName?: string): JoinRoomResult | nu
 
 type StartRoomResult =
   | { ok: true; room: Room }
-  | { ok: false; reason: "not_found" | "not_host" | "too_few_players" };
+  | { ok: false; reason: "not_found" | "not_host" | "already_started" | "too_few_players" };
 
 export function startRoom(code: string, participantId: string): StartRoomResult {
   const room = rooms.get(code);
@@ -112,11 +127,17 @@ export function startRoom(code: string, participantId: string): StartRoomResult 
     return { ok: false, reason: "not_host" };
   }
 
+  if (room.status === "in-progress") {
+    return { ok: false, reason: "already_started" };
+  }
+
   if (room.participants.length < 2) {
     return { ok: false, reason: "too_few_players" };
   }
 
   room.status = "in-progress";
+  room.drawerId = participantId;
+  room.currentWord = STARTER_WORDS[0];
   room.updatedAt = now();
   rooms.set(room.code, room);
 
@@ -135,7 +156,8 @@ export function saveRoom(room: Room) {
 }
 
 export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSnapshot {
-  void viewerParticipantId;
+  const currentWord =
+    room.drawerId && viewerParticipantId === room.drawerId ? room.currentWord : null;
 
   return {
     code: room.code,
@@ -143,6 +165,8 @@ export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSn
     hostId: room.hostId,
     participants: room.participants.map((participant) => ({ ...participant })),
     availableWords: listWords(),
-    roles: [...STARTER_ROLES]
+    roles: [...STARTER_ROLES],
+    drawerId: room.drawerId,
+    currentWord
   };
 }

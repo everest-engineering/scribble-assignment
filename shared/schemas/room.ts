@@ -16,7 +16,9 @@ export const roomSnapshotSchema = z.object({
   hostId: z.string(),
   participants: z.array(participantSnapshotSchema),
   availableWords: z.array(z.string()),
-  roles: z.array(participantRoleSchema)
+  roles: z.array(participantRoleSchema),
+  drawerId: z.string().nullable(),
+  currentWord: z.string().nullable()
 });
 
 export const roomSessionResponseSchema = z.object({

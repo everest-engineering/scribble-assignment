@@ -31,7 +31,7 @@ description: "Task list template for feature implementation"
 
 **Purpose**: Confirm the existing test suite is fully green before any changes are introduced.
 
-- [ ] T001 Run existing test suites to establish a green baseline (`cd backend && npm test` and `cd frontend && npm test`)
+- [X] T001 Run existing test suites to establish a green baseline (`cd backend && npm test` and `cd frontend && npm test`)
 
 ---
 
@@ -41,8 +41,8 @@ description: "Task list template for feature implementation"
 
 **⚠️ CRITICAL**: Constitution Principle VI — contracts before implementation. Both tasks touch different files and can be worked in parallel.
 
-- [ ] T002 [P] Add `drawerId: z.string().nullable()` and `currentWord: z.string().nullable()` to `roomSnapshotSchema` in `shared/schemas/room.ts`
-- [ ] T003 [P] Add `drawerId: string | null` and `currentWord: string | null` to `Room` and `RoomSnapshot` interfaces in `backend/src/models/game.ts`
+- [X] T002 [P] Add `drawerId: z.string().nullable()` and `currentWord: z.string().nullable()` to `roomSnapshotSchema` in `shared/schemas/room.ts`
+- [X] T003 [P] Add `drawerId: string | null` and `currentWord: string | null` to `Room` and `RoomSnapshot` interfaces in `backend/src/models/game.ts`
 
 **Checkpoint**: Shared contract updated — TypeScript compiler will now surface all call sites that need updating.
 
@@ -58,19 +58,19 @@ description: "Task list template for feature implementation"
 
 > **RED phase**: Write these tests first; confirm they fail before writing any production code.
 
-- [ ] T004 [US1] Write failing tests for `startRoom()` drawer assignment (`drawerId === hostId`, `currentWord === "rocket"`), `already_started` 409 guard, `too_few_players` 400 guard, and `toRoomSnapshot()` viewer-based word filtering in `backend/src/services/roomStore.test.ts`
-- [ ] T005 [P] [US1] Write failing tests for LobbyPage rendering "Need at least 2 players" label on the disabled Start button when `participants.length < 2` in `frontend/src/pages/LobbyPage.test.tsx`
-- [ ] T006 [P] [US1] Write failing tests for GamePage showing drawer's name to all players and showing `currentWord` only when `participantId === drawerId` in `frontend/src/pages/GamePage.test.tsx`
+- [X] T004 [US1] Write failing tests for `startRoom()` drawer assignment (`drawerId === hostId`, `currentWord === "rocket"`), `already_started` 409 guard, `too_few_players` 400 guard, and `toRoomSnapshot()` viewer-based word filtering in `backend/src/services/roomStore.test.ts`
+- [X] T005 [P] [US1] Write failing tests for LobbyPage rendering "Need at least 2 players" label on the disabled Start button when `participants.length < 2` in `frontend/src/pages/LobbyPage.test.tsx`
+- [X] T006 [P] [US1] Write failing tests for GamePage showing drawer's name to all players and showing `currentWord` only when `participantId === drawerId` in `frontend/src/pages/GamePage.test.tsx`
 
 ### Implementation for User Story 1
 
 > **GREEN phase**: Write the minimum production code to make each failing test pass.
 
-- [ ] T007 [US1] Implement `createRoom()` null initialization (`drawerId: null, currentWord: null`) and `startRoom()` drawer assignment (`drawerId: hostId`, `currentWord: STARTER_WORDS[0]`) plus `already_started` guard in `backend/src/services/roomStore.ts` (depends on T002, T003, T004)
-- [ ] T008 [US1] Implement `toRoomSnapshot(room, viewerParticipantId?)` viewer-based word filter — return `currentWord` only when `viewerParticipantId === room.drawerId`, otherwise `null` — in `backend/src/services/roomStore.ts` (depends on T007)
-- [ ] T009 [US1] Pass `participantId` from request body as `viewerParticipantId` to `toRoomSnapshot()` in the `POST /:code/start` handler in `backend/src/api/rooms.ts` (depends on T008)
-- [ ] T010 [P] [US1] Add "Need at least 2 players" visible label alongside the disabled Start button when `participants.length < 2` in `frontend/src/pages/LobbyPage.tsx` (depends on T002, T005)
-- [ ] T011 [P] [US1] Display drawer's name via `aria-live` region to all players, and show secret word prominently only when `participantId === snapshot.drawerId` in `frontend/src/pages/GamePage.tsx` (depends on T002, T006)
+- [X] T007 [US1] Implement `createRoom()` null initialization (`drawerId: null, currentWord: null`) and `startRoom()` drawer assignment (`drawerId: hostId`, `currentWord: STARTER_WORDS[0]`) plus `already_started` guard in `backend/src/services/roomStore.ts` (depends on T002, T003, T004)
+- [X] T008 [US1] Implement `toRoomSnapshot(room, viewerParticipantId?)` viewer-based word filter — return `currentWord` only when `viewerParticipantId === room.drawerId`, otherwise `null` — in `backend/src/services/roomStore.ts` (depends on T007)
+- [X] T009 [US1] Pass `participantId` from request body as `viewerParticipantId` to `toRoomSnapshot()` in the `POST /:code/start` handler in `backend/src/api/rooms.ts` (depends on T008)
+- [X] T010 [P] [US1] Add "Need at least 2 players" visible label alongside the disabled Start button when `participants.length < 2` in `frontend/src/pages/LobbyPage.tsx` (depends on T002, T005)
+- [X] T011 [P] [US1] Display drawer's name via `aria-live` region to all players, and show secret word prominently only when `participantId === snapshot.drawerId` in `frontend/src/pages/GamePage.tsx` (depends on T002, T006)
 
 **Checkpoint**: At this point User Story 1 is fully functional. Run `cd backend && npm test` and `cd frontend && npm test` — all T004/T005/T006 tests must now be green.
 
@@ -84,15 +84,15 @@ description: "Task list template for feature implementation"
 
 ### Tests for User Story 2 (MANDATORY — write FIRST, must FAIL before implementation)
 
-- [ ] T012 [US2] Write failing tests for name trimming (stores `"Alice"` when `"  Alice  "` given) and empty-name rejection (returns an error for `""` or `"   "`) in `backend/src/services/roomStore.test.ts`
-- [ ] T013 [P] [US2] Write failing tests for inline "Name cannot be empty" error message on the join form in `frontend/src/pages/JoinRoomPage.test.tsx`
-- [ ] T014 [P] [US2] Write failing tests for inline "Name cannot be empty" error message on the create form in `frontend/src/pages/CreateRoomPage.test.tsx`
+- [X] T012 [US2] Write failing tests for name trimming (stores `"Alice"` when `"  Alice  "` given) and empty-name rejection (returns an error for `""` or `"   "`) in `backend/src/services/roomStore.test.ts`
+- [X] T013 [P] [US2] Write failing tests for inline "Name cannot be empty" error message on the join form in `frontend/src/pages/JoinRoomPage.test.tsx`
+- [X] T014 [P] [US2] Write failing tests for inline "Name cannot be empty" error message on the create form in `frontend/src/pages/CreateRoomPage.test.tsx`
 
 ### Implementation for User Story 2
 
-- [ ] T015 [US2] Add name trim and empty-after-trim guard to the join/create room logic in `backend/src/services/roomStore.ts` (depends on T012)
-- [ ] T016 [P] [US2] Add inline "Name cannot be empty." validation error to the name field in `frontend/src/pages/JoinRoomPage.tsx` (depends on T013)
-- [ ] T017 [P] [US2] Add inline "Name cannot be empty." validation error to the name field in `frontend/src/pages/CreateRoomPage.tsx` (depends on T014)
+- [X] T015 [US2] Add name trim and empty-after-trim guard to the join/create room logic in `backend/src/services/roomStore.ts` (depends on T012)
+- [X] T016 [P] [US2] Add inline "Name cannot be empty." validation error to the name field in `frontend/src/pages/JoinRoomPage.tsx` (depends on T013)
+- [X] T017 [P] [US2] Add inline "Name cannot be empty." validation error to the name field in `frontend/src/pages/CreateRoomPage.tsx` (depends on T014)
 
 **Checkpoint**: User Stories 1 AND 2 are independently functional. All new tests green.
 
@@ -106,11 +106,11 @@ description: "Task list template for feature implementation"
 
 ### Tests for User Story 3 (MANDATORY — write FIRST, must FAIL before implementation)
 
-- [ ] T018 [US3] Write failing tests for LobbyPage rendering no Start button (or a disabled button) for a non-host participant, and a visible/enabled button for the host (with 2+ players) in `frontend/src/pages/LobbyPage.test.tsx`
+- [X] T018 [US3] Write failing tests for LobbyPage rendering no Start button (or a disabled button) for a non-host participant, and a visible/enabled button for the host (with 2+ players) in `frontend/src/pages/LobbyPage.test.tsx`
 
 ### Implementation for User Story 3
 
-- [ ] T019 [US3] Conditionally hide or disable the Start Game button in `frontend/src/pages/LobbyPage.tsx` when the current participant is not the host (`participantId !== snapshot.hostId`) (depends on T018)
+- [X] T019 [US3] Conditionally hide or disable the Start Game button in `frontend/src/pages/LobbyPage.tsx` when the current participant is not the host (`participantId !== snapshot.hostId`) (depends on T018)
 
 **Checkpoint**: All three user stories are independently functional and testable. Full suite green.
 
@@ -120,8 +120,8 @@ description: "Task list template for feature implementation"
 
 **Purpose**: Coverage gate, accessibility verification, and end-to-end manual validation.
 
-- [ ] T020 [P] Run backend coverage gate and confirm ≥ 80% line/branch coverage (`cd backend && npm run test:coverage`)
-- [ ] T021 [P] Run frontend coverage gate and confirm ≥ 80% line/branch coverage (`cd frontend && npm run test:coverage`)
+- [X] T020 [P] Run backend coverage gate and confirm ≥ 80% line/branch coverage (`cd backend && npm run test:coverage`)
+- [X] T021 [P] Run frontend coverage gate and confirm ≥ 80% line/branch coverage (`cd frontend && npm run test:coverage`)
 - [ ] T022 Manual quickstart.md two-tab drawer flow validation — open two tabs, create room as "Alice", join as "Bob", host clicks Start, verify Tab 1 shows word "rocket" and Tab 2 network response has `currentWord: null`
 
 ---

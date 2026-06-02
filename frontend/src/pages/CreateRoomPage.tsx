@@ -14,7 +14,7 @@ export function CreateRoomPage() {
     event.preventDefault();
 
     if (playerName.trim().length === 0) {
-      setValidationError("Player name is required");
+      setValidationError("Name cannot be empty.");
       return;
     }
 

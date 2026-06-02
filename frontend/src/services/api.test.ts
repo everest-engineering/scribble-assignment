@@ -15,7 +15,9 @@ const validRoom = {
   hostId: "host-id",
   participants: [],
   availableWords: [],
-  roles: []
+  roles: [],
+  drawerId: null,
+  currentWord: null
 };
 
 describe("api service", () => {

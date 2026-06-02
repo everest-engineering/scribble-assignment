@@ -23,6 +23,16 @@ export function createRoomsRouter() {
       const { playerName } = createRoomSchema.parse(request.body);
       const result = createRoom(playerName);
 
+      if (!result.ok) {
+        if (result.reason === "invalid_name") {
+          throw new HttpError(400, "Name cannot be empty");
+        }
+      }
+
+      if (!result.ok) {
+        throw new HttpError(500, "Unable to create room");
+      }
+
       response.status(201).json({
         participantId: result.participantId,
         room: toRoomSnapshot(result.room, result.participantId)
@@ -43,6 +53,9 @@ export function createRoomsRouter() {
       }
 
       if (!result.ok) {
+        if (result.reason === "invalid_name") {
+          throw new HttpError(400, "Name cannot be empty");
+        }
         if (result.reason === "not_found") {
           throw new HttpError(404, "Room not found");
         }
@@ -95,6 +108,9 @@ export function createRoomsRouter() {
         if (result.reason === "not_host") {
           throw new HttpError(403, "Only the host can start the game");
         }
+        if (result.reason === "already_started") {
+          throw new HttpError(409, "Game has already started");
+        }
         if (result.reason === "too_few_players") {
           throw new HttpError(400, "At least 2 players are required to start");
         }
@@ -105,7 +121,7 @@ export function createRoomsRouter() {
       }
 
       response.json({
-        room: toRoomSnapshot(result.room)
+        room: toRoomSnapshot(result.room, participantId)
       });
     } catch (error) {
       next(error);

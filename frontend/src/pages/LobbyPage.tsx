@@ -106,21 +106,26 @@ export function LobbyPage() {
 
       <div className="button-row button-row--spread">
         {isHost ? (
-          <button
-            className="button button--primary"
-            onClick={handleStartGame}
-            disabled={!canStart || isLoading}
-            aria-disabled={!canStart || isLoading}
-          >
-            {isLoading ? (
-              <>
-                <span className="spinner" aria-label="Starting game…" />
-                Starting…
-              </>
-            ) : (
-              "Start Game"
-            )}
-          </button>
+          <>
+            {!canStart && !isLoading ? (
+              <p className="form__hint">Need at least 2 players to start.</p>
+            ) : null}
+            <button
+              className="button button--primary"
+              onClick={handleStartGame}
+              disabled={!canStart || isLoading}
+              aria-disabled={!canStart || isLoading}
+            >
+              {isLoading ? (
+                <>
+                  <span className="spinner" aria-label="Starting game…" />
+                  Starting…
+                </>
+              ) : (
+                "Start Game"
+              )}
+            </button>
+          </>
         ) : (
           <button
             className="button button--primary"

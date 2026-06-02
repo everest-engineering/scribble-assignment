@@ -18,7 +18,7 @@ export function JoinRoomPage() {
     let hasError = false;
 
     if (playerName.trim().length === 0) {
-      setNameError("Player name is required");
+      setNameError("Name cannot be empty.");
       hasError = true;
     }
 
