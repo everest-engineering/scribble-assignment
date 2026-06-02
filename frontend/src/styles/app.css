@@ -566,3 +566,12 @@ input {
     justify-content: stretch;
   }
 }
+
+.drawing-canvas__surface {
+  width: 100%;
+  height: auto;
+  display: block;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #ffffff;
+}
