@@ -173,4 +173,43 @@ describe("rooms API integration", () => {
     const bobBody = await bobSnapshotRes.json();
     expect(bobBody.room.secretWord).toBeUndefined();
   });
+
+  it("handles incorrect guesses via API", async () => {
+    // Create Room
+    const createRes = await fetch(`${baseUrl}/rooms`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ playerName: "Host" }),
+    });
+    const { room, participantId: hostId } = await createRes.json();
+    const roomCode = room.code;
+
+    // Join as Bob
+    const joinRes = await fetch(`${baseUrl}/rooms/${roomCode}/join`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ playerName: "Bob" }),
+    });
+    const { participantId: bobId } = await joinRes.json();
+
+    // Start Game
+    await fetch(`${baseUrl}/rooms/${roomCode}/start`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ participantId: hostId }),
+    });
+
+    // Bob guesses incorrectly
+    const guessRes = await fetch(`${baseUrl}/rooms/${roomCode}/guess`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ participantId: bobId, guess: "nottheword" }),
+    });
+    const body = await guessRes.json();
+
+    expect(body.room.status).toBe("active");
+    expect(body.room.guesses).toHaveLength(1);
+    expect(body.room.guesses[0].correct).toBe(false);
+    expect(body.room.scores[bobId]).toBe(0);
+  });
 });

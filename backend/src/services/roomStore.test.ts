@@ -134,6 +134,35 @@ describe("roomStore", () => {
     expect(clearedRoom.drawingPaths).toHaveLength(0);
   });
 
+  it("appendDrawing correctly adds a path with properties", () => {
+    const { room, participantId: hostId } = createRoom("Alice");
+    joinRoom(room.code, "Bob");
+    const currentRoom = getRoom(room.code)!;
+    const startedRoom = startRoom(currentRoom, hostId);
+
+    const path = {
+      points: [{ x: 1, y: 1 }, { x: 2, y: 2 }],
+      color: "#FF0000",
+      width: 5,
+    };
+
+    const updatedRoom = appendDrawing(startedRoom, hostId, path);
+    expect(updatedRoom.drawingPaths).toHaveLength(1);
+    expect(updatedRoom.drawingPaths[0]).toEqual(path);
+  });
+
+  it("submitGuess records an incorrect guess and does not award points", () => {
+    const hostSession = createRoom("Alice");
+    const { participantId: bobId } = joinRoom(hostSession.room.code, "Bob")!;
+    const startedRoom = startRoom(getRoom(hostSession.room.code)!, hostSession.participantId);
+
+    const result = submitGuess(startedRoom, bobId, "wrongguess");
+    expect(result.guesses).toHaveLength(1);
+    expect(result.guesses[0].correct).toBe(false);
+    expect(result.scores[bobId]).toBe(0);
+    expect(result.status).toBe("active");
+  });
+
   it("handles case-insensitive room codes during lookup", () => {
     const { room } = createRoom("Alice");
     const lowerCode = room.code.toLowerCase();

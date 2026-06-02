@@ -3,6 +3,7 @@ import { createRoot, type Root } from "react-dom/client";
 import { GuessForm } from "./GuessForm";
 import { ResultPanel } from "./ResultPanel";
 import { Scoreboard } from "./Scoreboard";
+import { DrawingCanvas } from "./DrawingCanvas";
 import { flushRender } from "../test-utils";
 
 const useRoomStateMock = vi.fn();
@@ -59,6 +60,23 @@ describe("frontend UI components", () => {
     expect(button).not.toBeNull();
     expect(input?.disabled).toBe(true);
     expect(button?.disabled).toBe(true);
+  });
+
+  it("renders the DrawingCanvas as read-only for non-drawers", async () => {
+    useRoomStateMock.mockReturnValue({
+      room: { drawerId: "player-1", drawingPaths: [] },
+      participantId: "player-2",
+    });
+
+    // GamePage passes readOnly={true} for non-drawers
+    root?.render(<DrawingCanvas readOnly={true} />);
+    await flushRender();
+
+    const canvas = container.querySelector("canvas") as HTMLCanvasElement | null;
+    expect(canvas?.style.cursor).toBe("default");
+    
+    const clearButton = container.querySelector("button");
+    expect(clearButton).toBeNull();
   });
 
   it("renders the scoreboard with participant names and scores", async () => {
@@ -125,6 +143,33 @@ describe("frontend UI components", () => {
     expect(container.textContent).toContain("Bob:");
     expect(container.textContent).toContain("circle");
     expect(container.textContent).toContain("Incorrect");
+    expect(container.textContent).toContain("Alice:");
+    expect(container.textContent).toContain("house");
+    expect(container.textContent).toContain("Correct");
+  });
+
+  it("ResultPanel displays the winner message when the round is complete", async () => {
+    useRoomStateMock.mockReturnValue({
+      room: {
+        status: "results",
+        guesses: [
+          {
+            participantId: "alice",
+            participantName: "Alice",
+            guess: "house",
+            correct: true,
+            createdAt: "2026-06-01T00:00:01.000Z",
+          },
+        ],
+      },
+      participantId: "bob",
+    });
+
+    // In GamePage, ResultPanel is rendered along with a separate Round Result card.
+    // Let's check ResultPanel's own content.
+    root?.render(<ResultPanel />);
+    await flushRender();
+
     expect(container.textContent).toContain("Alice:");
     expect(container.textContent).toContain("house");
     expect(container.textContent).toContain("Correct");
