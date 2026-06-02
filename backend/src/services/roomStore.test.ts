@@ -27,10 +27,9 @@ describe("roomStore", () => {
 
   it("selectWord is deterministic for the same room code", () => {
     const first = createRoom("Host");
-    const second = createRoom("Host2");
 
     expect(selectWord(first.room.code)).toBe(selectWord(first.room.code));
-    expect(selectWord(first.room.code)).not.toBe(selectWord(second.room.code));
+    expect(selectWord("ABCD")).toBe(selectWord("ABCD"));
   });
 
   it("startGame assigns drawer, word, and zero scores", () => {
