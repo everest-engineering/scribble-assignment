@@ -22,6 +22,16 @@ export function LobbyPage() {
       return;
     }
 
+    if (room.status === "playing") {
+      navigate("/game");
+    }
+  }, [room, navigate]);
+
+  useEffect(() => {
+    if (!room) {
+      return;
+    }
+
     const interval = setInterval(() => {
       roomStore.fetchRoom().catch(() => {});
     }, 2000);

@@ -27,6 +27,11 @@ export function GamePage() {
 
     if (room.status === "lobby") {
       navigate("/lobby", { replace: true });
+    }
+  }, [navigate, room?.code, room?.status]);
+
+  useEffect(() => {
+    if (!room) {
       return;
     }
 
@@ -35,7 +40,7 @@ export function GamePage() {
     }, 2000);
 
     return () => clearInterval(interval);
-  }, [roomStore, room, navigate]);
+  }, [roomStore, room?.code]);
 
   const handleStrokeComplete = useCallback(
     (stroke: Stroke) => {
