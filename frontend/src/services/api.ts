@@ -46,9 +46,24 @@ export interface RoundSnapshot {
   guesses?: Guess[];
 }
 
+export interface CompletedRoundSnapshot {
+  roundNumber: number;
+  drawerParticipantId: string;
+  drawerName: string;
+  secretWord: string;
+  canvas: {
+    strokes: DrawingStroke[];
+    updatedAt: string;
+  };
+  guesses: Guess[];
+  scores: ScoreEntry[];
+  startedAt: string;
+  endedAt: string;
+}
+
 export interface RoomSnapshot {
   code: string;
-  status: "lobby" | "inGame";
+  status: "lobby" | "inGame" | "result";
   participants: Participant[];
   hostParticipantId: string | null;
   viewerParticipantId: string | null;
@@ -57,6 +72,7 @@ export interface RoomSnapshot {
   availableWords: string[];
   roles: ParticipantRole[];
   currentRound?: RoundSnapshot;
+  completedRound?: CompletedRoundSnapshot;
   viewerRole: ViewerRole;
   isDrawer: boolean;
   secretWord?: string;
@@ -70,6 +86,14 @@ export interface RoomSessionResponse {
 
 export interface StartGameResponse {
   room: RoomSnapshot;
+}
+
+export interface EndRoundRequest {
+  participantId: string;
+}
+
+export interface RestartRoomRequest {
+  participantId: string;
 }
 
 const API_BASE_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3001";
@@ -136,6 +160,20 @@ export const api = {
     return request<StartGameResponse>(`/rooms/${encodeURIComponent(code)}/guesses`, {
       method: "POST",
       body: JSON.stringify({ participantId, guess })
+    });
+  },
+
+  endRound(code: string, participantId: string) {
+    return request<StartGameResponse>(`/rooms/${encodeURIComponent(code)}/round/end`, {
+      method: "POST",
+      body: JSON.stringify({ participantId })
+    });
+  },
+
+  restartRoom(code: string, participantId: string) {
+    return request<StartGameResponse>(`/rooms/${encodeURIComponent(code)}/restart`, {
+      method: "POST",
+      body: JSON.stringify({ participantId })
     });
   }
 };

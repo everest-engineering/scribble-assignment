@@ -51,6 +51,14 @@ export const submitGuessSchema = z.object({
   guess: trimmedRequiredString
 });
 
+export const endRoundSchema = z.object({
+  participantId: z.string()
+});
+
+export const restartRoomSchema = z.object({
+  participantId: z.string()
+});
+
 export class HttpError extends Error {
   statusCode: number;
 

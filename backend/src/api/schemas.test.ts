@@ -5,7 +5,9 @@ import {
   createRoomSchema,
   drawingPointSchema,
   drawingStrokeSchema,
+  endRoundSchema,
   joinRoomSchema,
+  restartRoomSchema,
   roomCodeParamsSchema,
   roomViewerQuerySchema,
   startGameSchema,
@@ -228,5 +230,27 @@ describe("submitGuessSchema", () => {
 
   it("rejects missing guess", () => {
     expect(() => submitGuessSchema.parse({ participantId: "p1" })).toThrow();
+  });
+});
+
+describe("endRoundSchema", () => {
+  it("accepts a valid participantId", () => {
+    const result = endRoundSchema.parse({ participantId: "some-uuid" });
+    expect(result.participantId).toBe("some-uuid");
+  });
+
+  it("rejects missing participantId", () => {
+    expect(() => endRoundSchema.parse({})).toThrow();
+  });
+});
+
+describe("restartRoomSchema", () => {
+  it("accepts a valid participantId", () => {
+    const result = restartRoomSchema.parse({ participantId: "some-uuid" });
+    expect(result.participantId).toBe("some-uuid");
+  });
+
+  it("rejects missing participantId", () => {
+    expect(() => restartRoomSchema.parse({})).toThrow();
   });
 });

@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import type { CurrentRound, Participant, Room, RoomSnapshot, ViewerRole } from "../models/game.js";
+import type { CompletedRound, CurrentRound, Participant, Room, RoomSnapshot, ScoreEntry, ViewerRole } from "../models/game.js";
 import { STARTER_ROLES, STARTER_WORDS } from "../seed/starterData.js";
 import { HttpError } from "../api/schemas.js";
 
@@ -194,6 +194,81 @@ export function startGame(code: string, participantId: string) {
   return cloneRoom(room);
 }
 
+export function endRound(code: string, participantId: string) {
+  const normalized = normalizeCode(code);
+  const room = rooms.get(normalized);
+
+  if (!room) {
+    throw new HttpError(404, "Room not found");
+  }
+
+  if (room.status !== "inGame" || !room.currentRound) {
+    throw new HttpError(400, "Round is not in progress");
+  }
+
+  if (!room.participants.some((p) => p.id === participantId)) {
+    throw new HttpError(404, "Participant not found in room");
+  }
+
+  const round = room.currentRound;
+  const drawerParticipant = room.participants.find((p) => p.id === round.drawerParticipantId);
+
+  const scores: ScoreEntry[] = room.participants.map((p) => ({
+    participantId: p.id,
+    participantName: p.name,
+    score: room.scores[p.id] ?? 0
+  }));
+
+  const completedRound: CompletedRound = {
+    roundNumber: round.roundNumber,
+    drawerParticipantId: round.drawerParticipantId,
+    drawerName: drawerParticipant?.name ?? "Unknown",
+    secretWord: round.secretWord,
+    canvas: round.canvas,
+    guesses: round.guesses.map((g) => ({ ...g })),
+    scores,
+    startedAt: round.startedAt,
+    endedAt: now()
+  };
+
+  room.status = "result";
+  room.completedRound = completedRound;
+  room.updatedAt = now();
+  rooms.set(room.code, room);
+
+  return cloneRoom(room);
+}
+
+export function restartRoom(code: string, participantId: string) {
+  const normalized = normalizeCode(code);
+  const room = rooms.get(normalized);
+
+  if (!room) {
+    throw new HttpError(404, "Room not found");
+  }
+
+  if (room.status !== "result") {
+    throw new HttpError(400, "Room is not in result state");
+  }
+
+  if (!room.participants.some((p) => p.id === participantId)) {
+    throw new HttpError(404, "Participant not found in room");
+  }
+
+  if (room.hostParticipantId !== participantId) {
+    throw new HttpError(403, "Only the host can restart the room");
+  }
+
+  room.status = "lobby";
+  delete room.currentRound;
+  delete room.completedRound;
+  room.scores = {};
+  room.updatedAt = now();
+  rooms.set(room.code, room);
+
+  return cloneRoom(room);
+}
+
 export function appendDrawingStroke(
   code: string,
   participantId: string,
@@ -325,6 +400,18 @@ export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSn
     ? room.participants.find((p) => p.id === room.currentRound!.drawerParticipantId)
     : undefined;
 
+  const completedDrawerParticipant = room.completedRound
+    ? room.participants.find((p) => p.id === room.completedRound!.drawerParticipantId)
+    : undefined;
+
+  const scores: ScoreEntry[] = room.scores
+    ? room.participants.map((participant) => ({
+        participantId: participant.id,
+        participantName: participant.name,
+        score: room.scores[participant.id] ?? 0
+      }))
+    : [];
+
   const snapshot: RoomSnapshot = {
     code: room.code,
     status: room.status,
@@ -350,16 +437,29 @@ export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSn
           guesses: room.currentRound.guesses.map((g) => ({ ...g }))
         }
       : undefined,
+    completedRound: room.completedRound
+      ? {
+          roundNumber: room.completedRound.roundNumber,
+          drawerParticipantId: room.completedRound.drawerParticipantId,
+          drawerName: completedDrawerParticipant?.name ?? room.completedRound.drawerName,
+          secretWord: room.completedRound.secretWord,
+          canvas: {
+            strokes: room.completedRound.canvas.strokes.map((s) => ({
+              ...s,
+              points: s.points.map((p) => ({ ...p }))
+            })),
+            updatedAt: room.completedRound.canvas.updatedAt
+          },
+          guesses: room.completedRound.guesses.map((g) => ({ ...g })),
+          scores: room.completedRound.scores.map((s) => ({ ...s })),
+          startedAt: room.completedRound.startedAt,
+          endedAt: room.completedRound.endedAt
+        }
+      : undefined,
     viewerRole,
     isDrawer,
     secretWord: isDrawer && room.currentRound ? room.currentRound.secretWord : undefined,
-    scores: room.scores
-      ? room.participants.map((participant) => ({
-          participantId: participant.id,
-          participantName: participant.name,
-          score: room.scores[participant.id] ?? 0
-        }))
-      : undefined
+    scores: scores.length > 0 ? scores : undefined
   };
 
   if (!isDrawer) {

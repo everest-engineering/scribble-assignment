@@ -3,9 +3,11 @@ import {
   appendDrawingStroke,
   clearDrawing,
   createRoom,
+  endRound,
   getRoom,
   joinRoom,
   normalizeCode,
+  restartRoom,
   saveRoom,
   selectWord,
   startGame,
@@ -424,6 +426,247 @@ describe("roomStore", () => {
       const snap2 = getRoom(room2.room.code)!;
       expect(snap1.scores[bob.participantId]).toBe(100);
       expect(snap2.scores[dave.participantId]).toBe(0);
+    });
+  });
+
+  describe("endRound", () => {
+    it("rejects end-round in non-existent room", () => {
+      expect(() => endRound("ZZZZ", "p1")).toThrow("Room not found");
+    });
+
+    it("rejects end-round from non-participant", () => {
+      const created = createRoom("Alice");
+      joinRoom(created.room.code, "Bob");
+      startGame(created.room.code, created.participantId);
+      expect(() => endRound(created.room.code, "unknown-id")).toThrow("Participant not found in room");
+    });
+
+    it("rejects end-round in lobby state", () => {
+      const created = createRoom("Alice");
+      expect(() => endRound(created.room.code, created.participantId)).toThrow("Round is not in progress");
+    });
+
+    it("transitions room from playing to result", () => {
+      const created = createRoom("Alice");
+      joinRoom(created.room.code, "Bob");
+      startGame(created.room.code, created.participantId);
+      const room = endRound(created.room.code, created.participantId);
+      expect(room.status).toBe("result");
+    });
+
+    it("creates completedRound with secret word", () => {
+      const created = createRoom("Alice");
+      joinRoom(created.room.code, "Bob");
+      startGame(created.room.code, created.participantId);
+      const room = endRound(created.room.code, created.participantId);
+      expect(room.completedRound).toBeDefined();
+      expect(room.completedRound!.secretWord.length).toBeGreaterThan(0);
+    });
+
+    it("includes ordered guesses in completed round", () => {
+      const created = createRoom("Alice");
+      const bob = joinRoom(created.room.code, "Bob")!;
+      const word = selectWord(created.room.code);
+      startGame(created.room.code, created.participantId);
+      submitGuess(created.room.code, bob.participantId, "wrong");
+      submitGuess(created.room.code, bob.participantId, word);
+      const room = endRound(created.room.code, created.participantId);
+      expect(room.completedRound!.guesses).toHaveLength(2);
+      expect(room.completedRound!.guesses[0].isCorrect).toBe(false);
+      expect(room.completedRound!.guesses[1].isCorrect).toBe(true);
+    });
+
+    it("includes final scores in completed round", () => {
+      const created = createRoom("Alice");
+      const bob = joinRoom(created.room.code, "Bob")!;
+      const word = selectWord(created.room.code);
+      startGame(created.room.code, created.participantId);
+      submitGuess(created.room.code, bob.participantId, word);
+      const room = endRound(created.room.code, created.participantId);
+      const bobScore = room.completedRound!.scores.find((s) => s.participantId === bob.participantId);
+      expect(bobScore).toBeDefined();
+      expect(bobScore!.score).toBe(100);
+    });
+
+    it("includes drawer identity in completed round", () => {
+      const created = createRoom("Alice");
+      joinRoom(created.room.code, "Bob");
+      startGame(created.room.code, created.participantId);
+      const room = endRound(created.room.code, created.participantId);
+      expect(room.completedRound!.drawerParticipantId).toBe(created.participantId);
+      expect(room.completedRound!.drawerName).toBe("Alice");
+    });
+  });
+
+  describe("restartRoom", () => {
+    function makeResultRoom(hostName: string, joinerName: string) {
+      const created = createRoom(hostName);
+      const joiner = joinRoom(created.room.code, joinerName)!;
+      startGame(created.room.code, created.participantId);
+      endRound(created.room.code, created.participantId);
+      return { created, joiner };
+    }
+
+    it("rejects restart in non-existent room", () => {
+      expect(() => restartRoom("ZZZZ", "p1")).toThrow("Room not found");
+    });
+
+    it("rejects restart from non-participant", () => {
+      const { created } = makeResultRoom("Alice", "Bob");
+      expect(() => restartRoom(created.room.code, "unknown-id")).toThrow("Participant not found in room");
+    });
+
+    it("rejects restart from non-host participant", () => {
+      const { created, joiner } = makeResultRoom("Alice", "Bob");
+      expect(() => restartRoom(created.room.code, joiner.participantId)).toThrow("Only the host can restart the room");
+    });
+
+    it("rejects restart when room is not in result state", () => {
+      const created = createRoom("Alice");
+      expect(() => restartRoom(created.room.code, created.participantId)).toThrow("Room is not in result state");
+    });
+
+    it("transitions room from result to lobby on host restart", () => {
+      const { created } = makeResultRoom("Alice", "Bob");
+      const room = restartRoom(created.room.code, created.participantId);
+      expect(room.status).toBe("lobby");
+    });
+
+    it("preserves room code on restart", () => {
+      const { created } = makeResultRoom("Alice", "Bob");
+      const room = restartRoom(created.room.code, created.participantId);
+      expect(room.code).toBe(created.room.code);
+    });
+
+    it("preserves host participant ID on restart", () => {
+      const { created } = makeResultRoom("Alice", "Bob");
+      const room = restartRoom(created.room.code, created.participantId);
+      expect(room.hostParticipantId).toBe(created.participantId);
+    });
+
+    it("preserves participants on restart", () => {
+      const { created } = makeResultRoom("Alice", "Bob");
+      const room = restartRoom(created.room.code, created.participantId);
+      expect(room.participants).toHaveLength(2);
+    });
+
+    it("clears currentRound on restart", () => {
+      const { created } = makeResultRoom("Alice", "Bob");
+      const room = restartRoom(created.room.code, created.participantId);
+      expect(room.currentRound).toBeUndefined();
+    });
+
+    it("clears completedRound on restart", () => {
+      const { created } = makeResultRoom("Alice", "Bob");
+      const room = restartRoom(created.room.code, created.participantId);
+      expect(room.completedRound).toBeUndefined();
+    });
+
+    it("clears scores on restart", () => {
+      const { created } = makeResultRoom("Alice", "Bob");
+      const room = restartRoom(created.room.code, created.participantId);
+      expect(Object.keys(room.scores)).toHaveLength(0);
+    });
+
+    it("restored lobby snapshot clears round and completed data", () => {
+      const created = createRoom("Alice");
+      joinRoom(created.room.code, "Bob");
+      startGame(created.room.code, created.participantId);
+      endRound(created.room.code, created.participantId);
+      restartRoom(created.room.code, created.participantId);
+      const room = getRoom(created.room.code)!;
+      const snapshot = toRoomSnapshot(room, created.participantId);
+      expect(snapshot.status).toBe("lobby");
+      expect(snapshot.canStart).toBe(true);
+      expect(snapshot.currentRound).toBeUndefined();
+      expect(snapshot.completedRound).toBeUndefined();
+      expect(snapshot.scores?.every((s) => s.score === 0)).toBe(true);
+    });
+  });
+
+  describe("result state rejects gameplay mutations", () => {
+    it("rejects drawing after result", () => {
+      const created = createRoom("Alice");
+      joinRoom(created.room.code, "Bob");
+      startGame(created.room.code, created.participantId);
+      endRound(created.room.code, created.participantId);
+      expect(() =>
+        appendDrawingStroke(created.room.code, created.participantId, {
+          color: "#111827", size: 4, points: [{ x: 0.1, y: 0.2 }, { x: 0.3, y: 0.4 }]
+        })
+      ).toThrow("Game is not in progress");
+    });
+
+    it("rejects guessing after result", () => {
+      const created = createRoom("Alice");
+      const bob = joinRoom(created.room.code, "Bob")!;
+      startGame(created.room.code, created.participantId);
+      endRound(created.room.code, created.participantId);
+      expect(() =>
+        submitGuess(created.room.code, bob.participantId, "guess")
+      ).toThrow("Game is not in progress");
+    });
+
+    it("rejects clear after result", () => {
+      const created = createRoom("Alice");
+      joinRoom(created.room.code, "Bob");
+      startGame(created.room.code, created.participantId);
+      endRound(created.room.code, created.participantId);
+      expect(() =>
+        clearDrawing(created.room.code, created.participantId)
+      ).toThrow("Game is not in progress");
+    });
+  });
+
+  describe("result snapshot reveals secret word to all viewers", () => {
+    it("reveals secret word to host viewer in result state", () => {
+      const created = createRoom("Alice");
+      joinRoom(created.room.code, "Bob");
+      startGame(created.room.code, created.participantId);
+      endRound(created.room.code, created.participantId);
+      const room = getRoom(created.room.code)!;
+      const snapshot = toRoomSnapshot(room, created.participantId);
+      expect(snapshot.completedRound).toBeDefined();
+      expect(snapshot.completedRound!.secretWord.length).toBeGreaterThan(0);
+    });
+
+    it("reveals secret word to guesser viewer in result state", () => {
+      const created = createRoom("Alice");
+      const bob = joinRoom(created.room.code, "Bob")!;
+      startGame(created.room.code, created.participantId);
+      endRound(created.room.code, created.participantId);
+      const room = getRoom(created.room.code)!;
+      const snapshot = toRoomSnapshot(room, bob.participantId);
+      expect(snapshot.completedRound).toBeDefined();
+      expect(snapshot.completedRound!.secretWord.length).toBeGreaterThan(0);
+    });
+  });
+
+  describe("room isolation during result and restart", () => {
+    it("ending round in one room does not affect another room", () => {
+      const room1 = createRoom("Alice");
+      joinRoom(room1.room.code, "Bob");
+      startGame(room1.room.code, room1.participantId);
+      const room2 = createRoom("Charlie");
+      joinRoom(room2.room.code, "Dave");
+      startGame(room2.room.code, room2.participantId);
+      endRound(room1.room.code, room1.participantId);
+      const snap2 = getRoom(room2.room.code)!;
+      expect(snap2.status).toBe("inGame");
+    });
+
+    it("restarting one room does not affect another room", () => {
+      const room1 = createRoom("Alice");
+      joinRoom(room1.room.code, "Bob");
+      startGame(room1.room.code, room1.participantId);
+      const room2 = createRoom("Charlie");
+      joinRoom(room2.room.code, "Dave");
+      startGame(room2.room.code, room2.participantId);
+      endRound(room1.room.code, room1.participantId);
+      restartRoom(room1.room.code, room1.participantId);
+      const snap2 = getRoom(room2.room.code)!;
+      expect(snap2.status).toBe("inGame");
+      expect(snap2.participants).toHaveLength(2);
     });
   });
 });

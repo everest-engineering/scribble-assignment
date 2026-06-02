@@ -3,8 +3,10 @@ import {
   appendDrawingSchema,
   clearDrawingSchema,
   createRoomSchema,
+  endRoundSchema,
   HttpError,
   joinRoomSchema,
+  restartRoomSchema,
   roomCodeParamsSchema,
   roomViewerQuerySchema,
   startGameSchema,
@@ -14,8 +16,10 @@ import {
   appendDrawingStroke,
   clearDrawing,
   createRoom,
+  endRound,
   getRoom,
   joinRoom,
+  restartRoom,
   startGame,
   submitGuess,
   toRoomSnapshot
@@ -122,6 +126,34 @@ export function createRoomsRouter() {
       const { code } = roomCodeParamsSchema.parse(request.params);
       const { participantId, guess } = submitGuessSchema.parse(request.body);
       const room = submitGuess(code, participantId, guess);
+
+      response.json({
+        room: toRoomSnapshot(room, participantId)
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/:code/round/end", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId } = endRoundSchema.parse(request.body);
+      const room = endRound(code, participantId);
+
+      response.json({
+        room: toRoomSnapshot(room, participantId)
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/:code/restart", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId } = restartRoomSchema.parse(request.body);
+      const room = restartRoom(code, participantId);
 
       response.json({
         room: toRoomSnapshot(room, participantId)

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { appendDrawingStroke, clearDrawing, createRoom, getRoom, joinRoom, normalizeCode, saveRoom, selectWord, startGame, submitGuess, toRoomSnapshot } from "../services/roomStore.js";
-import { appendDrawingSchema, clearDrawingSchema, createRoomSchema, joinRoomSchema, submitGuessSchema } from "./schemas.js";
+import { appendDrawingStroke, clearDrawing, createRoom, endRound, getRoom, joinRoom, normalizeCode, restartRoom, saveRoom, selectWord, startGame, submitGuess, toRoomSnapshot } from "../services/roomStore.js";
+import { appendDrawingSchema, clearDrawingSchema, createRoomSchema, endRoundSchema, joinRoomSchema, restartRoomSchema, submitGuessSchema } from "./schemas.js";
 
 describe("startGame API behavior", () => {
   it("startGame returns playing status with drawer identity", () => {
@@ -258,5 +258,95 @@ describe("polling snapshots", () => {
     const snapshot = toRoomSnapshot(room, joiner.participantId);
     expect(snapshot.secretWord).toBeUndefined();
     expect(snapshot.currentRound!.canvas!.strokes).toHaveLength(1);
+  });
+
+  it("endRoundSchema accepts valid payload", () => {
+    const result = endRoundSchema.parse({ participantId: "p1" });
+    expect(result.participantId).toBe("p1");
+  });
+
+  it("endRoundSchema rejects missing participantId", () => {
+    expect(() => endRoundSchema.parse({})).toThrow();
+  });
+
+  it("restartRoomSchema accepts valid payload", () => {
+    const result = restartRoomSchema.parse({ participantId: "p1" });
+    expect(result.participantId).toBe("p1");
+  });
+
+  it("restartRoomSchema rejects missing participantId", () => {
+    expect(() => restartRoomSchema.parse({})).toThrow();
+  });
+});
+
+describe("endRound API behavior", () => {
+  it("endRound transitions playing room to result", () => {
+    const created = createRoom("Alice");
+    joinRoom(created.room.code, "Bob");
+    startGame(created.room.code, created.participantId);
+    const room = endRound(created.room.code, created.participantId);
+    expect(room.status).toBe("result");
+    expect(room.completedRound).toBeDefined();
+  });
+
+  it("endRound result snapshot includes completedRound fields", () => {
+    const created = createRoom("Alice");
+    const bob = joinRoom(created.room.code, "Bob")!;
+    const word = selectWord(created.room.code);
+    startGame(created.room.code, created.participantId);
+    submitGuess(created.room.code, bob.participantId, word);
+    const room = endRound(created.room.code, created.participantId);
+    const snapshot = toRoomSnapshot(room, bob.participantId);
+    expect(snapshot.completedRound).toBeDefined();
+    expect(snapshot.completedRound!.secretWord).toBe(word);
+    expect(snapshot.completedRound!.guesses).toHaveLength(1);
+  });
+
+  it("endRound rejects non-participant", () => {
+    const created = createRoom("Alice");
+    joinRoom(created.room.code, "Bob");
+    startGame(created.room.code, created.participantId);
+    expect(() => endRound(created.room.code, "unknown")).toThrow("Participant not found in room");
+  });
+});
+
+describe("restart API behavior", () => {
+  function makeResultRoom() {
+    const created = createRoom("Alice");
+    const bob = joinRoom(created.room.code, "Bob")!;
+    startGame(created.room.code, created.participantId);
+    const word = selectWord(created.room.code);
+    submitGuess(created.room.code, bob.participantId, word);
+    endRound(created.room.code, created.participantId);
+    return { created, bob };
+  }
+
+  it("host restart returns lobby status", () => {
+    const { created } = makeResultRoom();
+    const room = restartRoom(created.room.code, created.participantId);
+    expect(room.status).toBe("lobby");
+  });
+
+  it("non-host restart is rejected", () => {
+    const { created, bob } = makeResultRoom();
+    expect(() => restartRoom(created.room.code, bob.participantId)).toThrow("Only the host can restart");
+  });
+
+  it("restart response omits round data", () => {
+    const { created } = makeResultRoom();
+    restartRoom(created.room.code, created.participantId);
+    const room = getRoom(created.room.code)!;
+    const snapshot = toRoomSnapshot(room, created.participantId);
+    expect(snapshot.status).toBe("lobby");
+    expect(snapshot.currentRound).toBeUndefined();
+    expect(snapshot.completedRound).toBeUndefined();
+  });
+
+  it("restart preserves room code and participants", () => {
+    const { created } = makeResultRoom();
+    restartRoom(created.room.code, created.participantId);
+    const room = getRoom(created.room.code)!;
+    expect(room.code).toBe(created.room.code);
+    expect(room.participants).toHaveLength(2);
   });
 });
