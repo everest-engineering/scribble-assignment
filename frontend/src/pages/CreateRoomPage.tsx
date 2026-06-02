@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { PageHeader } from "../components/PageHeader";
 import { useRoomStore } from "../state/roomStore";
@@ -9,12 +9,22 @@ export function CreateRoomPage() {
   const navigate = useNavigate();
   const roomStore = useRoomStore();
 
+  useEffect(() => {
+    roomStore.leaveRoom();
+  }, [roomStore]);
+
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     try {
       setError(null);
-      await roomStore.createRoom(playerName);
+      const name = playerName.trim();
+      if (name.length === 0) {
+        setError("Player name cannot be empty");
+        return;
+      }
+
+      await roomStore.createRoom(name);
       navigate("/lobby");
     } catch (caughtError) {
       setError(caughtError instanceof Error ? caughtError.message : "Unable to create room");

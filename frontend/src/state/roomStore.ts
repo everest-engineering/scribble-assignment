@@ -7,7 +7,7 @@ import {
   useSyncExternalStore,
   type PropsWithChildren
 } from "react";
-import { api, type RoomSessionResponse, type RoomSnapshot } from "../services/api";
+import { api, serverActions, type RoomSessionResponse, type RoomSnapshot } from "../services/api";
 
 export interface RoomState {
   room: RoomSnapshot | null;
@@ -89,12 +89,44 @@ class RoomStore {
     return response;
   }
 
+  leaveRoom() {
+    this.setState({ room: null, participantId: null, error: null });
+  }
+
   async fetchRoom() {
     if (!this.state.room) {
       return null;
     }
 
     const response = await api.fetchRoom(this.state.room.code, this.state.participantId ?? undefined);
+    this.setRoomSnapshot(response.room);
+    return response.room;
+  }
+
+  async startGame() {
+    if (!this.state.room || !this.state.participantId) return null;
+    const response = await serverActions.startGame(this.state.room.code, this.state.participantId);
+    this.setRoomSnapshot(response.room);
+    return response.room;
+  }
+
+  async addStroke(points: { x: number; y: number }[]) {
+    if (!this.state.room || !this.state.participantId) return null;
+    const response = await serverActions.addStroke(this.state.room.code, this.state.participantId, points);
+    this.setRoomSnapshot(response.room);
+    return response.room;
+  }
+
+  async submitGuess(guess: string) {
+    if (!this.state.room || !this.state.participantId) return null;
+    const response = await serverActions.submitGuess(this.state.room.code, this.state.participantId, guess);
+    this.setRoomSnapshot(response.room);
+    return response.room;
+  }
+
+  async restartRoom() {
+    if (!this.state.room || !this.state.participantId) return null;
+    const response = await serverActions.restartRoom(this.state.room.code, this.state.participantId);
     this.setRoomSnapshot(response.room);
     return response.room;
   }
@@ -109,7 +141,23 @@ export function RoomStoreProvider({ children }: PropsWithChildren) {
     storeRef.current = new RoomStore();
   }
 
-  useEffect(() => undefined, []);
+  // Auto-polling: refresh room snapshot every ~2 seconds when a room is active
+  useEffect(() => {
+    const interval = setInterval(() => {
+      try {
+        const store = storeRef.current;
+        if (!store) return;
+        const s = store.getSnapshot();
+        if (s.room) {
+          void store.fetchRoom();
+        }
+      } catch (e) {
+        // ignore polling errors
+      }
+    }, 2000);
+
+    return () => clearInterval(interval);
+  }, []);
 
   return createElement(RoomStoreContext.Provider, { value: storeRef.current }, children);
 }

@@ -8,12 +8,18 @@ import { useRoomState, useRoomStore } from "../state/roomStore";
 export function LobbyPage() {
   const navigate = useNavigate();
   const roomStore = useRoomStore();
-  const { room, error, isLoading } = useRoomState();
+  const { room, participantId, error, isLoading } = useRoomState();
   const [refreshError, setRefreshError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!room) {
       navigate("/", { replace: true });
+    }
+  }, [navigate, room]);
+
+  useEffect(() => {
+    if (room?.status === "active" || room?.status === "results") {
+      navigate("/game");
     }
   }, [navigate, room]);
 
@@ -49,7 +55,7 @@ export function LobbyPage() {
             <ul className="player-list">
               {room.participants.map((participant) => (
                 <li key={participant.id}>
-                  <span>{participant.name}</span>
+                  <span>{participant.name} {participant.id === room.hostId ? <strong style={{ color: '#0f172a', marginLeft: '8px' }}>(host)</strong> : null}</span>
                   <span className="player-list__meta">joined</span>
                 </li>
               ))}
@@ -69,7 +75,18 @@ export function LobbyPage() {
         <button className="button button--secondary" disabled={isLoading} onClick={handleRefresh}>
           {isLoading ? "Refreshing..." : "Refresh Room"}
         </button>
-        <button className="button button--primary" onClick={() => navigate("/game")}>
+        <button
+          className="button button--primary"
+          onClick={async () => {
+            try {
+              await roomStore.startGame();
+              navigate("/game");
+            } catch (err) {
+              // error shown in status card via store error
+            }
+          }}
+          disabled={!(room.hostId === participantId && room.participants.length >= 2)}
+        >
           Start Game
         </button>
       </div>

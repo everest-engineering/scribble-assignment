@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { PageHeader } from "../components/PageHeader";
 import { useRoomStore } from "../state/roomStore";
@@ -10,12 +10,29 @@ export function JoinRoomPage() {
   const navigate = useNavigate();
   const roomStore = useRoomStore();
 
+  useEffect(() => {
+    roomStore.leaveRoom();
+  }, [roomStore]);
+
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     try {
       setError(null);
-      await roomStore.joinRoom(roomCode.toUpperCase(), playerName);
+      const name = playerName.trim();
+      const code = roomCode.trim().toUpperCase();
+
+      if (name.length === 0) {
+        setError("Player name cannot be empty");
+        return;
+      }
+
+      if (code.length !== 4) {
+        setError("Room code must be 4 characters");
+        return;
+      }
+
+      await roomStore.joinRoom(code, name);
       navigate("/lobby");
     } catch (caughtError) {
       setError(caughtError instanceof Error ? caughtError.message : "Unable to join room");

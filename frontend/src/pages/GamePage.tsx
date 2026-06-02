@@ -6,6 +6,7 @@ import { ResultPanel } from "../components/ResultPanel";
 import { RoomCodeBadge } from "../components/RoomCodeBadge";
 import { Scoreboard } from "../components/Scoreboard";
 import { useRoomState } from "../state/roomStore";
+import { Canvas } from "../components/Canvas";
 
 export function GamePage() {
   const navigate = useNavigate();
@@ -41,8 +42,14 @@ export function GamePage() {
 
         <div className="game-page__main">
           <Card title="Canvas">
-            <div className="canvas-placeholder" style={{ minHeight: '500px', backgroundColor: '#ffffff', border: '1px solid #e5e7eb' }}>
-              Waiting for drawer...
+            {room.round && room.round.drawerId === participantId ? (
+              <div style={{ padding: '16px' }}>
+                <strong>Secret word:</strong>
+                <div style={{ marginTop: '8px', fontSize: '1.25rem' }}>{room.round.secretWord}</div>
+              </div>
+            ) : null}
+            <div style={{ marginTop: 8 }}>
+              <Canvas />
             </div>
           </Card>
         </div>
