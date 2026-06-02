@@ -24,8 +24,8 @@ description: "Task list for Room Setup & Lobby feature"
 
 **Purpose**: Confirm the project runs cleanly before making changes.
 
-- [ ] T001 Start backend (`cd backend && npm run dev`) and confirm `GET /health` returns `{ "ok": true }`
-- [ ] T002 Start frontend (`cd frontend && npm run dev`) and confirm the Start screen loads at `http://localhost:5173`
+- [x] T001 Start backend (`cd backend && npm run dev`) and confirm `GET /health` returns `{ "ok": true }`
+- [x] T002 Start frontend (`cd frontend && npm run dev`) and confirm the Start screen loads at `http://localhost:5173`
 
 ---
 
@@ -35,9 +35,9 @@ description: "Task list for Room Setup & Lobby feature"
 
 ⚠️ **CRITICAL**: No user story work can begin until this phase is complete.
 
-- [ ] T003 Add `hostId: string` to `Room` and `RoomSnapshot` interfaces and expand `RoomStatus` to `"lobby" | "active"` in `backend/src/models/game.ts`
-- [ ] T004 Set `room.hostId = participant.id` (the first participant) in `createRoom` and include `hostId` in `toRoomSnapshot` return value in `backend/src/services/roomStore.ts`
-- [ ] T005 [P] Add `hostId: string` to `RoomSnapshot` interface and expand `status` type to `"lobby" | "active"` in `frontend/src/services/api.ts`
+- [x] T003 Add `hostId: string` to `Room` and `RoomSnapshot` interfaces and expand `RoomStatus` to `"lobby" | "active"` in `backend/src/models/game.ts`
+- [x] T004 Set `room.hostId = participant.id` (the first participant) in `createRoom` and include `hostId` in `toRoomSnapshot` return value in `backend/src/services/roomStore.ts`
+- [x] T005 [P] Add `hostId: string` to `RoomSnapshot` interface and expand `status` type to `"lobby" | "active"` in `frontend/src/services/api.ts`
 
 **Checkpoint**: Run `npm run build` in `backend/` — TypeScript must compile with no errors before proceeding.
 
@@ -51,8 +51,8 @@ description: "Task list for Room Setup & Lobby feature"
 
 ### Implementation for User Story 1
 
-- [ ] T006 [US1] Update `createRoom` Zod schema to trim `playerName` and enforce `min(1)` (reject whitespace-only) in `backend/src/api/schemas.ts`
-- [ ] T007 [US1] Add inline name validation to `CreateRoomPage.tsx`: trim input before submit; if empty after trim, display an inline error message and do not call the API in `frontend/src/pages/CreateRoomPage.tsx`
+- [x] T006 [US1] Update `createRoom` Zod schema to trim `playerName` and enforce `min(1)` (reject whitespace-only) in `backend/src/api/schemas.ts`
+- [x] T007 [US1] Add inline name validation to `CreateRoomPage.tsx`: trim input before submit; if empty after trim, display an inline error message and do not call the API in `frontend/src/pages/CreateRoomPage.tsx`
 
 **Checkpoint**: Empty name on Create Room shows an inline error and does not navigate. Valid name creates a room and lands on Lobby with `hostId` visible in the API response.
 
@@ -66,11 +66,11 @@ description: "Task list for Room Setup & Lobby feature"
 
 ### Implementation for User Story 2
 
-- [ ] T008 [P] [US2] Update `joinRoom` Zod schema to trim `playerName` and enforce `min(1)` in `backend/src/api/schemas.ts`
-- [ ] T009 [P] [US2] Uppercase `req.params.code` before room lookup in the `joinRoom` handler in `backend/src/api/rooms.ts`
-- [ ] T010 [US2] Add inline validation to `JoinRoomPage.tsx`: trim name and code before submit; show separate inline errors for empty name and empty code; uppercase code before API call; display API error message ("Room not found") inline on 404 in `frontend/src/pages/JoinRoomPage.tsx`
-- [ ] T020 [US2] Add Zod `.regex(/^[A-Z0-9]+$/)` refinement on the room code after uppercasing in `joinRoom` to reject non-alphanumeric codes with a 400 error in `backend/src/api/rooms.ts` or `backend/src/api/schemas.ts`
-- [ ] T021 [US1] [US2] Persist `participantId` to `sessionStorage` after successful create and join responses so host identity survives a page refresh in `frontend/src/pages/CreateRoomPage.tsx` and `frontend/src/pages/JoinRoomPage.tsx`
+- [x] T008 [P] [US2] Update `joinRoom` Zod schema to trim `playerName` and enforce `min(1)` in `backend/src/api/schemas.ts`
+- [x] T009 [P] [US2] Uppercase `req.params.code` before room lookup in the `joinRoom` handler in `backend/src/api/rooms.ts`
+- [x] T010 [US2] Add inline validation to `JoinRoomPage.tsx`: trim name and code before submit; show separate inline errors for empty name and empty code; uppercase code before API call; display API error message ("Room not found") inline on 404 in `frontend/src/pages/JoinRoomPage.tsx`
+- [x] T020 [US2] Add Zod `.regex(/^[A-Z0-9]+$/)` refinement on the room code after uppercasing in `joinRoom` to reject non-alphanumeric codes with a 400 error in `backend/src/api/rooms.ts` or `backend/src/api/schemas.ts`
+- [x] T021 [US1] [US2] Persist `participantId` to `sessionStorage` after successful create and join responses so host identity survives a page refresh in `frontend/src/pages/CreateRoomPage.tsx` and `frontend/src/pages/JoinRoomPage.tsx`
 
 **Checkpoint**: Lowercase code joins successfully. Empty name shows error. Non-existent code shows "Room not found" inline. Code with special characters (e.g. `AB!D`) is rejected with an error. Refreshing the lobby page preserves the player's session.
 
@@ -84,7 +84,7 @@ description: "Task list for Room Setup & Lobby feature"
 
 ### Implementation for User Story 3
 
-- [ ] T011 [US3] Remove the manual "Refresh" button and add a `useEffect` that calls `api.fetchRoom()` via `setInterval` every 2000ms; clear interval on unmount; on poll failure retain last known state silently in `frontend/src/pages/LobbyPage.tsx`
+- [x] T011 [US3] Remove the manual "Refresh" button and add a `useEffect` that calls `api.fetchRoom()` via `setInterval` every 2000ms; clear interval on unmount; on poll failure retain last known state silently in `frontend/src/pages/LobbyPage.tsx`
 
 **Checkpoint**: New participant appears in all existing lobby tabs within ~2 seconds of joining.
 
@@ -98,11 +98,11 @@ description: "Task list for Room Setup & Lobby feature"
 
 ### Implementation for User Story 4
 
-- [ ] T012 [P] [US4] Add `StartRoomSchema` (`{ participantId: z.string().uuid() }`) in `backend/src/api/schemas.ts`
-- [ ] T013 [US4] Implement `startRoom` handler: return 404 if room not found, 403 if caller is not `hostId`, 400 if fewer than 2 participants, otherwise set `status = "active"` and return updated snapshot in `backend/src/api/rooms.ts`
-- [ ] T014 [US4] Wire `POST /rooms/:code/start` to the `startRoom` handler in `backend/src/api/router.ts`
-- [ ] T015 [P] [US4] Add `startGame(code: string, participantId: string)` method (POST `/rooms/:code/start`) in `frontend/src/services/api.ts`
-- [ ] T016 [US4] Add Start Game button to `LobbyPage.tsx`: disabled for non-host (show "Waiting for host…"); disabled for host when `participants.length < 2` (show "Waiting for more players…"); on host click call `api.startGame` then navigate to Game screen; lobby polling detects `status === "active"` for non-hosts and navigates them automatically in `frontend/src/pages/LobbyPage.tsx`
+- [x] T012 [P] [US4] Add `StartRoomSchema` (`{ participantId: z.string().uuid() }`) in `backend/src/api/schemas.ts`
+- [x] T013 [US4] Implement `startRoom` handler: return 404 if room not found, 403 if caller is not `hostId`, 400 if fewer than 2 participants, otherwise set `status = "active"` and return updated snapshot in `backend/src/api/rooms.ts`
+- [x] T014 [US4] Wire `POST /rooms/:code/start` to the `startRoom` handler in `backend/src/api/router.ts`
+- [x] T015 [P] [US4] Add `startGame(code: string, participantId: string)` method (POST `/rooms/:code/start`) in `frontend/src/services/api.ts`
+- [x] T016 [US4] Add Start Game button to `LobbyPage.tsx`: disabled for non-host (show "Waiting for host…"); disabled for host when `participants.length < 2` (show "Waiting for more players…"); on host click call `api.startGame` then navigate to Game screen; lobby polling detects `status === "active"` for non-hosts and navigates them automatically in `frontend/src/pages/LobbyPage.tsx`
 
 **Checkpoint**: Non-host button is disabled. Host with 1 player — button disabled. Host with 2 players — button enabled; click navigates all tabs to Game screen. Direct `POST /rooms/:code/start` from non-host returns 403.
 
@@ -112,9 +112,9 @@ description: "Task list for Room Setup & Lobby feature"
 
 **Purpose**: Build validation and end-to-end acceptance check.
 
-- [ ] T017 [P] Run `npm run build` in `backend/` and confirm zero TypeScript errors
-- [ ] T018 [P] Run `npm run build` in `frontend/` and confirm zero TypeScript errors
-- [ ] T019 Complete the full validation flow in `specs/001-room-setup-lobby/quickstart.md` using two browser tabs and confirm all 7 checks in the validation table pass
+- [x] T017 [P] Run `npm run build` in `backend/` and confirm zero TypeScript errors
+- [x] T018 [P] Run `npm run build` in `frontend/` and confirm zero TypeScript errors
+- [x] T019 Complete the full validation flow in `specs/001-room-setup-lobby/quickstart.md` using two browser tabs and confirm all 7 checks in the validation table pass
 
 ---
 

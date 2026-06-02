@@ -6,19 +6,41 @@ import { useRoomStore } from "../state/roomStore";
 export function JoinRoomPage() {
   const [playerName, setPlayerName] = useState("");
   const [roomCode, setRoomCode] = useState("");
-  const [error, setError] = useState<string | null>(null);
+  const [nameError, setNameError] = useState<string | null>(null);
+  const [codeError, setCodeError] = useState<string | null>(null);
+  const [apiError, setApiError] = useState<string | null>(null);
   const navigate = useNavigate();
   const roomStore = useRoomStore();
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
+    const trimmedName = playerName.trim();
+    const trimmedCode = roomCode.trim().toUpperCase();
+
+    setNameError(null);
+    setCodeError(null);
+    setApiError(null);
+
+    let hasError = false;
+    if (!trimmedName) {
+      setNameError("Player name is required");
+      hasError = true;
+    }
+    if (!trimmedCode) {
+      setCodeError("Room code is required");
+      hasError = true;
+    } else if (!/^[A-Za-z0-9]+$/.test(trimmedCode)) {
+      setCodeError("Room code must contain only letters and numbers");
+      hasError = true;
+    }
+    if (hasError) return;
+
     try {
-      setError(null);
-      await roomStore.joinRoom(roomCode.toUpperCase(), playerName);
+      await roomStore.joinRoom(trimmedCode, trimmedName);
       navigate("/lobby");
     } catch (caughtError) {
-      setError(caughtError instanceof Error ? caughtError.message : "Unable to join room");
+      setApiError(caughtError instanceof Error ? caughtError.message : "Unable to join room");
     }
   }
 
@@ -39,6 +61,7 @@ export function JoinRoomPage() {
             placeholder="Second pencil"
           />
         </label>
+        {nameError ? <p className="form__error">{nameError}</p> : null}
 
         <label className="form__field">
           <span>Room code</span>
@@ -49,7 +72,10 @@ export function JoinRoomPage() {
             placeholder="ABCD"
           />
         </label>
-        {error ? <p className="form__error">{error}</p> : null}
+        {codeError ? <p className="form__error">{codeError}</p> : null}
+
+        {apiError ? <p className="form__error">{apiError}</p> : null}
+
         <div className="button-row">
           <button className="button button--primary" type="submit">
             Join Lobby

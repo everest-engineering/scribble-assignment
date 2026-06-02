@@ -2,11 +2,13 @@ import { Router } from "express";
 import {
   createRoomSchema,
   HttpError,
+  joinRoomParamsSchema,
   joinRoomSchema,
   roomCodeParamsSchema,
-  roomViewerQuerySchema
+  roomViewerQuerySchema,
+  startRoomSchema
 } from "./schemas.js";
-import { createRoom, getRoom, joinRoom, toRoomSnapshot } from "../services/roomStore.js";
+import { createRoom, getRoom, joinRoom, saveRoom, toRoomSnapshot } from "../services/roomStore.js";
 
 export function createRoomsRouter() {
   const router = Router();
@@ -27,17 +29,46 @@ export function createRoomsRouter() {
 
   router.post("/:code/join", (request, response, next) => {
     try {
-      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { code } = joinRoomParamsSchema.parse(request.params);
       const { playerName } = joinRoomSchema.parse(request.body);
-      const result = joinRoom(code.toUpperCase(), playerName);
+      const result = joinRoom(code, playerName);
 
       if (!result) {
-        throw new HttpError(404, "Unable to join room");
+        throw new HttpError(404, "Room not found");
       }
 
       response.json({
         participantId: result.participantId,
         room: toRoomSnapshot(result.room, result.participantId)
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/:code/start", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId } = startRoomSchema.parse(request.body);
+      const room = getRoom(code.toUpperCase());
+
+      if (!room) {
+        throw new HttpError(404, "Room not found");
+      }
+
+      if (room.hostId !== participantId) {
+        throw new HttpError(403, "Only the host can start the game");
+      }
+
+      if (room.participants.length < 2) {
+        throw new HttpError(400, "At least 2 players are required to start the game");
+      }
+
+      room.status = "active";
+      const updatedRoom = saveRoom(room);
+
+      response.json({
+        room: toRoomSnapshot(updatedRoom!, participantId)
       });
     } catch (error) {
       next(error);

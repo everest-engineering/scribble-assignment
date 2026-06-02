@@ -18,6 +18,8 @@ export interface RoomState {
 
 type Listener = () => void;
 
+const SESSION_KEY = "scribble_session";
+
 class RoomStore {
   private state: RoomState = {
     room: null,
@@ -27,6 +29,20 @@ class RoomStore {
   };
 
   private listeners = new Set<Listener>();
+
+  constructor() {
+    try {
+      const saved = sessionStorage.getItem(SESSION_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved) as { participantId: string; roomCode: string };
+        if (parsed.participantId) {
+          this.state = { ...this.state, participantId: parsed.participantId };
+        }
+      }
+    } catch {
+      sessionStorage.removeItem(SESSION_KEY);
+    }
+  }
 
   subscribe = (listener: Listener) => {
     this.listeners.add(listener);
@@ -63,6 +79,14 @@ class RoomStore {
   }
 
   setRoomSession(response: RoomSessionResponse) {
+    try {
+      sessionStorage.setItem(
+        SESSION_KEY,
+        JSON.stringify({ participantId: response.participantId, roomCode: response.room.code })
+      );
+    } catch {
+      // sessionStorage unavailable — continue without persistence
+    }
     this.setState({
       participantId: response.participantId,
       room: response.room,
@@ -97,6 +121,21 @@ class RoomStore {
     const response = await api.fetchRoom(this.state.room.code, this.state.participantId ?? undefined);
     this.setRoomSnapshot(response.room);
     return response.room;
+  }
+
+  async restoreSession(): Promise<boolean> {
+    try {
+      const saved = sessionStorage.getItem(SESSION_KEY);
+      if (!saved) return false;
+
+      const { participantId, roomCode } = JSON.parse(saved) as { participantId: string; roomCode: string };
+      const response = await api.fetchRoom(roomCode, participantId);
+      this.setState({ participantId, room: response.room, error: null });
+      return true;
+    } catch {
+      sessionStorage.removeItem(SESSION_KEY);
+      return false;
+    }
   }
 }
 
