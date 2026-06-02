@@ -37,7 +37,7 @@ description: "Task list for Room Setup & Lobby"
 - [ ] T002 [P] Add `"playing"` to `RoomStatus` type union, add `hostId: string` field to `Room` interface and `RoomSnapshot` interface in `backend/src/models/game.ts`
 - [ ] T003 [P] Add `export type RoomStatus = "lobby" | "playing"` and add `hostId: string` to `RoomSnapshot` interface in `frontend/src/services/api.ts`
 
-> T002 and T003 touch different files — run in parallel.
+> T002 and T003 are parallel with **each other**; both depend on Phase 1 (T001) completing first — T001 and T003 both modify `frontend/src/services/api.ts` and must be sequential.
 
 **Checkpoint**: Both backend and frontend type models are aligned. User story phases can now begin.
 
@@ -64,7 +64,7 @@ description: "Task list for Room Setup & Lobby"
 
 - [ ] T006 [US2] Add a status guard to `joinRoom()` in `backend/src/services/roomStore.ts` — if `room.status !== "lobby"` throw an `HttpError` with status 409 and message `"Game already in progress"` (depends on T002 type changes, touches different function from T004)
 - [ ] T007 [P] [US2] Add Vitest unit tests to `backend/src/services/roomStore.test.ts` — assert `joinRoom()` throws a 409-equivalent error when room status is `"playing"`
-- [ ] T008 [P] [US2] Update `frontend/src/pages/JoinRoomPage.tsx` to display API error messages from failed join attempts — show `"Room not found"` for 404 responses and `"Game already in progress"` for 409 responses as inline form feedback
+- [ ] T008 [P] [US2] Add pre-API validation guards to `frontend/src/pages/JoinRoomPage.tsx` — if `playerName.trim()` is empty, call `setError("Player name is required")` and return before any API call; if `roomCode.trim()` is empty, call `setError("Room code is required")` and return before any API call (covers FR-1 / US2-AC2, AC4 / Constitution IV). Note: API error display for 404/409 already works via the existing `catch → setError(error.message)` path in the current starter code.
 
 > T007 and T008 touch different files — run in parallel.
 
@@ -79,8 +79,8 @@ description: "Task list for Room Setup & Lobby"
 **Independent Test**: Open two tabs. Create a room in tab 1. Join from tab 2. Within 2 seconds, the host's lobby in tab 1 should show the new joiner with no button click. Stop the backend server — the lobby should redirect to `/` within ~2 seconds.
 
 - [ ] T009 [US3] Add a `useEffect` polling loop to `frontend/src/pages/LobbyPage.tsx`:
-  - Call `api.fetchRoom(code, participantId)` on a `setInterval` of 2000ms
-  - On success: call store update with fresh snapshot; if `room.status === "playing"` call `navigate("/game")`
+  - On a `setInterval` of 2000ms, call `roomStore.fetchRoom()` (existing method — already calls `api.fetchRoom()` and `setRoomSnapshot()` internally)
+  - On success: check the returned room's `status`; if `room.status === "playing"` call `navigate("/game")`
   - On any error: call `clearInterval(intervalId)` then `navigate("/")`
   - Return `() => clearInterval(intervalId)` as the cleanup function
 
@@ -100,8 +100,9 @@ description: "Task list for Room Setup & Lobby"
 - [ ] T013 [P] [US4] Add `startRoom(code: string): Promise<{ room: RoomSnapshot }>` function to `frontend/src/services/api.ts` — `POST /rooms/:code/start` with empty body, return parsed JSON
 - [ ] T014 [P] [US4] Add `startRoom()` async method to the `RoomStore` class in `frontend/src/state/roomStore.ts` — call `api.startRoom(this.state.room.code)`, call `this.setRoomSnapshot(room)` on success
 - [ ] T015 [US4] Add host-only "Start Game" button to `frontend/src/pages/LobbyPage.tsx`:
+  - Access state via `const state = useRoomState()` (returns `RoomState` with `room`, `participantId`, etc.)
   - Render only when `state.participantId === state.room?.hostId`
-  - Disabled when `state.room.participants.length < 2`
+  - Disabled when `(state.room?.participants.length ?? 0) < 2`
   - On click: call `roomStore.startRoom()` then `navigate("/game")`
 
 > T013 and T014 touch different files — run in parallel. T015 depends on both T014 (action available) and T009 (polling/navigation logic in same component).
@@ -116,6 +117,7 @@ description: "Task list for Room Setup & Lobby"
 
 - [ ] T016 [P] Add Vitest unit tests for `startRoom()` in `backend/src/services/roomStore.test.ts` — cover success case (status transitions to `"playing"`) and 404 case (unknown code throws)
 - [ ] T017 [P] Add tests to `frontend/src/services/api.test.ts` — verify `startRoom()` calls the correct endpoint and the fixed base URL does not contain `/bug`
+- [ ] T018 [P] [US1] Add pre-API validation guard to `frontend/src/pages/CreateRoomPage.tsx` — if `playerName.trim()` is empty, call `setError("Player name is required")` and return before any API call (covers FR-1 / US1-AC3 / Constitution IV)
 
 ---
 
@@ -144,6 +146,7 @@ T015 [US4]               — T009, T014
 
 T016 [P]                 — T011
 T017 [P]                 — T013
+T018 [P][US1]            — no deps (only touches CreateRoomPage.tsx)
 ```
 
 ## Parallel Execution per Story
@@ -184,4 +187,4 @@ T001 → T002 ‖ T003 → T004 → T005
 - T009 → T010 → T011 → T012 → T013 ‖ T014 → T015 → T016 ‖ T017
   = 9 more tasks
 
-**Total**: 17 tasks across 7 phases
+**Total**: 18 tasks across 7 phases

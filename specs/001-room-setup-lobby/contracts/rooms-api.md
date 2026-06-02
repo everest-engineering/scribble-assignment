@@ -114,12 +114,14 @@ Poll for current room state. Called every ~2 seconds from the Lobby.
 
 ```json
 {
-  "code": "XKCD",
-  "status": "lobby",
-  "hostId": "a1b2c3d4-...",
-  "participants": [ ... ],
-  "availableWords": [ ... ],
-  "roles": [ ... ]
+  "room": {
+    "code": "XKCD",
+    "status": "lobby",
+    "hostId": "a1b2c3d4-...",
+    "participants": [ ... ],
+    "availableWords": [ ... ],
+    "roles": [ ... ]
+  }
 }
 ```
 
