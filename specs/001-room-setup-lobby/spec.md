@@ -91,7 +91,7 @@ Once at least 2 players are in the lobby, the host can start the game. Non-host 
 - **FR-001**: The system MUST assign the creator of a room as its host and persist the host identity for the lifetime of the room.
 - **FR-002**: The system MUST generate a unique room code for each new room.
 - **FR-003**: Player names MUST be trimmed before use; empty or whitespace-only names MUST be rejected with a user-visible error message.
-- **FR-004**: Room codes MUST be trimmed before lookup; empty or whitespace-only codes MUST be rejected with a user-visible error message.
+- **FR-004**: Room codes MUST be trimmed before lookup; empty or whitespace-only codes MUST be rejected with a user-visible error message; codes containing non-alphanumeric characters after trimming MUST also be rejected.
 - **FR-005**: Joining with a code that does not match any existing room MUST return a clear "room not found" error to the player.
 - **FR-006**: Each room MUST maintain a fully isolated participant list; a participant joining one room MUST NOT appear in any other room.
 - **FR-007**: The lobby MUST automatically refresh the participant list via polling at approximately a 2-second interval.
@@ -101,7 +101,7 @@ Once at least 2 players are in the lobby, the host can start the game. Non-host 
 
 ### Key Entities
 
-- **Room**: Identified by a unique code; has a host participant, a list of participants, a status (`lobby`), and creation metadata.
+- **Room**: Identified by a unique code; has a host participant, a list of participants, a status (`lobby` or `active`), and creation metadata.
 - **Participant**: Identified by a unique ID within a room; has a display name and join timestamp. The host is the participant whose ID matches the room's `hostId`.
 
 ## Success Criteria *(mandatory)*
@@ -123,3 +123,4 @@ Once at least 2 players are in the lobby, the host can start the game. Non-host 
 - If the backend is unreachable during a poll, the lobby silently retains the last known state and retries on the next interval — no error overlay is shown for transient poll failures.
 - WebSockets and server-push are out of scope; all sync is achieved via client-side polling of the existing `GET /rooms/:code` endpoint.
 - The game-start action is gated on the backend by checking `hostId`; the frontend gate (disabled button) is a UX convenience only.
+- The `participantId` returned on create/join is persisted to `sessionStorage` so the player's identity and host status survive a page refresh within the same session.

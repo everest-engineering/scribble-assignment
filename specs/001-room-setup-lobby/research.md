@@ -43,9 +43,9 @@
 
 ## Decision 4: Input Validation Location
 
-**Decision**: Trim and validate player name and room code on the frontend before submission (immediate feedback) and on the backend via Zod schemas (authoritative gate).
+**Decision**: Trim and validate player name and room code on the frontend before submission (immediate feedback) and on the backend via Zod schemas (authoritative gate). Room codes MUST also be validated against a `^[A-Z0-9]+$` pattern after uppercasing to reject non-alphanumeric input.
 
-**Rationale**: Frontend validation (FR-003, FR-004) gives instant feedback; backend validation ensures the API cannot be called with invalid data directly. Zod is already used for all existing request schemas.
+**Rationale**: Frontend validation (FR-003, FR-004) gives instant feedback; backend validation ensures the API cannot be called with invalid data directly. Zod is already used for all existing request schemas. The non-alphanumeric check closes a gap identified during analysis — a code like `AB!D` would pass empty-string validation but fail to match any room.
 
 **Alternatives considered**:
 - Frontend only — rejected; API can be called directly, bypassing checks.

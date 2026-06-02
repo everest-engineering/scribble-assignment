@@ -130,8 +130,9 @@ Work through these slices in order. Validate each slice before moving to the nex
 
 - In the `joinRoom` handler, uppercase `req.params.code` before lookup.
 - Ensure Zod schema rejects empty/whitespace `playerName` on both create and join (`.trim().min(1)`).
+- Add `.regex(/^[A-Z0-9]+$/)` refinement on the room code after uppercasing to reject non-alphanumeric input (e.g. `AB!D`) with a 400 error.
 
-**Validate**: Joining with a lowercase code succeeds. Submitting an empty name returns 400.
+**Validate**: Joining with a lowercase code succeeds. Submitting an empty name returns 400. Code with special characters returns 400.
 
 ---
 
@@ -233,6 +234,6 @@ Work through these slices in order. Validate each slice before moving to the nex
 | Risk | Likelihood | Mitigation |
 |------|------------|------------|
 | Polling causes state flicker in UI | Medium | Only update React state when snapshot differs from current state |
-| participantId lost on page refresh | Medium | Store participantId in sessionStorage or pass via navigation state |
+| participantId lost on page refresh | Medium | Persist participantId to sessionStorage after create/join (T021); read back on Lobby mount |
 | Race condition: two hosts start simultaneously | Low | In-memory store is single-threaded Node.js; no true concurrency risk |
 | Room code collision | Very Low | Generator retries on collision; 4-char code space is large enough for lab scale |

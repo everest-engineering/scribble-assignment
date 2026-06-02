@@ -52,9 +52,11 @@ Use this guide to manually validate the Room Setup & Lobby scenario after implem
 | Whitespace-only name on Join | Form not submitted, error shown inline |
 | Empty code on Join | Form not submitted, error shown inline |
 | Non-existent code (e.g. `ZZZZ`) | "Room not found" error on Join screen |
+| Code with special characters (e.g. `AB!D`) | Rejected with an error, form not submitted |
 | Lowercase code matches uppercase room | Join succeeds |
 | Start Game with 1 player only | Button disabled |
 | Non-host clicks Start Game | Button disabled / no action |
+| Refresh Lobby page | Player identity and host status are preserved (no re-login required) |
 
 ---
 

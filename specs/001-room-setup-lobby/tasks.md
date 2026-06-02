@@ -69,8 +69,10 @@ description: "Task list for Room Setup & Lobby feature"
 - [ ] T008 [P] [US2] Update `joinRoom` Zod schema to trim `playerName` and enforce `min(1)` in `backend/src/api/schemas.ts`
 - [ ] T009 [P] [US2] Uppercase `req.params.code` before room lookup in the `joinRoom` handler in `backend/src/api/rooms.ts`
 - [ ] T010 [US2] Add inline validation to `JoinRoomPage.tsx`: trim name and code before submit; show separate inline errors for empty name and empty code; uppercase code before API call; display API error message ("Room not found") inline on 404 in `frontend/src/pages/JoinRoomPage.tsx`
+- [ ] T020 [US2] Add Zod `.regex(/^[A-Z0-9]+$/)` refinement on the room code after uppercasing in `joinRoom` to reject non-alphanumeric codes with a 400 error in `backend/src/api/rooms.ts` or `backend/src/api/schemas.ts`
+- [ ] T021 [US1] [US2] Persist `participantId` to `sessionStorage` after successful create and join responses so host identity survives a page refresh in `frontend/src/pages/CreateRoomPage.tsx` and `frontend/src/pages/JoinRoomPage.tsx`
 
-**Checkpoint**: Lowercase code joins successfully. Empty name shows error. Non-existent code shows "Room not found" inline.
+**Checkpoint**: Lowercase code joins successfully. Empty name shows error. Non-existent code shows "Room not found" inline. Code with special characters (e.g. `AB!D`) is rejected with an error. Refreshing the lobby page preserves the player's session.
 
 ---
 
@@ -82,7 +84,7 @@ description: "Task list for Room Setup & Lobby feature"
 
 ### Implementation for User Story 3
 
-- [ ] T011 [US3] Replace the manual "Refresh" button with a `useEffect` that calls `api.fetchRoom()` via `setInterval` every 2000ms; clear interval on unmount; on poll failure retain last known state silently in `frontend/src/pages/LobbyPage.tsx`
+- [ ] T011 [US3] Remove the manual "Refresh" button and add a `useEffect` that calls `api.fetchRoom()` via `setInterval` every 2000ms; clear interval on unmount; on poll failure retain last known state silently in `frontend/src/pages/LobbyPage.tsx`
 
 **Checkpoint**: New participant appears in all existing lobby tabs within ~2 seconds of joining.
 

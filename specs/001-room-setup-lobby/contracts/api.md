@@ -51,7 +51,7 @@ Join an existing room by code.
 { "playerName": "Bob" }
 ```
 - `playerName`: non-empty string after trimming; 400 if empty/whitespace.
-- `:code`: trimmed and uppercased before lookup; 400 if empty after trim.
+- `:code`: trimmed and uppercased before lookup; 400 if empty after trim or if it contains non-alphanumeric characters.
 
 **Response 200**
 ```json
