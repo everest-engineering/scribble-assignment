@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { PageHeader } from "../components/PageHeader";
+import { writeActiveRoom, writeIdentity } from "../state/identityStorage";
 import { useRoomStore } from "../state/roomStore";
 
 export function CreateRoomPage() {
@@ -14,7 +15,12 @@ export function CreateRoomPage() {
 
     try {
       setError(null);
-      await roomStore.createRoom(playerName);
+      const response = await roomStore.createRoom(playerName);
+      writeIdentity(response.room.code, {
+        participantId: response.participantId,
+        role: "host"
+      });
+      writeActiveRoom(response.room.code);
       navigate("/lobby");
     } catch (caughtError) {
       setError(caughtError instanceof Error ? caughtError.message : "Unable to create room");

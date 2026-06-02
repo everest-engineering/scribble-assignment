@@ -6,18 +6,22 @@ describe("api service", () => {
     vi.stubGlobal("fetch", vi.fn());
   });
 
-  it("createRoom sends POST to /rooms with playerName in body", async () => {
+  it("createRoom sends POST to /rooms with playerName in body and the correct base URL", async () => {
     const mockResponse = {
       ok: true,
       json: () =>
         Promise.resolve({
           participantId: "p1",
-          room: { code: "ABCD", status: "lobby", participants: [] },
+          room: { code: "ABCD", status: "lobby", hostParticipantId: "p1", participants: [] },
         }),
     };
     vi.mocked(fetch).mockResolvedValue(mockResponse as unknown as Response);
 
     await api.createRoom("Alice");
+
+    const calledUrl = vi.mocked(fetch).mock.calls[0]?.[0] as string;
+    expect(calledUrl).toMatch(/^http:\/\/localhost:3001\/rooms$/);
+    expect(calledUrl).not.toContain("/bug/");
 
     expect(fetch).toHaveBeenCalledWith(
       expect.stringContaining("/rooms"),
@@ -33,7 +37,7 @@ describe("api service", () => {
       ok: true,
       json: () =>
         Promise.resolve({
-          room: { code: "XYZW", status: "lobby", participants: [] },
+          room: { code: "XYZW", status: "lobby", hostParticipantId: "p1", participants: [] },
         }),
     };
     vi.mocked(fetch).mockResolvedValue(mockResponse as unknown as Response);
@@ -44,5 +48,15 @@ describe("api service", () => {
       expect.stringContaining("/rooms/XYZW?participantId=p1"),
       expect.anything()
     );
+  });
+
+  it("joinRoom surfaces the server's message verbatim on a non-ok response", async () => {
+    const mockResponse = {
+      ok: false,
+      json: () => Promise.resolve({ message: "Room not found" }),
+    };
+    vi.mocked(fetch).mockResolvedValue(mockResponse as unknown as Response);
+
+    await expect(api.joinRoom("ZZZZ", "Bob")).rejects.toThrow("Room not found");
   });
 });

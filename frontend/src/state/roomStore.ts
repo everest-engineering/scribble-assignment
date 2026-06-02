@@ -98,6 +98,34 @@ class RoomStore {
     this.setRoomSnapshot(response.room);
     return response.room;
   }
+
+  async hydrateSession(roomCode: string, participantId: string) {
+    this.setState({
+      participantId,
+      room: {
+        code: roomCode,
+        status: "lobby",
+        hostParticipantId: "",
+        participants: [],
+        availableWords: [],
+        roles: []
+      },
+      error: null,
+      isLoading: true
+    });
+
+    try {
+      const response = await api.fetchRoom(roomCode, participantId);
+      this.setRoomSnapshot(response.room);
+      return response.room;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unable to reload room";
+      this.setState({ error: message, room: null, participantId: null });
+      throw error;
+    } finally {
+      this.setState({ isLoading: false });
+    }
+  }
 }
 
 const RoomStoreContext = createContext<RoomStore | null>(null);
