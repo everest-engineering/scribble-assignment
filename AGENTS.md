@@ -40,3 +40,13 @@ You are working on a monolithic repository for a multiplayer drawing game ("Scri
 -   Give concise, direct answers.
 -   Do not output large blocks of code if a small change suffices.
 -   When creating or editing files, ensure consistency with the existing directory structure detailed above.
+
+## Active Technologies
+- TypeScript 5.x (backend + frontend) + Backend: Express 4, Zod 3, cors. Frontend: React 18, React Router 6, Vite 5. (001-room-setup-lobby)
+- In-memory only (no database — per constitution) (001-room-setup-lobby)
+- Canvas sync via HTTP polling (1s interval), room state via HTTP polling (2s interval). HTML5 Canvas API for drawing (no canvas library). (003-gameplay-interaction)
+
+## Recent Changes
+- 001-room-setup-lobby: Added TypeScript 5.x (backend + frontend) + Backend: Express 4, Zod 3, cors. Frontend: React 18, React Router 6, Vite 5.
+- 002-game-start-drawer-flow: Name trimming via Zod .trim(), drawer assignment on game start (host=drawer), deterministic secret word selection and per-participant filtering.
+- 003-gameplay-interaction: Canvas drawing (drawer) with HTTP polling sync at 1s; guess submission/scoring with exact case-insensitive match (100 pts per correct guess, max 100 chars); guess history visible to all; auto-redirect lobby→game on status change.

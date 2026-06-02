@@ -7,11 +7,12 @@ import {
   useSyncExternalStore,
   type PropsWithChildren
 } from "react";
-import { api, type RoomSessionResponse, type RoomSnapshot } from "../services/api";
+import { api, type RoomSessionResponse, type RoomSnapshot, type Stroke } from "../services/api";
 
 export interface RoomState {
   room: RoomSnapshot | null;
   participantId: string | null;
+  canvasStrokes: Stroke[];
   error: string | null;
   isLoading: boolean;
 }
@@ -22,6 +23,7 @@ class RoomStore {
   private state: RoomState = {
     room: null,
     participantId: null,
+    canvasStrokes: [],
     error: null,
     isLoading: false
   };
@@ -77,6 +79,10 @@ class RoomStore {
     });
   }
 
+  setCanvasStrokes(strokes: Stroke[]) {
+    this.setState({ canvasStrokes: strokes });
+  }
+
   async createRoom(playerName: string) {
     const response = await this.withLoading(() => api.createRoom(playerName));
     this.setRoomSession(response);
@@ -97,6 +103,76 @@ class RoomStore {
     const response = await api.fetchRoom(this.state.room.code, this.state.participantId ?? undefined);
     this.setRoomSnapshot(response.room);
     return response.room;
+  }
+
+  async startGame() {
+    if (!this.state.room || !this.state.participantId) {
+      return;
+    }
+
+    const response = await this.withLoading(() => api.startGame(this.state.room!.code, this.state.participantId!));
+    this.setRoomSnapshot(response.room);
+  }
+
+  async submitGuess(text: string) {
+    if (!this.state.room || !this.state.participantId) {
+      throw new Error("No active room");
+    }
+
+    const response = await api.submitGuess(this.state.room.code, this.state.participantId, text);
+    this.setRoomSnapshot({
+      ...this.state.room,
+      status: response.roomStatus,
+      scores: response.scores,
+      guesses: response.guesses
+    });
+    return response;
+  }
+
+  async fetchCanvas() {
+    if (!this.state.room) {
+      return;
+    }
+
+    const response = await api.fetchCanvas(this.state.room.code);
+    this.setCanvasStrokes(response.strokes);
+  }
+
+  async saveCanvas(strokes: Stroke[]) {
+    if (!this.state.room || !this.state.participantId) {
+      return;
+    }
+
+    await api.saveCanvas(this.state.room.code, this.state.participantId, strokes);
+    this.setCanvasStrokes(strokes);
+  }
+
+  async clearCanvas() {
+    if (!this.state.room || !this.state.participantId) {
+      return;
+    }
+
+    await api.clearCanvas(this.state.room.code, this.state.participantId);
+    this.setCanvasStrokes([]);
+  }
+
+  async endRound() {
+    if (!this.state.room || !this.state.participantId) {
+      return;
+    }
+
+    const response = await this.withLoading(() => api.endRound(this.state.room!.code, this.state.participantId!));
+    this.setRoomSnapshot(response.room);
+  }
+
+  async restartGame() {
+    if (!this.state.room || !this.state.participantId) {
+      return;
+    }
+
+    const response = await this.withLoading(() => api.restartGame(this.state.room!.code, this.state.participantId!));
+    this.setRoomSnapshot(response.room);
+    this.setCanvasStrokes([]);
   }
 }
 
