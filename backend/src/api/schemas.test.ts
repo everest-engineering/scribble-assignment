@@ -13,16 +13,47 @@ describe("schemas", () => {
     expect(result.playerName).toBe("Alice");
   });
 
-  it("createRoomSchema accepts an empty body (player-name validation belongs to Scenario 2)", () => {
-    const result = createRoomSchema.parse({});
+  it("createRoomSchema trims surrounding whitespace on playerName", () => {
+    const result = createRoomSchema.parse({ playerName: "  Alice  " });
 
-    expect(result.playerName).toBeUndefined();
+    expect(result.playerName).toBe("Alice");
   });
 
-  it("joinRoomSchema accepts an empty body", () => {
-    const result = joinRoomSchema.parse({});
+  it("createRoomSchema rejects an empty playerName with 'Enter your name'", () => {
+    try {
+      createRoomSchema.parse({ playerName: "" });
+      throw new Error("expected schema to throw");
+    } catch (error) {
+      expect(
+        (error as { issues?: Array<{ message: string }> }).issues?.[0]?.message
+      ).toBe("Enter your name");
+    }
+  });
 
-    expect(result.playerName).toBeUndefined();
+  it("createRoomSchema rejects a whitespace-only playerName with 'Enter your name'", () => {
+    try {
+      createRoomSchema.parse({ playerName: "   " });
+      throw new Error("expected schema to throw");
+    } catch (error) {
+      expect(
+        (error as { issues?: Array<{ message: string }> }).issues?.[0]?.message
+      ).toBe("Enter your name");
+    }
+  });
+
+  it("createRoomSchema rejects a missing playerName", () => {
+    expect(() => createRoomSchema.parse({})).toThrow();
+  });
+
+  it("joinRoomSchema rejects an empty or whitespace-only playerName with 'Enter your name'", () => {
+    try {
+      joinRoomSchema.parse({ playerName: "  " });
+      throw new Error("expected schema to throw");
+    } catch (error) {
+      expect(
+        (error as { issues?: Array<{ message: string }> }).issues?.[0]?.message
+      ).toBe("Enter your name");
+    }
   });
 
   it("roomCodeParamsSchema rejects missing code", () => {

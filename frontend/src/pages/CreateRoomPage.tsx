@@ -12,10 +12,16 @@ export function CreateRoomPage() {
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    const trimmedName = playerName.trim();
+
+    if (trimmedName.length === 0) {
+      setError("Enter your name");
+      return;
+    }
 
     try {
       setError(null);
-      const response = await roomStore.createRoom(playerName);
+      const response = await roomStore.createRoom(trimmedName);
       writeIdentity(response.room.code, {
         participantId: response.participantId,
         role: "host"

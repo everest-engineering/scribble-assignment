@@ -14,6 +14,12 @@ export function JoinRoomPage() {
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const normalizedCode = roomCode.trim().toUpperCase();
+    const trimmedName = playerName.trim();
+
+    if (trimmedName.length === 0) {
+      setError("Enter your name");
+      return;
+    }
 
     if (normalizedCode.length === 0) {
       setError("Enter a room code");
@@ -22,7 +28,7 @@ export function JoinRoomPage() {
 
     try {
       setError(null);
-      const response = await roomStore.joinRoom(normalizedCode, playerName);
+      const response = await roomStore.joinRoom(normalizedCode, trimmedName);
       writeIdentity(response.room.code, {
         participantId: response.participantId,
         role: "guest"
