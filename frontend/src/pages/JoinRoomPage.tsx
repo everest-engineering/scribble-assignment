@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { PageHeader } from "../components/PageHeader";
+import { writeActiveRoom, writeIdentity } from "../state/identityStorage";
 import { useRoomStore } from "../state/roomStore";
 
 export function JoinRoomPage() {
@@ -12,10 +13,21 @@ export function JoinRoomPage() {
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    const normalizedCode = roomCode.trim().toUpperCase();
+
+    if (normalizedCode.length === 0) {
+      setError("Enter a room code");
+      return;
+    }
 
     try {
       setError(null);
-      await roomStore.joinRoom(roomCode.toUpperCase(), playerName);
+      const response = await roomStore.joinRoom(normalizedCode, playerName);
+      writeIdentity(response.room.code, {
+        participantId: response.participantId,
+        role: "guest"
+      });
+      writeActiveRoom(response.room.code);
       navigate("/lobby");
     } catch (caughtError) {
       setError(caughtError instanceof Error ? caughtError.message : "Unable to join room");
@@ -49,7 +61,9 @@ export function JoinRoomPage() {
             placeholder="ABCD"
           />
         </label>
-        {error ? <p className="form__error">{error}</p> : null}
+        <div aria-live="polite">
+          {error ? <p className="form__error">{error}</p> : null}
+        </div>
         <div className="button-row">
           <button className="button button--primary" type="submit">
             Join Lobby

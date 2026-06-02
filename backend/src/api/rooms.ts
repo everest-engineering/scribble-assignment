@@ -32,7 +32,7 @@ export function createRoomsRouter() {
       const result = joinRoom(code.toUpperCase(), playerName);
 
       if (!result) {
-        throw new HttpError(404, "Unable to join room");
+        throw new HttpError(404, "Room not found");
       }
 
       response.json({
@@ -51,7 +51,7 @@ export function createRoomsRouter() {
       const room = getRoom(code.toUpperCase());
 
       if (!room) {
-        throw new HttpError(404, "Unable to load room");
+        throw new HttpError(404, "Room not found");
       }
 
       response.json({

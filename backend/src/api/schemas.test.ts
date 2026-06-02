@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { createRoomSchema, roomCodeParamsSchema } from "./schemas.js";
+import {
+  createRoomSchema,
+  joinRoomSchema,
+  roomCodeParamsSchema
+} from "./schemas.js";
 
 describe("schemas", () => {
   it("createRoomSchema accepts a valid body with playerName", () => {
@@ -8,7 +12,47 @@ describe("schemas", () => {
     expect(result.playerName).toBe("Alice");
   });
 
+  it("createRoomSchema accepts an empty body (player-name validation belongs to Scenario 2)", () => {
+    const result = createRoomSchema.parse({});
+
+    expect(result.playerName).toBeUndefined();
+  });
+
+  it("joinRoomSchema accepts an empty body", () => {
+    const result = joinRoomSchema.parse({});
+
+    expect(result.playerName).toBeUndefined();
+  });
+
   it("roomCodeParamsSchema rejects missing code", () => {
     expect(() => roomCodeParamsSchema.parse({})).toThrow();
+  });
+
+  it("roomCodeParamsSchema rejects an empty code with 'Enter a room code'", () => {
+    try {
+      roomCodeParamsSchema.parse({ code: "" });
+      throw new Error("expected schema to throw");
+    } catch (error) {
+      expect((error as { issues?: Array<{ message: string }> }).issues?.[0]?.message).toBe(
+        "Enter a room code"
+      );
+    }
+  });
+
+  it("roomCodeParamsSchema rejects a whitespace-only code with 'Enter a room code'", () => {
+    try {
+      roomCodeParamsSchema.parse({ code: "   " });
+      throw new Error("expected schema to throw");
+    } catch (error) {
+      expect((error as { issues?: Array<{ message: string }> }).issues?.[0]?.message).toBe(
+        "Enter a room code"
+      );
+    }
+  });
+
+  it("roomCodeParamsSchema accepts a valid trimmed code and returns the trimmed value", () => {
+    const result = roomCodeParamsSchema.parse({ code: "  abcd  " });
+
+    expect(result.code).toBe("abcd");
   });
 });
