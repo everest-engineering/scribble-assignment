@@ -1,0 +1,238 @@
+# Implementation Plan: Scribble Single-Round Game Completion
+
+**Branch**: `[001-scribble-single-round-game]` | **Date**: 2026-06-02 | **Spec**: `/specs/001-scribble-single-round-game/spec.md`
+
+**Input**: Feature specification from `/specs/001-scribble-single-round-game/spec.md`
+
+**Note**: This plan is adapted to the provided template and covers all four required assignment scenarios in a single feature file set.
+
+## Summary
+
+Complete the Scribble starter as a brownfield enhancement by adding host-aware room setup, player and room validation, polling-based synchronization, deterministic round start, drawer-only secret word visibility, interactive drawing, guess handling, scoring, result display, and host-controlled restart using the existing frontend plus minimal REST backend with in-memory state.
+
+## Technical Context
+
+**Language/Version**: Frontend JavaScript/TypeScript with React; backend JavaScript/TypeScript on Node.js 18+
+
+**Primary Dependencies**: Existing frontend React stack, existing backend REST server stack, existing routing and starter dependencies
+
+**Storage**: In-memory room store only
+
+**Testing**: Manual two-tab browser validation; extend existing automated tests only if they already exist and are low-effort to maintain
+
+**Target Platform**: Local development in modern browsers with backend on localhost
+
+**Project Type**: Web application with frontend + minimal REST backend
+
+**Performance Goals**: Shared room state should become visible to other clients within one polling cycle of approximately 2 seconds
+
+**Constraints**: No WebSockets, no database/persistence, no authentication, no Docker, no new top-level state-management/routing libraries, no unrelated refactors
+
+**Scale/Scope**: Single-round multiplayer guessing game for small rooms using one in-memory process and two-tab validation flows
+
+## Constitution Check
+
+*GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
+
+- Brownfield-first: PASS — plan extends existing room, lobby, and game placeholder flows rather than replacing them.
+- Spec-before-code: PASS — all four scenarios are represented in the specification and mapped to phases below.
+- Out-of-scope discipline: PASS — plan avoids WebSockets, persistence, auth, and extra game modes.
+- Backend as source of truth: PASS — host status, round state, drawing, guesses, and scores live on backend.
+- Deterministic/testable behavior: PASS — drawer selection, word selection, scoring, and restart rules are deterministic.
+- Human review and validation: PASS — manual two-tab validation is included after each scenario slice.
+
+## Project Structure
+
+### Documentation (this feature)
+
+```text
+specs/001-scribble-single-round-game/
+├── plan.md
+├── spec.md
+└── tasks.md
+```
+
+### Source Code (repository root)
+
+```text
+backend/
+├── src/
+│   ├── api/
+│   ├── models/
+│   ├── services/
+│   └── store/
+└── tests/
+
+frontend/
+├── src/
+│   ├── components/
+│   ├── pages/
+│   ├── services/
+│   └── types/
+└── tests/
+```
+
+**Structure Decision**: Use the existing web application layout with `backend/` and `frontend/`, extending current route handlers, store/types, page components, and API helpers instead of introducing new architectural layers.
+
+## Phase 0: Discovery and repository alignment
+
+- Confirm the starter happy path works: create room, join room, lobby participants, manual refresh.
+- Inspect actual backend files for room creation, joining, room fetch, and in-memory state.
+- Inspect actual frontend files for create/join forms, lobby, game placeholder screen, and API utilities.
+- Record the real file paths and adjust this plan if starter naming differs from assumptions.
+
+## Phase 1: Design and state model
+
+### Shared state model
+
+```ts
+interface Player {
+  id: string;
+  name: string;
+  isHost: boolean;
+  score: number;
+}
+
+interface GuessEntry {
+  id: string;
+  playerId: string;
+  playerName: string;
+  value: string;
+  normalizedValue: string;
+  isCorrect: boolean;
+  createdAt: number;
+}
+
+interface DrawingStrokePoint {
+  x: number;
+  y: number;
+}
+
+interface DrawingStroke {
+  points: DrawingStrokePoint[];
+  color?: string;
+  size?: number;
+}
+
+interface RoundState {
+  phase: 'lobby' | 'playing' | 'result';
+  drawerPlayerId: string | null;
+  secretWord: string | null;
+  drawing: DrawingStroke[];
+  guesses: GuessEntry[];
+  winnerPlayerId: string | null;
+}
+
+interface Room {
+  code: string;
+  players: Player[];
+  round: RoundState;
+  createdAt: number;
+}
+```
+
+### API design
+
+Existing endpoints to extend:
+- `POST /rooms`
+- `POST /rooms/:code/join`
+- `GET /rooms/:code`
+
+New endpoints to add:
+- `POST /rooms/:code/start`
+- `POST /rooms/:code/drawing`
+- `POST /rooms/:code/drawing/clear`
+- `POST /rooms/:code/guesses`
+- `POST /rooms/:code/restart`
+
+### Viewer-specific response rule
+`GET /rooms/:code` should accept lightweight caller identity such as `playerId` so the backend can hide `secretWord` from guessers and reveal it only to the drawer.
+
+## Scenario implementation phases
+
+### Phase 2: Scenario 1 — Room setup and lobby
+
+Backend:
+- Add `playerId`, `isHost`, and `score` to player state.
+- Validate trimmed names and room codes.
+- Update create/join handlers to return player identity.
+- Add host-only start endpoint skeleton with minimum-two-player validation.
+
+Frontend:
+- Trim and validate create/join inputs.
+- Persist `roomCode`, `playerId`, and `playerName` locally.
+- Add lobby polling every ~2 seconds with cleanup.
+- Show host badge and host-only start action.
+- Surface explicit validation and start restriction messages.
+
+Validation:
+- Two tabs, host labeling, invalid input handling, polling update, start gating, room isolation.
+
+### Phase 3: Scenario 2 — Game start and drawer flow
+
+Backend:
+- Add round state.
+- Deterministically assign drawer (host; fallback first player).
+- Deterministically select word from starter list.
+- Set phase to `playing` and zero scores.
+- Filter room response by viewer role.
+
+Frontend:
+- Transition from lobby to game based on phase.
+- Identify drawer clearly.
+- Show secret word only to drawer.
+- Show initial scoreboard at 0.
+
+Validation:
+- Two tabs, drawer identity, drawer-only secret word, correct playing-state transition.
+
+### Phase 4: Scenario 3 — Gameplay interaction
+
+Backend:
+- Add drawing update and clear endpoints.
+- Restrict drawing actions to drawer.
+- Add guess submission endpoint.
+- Normalize guesses via `trim().toLowerCase()`.
+- Append guess history.
+- Award 100 points for first correct guess and 0 otherwise.
+- End round on first correct guess.
+
+Frontend:
+- Replace placeholder canvas with interactive drawing surface.
+- Render shared drawing.
+- Add clear action for drawer.
+- Add guess form and validation.
+- Render synchronized guess history and scoreboard.
+
+Validation:
+- Draw, clear, blank guess rejection, wrong guess history, correct guess scoring, result transition.
+
+### Phase 5: Scenario 4 — Result and restart
+
+Backend:
+- Preserve result data after correct guess.
+- Add restart endpoint restricted to host.
+- Preserve players and host identity.
+- Reset round state to lobby baseline.
+
+Frontend:
+- Show result state with word, final scores, and guess history.
+- Show restart action for host only.
+- Return all players to lobby after restart.
+- Ensure old round data disappears.
+
+Validation:
+- Result screen in both tabs, host-only restart, preserved players, cleared round data.
+
+## Risks and mitigation
+
+- Secret word leakage: mitigate by filtering room response based on `playerId`.
+- Stale local state during polling: mitigate by treating backend room snapshot as authoritative.
+- Over-refactoring: mitigate by editing existing handlers/pages/components instead of rewriting routing or app structure.
+- Race conditions on start/restart: mitigate with server-side guards and idempotent rejection behavior.
+
+## Complexity Tracking
+
+| Violation | Why Needed | Simpler Alternative Rejected Because |
+|-----------|------------|-------------------------------------|
+| None expected | N/A | Existing starter structure is sufficient |

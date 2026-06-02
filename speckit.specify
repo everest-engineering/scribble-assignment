@@ -1,0 +1,153 @@
+# Feature Specification: Scribble Single-Round Game Completion
+
+**Feature Branch**: `[001-scribble-single-round-game]`
+
+**Created**: 2026-06-02
+
+**Status**: Draft
+
+**Input**: User description: "Enhance the Scribble starter as a brownfield assignment by documenting and implementing room setup, lobby polling, host-only start, deterministic drawer flow, gameplay interaction, result display, and restart flow across four required business scenarios."
+
+## User Scenarios & Testing *(mandatory)*
+
+### User Story 1 - Room setup and lobby readiness (Priority: P1)
+
+As a player, the system must allow creating or joining a room with clear validation so that players can gather in an isolated lobby and the host can start only when the room is ready.
+
+**Why this priority**: This is the minimum usable slice. Without reliable room creation, joining, validation, host identity, and lobby sync, the rest of the game flow cannot start.
+
+**Independent Test**: Can be fully tested by creating a room in one tab, joining it from a second tab, observing automatic lobby updates, and verifying that invalid names, invalid room codes, and invalid start conditions are rejected.
+
+**Acceptance Scenarios**:
+
+1. **Given** a player creates a room with a valid trimmed name, **When** the room is created, **Then** the player is stored as host, receives a room code, and sees the lobby.
+2. **Given** a player enters an empty or whitespace-only name, **When** they try to create or join a room, **Then** the request is rejected with clear feedback.
+3. **Given** a player enters an invalid or empty room code, **When** they try to join, **Then** the request is rejected with clear feedback and they remain on the join flow.
+4. **Given** one player is in a lobby and a second player joins from another tab, **When** polling runs, **Then** the first player sees the second player appear within about 2 seconds without manual refresh.
+5. **Given** a non-host player is in the lobby, **When** they try to start the game, **Then** the action is unavailable or rejected.
+6. **Given** a host has fewer than two players in the room, **When** they try to start the game, **Then** the start is rejected with clear feedback.
+7. **Given** two different rooms exist, **When** players join each room, **Then** each room sees only its own participants.
+
+***
+
+### User Story 2 - Game start and drawer visibility (Priority: P2)
+
+As a player, the system must start a round predictably so that one player becomes the drawer, the correct word is revealed only to that drawer, and all players see a consistent game state.
+
+**Why this priority**: Once players can gather in a lobby, the next value slice is entering an actual game round with deterministic roles and correct information visibility.
+
+**Independent Test**: Can be fully tested by starting a room with two players, verifying that the host becomes the drawer, confirming that only the drawer sees the selected word, and confirming that all scores begin at 0.
+
+**Acceptance Scenarios**:
+
+1. **Given** a host starts a valid room with at least two players, **When** the game begins, **Then** the room enters playing state and the drawer is assigned deterministically.
+2. **Given** a room enters playing state, **When** the drawer opens the game screen, **Then** the secret word is visible to the drawer.
+3. **Given** a room enters playing state, **When** a guesser opens the game screen, **Then** the secret word is hidden from the guesser.
+4. **Given** a new round begins, **When** the scoreboard renders, **Then** all player scores are 0.
+
+***
+
+### User Story 3 - Drawing, guessing, and scoring (Priority: P3)
+
+As a drawer or guesser, the system must support drawing, clearing, guess submission, synchronized history, and deterministic scoring so that one full round can be played.
+
+**Why this priority**: This is the core gameplay slice and creates the round outcome that later enables result and restart behavior.
+
+**Independent Test**: Can be fully tested by having the drawer draw and clear the canvas, having a guesser submit blank, incorrect, and correct guesses, and validating history sync plus score updates.
+
+**Acceptance Scenarios**:
+
+1. **Given** a round is active and the current player is the drawer, **When** the drawer draws on the canvas, **Then** drawing data is captured and rendered on the drawer’s screen.
+2. **Given** a round is active and the current player is the drawer, **When** the drawer clears the canvas, **Then** the drawing state resets.
+3. **Given** a guesser submits an empty or whitespace-only guess, **When** the request is processed, **Then** the guess is rejected with clear feedback.
+4. **Given** a guesser submits an incorrect guess, **When** the request is processed, **Then** the guess is added to history and the score remains unchanged.
+5. **Given** a guesser submits a correct guess with different letter casing, **When** the request is processed, **Then** it is treated as correct, 100 points are awarded, and the round ends.
+6. **Given** guesses are submitted during a round, **When** polling runs, **Then** all players see synchronized guess history within about 2 seconds.
+
+***
+
+### User Story 4 - Result state and restart (Priority: P4)
+
+As a player, the system must show a final result and allow the host to restart to the lobby so that the round closes cleanly and the same room can be reused.
+
+**Why this priority**: This completes the required game loop but depends on the round lifecycle from the higher-priority stories.
+
+**Independent Test**: Can be fully tested by finishing a round with a correct guess, checking result details in both tabs, restarting from the host tab, and verifying a clean return to the lobby with players preserved.
+
+**Acceptance Scenarios**:
+
+1. **Given** a round has ended, **When** players view the result state, **Then** all players see the correct word, final scores, and full guess history.
+2. **Given** a non-host player is on the result screen, **When** they attempt to restart, **Then** the restart action is unavailable or rejected.
+3. **Given** the host restarts the room, **When** the restart succeeds, **Then** all players return to the lobby with participants preserved and round-specific state cleared.
+4. **Given** the room returns to the lobby after restart, **When** players inspect the room, **Then** old drawing data, old guesses, and old round winner state are gone.
+
+***
+
+### Edge Cases
+
+- What happens when a player enters lowercase room code text while the room codes are stored uppercase?
+- How does the system handle rapid repeated clicks on start or restart?
+- What happens when a client refreshes during lobby polling, round start, or result state?
+- How does the system handle duplicate player names in the same room?
+- What happens when a stale client submits a guess or drawing update after the round already ended?
+- How does the system handle polling cleanup when leaving lobby or game screens?
+- What happens when the drawer attempts to submit guesses or a guesser attempts to modify the canvas?
+
+## Requirements *(mandatory)*
+
+### Functional Requirements
+
+- **FR-001**: System MUST allow a player to create a room with a unique room code.
+- **FR-002**: System MUST mark the room creator as the host.
+- **FR-003**: System MUST trim player names before validation and persistence.
+- **FR-004**: System MUST reject empty or whitespace-only player names with clear feedback.
+- **FR-005**: System MUST require a valid room code to join a room.
+- **FR-006**: System MUST reject empty or invalid room codes with clear feedback.
+- **FR-007**: System MUST keep room state isolated by room code.
+- **FR-008**: System MUST refresh shared lobby and game state through polling at approximately 2-second intervals.
+- **FR-009**: System MUST allow only the host to start the game.
+- **FR-010**: System MUST reject start attempts when fewer than two players are present.
+- **FR-011**: System MUST assign the drawer deterministically when the game starts.
+- **FR-012**: System MUST select the secret word deterministically from the provided starter word list.
+- **FR-013**: System MUST reveal the secret word only to the drawer.
+- **FR-014**: System MUST initialize all player scores to 0 at round start.
+- **FR-015**: System MUST provide an interactive drawing surface for the drawer.
+- **FR-016**: System MUST allow the drawer to clear the canvas.
+- **FR-017**: System MUST prevent non-drawers from changing drawing state.
+- **FR-018**: System MUST trim and validate guesses before evaluation.
+- **FR-019**: System MUST reject empty guesses with clear feedback.
+- **FR-020**: System MUST compare guesses case-insensitively.
+- **FR-021**: System MUST append guesses to shared guess history.
+- **FR-022**: System MUST award 100 points for the first correct guess and 0 points for incorrect guesses.
+- **FR-023**: System MUST transition the room to result state after the first correct guess.
+- **FR-024**: System MUST display the correct word, final scores, and full guess history in result state.
+- **FR-025**: System MUST allow only the host to restart the room.
+- **FR-026**: System MUST preserve players and host identity on restart.
+- **FR-027**: System MUST clear round-specific state on restart and return the room to lobby phase.
+
+### Key Entities *(include if feature involves data)*
+
+- **Player**: Represents a participant in a room, including id, name, host status, and score.
+- **Room**: Represents an isolated game space identified by a code and containing players plus round state.
+- **RoundState**: Represents the current phase, drawer identity, secret word, drawing state, guess history, and winner identity for the active round.
+- **GuessEntry**: Represents a submitted guess including who guessed, the submitted text, normalized value, correctness, and timestamp/order.
+- **DrawingStroke**: Represents one or more canvas points needed to reconstruct the current drawing.
+
+## Success Criteria *(mandatory)*
+
+### Measurable Outcomes
+
+- **SC-001**: Two players can create and join the same room and see synchronized lobby membership updates without manual refresh within about 2 seconds.
+- **SC-002**: 100% of invalid blank-name and invalid room-code attempts are rejected with explicit user feedback during manual validation.
+- **SC-003**: A two-player room can complete one full round from lobby to result and return to lobby again without server restart.
+- **SC-004**: Correct guesses award exactly 100 points and incorrect guesses award 0 during manual validation.
+- **SC-005**: After restart, all players remain in the room and all round-specific state is cleared.
+
+## Assumptions
+
+- The existing in-memory backend store will continue to be used and persistent storage is out of scope.
+- Polling is the required synchronization mechanism because WebSockets are explicitly out of scope.
+- A lightweight player identity such as `playerId` is sufficient and does not require full authentication.
+- Only one playable round is required before restart; multi-round progression is out of scope.
+- Deterministic word selection can use a stable documented rule rather than randomness.
+- Manual two-tab or two-browser validation is sufficient unless the repository already contains tests that can be extended cheaply.

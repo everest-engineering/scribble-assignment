@@ -1,0 +1,216 @@
+---
+
+description: "Task list for Scribble single-round game completion"
+***
+
+# Tasks: Scribble Single-Round Game Completion
+
+**Input**: Design documents from `/specs/001-scribble-single-round-game/`
+
+**Prerequisites**: plan.md (required), spec.md (required for user stories)
+
+**Tests**: Manual browser-based validation is required by the feature specification. Add automated tests only if the existing repository already supports them with low effort.
+
+**Organization**: Tasks are grouped by user story to enable independent implementation and testing of each story.
+
+## Format: `[ID] [P?] [Story] Description`
+
+- **[P]**: Can run in parallel (different files, no dependencies)
+- **[Story]**: Which user story this task belongs to (e.g., US1, US2, US3, US4)
+- Include exact file paths in descriptions where the repository paths are known; replace placeholders with actual starter paths after inspection.
+
+## Path Conventions
+
+- **Web app**: `backend/src/`, `frontend/src/`
+- Use actual starter file paths after discovery if they differ from the plan assumptions.
+
+## Phase 1: Setup (Shared Infrastructure)
+
+**Purpose**: Repository inspection and documentation alignment
+
+- [ ] T001 Inspect actual backend files for room model, room store, and room API handlers under `backend/src/`.
+- [ ] T002 Inspect actual frontend files for create room, join room, lobby, game placeholder, and API helpers under `frontend/src/`.
+- [ ] T003 [P] Confirm local run flow for backend and frontend and verify starter happy path manually.
+- [ ] T004 Update `/specs/001-scribble-single-round-game/spec.md`, `plan.md`, and `tasks.md` with exact starter file paths if they differ from assumptions.
+
+***
+
+## Phase 2: Foundational (Blocking Prerequisites)
+
+**Purpose**: Core shared infrastructure required before any scenario-specific work
+
+**⚠️ CRITICAL**: No user story work can begin until this phase is complete
+
+- [ ] T005 Create or extend shared room/player/round types in `backend/src/...` and `frontend/src/types/...`.
+- [ ] T006 [P] Add shared backend validation helpers for trimmed names, normalized room codes, and normalized guesses in `backend/src/...`.
+- [ ] T007 [P] Add or update frontend API/service helpers for passing `roomCode` and lightweight `playerId` in `frontend/src/services/...` or equivalent.
+- [ ] T008 Create or extend a frontend identity persistence helper for `roomCode`, `playerId`, and `playerName` in `frontend/src/...`.
+- [ ] T009 Establish shared round phase values (`lobby`, `playing`, `result`) in backend and frontend contracts.
+
+**Checkpoint**: Foundation ready — user story work can now begin in sequence or parallel where safe
+
+***
+
+## Phase 3: User Story 1 - Room setup and lobby readiness (Priority: P1) 🎯 MVP
+
+**Goal**: Deliver reliable room creation/joining, host tracking, lobby polling, and host-only start gating.
+
+**Independent Test**: Create a room in tab A, join it from tab B, verify auto-updating lobby membership, validate blank-name and invalid-room-code errors, and verify host-only start with a 2-player minimum.
+
+### Implementation for User Story 1
+
+- [ ] T010 [P] [US1] Extend player state with `id`, `isHost`, and `score` in `backend/src/...`.
+- [ ] T011 [US1] Update create-room handler in `backend/src/...` to trim name, reject empty input, create host player, and return player identity.
+- [ ] T012 [US1] Update join-room handler in `backend/src/...` to trim name, normalize room code, reject invalid code, and return player identity.
+- [ ] T013 [US1] Update room fetch handler in `backend/src/...` to return current room snapshot for polling.
+- [ ] T014 [US1] Add start-game endpoint skeleton in `backend/src/...` with host-only check and minimum-two-player validation.
+- [ ] T015 [P] [US1] Update create-room UI in `frontend/src/...` to trim input and show validation errors.
+- [ ] T016 [P] [US1] Update join-room UI in `frontend/src/...` to trim input and show validation errors.
+- [ ] T017 [US1] Persist `roomCode`, `playerId`, and `playerName` after successful create/join in `frontend/src/...`.
+- [ ] T018 [US1] Add lobby polling every ~2 seconds with cleanup in `frontend/src/...`.
+- [ ] T019 [US1] Render host badge or label in `frontend/src/...`.
+- [ ] T020 [US1] Render start action for host only and show clear feedback when start is not allowed in `frontend/src/...`.
+- [ ] T021 [US1] Validate room isolation manually with a second room code.
+
+**Checkpoint**: User Story 1 is fully functional and independently testable
+
+***
+
+## Phase 4: User Story 2 - Game start and drawer visibility (Priority: P2)
+
+**Goal**: Start a round with deterministic drawer assignment, deterministic secret word selection, drawer-only word visibility, and zeroed scores.
+
+**Independent Test**: Start a room with at least two players, verify that host becomes drawer, confirm only the drawer sees the word, and confirm all scores start at 0.
+
+### Implementation for User Story 2
+
+- [ ] T022 [US2] Add `RoundState` to room model in `backend/src/...`.
+- [ ] T023 [US2] Implement deterministic drawer assignment in start-game handler in `backend/src/...`.
+- [ ] T024 [US2] Implement deterministic word selection from starter list in `backend/src/...`.
+- [ ] T025 [US2] Update start-game handler to set phase to `playing` and zero scores in `backend/src/...`.
+- [ ] T026 [US2] Update room fetch handler in `backend/src/...` to shape response by `playerId` and hide secret word from guessers.
+- [ ] T027 [US2] Update lobby/game transition logic in `frontend/src/...` to react to `phase` changes.
+- [ ] T028 [US2] Render drawer identity clearly in `frontend/src/...`.
+- [ ] T029 [US2] Render secret word only for drawer in `frontend/src/...`.
+- [ ] T030 [US2] Render zeroed scoreboard on game start in `frontend/src/...`.
+
+**Checkpoint**: User Stories 1 and 2 work independently and together
+
+***
+
+## Phase 5: User Story 3 - Drawing, guessing, and scoring (Priority: P3)
+
+**Goal**: Replace placeholders with playable round interaction including drawing, guess submission, synchronized history, and score updates.
+
+**Independent Test**: Have the drawer draw and clear the canvas, have a guesser submit blank, wrong, and correct guesses, and confirm history and scoring behavior on both tabs.
+
+### Implementation for User Story 3
+
+- [ ] T031 [US3] Add drawing update endpoint in `backend/src/...`.
+- [ ] T032 [US3] Add drawing clear endpoint in `backend/src/...`.
+- [ ] T033 [US3] Restrict drawing mutations to the drawer in `backend/src/...`.
+- [ ] T034 [US3] Add guess submission endpoint in `backend/src/...`.
+- [ ] T035 [US3] Normalize guesses with `trim().toLowerCase()` and reject empty guesses in `backend/src/...`.
+- [ ] T036 [US3] Append guesses to shared history in `backend/src/...`.
+- [ ] T037 [US3] Award 100 points for first correct guess and 0 for incorrect guesses in `backend/src/...`.
+- [ ] T038 [US3] End round on first correct guess and store winner in `backend/src/...`.
+- [ ] T039 [US3] Replace placeholder canvas with drawing component in `frontend/src/...`.
+- [ ] T040 [US3] Wire drawer drawing updates and clear action in `frontend/src/...`.
+- [ ] T041 [US3] Render read-only shared drawing for non-drawers in `frontend/src/...`.
+- [ ] T042 [US3] Implement guess form with validation in `frontend/src/...`.
+- [ ] T043 [US3] Render guess history for all players in `frontend/src/...`.
+- [ ] T044 [US3] Render live scoreboard in `frontend/src/...`.
+
+**Checkpoint**: User Stories 1, 2, and 3 work independently and as a full playable round
+
+***
+
+## Phase 6: User Story 4 - Result state and restart (Priority: P4)
+
+**Goal**: Complete the single-round lifecycle with result presentation and host-controlled restart back to lobby.
+
+**Independent Test**: Finish a round via a correct guess, verify result content in both tabs, restart from host tab, and confirm players remain while round-specific state is cleared.
+
+### Implementation for User Story 4
+
+- [ ] T045 [US4] Ensure result-phase room snapshot includes correct word, final scores, guess history, and winner in `backend/src/...`.
+- [ ] T046 [US4] Add restart endpoint in `backend/src/...`.
+- [ ] T047 [US4] Restrict restart to host in `backend/src/...`.
+- [ ] T048 [US4] Preserve players and host identity while clearing round-specific state in `backend/src/...`.
+- [ ] T049 [US4] Return room phase to `lobby` on restart in `backend/src/...`.
+- [ ] T050 [US4] Render result UI with correct word, final scores, and guess history in `frontend/src/...`.
+- [ ] T051 [US4] Render restart action for host only in `frontend/src/...`.
+- [ ] T052 [US4] Return all players to lobby after restart in `frontend/src/...`.
+- [ ] T053 [US4] Verify old drawing, old guesses, and old winner state are cleared after restart in `frontend/src/...`.
+
+**Checkpoint**: All four user stories are independently functional and the full round lifecycle is complete
+
+***
+
+## Phase 7: Polish & Cross-Cutting Concerns
+
+**Purpose**: Final alignment, cleanup, and documentation
+
+- [ ] T054 [P] Update discovery notes and implementation notes in `docs/` if needed.
+- [ ] T055 Clean up duplicated validation logic where safe without broad refactors.
+- [ ] T056 Run full two-tab validation across all four user stories.
+- [ ] T057 Add or finalize reflection report in `docs/reflection-report.md`.
+- [ ] T058 Review commit history for granular, meaningful commits before PR.
+
+***
+
+## Dependencies & Execution Order
+
+### Phase Dependencies
+
+- **Setup (Phase 1)**: No dependencies — can start immediately
+- **Foundational (Phase 2)**: Depends on Setup completion — blocks all user stories
+- **User Story 1 (Phase 3)**: Depends on Foundational completion
+- **User Story 2 (Phase 4)**: Depends on User Story 1 because it requires host identity and start behavior
+- **User Story 3 (Phase 5)**: Depends on User Story 2 because it requires active round state and drawer identity
+- **User Story 4 (Phase 6)**: Depends on User Story 3 because it requires round completion and result transition
+- **Polish (Phase 7)**: Depends on all desired user stories being complete
+
+### Within Each User Story
+
+- Backend state and validation updates should be completed before frontend behavior that depends on them.
+- Identity and contract updates should happen before polling/viewer-specific rendering.
+- Core round logic should be complete before result or restart behavior is added.
+- Each story should be manually validated before moving to the next one.
+
+### Parallel Opportunities
+
+- T003 and T004 can overlap after inspection begins.
+- In Phase 2, backend helper updates and frontend API helper updates can run in parallel.
+- In User Story 1, create-form and join-form UI updates can run in parallel.
+- In User Story 2, drawer identity UI and scoreboard rendering can run in parallel after backend contract updates.
+- In User Story 3, drawing UI and guess/history UI can proceed in parallel after backend endpoints exist.
+- In User Story 4, result UI and restart UI can proceed in parallel after backend result/restart behavior exists.
+
+***
+
+## Implementation Strategy
+
+### MVP First
+
+1. Complete Phase 1 and Phase 2.
+2. Complete User Story 1 only.
+3. Stop and validate Scenario 1 independently.
+4. Commit before moving to round logic.
+
+### Incremental Delivery
+
+1. Deliver User Story 1 as a stable lobby slice.
+2. Add User Story 2 to start an actual round.
+3. Add User Story 3 to make the round playable.
+4. Add User Story 4 to complete the loop with result and restart.
+5. Validate after every story and keep each commit explainable.
+
+***
+
+## Notes
+
+- Replace placeholder file paths with actual starter file paths after repository inspection.
+- Do not introduce out-of-scope technology or refactor unrelated code.
+- Keep backend as the authoritative multiplayer state source.
+- Stop implementation when a story reaches its checkpoint and validate before continuing.
