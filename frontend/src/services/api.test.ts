@@ -24,7 +24,7 @@ describe("api service", () => {
       expect.objectContaining({
         method: "POST",
         body: JSON.stringify({ playerName: "Alice" }),
-      })
+      }),
     );
   });
 
@@ -42,7 +42,28 @@ describe("api service", () => {
 
     expect(fetch).toHaveBeenCalledWith(
       expect.stringContaining("/rooms/XYZW?participantId=p1"),
-      expect.anything()
+      expect.anything(),
+    );
+  });
+
+  it("restartGame sends POST to /rooms/:code/restart with participantId in body", async () => {
+    const mockResponse = {
+      ok: true,
+      json: () =>
+        Promise.resolve({
+          room: { code: "XYZW", status: "lobby", participants: [] },
+        }),
+    };
+    vi.mocked(fetch).mockResolvedValue(mockResponse as unknown as Response);
+
+    await api.restartGame("XYZW", "p1");
+
+    expect(fetch).toHaveBeenCalledWith(
+      expect.stringContaining("/rooms/XYZW/restart"),
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({ participantId: "p1" }),
+      }),
     );
   });
 });

@@ -5,9 +5,13 @@ import {
   useEffect,
   useRef,
   useSyncExternalStore,
-  type PropsWithChildren
+  type PropsWithChildren,
 } from "react";
-import { api, type RoomSessionResponse, type RoomSnapshot } from "../services/api";
+import {
+  api,
+  type RoomSessionResponse,
+  type RoomSnapshot,
+} from "../services/api";
 
 export interface RoomState {
   room: RoomSnapshot | null;
@@ -23,7 +27,7 @@ class RoomStore {
     room: null,
     participantId: null,
     error: null,
-    isLoading: false
+    isLoading: false,
   };
 
   private listeners = new Set<Listener>();
@@ -40,7 +44,7 @@ class RoomStore {
   private setState(nextState: Partial<RoomState>) {
     this.state = {
       ...this.state,
-      ...nextState
+      ...nextState,
     };
     this.listeners.forEach((listener) => listener());
   }
@@ -48,13 +52,14 @@ class RoomStore {
   private async withLoading<T>(operation: () => Promise<T>) {
     this.setState({
       isLoading: true,
-      error: null
+      error: null,
     });
 
     try {
       return await operation();
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Unexpected request failure";
+      const message =
+        error instanceof Error ? error.message : "Unexpected request failure";
       this.setState({ error: message });
       throw error;
     } finally {
@@ -66,14 +71,14 @@ class RoomStore {
     this.setState({
       participantId: response.participantId,
       room: response.room,
-      error: null
+      error: null,
     });
   }
 
   setRoomSnapshot(room: RoomSnapshot) {
     this.setState({
       room,
-      error: null
+      error: null,
     });
   }
 
@@ -84,7 +89,9 @@ class RoomStore {
   }
 
   async joinRoom(code: string, playerName: string) {
-    const response = await this.withLoading(() => api.joinRoom(code, playerName));
+    const response = await this.withLoading(() =>
+      api.joinRoom(code, playerName),
+    );
     this.setRoomSession(response);
     return response;
   }
@@ -94,7 +101,90 @@ class RoomStore {
       return null;
     }
 
-    const response = await api.fetchRoom(this.state.room.code, this.state.participantId ?? undefined);
+    const response = await api.fetchRoom(
+      this.state.room.code,
+      this.state.participantId ?? undefined,
+    );
+    this.setRoomSnapshot(response.room);
+    return response.room;
+  }
+
+  async startGame() {
+    if (!this.state.room) {
+      throw new Error("No room available to start");
+    }
+
+    if (!this.state.participantId) {
+      throw new Error("Missing participantId for start request");
+    }
+
+    const response = await this.withLoading(() =>
+      api.startGame(this.state.room!.code, this.state.participantId!),
+    );
+    this.setRoomSnapshot(response.room);
+    return response.room;
+  }
+
+  async submitGuess(guess: string) {
+    if (!this.state.room) {
+      throw new Error("No room available to submit a guess");
+    }
+
+    if (!this.state.participantId) {
+      throw new Error("Missing participantId for guess request");
+    }
+
+    const response = await this.withLoading(() =>
+      api.submitGuess(this.state.room!.code, this.state.participantId!, guess),
+    );
+    this.setRoomSnapshot(response.room);
+    return response.room;
+  }
+
+  async appendDrawing(path: Parameters<typeof api.appendDrawing>[2]) {
+    if (!this.state.room) {
+      throw new Error("No room available to draw on");
+    }
+
+    if (!this.state.participantId) {
+      throw new Error("Missing participantId for drawing request");
+    }
+
+    const response = await this.withLoading(() =>
+      api.appendDrawing(this.state.room!.code, this.state.participantId!, path),
+    );
+    this.setRoomSnapshot(response.room);
+    return response.room;
+  }
+
+  async clearDrawing() {
+    if (!this.state.room) {
+      throw new Error("No room available to clear drawing");
+    }
+
+    if (!this.state.participantId) {
+      throw new Error("Missing participantId for drawing request");
+    }
+
+    const response = await this.withLoading(() =>
+      api.clearDrawing(this.state.room!.code, this.state.participantId!),
+    );
+    this.setRoomSnapshot(response.room);
+    return response.room;
+  }
+
+  async restartGame() {
+    if (!this.state.room) {
+      throw new Error("No room available to restart");
+    }
+
+    if (!this.state.participantId) {
+      throw new Error("Missing participantId for restart request");
+    }
+
+    const response = await this.withLoading(() =>
+      api.restartGame(this.state.room!.code, this.state.participantId!),
+    );
     this.setRoomSnapshot(response.room);
     return response.room;
   }
@@ -111,7 +201,11 @@ export function RoomStoreProvider({ children }: PropsWithChildren) {
 
   useEffect(() => undefined, []);
 
-  return createElement(RoomStoreContext.Provider, { value: storeRef.current }, children);
+  return createElement(
+    RoomStoreContext.Provider,
+    { value: storeRef.current },
+    children,
+  );
 }
 
 export function useRoomStore() {
@@ -126,5 +220,9 @@ export function useRoomStore() {
 
 export function useRoomState() {
   const store = useRoomStore();
-  return useSyncExternalStore(store.subscribe, store.getSnapshot, store.getSnapshot);
+  return useSyncExternalStore(
+    store.subscribe,
+    store.getSnapshot,
+    store.getSnapshot,
+  );
 }
