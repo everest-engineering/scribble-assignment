@@ -3,7 +3,17 @@ export type ParticipantRole = "drawer" | "guesser";
 export interface Participant {
   id: string;
   name: string;
+  score: number;
   joinedAt: string;
+}
+
+export interface Guess {
+  id: string;
+  participantId: string;
+  playerName: string;
+  text: string;
+  correct: boolean;
+  createdAt: string;
 }
 
 export type RoomStatus = "lobby" | "playing";
@@ -16,6 +26,7 @@ export interface RoomSnapshot {
   // The secret word, present only when the viewer is the drawer; otherwise null.
   word: string | null;
   participants: Participant[];
+  guesses: Guess[];
   availableWords: string[];
   roles: ParticipantRole[];
 }
@@ -69,5 +80,14 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ participantId })
     });
+  },
+  submitGuess(code: string, participantId: string, text: string) {
+    return request<{ guess: Guess; room: RoomSnapshot }>(
+      `/rooms/${encodeURIComponent(code)}/guess`,
+      {
+        method: "POST",
+        body: JSON.stringify({ participantId, text })
+      }
+    );
   }
 };
