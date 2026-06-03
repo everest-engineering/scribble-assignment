@@ -14,7 +14,7 @@
 
 **Purpose**: Lab deliverable and documentation pointer
 
-- [ ] T001 Create `reflection.md` at repo root covering Scenarios 1–4, AI usage, and tradeoffs (≥500 chars)
+- [X] T001 Create `reflection.md` at repo root covering Scenarios 1–4, AI usage, and tradeoffs (≥500 chars)
 
 ---
 
@@ -24,13 +24,13 @@
 
 **⚠️ CRITICAL**: No user story work until this phase completes
 
-- [ ] T002 Add `RestartNotHostError` and `RestartInvalidStateError` in `backend/src/services/roomStore.ts`
-- [ ] T003 Implement `restartRoom(code, participantId)` in `backend/src/services/roomStore.ts`
-- [ ] T004 Update `toRoomSnapshot` to reveal `secretWord` to all viewers when `status === "result"` in `backend/src/services/roomStore.ts`
-- [ ] T005 [P] Add `restartRoomSchema` in `backend/src/api/schemas.ts`
-- [ ] T006 Wire POST `/rooms/:code/restart` and error mapping in `backend/src/api/rooms.ts`
-- [ ] T007 [P] Add `restartGame` API client in `frontend/src/services/api.ts`
-- [ ] T008 Add `restartGame` store action in `frontend/src/state/roomStore.ts`
+- [X] T002 Add `RestartNotHostError` and `RestartInvalidStateError` in `backend/src/services/roomStore.ts`
+- [X] T003 Implement `restartRoom(code, participantId)` in `backend/src/services/roomStore.ts`
+- [X] T004 Update `toRoomSnapshot` to reveal `secretWord` to all viewers when `status === "result"` in `backend/src/services/roomStore.ts`
+- [X] T005 [P] Add `restartRoomSchema` in `backend/src/api/schemas.ts`
+- [X] T006 Wire POST `/rooms/:code/restart` and error mapping in `backend/src/api/rooms.ts`
+- [X] T007 [P] Add `restartGame` API client in `frontend/src/services/api.ts`
+- [X] T008 Add `restartGame` store action in `frontend/src/state/roomStore.ts`
 
 **Checkpoint**: Restart endpoint callable; result snapshots reveal word to all
 
@@ -44,12 +44,12 @@
 
 ### Tests for User Story 1
 
-- [ ] T009 [P] [US1] Tests for `toRoomSnapshot` word reveal in result vs playing in `backend/src/services/roomStore.test.ts`
+- [X] T009 [P] [US1] Tests for `toRoomSnapshot` word reveal in result vs playing in `backend/src/services/roomStore.test.ts`
 
 ### Implementation for User Story 1
 
-- [ ] T010 [US1] Update `ResultPanel.tsx` with revealed word banner and result-state styling
-- [ ] T011 [US1] Update `GamePage.tsx` result layout: show revealed word card for all, disable draw/guess in result
+- [X] T010 [US1] Update `ResultPanel.tsx` with revealed word banner and result-state styling
+- [X] T011 [US1] Update `GamePage.tsx` result layout: show revealed word card for all, disable draw/guess in result
 
 **Checkpoint**: Result view complete for all participants
 
@@ -63,15 +63,15 @@
 
 ### Tests for User Story 2
 
-- [ ] T012 [P] [US2] Tests for `restartRoom` happy/reject paths in `backend/src/services/roomStore.test.ts`
-- [ ] T013 [P] [US2] Restart schema tests in `backend/src/api/schemas.test.ts`
-- [ ] T014 [P] [US2] `restartGame` API client test in `frontend/src/services/api.test.ts`
+- [X] T012 [P] [US2] Tests for `restartRoom` happy/reject paths in `backend/src/services/roomStore.test.ts`
+- [X] T013 [P] [US2] Restart schema tests in `backend/src/api/schemas.test.ts`
+- [X] T014 [P] [US2] `restartGame` API client test in `frontend/src/services/api.test.ts`
 
 ### Implementation for User Story 2
 
-- [ ] T015 [US2] Add host-only Play Again button on `GamePage.tsx` calling `restartGame` and navigating to `/lobby`
-- [ ] T016 [US2] Add `useEffect` on `GamePage.tsx` to redirect to `/lobby` when polled status becomes `lobby`
-- [ ] T017 [US2] Verify `LobbyPage.tsx` shows participants after restart via existing polling
+- [X] T015 [US2] Add host-only Play Again button on `GamePage.tsx` calling `restartGame` and navigating to `/lobby`
+- [X] T016 [US2] Add `useEffect` on `GamePage.tsx` to redirect to `/lobby` when polled status becomes `lobby`
+- [X] T017 [US2] Verify `LobbyPage.tsx` shows participants after restart via existing polling
 
 **Checkpoint**: Full restart loop works in two tabs
 
@@ -85,9 +85,9 @@
 
 ### Implementation for User Story 3
 
-- [ ] T018 [US3] Run backend and frontend test suites and builds
-- [ ] T019 [US3] Run `node .github/scripts/pre-evaluation-check.mjs` and fix any failures
-- [ ] T020 [US3] Execute manual two-tab validation per `specs/004-result-restart-validation/quickstart.md`
+- [X] T018 [US3] Run backend and frontend test suites and builds
+- [X] T019 [US3] Run `node .github/scripts/pre-evaluation-check.mjs` and fix any failures
+- [X] T020 [US3] Execute manual two-tab validation per `specs/004-result-restart-validation/quickstart.md`
 
 **Checkpoint**: Lab complete — all four README scenarios validated
 
@@ -95,8 +95,8 @@
 
 ## Phase 6: Polish & Cross-Cutting
 
-- [ ] T021 Remove Scenario 4 placeholder copy from `ResultPanel.tsx` if any remains
-- [ ] T022 [P] Update `reflection.md` with Scenario 4 implementation notes
+- [X] T021 Remove Scenario 4 placeholder copy from `ResultPanel.tsx` if any remains
+- [X] T022 [P] Update `reflection.md` with Scenario 4 implementation notes
 
 ---
 
