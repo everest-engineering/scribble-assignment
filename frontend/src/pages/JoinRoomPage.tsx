@@ -13,12 +13,26 @@ export function JoinRoomPage() {
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
+    if (!playerName.trim()) {
+      setError("Player name is required");
+      return;
+    }
+
+    if (!roomCode.trim()) {
+      setError("Room code is required");
+      return;
+    }
+
     try {
       setError(null);
       await roomStore.joinRoom(roomCode.toUpperCase(), playerName);
       navigate("/lobby");
     } catch (caughtError) {
-      setError(caughtError instanceof Error ? caughtError.message : "Unable to join room");
+      setError(
+        caughtError instanceof Error
+          ? caughtError.message
+          : "Unable to join room",
+      );
     }
   }
 
@@ -54,7 +68,11 @@ export function JoinRoomPage() {
           <button className="button button--primary" type="submit">
             Join Lobby
           </button>
-          <button className="button button--secondary" type="button" onClick={() => navigate("/")}>
+          <button
+            className="button button--secondary"
+            type="button"
+            onClick={() => navigate("/")}
+          >
             Back
           </button>
         </div>

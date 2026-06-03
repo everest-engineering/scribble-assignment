@@ -5,9 +5,13 @@ import {
   useEffect,
   useRef,
   useSyncExternalStore,
-  type PropsWithChildren
+  type PropsWithChildren,
 } from "react";
-import { api, type RoomSessionResponse, type RoomSnapshot } from "../services/api";
+import {
+  api,
+  type RoomSessionResponse,
+  type RoomSnapshot,
+} from "../services/api";
 
 export interface RoomState {
   room: RoomSnapshot | null;
@@ -23,7 +27,7 @@ class RoomStore {
     room: null,
     participantId: null,
     error: null,
-    isLoading: false
+    isLoading: false,
   };
 
   private listeners = new Set<Listener>();
@@ -40,7 +44,7 @@ class RoomStore {
   private setState(nextState: Partial<RoomState>) {
     this.state = {
       ...this.state,
-      ...nextState
+      ...nextState,
     };
     this.listeners.forEach((listener) => listener());
   }
@@ -48,13 +52,14 @@ class RoomStore {
   private async withLoading<T>(operation: () => Promise<T>) {
     this.setState({
       isLoading: true,
-      error: null
+      error: null,
     });
 
     try {
       return await operation();
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Unexpected request failure";
+      const message =
+        error instanceof Error ? error.message : "Unexpected request failure";
       this.setState({ error: message });
       throw error;
     } finally {
@@ -66,14 +71,14 @@ class RoomStore {
     this.setState({
       participantId: response.participantId,
       room: response.room,
-      error: null
+      error: null,
     });
   }
 
   setRoomSnapshot(room: RoomSnapshot) {
     this.setState({
       room,
-      error: null
+      error: null,
     });
   }
 
@@ -84,7 +89,9 @@ class RoomStore {
   }
 
   async joinRoom(code: string, playerName: string) {
-    const response = await this.withLoading(() => api.joinRoom(code, playerName));
+    const response = await this.withLoading(() =>
+      api.joinRoom(code, playerName),
+    );
     this.setRoomSession(response);
     return response;
   }
@@ -94,13 +101,40 @@ class RoomStore {
       return null;
     }
 
-    const response = await api.fetchRoom(this.state.room.code, this.state.participantId ?? undefined);
+    const response = await api.fetchRoom(
+      this.state.room.code,
+      this.state.participantId ?? undefined,
+    );
+    this.setRoomSnapshot(response.room);
+    return response.room;
+  }
+
+  async startRoom() {
+    const response = await this.withLoading(() =>
+      api.startRoom(this.state.room!.code),
+    );
+    this.setRoomSnapshot(response.room);
+    return response.room;
+  }
+
+  async endRound(code: string, participantId: string) {
+    const response = await this.withLoading(() =>
+      api.endRound(code, participantId),
+    );
+    this.setRoomSnapshot(response.room);
+    return response.room;
+  }
+
+  async restartRoom(code: string, participantId: string) {
+    const response = await this.withLoading(() =>
+      api.restartRoom(code, participantId),
+    );
     this.setRoomSnapshot(response.room);
     return response.room;
   }
 }
 
-const RoomStoreContext = createContext<RoomStore | null>(null);
+export const RoomStoreContext = createContext<RoomStore | null>(null);
 
 export function RoomStoreProvider({ children }: PropsWithChildren) {
   const storeRef = useRef<RoomStore | null>(null);
@@ -111,7 +145,11 @@ export function RoomStoreProvider({ children }: PropsWithChildren) {
 
   useEffect(() => undefined, []);
 
-  return createElement(RoomStoreContext.Provider, { value: storeRef.current }, children);
+  return createElement(
+    RoomStoreContext.Provider,
+    { value: storeRef.current },
+    children,
+  );
 }
 
 export function useRoomStore() {
@@ -126,5 +164,9 @@ export function useRoomStore() {
 
 export function useRoomState() {
   const store = useRoomStore();
-  return useSyncExternalStore(store.subscribe, store.getSnapshot, store.getSnapshot);
+  return useSyncExternalStore(
+    store.subscribe,
+    store.getSnapshot,
+    store.getSnapshot,
+  );
 }
