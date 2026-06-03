@@ -8,14 +8,26 @@ import { useRoomState, useRoomStore } from "../state/roomStore";
 export function LobbyPage() {
   const navigate = useNavigate();
   const roomStore = useRoomStore();
-  const { room, error, isLoading } = useRoomState();
+  const { room, error, isLoading, participantId } = useRoomState();
   const [refreshError, setRefreshError] = useState<string | null>(null);
+
+  const isHost = room?.hostId === participantId;
+  const canStart = isHost && (room?.participants.length ?? 0) >= 2;
 
   useEffect(() => {
     if (!room) {
       navigate("/", { replace: true });
+    } else if (room.status === "playing") {
+      navigate("/game", { replace: true });
     }
   }, [navigate, room]);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      roomStore.fetchRoom().catch((e) => console.error("Polling failed", e));
+    }, 2000);
+    return () => clearInterval(interval);
+  }, [roomStore]);
 
   async function handleRefresh() {
     try {
@@ -69,9 +81,23 @@ export function LobbyPage() {
         <button className="button button--secondary" disabled={isLoading} onClick={handleRefresh}>
           {isLoading ? "Refreshing..." : "Refresh Room"}
         </button>
-        <button className="button button--primary" onClick={() => navigate("/game")}>
-          Start Game
-        </button>
+        {isHost ? (
+          <button 
+            className="button button--primary" 
+            disabled={!canStart || isLoading} 
+            onClick={async () => {
+              try {
+                await roomStore.startGame();
+              } catch (caughtError) {
+                setRefreshError(caughtError instanceof Error ? caughtError.message : "Unable to start game");
+              }
+            }}
+          >
+            Start Game
+          </button>
+        ) : (
+          <p className="status-message">Waiting for host to start...</p>
+        )}
       </div>
     </section>
   );

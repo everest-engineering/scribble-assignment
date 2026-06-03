@@ -1,4 +1,4 @@
-# Copilot Agent Instructions
+# Antigravity Agent Instructions
 
 ## Project Context
 You are working on a monolithic repository for a multiplayer drawing game ("Scribble") containing an Express backend and a React frontend. Both environments strictly use TypeScript and ES Modules.
@@ -40,3 +40,8 @@ You are working on a monolithic repository for a multiplayer drawing game ("Scri
 -   Give concise, direct answers.
 -   Do not output large blocks of code if a small change suffices.
 -   When creating or editing files, ensure consistency with the existing directory structure detailed above.
+
+<!-- SPECKIT START -->
+For additional context about technologies to be used, project structure,
+shell commands, and other important information, read the current plan at specs/004-game-result-restart/plan.md
+<!-- SPECKIT END -->
