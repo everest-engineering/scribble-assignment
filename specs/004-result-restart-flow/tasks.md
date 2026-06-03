@@ -16,7 +16,7 @@ description: "Task list for Result, Restart & Final Validation (004)"
 
 **Purpose**: No new project structure needed. All changes are additive within the existing `backend/` and `frontend/` directories.
 
-- [ ] T001 Verify both dev servers start cleanly: `cd backend && npm run dev` and `cd frontend && npm run dev`
+- [X] T001 Verify both dev servers start cleanly: `cd backend && npm run dev` and `cd frontend && npm run dev`
 
 ---
 
@@ -26,11 +26,11 @@ description: "Task list for Result, Restart & Final Validation (004)"
 
 **⚠️ CRITICAL**: US1, US2, and US3 all depend on `RoomStatus` including `"ended"` and `RoomSnapshot` including `revealedWord`.
 
-- [ ] T002 Add `"ended"` to `RoomStatus` union and add `revealedWord?: string` to `Room` interface in `backend/src/models/game.ts`
-- [ ] T003 Add `revealedWord?: string` to `RoomSnapshot` interface in `backend/src/models/game.ts` _(sequential after T002 — same file)_
-- [ ] T004 [P] Add `"ended"` to `RoomStatus` and `revealedWord?: string` to `RoomSnapshot` in `frontend/src/services/api.ts`
-- [ ] T005 Add `endRoundSchema` and `restartRoomSchema` (each `z.object({ participantId: z.string() })`) to `backend/src/api/schemas.ts`
-- [ ] T006 Extend `toRoomSnapshot()` in `backend/src/services/roomStore.ts`: expose `currentDrawerId`, `strokes`, `guesses`, `scores` when `status === "playing" || status === "ended"`; expose `revealedWord` only when `status === "ended"`; keep `currentWord` masking for `"playing"` only
+- [X] T002 Add `"ended"` to `RoomStatus` union and add `revealedWord?: string` to `Room` interface in `backend/src/models/game.ts`
+- [X] T003 Add `revealedWord?: string` to `RoomSnapshot` interface in `backend/src/models/game.ts` _(sequential after T002 — same file)_
+- [X] T004 [P] Add `"ended"` to `RoomStatus` and `revealedWord?: string` to `RoomSnapshot` in `frontend/src/services/api.ts`
+- [X] T005 Add `endRoundSchema` and `restartRoomSchema` (each `z.object({ participantId: z.string() })`) to `backend/src/api/schemas.ts`
+- [X] T006 Extend `toRoomSnapshot()` in `backend/src/services/roomStore.ts`: expose `currentDrawerId`, `strokes`, `guesses`, `scores` when `status === "playing" || status === "ended"`; expose `revealedWord` only when `status === "ended"`; keep `currentWord` masking for `"playing"` only
 
 **Checkpoint**: Types compile cleanly; `toRoomSnapshot` handles all three statuses; schemas exist — US phases can begin.
 
@@ -44,10 +44,10 @@ description: "Task list for Result, Restart & Final Validation (004)"
 
 **Independent Test**: Start a game in two tabs. In the host tab, call `POST /rooms/:code/end` with the host's `participantId`. Confirm `room.status` is `"ended"` and `room.revealedWord` is set. Confirm a non-host call returns 403. Confirm calling it again (already `"ended"`) returns 409.
 
-- [ ] T007 [US2] Implement `endRound(code, participantId)` service function in `backend/src/services/roomStore.ts`: validate room exists (404), status is `"playing"` (409), participantId equals hostId (403); set `room.status = "ended"` and `room.revealedWord = room.currentWord ?? ""`; return `toRoomSnapshot(room)`
-- [ ] T008 [US2] Add `POST /:code/end` route to `backend/src/api/rooms.ts`: parse body with `endRoundSchema`, call `endRound()`, return `{ room: snapshot }`
-- [ ] T009 [P] [US2] Add `endRound(code, participantId)` to the `api` object in `frontend/src/services/api.ts`: `POST /rooms/:code/end` with `{ participantId }` body, returns `{ room: RoomSnapshot }`
-- [ ] T023 [US2] Add `endRound(code: string, participantId: string)` wrapper method to `frontend/src/state/roomStore.ts`: call `api.endRound(code, participantId)`, update internal room state from the returned snapshot, notify subscribers _(depends on T009; follows established `createRoom`/`startRoom` pattern)_
+- [X] T007 [US2] Implement `endRound(code, participantId)` service function in `backend/src/services/roomStore.ts`: validate room exists (404), status is `"playing"` (409), participantId equals hostId (403); set `room.status = "ended"` and `room.revealedWord = room.currentWord ?? ""`; return `toRoomSnapshot(room)`
+- [X] T008 [US2] Add `POST /:code/end` route to `backend/src/api/rooms.ts`: parse body with `endRoundSchema`, call `endRound()`, return `{ room: snapshot }`
+- [X] T009 [P] [US2] Add `endRound(code, participantId)` to the `api` object in `frontend/src/services/api.ts`: `POST /rooms/:code/end` with `{ participantId }` body, returns `{ room: RoomSnapshot }`
+- [X] T023 [US2] Add `endRound(code: string, participantId: string)` wrapper method to `frontend/src/state/roomStore.ts`: call `api.endRound(code, participantId)`, update internal room state from the returned snapshot, notify subscribers _(depends on T009; follows established `createRoom`/`startRoom` pattern)_
 
 **Checkpoint**: `POST /rooms/:code/end` works end-to-end; 403/404/409 guards verified; store method updates UI state.
 
@@ -59,12 +59,12 @@ description: "Task list for Result, Restart & Final Validation (004)"
 
 **Independent Test**: Start a game in two tabs. Submit the correct word in the guesser tab (or click "End Round" in host tab). Both tabs must automatically navigate to `/result` within ≤2 s. `ResultPage` shows the revealed word, full guess list with names, and ranked scoreboard. "Restart Game" button is visible only in the host tab.
 
-- [ ] T010 [US1] Modify `submitGuess()` in `backend/src/services/roomStore.ts`: after recording a correct guess and awarding 100 pts, set `room.status = "ended"` and `room.revealedWord = room.currentWord ?? ""`
-- [ ] T011 [US1] Add `"End Round"` button (host-only, visible when `participantId === room.hostId`) to `frontend/src/pages/GamePage.tsx`; on click call `roomStore.endRound(room.code, participantId ?? "").catch(() => {})` _(uses store wrapper from T023, consistent with `startRoom` pattern)_
-- [ ] T012 [US1] Add poll-driven navigation in `GamePage.tsx` `useEffect`: when `room.status === "ended"` navigate to `/result` with `{ replace: true }`
-- [ ] T013 [US1] Create `frontend/src/pages/ResultPage.tsx`: poll `roomStore.fetchRoom()` every 2 s (clear on unmount); navigate to `/` if no room; navigate to `/lobby` with `{ replace: true }` when `room.status === "lobby"`; render `revealedWord` (display `"(unknown)"` if absent), `ResultPanel` (guesses + participant names), `Scoreboard` (scores ranked descending); show "Restart Game" button only when `participantId === room.hostId`; on "Restart Game" click call `roomStore.restartRoom(room.code, participantId ?? "")` _(store wrapper added in T024; wire the call in T013, button will error until T024/T016/T017 are complete)_
-- [ ] T014 [US1] Register `/result` route in `frontend/src/routes/index.tsx`: `<Route path="/result" element={<ResultPage />} />`
-- [ ] T015 [P] [US1] Add result page layout CSS to `frontend/src/styles/app.css`: `.result-page`, `.result-page__word`, `.result-page__word-label`, `.result-page__word-value`
+- [X] T010 [US1] Modify `submitGuess()` in `backend/src/services/roomStore.ts`: after recording a correct guess and awarding 100 pts, set `room.status = "ended"` and `room.revealedWord = room.currentWord ?? ""`
+- [X] T011 [US1] Add `"End Round"` button (host-only, visible when `participantId === room.hostId`) to `frontend/src/pages/GamePage.tsx`; on click call `roomStore.endRound(room.code, participantId ?? "").catch(() => {})` _(uses store wrapper from T023, consistent with `startRoom` pattern)_
+- [X] T012 [US1] Add poll-driven navigation in `GamePage.tsx` `useEffect`: when `room.status === "ended"` navigate to `/result` with `{ replace: true }`
+- [X] T013 [US1] Create `frontend/src/pages/ResultPage.tsx`: poll `roomStore.fetchRoom()` every 2 s (clear on unmount); navigate to `/` if no room; navigate to `/lobby` with `{ replace: true }` when `room.status === "lobby"`; render `revealedWord` (display `"(unknown)"` if absent), `ResultPanel` (guesses + participant names), `Scoreboard` (scores ranked descending); show "Restart Game" button only when `participantId === room.hostId`; on "Restart Game" click call `roomStore.restartRoom(room.code, participantId ?? "")` _(store wrapper added in T024; wire the call in T013, button will error until T024/T016/T017 are complete)_
+- [X] T014 [US1] Register `/result` route in `frontend/src/routes/index.tsx`: `<Route path="/result" element={<ResultPage />} />`
+- [X] T015 [P] [US1] Add result page layout CSS to `frontend/src/styles/app.css`: `.result-page`, `.result-page__word`, `.result-page__word-label`, `.result-page__word-value`
 
 **Checkpoint**: Both tabs auto-navigate to `/result` on round end; result screen shows word, guesses, scores; "Restart Game" host-only; all within ≤2 s.
 
@@ -76,10 +76,10 @@ description: "Task list for Result, Restart & Final Validation (004)"
 
 **Independent Test**: From the result screen, click "Restart Game" in the host tab. Both tabs navigate to `/lobby` within ≤2 s. All participant names are present. `room.strokes`, `room.guesses`, `room.scores`, `room.revealedWord` are all absent/empty. Confirm a non-host call returns 403 and a call from `"playing"` returns 409.
 
-- [ ] T016 [US3] Implement `restartRoom(code, participantId)` service function in `backend/src/services/roomStore.ts`: validate room exists (404), status is `"ended"` (409 `"Game has not ended"`), participantId equals hostId (403); clear `currentWord`, `currentDrawerId`, `roundNumber`, `strokes`, `guesses`, `scores`, `revealedWord`; set `room.status = "lobby"`; return `toRoomSnapshot(room)`
-- [ ] T017 [US3] Add `POST /:code/restart` route to `backend/src/api/rooms.ts`: parse body with `restartRoomSchema`, call `restartRoom()`, return `{ room: snapshot }`
-- [ ] T018 [P] [US3] Add `restartRoom(code, participantId)` to the `api` object in `frontend/src/services/api.ts`: `POST /rooms/:code/restart` with `{ participantId }` body, returns `{ room: RoomSnapshot }`
-- [ ] T024 [US3] Add `restartRoom(code: string, participantId: string)` wrapper method to `frontend/src/state/roomStore.ts`: call `api.restartRoom(code, participantId)`, update internal room state from the returned snapshot, notify subscribers _(depends on T018; follows established `createRoom`/`startRoom` pattern)_
+- [X] T016 [US3] Implement `restartRoom(code, participantId)` service function in `backend/src/services/roomStore.ts`: validate room exists (404), status is `"ended"` (409 `"Game has not ended"`), participantId equals hostId (403); clear `currentWord`, `currentDrawerId`, `roundNumber`, `strokes`, `guesses`, `scores`, `revealedWord`; set `room.status = "lobby"`; return `toRoomSnapshot(room)`
+- [X] T017 [US3] Add `POST /:code/restart` route to `backend/src/api/rooms.ts`: parse body with `restartRoomSchema`, call `restartRoom()`, return `{ room: snapshot }`
+- [X] T018 [P] [US3] Add `restartRoom(code, participantId)` to the `api` object in `frontend/src/services/api.ts`: `POST /rooms/:code/restart` with `{ participantId }` body, returns `{ room: RoomSnapshot }`
+- [X] T024 [US3] Add `restartRoom(code: string, participantId: string)` wrapper method to `frontend/src/state/roomStore.ts`: call `api.restartRoom(code, participantId)`, update internal room state from the returned snapshot, notify subscribers _(depends on T018; follows established `createRoom`/`startRoom` pattern)_
 
 **Checkpoint**: `POST /rooms/:code/restart` works; lobby snapshot has no round fields; both tabs navigate to `/lobby` on restart; non-host/wrong-status calls rejected correctly; store method updates UI state.
 
@@ -89,10 +89,10 @@ description: "Task list for Result, Restart & Final Validation (004)"
 
 **Purpose**: Validation, manual testing, and any final cross-cutting adjustments.
 
-- [ ] T019 [P] Run backend unit tests: `cd backend && npm test` — confirm all existing tests still pass (no regression from `submitGuess` and `toRoomSnapshot` changes)
-- [ ] T020 [P] Run frontend unit tests: `cd frontend && npm test` — confirm all existing tests still pass
-- [ ] T021 Run full quickstart.md scenario end-to-end in two browser tabs: auto-end on correct guess (Story 1), manual "End Round" (Story 2), restart back to lobby (Story 3)
-- [ ] T022 Verify failure cases from quickstart.md: non-host end-round → 403, non-host restart → 403, end when not playing → 409, restart when not ended → 409
+- [X] T019 [P] Run backend unit tests: `cd backend && npm test` — confirm all existing tests still pass (no regression from `submitGuess` and `toRoomSnapshot` changes)
+- [X] T020 [P] Run frontend unit tests: `cd frontend && npm test` — confirm all existing tests still pass
+- [X] T021 Run full quickstart.md scenario end-to-end in two browser tabs: auto-end on correct guess (Story 1), manual "End Round" (Story 2), restart back to lobby (Story 3)
+- [X] T022 Verify failure cases from quickstart.md: non-host end-round → 403, non-host restart → 403, end when not playing → 409, restart when not ended → 409
 
 ---
 

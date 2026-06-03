@@ -116,6 +116,22 @@ class RoomStore {
     this.setRoomSnapshot(response.room);
     return response.room;
   }
+
+  async endRound(code: string, participantId: string) {
+    const response = await this.withLoading(() =>
+      api.endRound(code, participantId),
+    );
+    this.setRoomSnapshot(response.room);
+    return response.room;
+  }
+
+  async restartRoom(code: string, participantId: string) {
+    const response = await this.withLoading(() =>
+      api.restartRoom(code, participantId),
+    );
+    this.setRoomSnapshot(response.room);
+    return response.room;
+  }
 }
 
 const RoomStoreContext = createContext<RoomStore | null>(null);

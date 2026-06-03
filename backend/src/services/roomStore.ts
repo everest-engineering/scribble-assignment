@@ -124,15 +124,22 @@ export function toRoomSnapshot(
     roles: [...STARTER_ROLES],
   };
 
-  if (room.status === "playing") {
+  if (room.status === "playing" || room.status === "ended") {
     snapshot.currentDrawerId = room.currentDrawerId;
+    snapshot.strokes = room.strokes.map((stroke) => [...stroke]);
+    snapshot.guesses = room.guesses.map((guess) => ({ ...guess }));
+    snapshot.scores = { ...room.scores };
+  }
+
+  if (room.status === "playing") {
     snapshot.currentWord =
       viewerParticipantId === room.currentDrawerId
         ? (room.currentWord ?? null)
         : null;
-    snapshot.strokes = room.strokes.map((stroke) => [...stroke]);
-    snapshot.guesses = room.guesses.map((guess) => ({ ...guess }));
-    snapshot.scores = { ...room.scores };
+  }
+
+  if (room.status === "ended") {
+    snapshot.revealedWord = room.revealedWord;
   }
 
   return snapshot;
@@ -190,6 +197,58 @@ export function updateCanvas(
   return toRoomSnapshot(cloneRoom(room), participantId);
 }
 
+export function endRound(code: string, participantId: string): RoomSnapshot {
+  const room = rooms.get(code);
+
+  if (!room) {
+    throw new HttpError(404, "Room not found");
+  }
+
+  if (participantId !== room.hostId) {
+    throw new HttpError(403, "Only the host can end the round");
+  }
+
+  if (room.status !== "playing") {
+    throw new HttpError(409, "Game is not in progress");
+  }
+
+  room.status = "ended";
+  room.revealedWord = room.currentWord ?? "";
+  room.updatedAt = now();
+  rooms.set(room.code, room);
+
+  return toRoomSnapshot(cloneRoom(room));
+}
+
+export function restartRoom(code: string, participantId: string): RoomSnapshot {
+  const room = rooms.get(code);
+
+  if (!room) {
+    throw new HttpError(404, "Room not found");
+  }
+
+  if (participantId !== room.hostId) {
+    throw new HttpError(403, "Only the host can restart the game");
+  }
+
+  if (room.status !== "ended") {
+    throw new HttpError(409, "Game has not ended");
+  }
+
+  room.status = "lobby";
+  room.currentWord = undefined;
+  room.currentDrawerId = undefined;
+  room.roundNumber = undefined;
+  room.strokes = [];
+  room.guesses = [];
+  room.scores = {};
+  room.revealedWord = undefined;
+  room.updatedAt = now();
+  rooms.set(room.code, room);
+
+  return toRoomSnapshot(cloneRoom(room));
+}
+
 export function submitGuess(
   code: string,
   participantId: string,
@@ -238,6 +297,8 @@ export function submitGuess(
 
   if (isCorrect) {
     room.scores[participantId] = (room.scores[participantId] ?? 0) + 100;
+    room.status = "ended";
+    room.revealedWord = room.currentWord ?? "";
   }
 
   room.updatedAt = now();

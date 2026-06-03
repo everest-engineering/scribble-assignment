@@ -1,5 +1,5 @@
 export type ParticipantRole = "drawer" | "guesser";
-export type RoomStatus = "lobby" | "playing";
+export type RoomStatus = "lobby" | "playing" | "ended";
 
 export interface Participant {
   id: string;
@@ -37,6 +37,7 @@ export interface Room {
   strokes: CanvasState;
   guesses: Guess[];
   scores: Record<string, number>;
+  revealedWord?: string;
 }
 
 export interface RoomSnapshot {
@@ -51,6 +52,7 @@ export interface RoomSnapshot {
   strokes?: CanvasState;
   guesses?: Guess[];
   scores?: Record<string, number>;
+  revealedWord?: string;
 }
 
 export interface RoomSessionResponse {

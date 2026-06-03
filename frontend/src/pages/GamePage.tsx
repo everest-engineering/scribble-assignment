@@ -21,7 +21,10 @@ export function GamePage() {
 
     const intervalId = setInterval(async () => {
       try {
-        await roomStore.fetchRoom();
+        const updated = await roomStore.fetchRoom();
+        if (updated?.status === "ended") {
+          navigate("/result", { replace: true });
+        }
       } catch {
         navigate("/", { replace: true });
       }
@@ -118,6 +121,19 @@ export function GamePage() {
       </div>
 
       <div className="button-row">
+        {participantId === room.hostId && (
+          <button
+            className="button button--primary"
+            type="button"
+            onClick={() => {
+              roomStore
+                .endRound(room.code, participantId ?? "")
+                .catch(() => {});
+            }}
+          >
+            End Round
+          </button>
+        )}
         <button
           className="button button--secondary"
           onClick={() => navigate("/lobby")}
