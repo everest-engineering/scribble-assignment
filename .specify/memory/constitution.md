@@ -72,9 +72,10 @@ single responsibility.
 - **No new runtime dependencies** may be added without explicit justification against
   Principle V. Each new dependency MUST be evaluated for maintenance burden and bundle
   size.
-- **Known starter defect**: `VITE_API_URL` in `frontend/src/services/api.ts` defaults to
-  `http://localhost:3001/bug`. This MUST be corrected to `http://localhost:3001/api`
-  (or via a `.env` file) before any end-to-end flow can be tested.
+- **Known starter defect** _(resolved in feature 001)_: `VITE_API_URL` in `frontend/src/services/api.ts`
+  originally defaulted to `http://localhost:3001/bug`. The correct value is `http://localhost:3001`
+  (no `/api` suffix — the Express router is mounted at the root path). This has been corrected;
+  no further action required.
 
 ## AI-Assisted Development & Review Discipline
 
