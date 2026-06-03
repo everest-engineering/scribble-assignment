@@ -53,8 +53,14 @@ export function createRoom(playerName?: string) {
   const participant = createParticipant(playerName);
   const room: Room = {
     code: generateUniqueCode(),
+    hostId: participant.id,
+    drawerId: null,
+    currentWord: null,
     status: "lobby",
     participants: [participant],
+    strokes: [],
+    guesses: [],
+    scores: {},
     createdAt: now(),
     updatedAt: now()
   };
@@ -97,13 +103,21 @@ export function saveRoom(room: Room) {
 }
 
 export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSnapshot {
-  void viewerParticipantId;
-
   return {
     code: room.code,
+    hostId: room.hostId,
+    drawerId: room.drawerId,
+    currentWord: room.status === "ended"
+      ? room.currentWord
+      : viewerParticipantId === room.drawerId && room.drawerId !== null
+        ? room.currentWord
+        : null,
     status: room.status,
     participants: room.participants.map((participant) => ({ ...participant })),
     availableWords: listWords(),
-    roles: [...STARTER_ROLES]
+    roles: [...STARTER_ROLES],
+    strokes: room.strokes.map((s) => ({ ...s, points: s.points.map((p) => ({ ...p })) })),
+    guesses: room.guesses.map((g) => ({ ...g })),
+    scores: { ...room.scores }
   };
 }
