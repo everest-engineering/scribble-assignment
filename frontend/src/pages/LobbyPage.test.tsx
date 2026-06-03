@@ -26,6 +26,11 @@ function makeRoom(overrides: Record<string, unknown> = {}) {
     roles: [],
     drawerId: null,
     currentWord: null,
+    canvasDataUrl: null,
+    guesses: [],
+    scores: {},
+    roundEndsAt: null,
+    hasGuessedCorrectly: false,
     ...overrides
   };
 }

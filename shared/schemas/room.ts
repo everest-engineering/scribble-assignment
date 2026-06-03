@@ -8,7 +8,18 @@ export const participantSnapshotSchema = z.object({
   joinedAt: z.string()
 });
 
-export const roomStatusSchema = z.enum(["lobby", "in-progress"]);
+export const roomStatusSchema = z.enum(["lobby", "in-progress", "finished"]);
+
+export const guessSnapshotSchema = z.object({
+  id: z.string(),
+  participantId: z.string(),
+  participantName: z.string(),
+  text: z.string(),
+  correct: z.boolean(),
+  submittedAt: z.string()
+});
+
+export type GuessSnapshot = z.infer<typeof guessSnapshotSchema>;
 
 export const roomSnapshotSchema = z.object({
   code: z.string(),
@@ -18,7 +29,12 @@ export const roomSnapshotSchema = z.object({
   availableWords: z.array(z.string()),
   roles: z.array(participantRoleSchema),
   drawerId: z.string().nullable(),
-  currentWord: z.string().nullable()
+  currentWord: z.string().nullable(),
+  canvasDataUrl: z.string().nullable(),
+  guesses: z.array(guessSnapshotSchema),
+  scores: z.record(z.string(), z.number()),
+  roundEndsAt: z.string().nullable(),
+  hasGuessedCorrectly: z.boolean()
 });
 
 export const roomSessionResponseSchema = z.object({

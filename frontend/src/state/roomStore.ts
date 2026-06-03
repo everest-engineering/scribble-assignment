@@ -120,6 +120,40 @@ class RoomStore {
     this.setRoomSnapshot(response.room);
     return response.room;
   }
+
+  // T023: updateCanvas — sends canvas data URL to backend then refreshes room
+  async updateCanvas(canvasDataUrl: string) {
+    const { room, participantId } = this.state;
+    if (!room || !participantId) return;
+    try {
+      await api.updateCanvas(room.code, participantId, canvasDataUrl);
+      await this.fetchRoom();
+    } catch {
+      // Silent — canvas updates are fire-and-forget; next poll will resync
+    }
+  }
+
+  // T023: clearCanvas — clears canvas state on backend then refreshes room
+  async clearCanvas() {
+    const { room, participantId } = this.state;
+    if (!room || !participantId) return;
+    try {
+      await api.clearCanvas(room.code, participantId);
+      await this.fetchRoom();
+    } catch {
+      // Silent — next poll will resync
+    }
+  }
+
+  // T037: submitGuess — submits guess then refreshes room for updated scores/history
+  async submitGuess(text: string) {
+    const { room, participantId } = this.state;
+    if (!room || !participantId) return;
+    await this.withLoading(async () => {
+      await api.submitGuess(room.code, participantId, text);
+      await this.fetchRoom();
+    });
+  }
 }
 
 const RoomStoreContext = createContext<RoomStore | null>(null);

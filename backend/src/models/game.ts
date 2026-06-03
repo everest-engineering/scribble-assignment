@@ -1,5 +1,13 @@
 export type ParticipantRole = "drawer" | "guesser";
-export type RoomStatus = "lobby" | "in-progress";
+export type RoomStatus = "lobby" | "in-progress" | "finished";
+
+export interface Guess {
+  id: string;
+  participantId: string;
+  text: string;
+  correct: boolean;
+  submittedAt: string;
+}
 
 export interface Participant {
   id: string;
@@ -16,6 +24,20 @@ export interface Room {
   updatedAt: string;
   drawerId: string | null;
   currentWord: string | null;
+  canvasDataUrl: string | null;
+  guesses: Guess[];
+  scores: Record<string, number>;
+  correctGuessers: Set<string>;
+  roundStartedAt: string | null;
+}
+
+export interface GuessSnapshot {
+  id: string;
+  participantId: string;
+  participantName: string;
+  text: string;
+  correct: boolean;
+  submittedAt: string;
 }
 
 export interface RoomSnapshot {
@@ -27,6 +49,11 @@ export interface RoomSnapshot {
   roles: ParticipantRole[];
   drawerId: string | null;
   currentWord: string | null;
+  canvasDataUrl: string | null;
+  guesses: GuessSnapshot[];
+  scores: Record<string, number>;
+  roundEndsAt: string | null;
+  hasGuessedCorrectly: boolean;
 }
 
 export interface RoomSessionResponse {

@@ -17,7 +17,12 @@ const validRoom = {
   availableWords: [],
   roles: [],
   drawerId: null,
-  currentWord: null
+  currentWord: null,
+  canvasDataUrl: null,
+  guesses: [],
+  scores: {},
+  roundEndsAt: null,
+  hasGuessedCorrectly: false
 };
 
 describe("api service", () => {

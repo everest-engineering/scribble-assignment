@@ -1,12 +1,14 @@
 import {
+  guessSnapshotSchema,
   roomResponseSchema,
   roomSessionResponseSchema,
+  type GuessSnapshot,
   type RoomResponse,
   type RoomSessionResponse,
   type RoomSnapshot
 } from "shared/schemas/index.js";
 
-export type { RoomSessionResponse, RoomSnapshot, RoomResponse };
+export type { GuessSnapshot, RoomSessionResponse, RoomSnapshot, RoomResponse };
 
 const API_BASE_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3001";
 
@@ -59,5 +61,31 @@ export const api = {
       body: JSON.stringify({ participantId })
     });
     return roomResponseSchema.parse(raw);
+  },
+
+  // T021: updateCanvas — PUT /rooms/:code/canvas
+  async updateCanvas(code: string, participantId: string, canvasDataUrl: string): Promise<void> {
+    await request<void>(`/rooms/${encodeURIComponent(code)}/canvas`, {
+      method: "PUT",
+      body: JSON.stringify({ participantId, canvasDataUrl })
+    });
+  },
+
+  // T022: clearCanvas — DELETE /rooms/:code/canvas
+  async clearCanvas(code: string, participantId: string): Promise<void> {
+    await request<void>(`/rooms/${encodeURIComponent(code)}/canvas`, {
+      method: "DELETE",
+      body: JSON.stringify({ participantId })
+    });
+  },
+
+  // T036: submitGuess — POST /rooms/:code/guesses
+  async submitGuess(code: string, participantId: string, text: string): Promise<GuessSnapshot> {
+    const raw = await request<unknown>(`/rooms/${encodeURIComponent(code)}/guesses`, {
+      method: "POST",
+      body: JSON.stringify({ participantId, text })
+    });
+    const parsed = (raw as { guess: unknown }).guess;
+    return guessSnapshotSchema.parse(parsed);
   }
 };
