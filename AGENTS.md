@@ -1,4 +1,4 @@
-# Copilot Agent Instructions
+# Gemini Agent Instructions
 
 ## Project Context
 You are working on a monolithic repository for a multiplayer drawing game ("Scribble") containing an Express backend and a React frontend. Both environments strictly use TypeScript and ES Modules.
@@ -40,3 +40,15 @@ You are working on a monolithic repository for a multiplayer drawing game ("Scri
 -   Give concise, direct answers.
 -   Do not output large blocks of code if a small change suffices.
 -   When creating or editing files, ensure consistency with the existing directory structure detailed above.
+
+<!-- SPECKIT START -->
+## Active Plan
+
+Feature: **Results & Restart** — `004-results-restart`
+
+Implementation plan, data model, API contracts, and quickstart guide:
+- Plan: `specs/004-results-restart/plan.md`
+- Data Model: `specs/004-results-restart/data-model.md`
+- API Contracts: `specs/004-results-restart/contracts/README.md`
+- Quickstart: `specs/004-results-restart/quickstart.md`
+<!-- SPECKIT END -->

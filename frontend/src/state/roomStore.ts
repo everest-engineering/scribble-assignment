@@ -7,7 +7,7 @@ import {
   useSyncExternalStore,
   type PropsWithChildren
 } from "react";
-import { api, type RoomSessionResponse, type RoomSnapshot } from "../services/api";
+import { api, type Point, type RoomSessionResponse, type RoomSnapshot } from "../services/api";
 
 export interface RoomState {
   room: RoomSnapshot | null;
@@ -18,7 +18,7 @@ export interface RoomState {
 
 type Listener = () => void;
 
-class RoomStore {
+export class RoomStore {
   private state: RoomState = {
     room: null,
     participantId: null,
@@ -27,6 +27,7 @@ class RoomStore {
   };
 
   private listeners = new Set<Listener>();
+  private pollingInterval: ReturnType<typeof setInterval> | null = null;
 
   subscribe = (listener: Listener) => {
     this.listeners.add(listener);
@@ -98,6 +99,64 @@ class RoomStore {
     this.setRoomSnapshot(response.room);
     return response.room;
   }
+
+  async startGame() {
+    const { room, participantId } = this.state;
+    if (!room || !participantId) {
+      throw new Error("Not in a room");
+    }
+    const response = await this.withLoading(() => api.startGame(room.code, participantId));
+    this.setRoomSnapshot(response.room);
+    return response.room;
+  }
+
+  async restartGame() {
+    const { room, participantId } = this.state;
+    if (!room || !participantId) {
+      throw new Error("Not in a room");
+    }
+    await api.restartGame(room.code, participantId);
+    await this.fetchRoom();
+  }
+
+  async submitDraw(points: Point[]) {
+    const { room, participantId } = this.state;
+    if (!room || !participantId) throw new Error("Not in a room");
+    await api.submitDraw(room.code, participantId, points);
+    await this.fetchRoom();
+  }
+
+  async clearCanvas() {
+    const { room, participantId } = this.state;
+    if (!room || !participantId) throw new Error("Not in a room");
+    await api.clearCanvas(room.code, participantId);
+    await this.fetchRoom();
+  }
+
+  async submitGuess(text: string) {
+    const { room, participantId } = this.state;
+    if (!room || !participantId) throw new Error("Not in a room");
+    const response = await api.submitGuess(room.code, participantId, text);
+    await this.fetchRoom();
+    return response;
+  }
+
+  // Polls GET /rooms/:code every 2 seconds per POL-1 (HTTP polling synchronisation constraint).
+  startPolling() {
+    if (this.pollingInterval) return;
+    this.pollingInterval = setInterval(() => {
+      if (this.state.room) {
+        this.fetchRoom().catch(() => {});
+      }
+    }, 2000);
+  }
+
+  stopPolling() {
+    if (this.pollingInterval) {
+      clearInterval(this.pollingInterval);
+      this.pollingInterval = null;
+    }
+  }
 }
 
 const RoomStoreContext = createContext<RoomStore | null>(null);
@@ -109,7 +168,25 @@ export function RoomStoreProvider({ children }: PropsWithChildren) {
     storeRef.current = new RoomStore();
   }
 
-  useEffect(() => undefined, []);
+  useEffect(() => {
+    const store = storeRef.current!;
+
+    store.startPolling();
+
+    const handleUnload = () => {
+      const { room, participantId } = store.getSnapshot();
+      if (room && participantId) {
+        api.leaveRoom(room.code, participantId);
+      }
+    };
+
+    window.addEventListener("beforeunload", handleUnload);
+
+    return () => {
+      store.stopPolling();
+      window.removeEventListener("beforeunload", handleUnload);
+    };
+  }, []);
 
   return createElement(RoomStoreContext.Provider, { value: storeRef.current }, children);
 }
