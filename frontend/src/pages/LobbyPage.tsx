@@ -10,12 +10,26 @@ export function LobbyPage() {
   const roomStore = useRoomStore();
   const { room, error, isLoading } = useRoomState();
   const [refreshError, setRefreshError] = useState<string | null>(null);
+  const [startError, setStartError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!room) {
       navigate("/", { replace: true });
     }
   }, [navigate, room]);
+
+  useEffect(() => {
+    const id = setInterval(() => {
+      void roomStore.fetchRoomSilent();
+    }, 2000);
+    return () => clearInterval(id);
+  }, [roomStore]);
+
+  useEffect(() => {
+    if (room?.status === "playing") {
+      navigate("/game");
+    }
+  }, [room?.status, navigate]);
 
   async function handleRefresh() {
     try {
@@ -47,12 +61,18 @@ export function LobbyPage() {
             <p>No participants are connected to this room yet.</p>
           ) : (
             <ul className="player-list">
-              {room.participants.map((participant) => (
-                <li key={participant.id}>
-                  <span>{participant.name}</span>
-                  <span className="player-list__meta">joined</span>
-                </li>
-              ))}
+              {room.participants.map((participant) => {
+                const scoreEntry = room.scores.find((s) => s.participantId === participant.id);
+                const score = scoreEntry?.score ?? 0;
+                return (
+                  <li key={participant.id}>
+                    <span>{participant.name}</span>
+                    <span className="player-list__meta">
+                      {score > 0 ? `${score} pts` : "joined"}
+                    </span>
+                  </li>
+                );
+              })}
             </ul>
           )}
         </Card>
@@ -69,9 +89,29 @@ export function LobbyPage() {
         <button className="button button--secondary" disabled={isLoading} onClick={handleRefresh}>
           {isLoading ? "Refreshing..." : "Refresh Room"}
         </button>
-        <button className="button button--primary" onClick={() => navigate("/game")}>
-          Start Game
-        </button>
+        {room.isHost ? (
+          <div>
+            {startError ? <p className="form__error">{startError}</p> : null}
+            <button
+              className="button button--primary"
+              disabled={room.participants.length < 2 || isLoading}
+              onClick={async () => {
+                try {
+                  setStartError(null);
+                  await roomStore.startGame();
+                  navigate("/game");
+                } catch (caughtError) {
+                  setStartError(caughtError instanceof Error ? caughtError.message : "Failed to start game");
+                }
+              }}
+              title={room.participants.length < 2 ? "Need at least 2 players to start" : undefined}
+            >
+              Start Game
+            </button>
+          </div>
+        ) : (
+          <p className="status-line">Waiting for host to start…</p>
+        )}
       </div>
     </section>
   );
