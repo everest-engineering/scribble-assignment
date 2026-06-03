@@ -4,6 +4,16 @@ export interface Participant {
   id: string;
   name: string;
   joinedAt: string;
+  score: number;
+}
+
+export interface SnapshotGuess {
+  id: string;
+  guesserParticipantId: string;
+  text: string | null;
+  isCorrect: boolean;
+  submittedAt: string;
+  order: number;
 }
 
 export interface SnapshotRound {
@@ -17,6 +27,7 @@ export interface RoomSnapshot {
   hostParticipantId: string;
   participants: Participant[];
   currentRound: SnapshotRound | null;
+  guesses: SnapshotGuess[];
   availableWords: string[];
   roles: ParticipantRole[];
 }

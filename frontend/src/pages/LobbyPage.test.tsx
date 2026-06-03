@@ -13,8 +13,11 @@ function snapshot(overrides: Partial<RoomSnapshot> = {}): RoomSnapshot {
     code: "ABCD",
     status: "lobby",
     hostParticipantId: "host-id",
-    participants: [{ id: "host-id", name: "Alice", joinedAt: "2026-01-01T00:00:00.000Z" }],
+    participants: [
+      { id: "host-id", name: "Alice", joinedAt: "2026-01-01T00:00:00.000Z", score: 0 }
+    ],
     currentRound: null,
+    guesses: [],
     availableWords: [],
     roles: [],
     ...overrides
@@ -93,7 +96,7 @@ describe("LobbyPage", () => {
   it("renders Start (disabled) and the waiting copy when host is alone", async () => {
     await render(
       "host-id",
-      snapshot({ participants: [{ id: "host-id", name: "Alice", joinedAt: "t" }] })
+      snapshot({ participants: [{ id: "host-id", name: "Alice", joinedAt: "t", score: 0 }] })
     );
 
     const button = container.querySelector("button.button--primary") as HTMLButtonElement | null;
@@ -108,8 +111,8 @@ describe("LobbyPage", () => {
       "host-id",
       snapshot({
         participants: [
-          { id: "host-id", name: "Alice", joinedAt: "t" },
-          { id: "guest-id", name: "Bob", joinedAt: "t" }
+          { id: "host-id", name: "Alice", joinedAt: "t", score: 0 },
+          { id: "guest-id", name: "Bob", joinedAt: "t", score: 0 }
         ]
       })
     );
@@ -125,8 +128,8 @@ describe("LobbyPage", () => {
       "guest-id",
       snapshot({
         participants: [
-          { id: "host-id", name: "Alice", joinedAt: "t" },
-          { id: "guest-id", name: "Bob", joinedAt: "t" }
+          { id: "host-id", name: "Alice", joinedAt: "t", score: 0 },
+          { id: "guest-id", name: "Bob", joinedAt: "t", score: 0 }
         ]
       })
     );
@@ -141,8 +144,8 @@ describe("LobbyPage", () => {
       snapshot({
         status: "playing",
         participants: [
-          { id: "host-id", name: "Alice", joinedAt: "t" },
-          { id: "guest-id", name: "Bob", joinedAt: "t" }
+          { id: "host-id", name: "Alice", joinedAt: "t", score: 0 },
+          { id: "guest-id", name: "Bob", joinedAt: "t", score: 0 }
         ],
         currentRound: { drawerParticipantId: "host-id", secretWord: "rocket" }
       })
@@ -157,8 +160,8 @@ describe("LobbyPage", () => {
       "host-id",
       snapshot({
         participants: [
-          { id: "host-id", name: "Alice", joinedAt: "t" },
-          { id: "guest-id", name: "Bob", joinedAt: "t" }
+          { id: "host-id", name: "Alice", joinedAt: "t", score: 0 },
+          { id: "guest-id", name: "Bob", joinedAt: "t", score: 0 }
         ]
       })
     );

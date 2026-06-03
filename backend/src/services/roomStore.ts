@@ -44,7 +44,8 @@ function createParticipant(name: string): Participant {
   return {
     id: randomUUID(),
     name,
-    joinedAt: now()
+    joinedAt: now(),
+    score: 0
   };
 }
 
@@ -72,6 +73,7 @@ export function createRoom(playerName: string) {
     hostParticipantId: participant.id,
     participants: [participant],
     currentRound: null,
+    guesses: [],
     createdAt: now(),
     updatedAt: now()
   };
@@ -169,6 +171,7 @@ export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSn
     hostParticipantId: room.hostParticipantId,
     participants: room.participants.map((participant) => ({ ...participant })),
     currentRound: snapshotRound,
+    guesses: [],
     availableWords: listWords(),
     roles: [...STARTER_ROLES]
   };

@@ -16,10 +16,11 @@ function snapshot(overrides: Partial<RoomSnapshot> = {}): RoomSnapshot {
     status: "playing",
     hostParticipantId: "host-id",
     participants: [
-      { id: "host-id", name: "Alice", joinedAt: "t" },
-      { id: "guest-id", name: "Bob", joinedAt: "t" }
+      { id: "host-id", name: "Alice", joinedAt: "t", score: 0 },
+      { id: "guest-id", name: "Bob", joinedAt: "t", score: 0 }
     ],
     currentRound: { drawerParticipantId: "host-id", secretWord: "rocket" },
+    guesses: [],
     availableWords: [],
     roles: [],
     ...overrides

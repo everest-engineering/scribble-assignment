@@ -12,7 +12,7 @@ describe("api service", () => {
       json: () =>
         Promise.resolve({
           participantId: "p1",
-          room: { code: "ABCD", status: "lobby", hostParticipantId: "p1", participants: [] },
+          room: { code: "ABCD", status: "lobby", hostParticipantId: "p1", participants: [], currentRound: null, guesses: [], availableWords: [], roles: [] },
         }),
     };
     vi.mocked(fetch).mockResolvedValue(mockResponse as unknown as Response);
@@ -37,7 +37,7 @@ describe("api service", () => {
       ok: true,
       json: () =>
         Promise.resolve({
-          room: { code: "XYZW", status: "lobby", hostParticipantId: "p1", participants: [] },
+          room: { code: "XYZW", status: "lobby", hostParticipantId: "p1", participants: [], currentRound: null, guesses: [], availableWords: [], roles: [] },
         }),
     };
     vi.mocked(fetch).mockResolvedValue(mockResponse as unknown as Response);
@@ -71,6 +71,7 @@ describe("api service", () => {
             hostParticipantId: "host-id",
             participants: [],
             currentRound: { drawerParticipantId: "host-id", secretWord: "rocket" },
+            guesses: [],
             availableWords: [],
             roles: [],
           },

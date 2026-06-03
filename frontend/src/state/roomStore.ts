@@ -120,6 +120,7 @@ class RoomStore {
         hostParticipantId: "",
         participants: [],
         currentRound: null,
+        guesses: [],
         availableWords: [],
         roles: []
       },

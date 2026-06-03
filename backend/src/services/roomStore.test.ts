@@ -199,4 +199,5 @@ describe("roomStore", () => {
       expect(lateJoin).toEqual({ error: "room-not-open" });
     });
   });
+
 });
