@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { PageHeader } from "../components/PageHeader";
+import { writeActiveRoom, writeIdentity } from "../state/identityStorage";
 import { useRoomStore } from "../state/roomStore";
 
 export function CreateRoomPage() {
@@ -11,10 +12,21 @@ export function CreateRoomPage() {
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    const trimmedName = playerName.trim();
+
+    if (trimmedName.length === 0) {
+      setError("Enter your name");
+      return;
+    }
 
     try {
       setError(null);
-      await roomStore.createRoom(playerName);
+      const response = await roomStore.createRoom(trimmedName);
+      writeIdentity(response.room.code, {
+        participantId: response.participantId,
+        role: "host"
+      });
+      writeActiveRoom(response.room.code);
       navigate("/lobby");
     } catch (caughtError) {
       setError(caughtError instanceof Error ? caughtError.message : "Unable to create room");

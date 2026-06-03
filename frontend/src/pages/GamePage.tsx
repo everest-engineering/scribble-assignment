@@ -1,26 +1,50 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { CanvasBoard } from "../components/CanvasBoard";
 import { Card } from "../components/Card";
 import { GuessForm } from "../components/GuessForm";
 import { ResultPanel } from "../components/ResultPanel";
 import { RoomCodeBadge } from "../components/RoomCodeBadge";
 import { Scoreboard } from "../components/Scoreboard";
-import { useRoomState } from "../state/roomStore";
+import { useLobbyPolling } from "../state/useLobbyPolling";
+import { useRoomState, useRoomStore } from "../state/roomStore";
 
 export function GamePage() {
   const navigate = useNavigate();
+  const roomStore = useRoomStore();
   const { room, participantId } = useRoomState();
+
+  useLobbyPolling(room?.code ?? null);
 
   useEffect(() => {
     if (!room) {
       navigate("/", { replace: true });
+      return;
+    }
+    if (room.status === "result") {
+      navigate("/result", { replace: true });
     }
   }, [navigate, room]);
+
+  async function handleEndRound() {
+    try {
+      await roomStore.endRound();
+    } catch (caughtError) {
+      // Errors are surfaced via the room store's state; for the host this is
+      // a console-level concern. The next poll will reconcile if needed.
+      console.error(caughtError);
+    }
+  }
 
   if (!room) {
     return null;
   }
 
+  const round = room.currentRound;
+  const drawer = round
+    ? room.participants.find((participant) => participant.id === round.drawerParticipantId) ?? null
+    : null;
+  const isDrawer = !!round && participantId === round.drawerParticipantId;
   const viewer = room.participants.find((participant) => participant.id === participantId) ?? null;
 
   return (
@@ -35,16 +59,66 @@ export function GamePage() {
 
       <div className="game-page__layout">
         <aside className="game-page__sidebar game-page__sidebar--left">
-          <Scoreboard />
+          <Scoreboard
+            participants={room.participants}
+            drawerParticipantId={round?.drawerParticipantId}
+          />
+          <Card title="Guess history">
+            {room.guesses.length === 0 ? (
+              <p>No guesses yet.</p>
+            ) : (
+              <ul className="player-list" data-testid="guess-history">
+                {[...room.guesses]
+                  .sort((a, b) => a.order - b.order)
+                  .map((entry) => {
+                    const guesser =
+                      room.participants.find((p) => p.id === entry.guesserParticipantId) ?? null;
+                    const displayedText = entry.text === null ? "<correct guess>" : entry.text;
+                    return (
+                      <li key={entry.id}>
+                        <span>
+                          <strong>{guesser?.name ?? "Unknown"}</strong>: {displayedText}
+                        </span>
+                        <span className="player-list__meta">
+                          {entry.isCorrect ? "correct" : "incorrect"}
+                        </span>
+                      </li>
+                    );
+                  })}
+              </ul>
+            )}
+          </Card>
           <ResultPanel />
         </aside>
 
         <div className="game-page__main">
-          <Card title="Canvas">
-            <div className="canvas-placeholder" style={{ minHeight: '500px', backgroundColor: '#ffffff', border: '1px solid #e5e7eb' }}>
-              Waiting for drawer...
-            </div>
-          </Card>
+          {isDrawer ? (
+            <Card title="You're the drawer" badge="Your word">
+              <p className="secret-word" data-testid="secret-word">
+                {round!.secretWord}
+              </p>
+              <p>Draw it so the others can guess!</p>
+              <div className="button-row button-row--compact" style={{ marginTop: "12px" }}>
+                <button
+                  className="button button--secondary"
+                  type="button"
+                  onClick={handleEndRound}
+                >
+                  End Round
+                </button>
+              </div>
+            </Card>
+          ) : (
+            <Card title={drawer ? `${drawer.name} is drawing` : "Waiting for the drawer"}>
+              <p className="secret-word-placeholder">Waiting for the drawer to begin…</p>
+            </Card>
+          )}
+
+          {isDrawer ? (
+            <Card title="Canvas">
+              <CanvasBoard />
+            </Card>
+          ) : null}
         </div>
 
         <aside className="game-page__sidebar game-page__sidebar--right">
@@ -55,15 +129,21 @@ export function GamePage() {
                 <dd>{viewer?.name ?? "Unknown player"}</dd>
               </div>
               <div>
-                <dt>Status</dt>
-                <dd>Playing</dd>
+                <dt>Role</dt>
+                <dd>{isDrawer ? "Drawer" : "Guesser"}</dd>
               </div>
             </dl>
           </Card>
 
-          <Card title="Your Guess">
-            <GuessForm />
-          </Card>
+          {isDrawer ? null : (
+            <Card title="Your Guess">
+              <GuessForm
+                onSubmit={async (text) => {
+                  await roomStore.submitGuess(text);
+                }}
+              />
+            </Card>
+          )}
         </aside>
       </div>
 

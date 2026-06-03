@@ -98,6 +98,85 @@ class RoomStore {
     this.setRoomSnapshot(response.room);
     return response.room;
   }
+
+  async startGame() {
+    const room = this.state.room;
+    const participantId = this.state.participantId;
+    if (!room || !participantId) {
+      throw new Error("Cannot start: no active room or participant identity");
+    }
+
+    const response = await this.withLoading(() => api.startGame(room.code, participantId));
+    this.setRoomSnapshot(response.room);
+    return response.room;
+  }
+
+  async submitGuess(text: string) {
+    const room = this.state.room;
+    const participantId = this.state.participantId;
+    if (!room || !participantId) {
+      throw new Error("Cannot submit guess: no active room or participant identity");
+    }
+
+    const response = await api.submitGuess(room.code, participantId, text);
+    this.setRoomSnapshot(response.room);
+    return response.room;
+  }
+
+  async endRound() {
+    const room = this.state.room;
+    const participantId = this.state.participantId;
+    if (!room || !participantId) {
+      throw new Error("Cannot end round: no active room or participant identity");
+    }
+
+    const response = await api.endRound(room.code, participantId);
+    this.setRoomSnapshot(response.room);
+    return response.room;
+  }
+
+  async restart() {
+    const room = this.state.room;
+    const participantId = this.state.participantId;
+    if (!room || !participantId) {
+      throw new Error("Cannot restart: no active room or participant identity");
+    }
+
+    const response = await api.restart(room.code, participantId);
+    this.setRoomSnapshot(response.room);
+    return response.room;
+  }
+
+
+  async hydrateSession(roomCode: string, participantId: string) {
+    this.setState({
+      participantId,
+      room: {
+        code: roomCode,
+        status: "lobby",
+        hostParticipantId: "",
+        participants: [],
+        currentRound: null,
+        guesses: [],
+        availableWords: [],
+        roles: []
+      },
+      error: null,
+      isLoading: true
+    });
+
+    try {
+      const response = await api.fetchRoom(roomCode, participantId);
+      this.setRoomSnapshot(response.room);
+      return response.room;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unable to reload room";
+      this.setState({ error: message, room: null, participantId: null });
+      throw error;
+    } finally {
+      this.setState({ isLoading: false });
+    }
+  }
 }
 
 const RoomStoreContext = createContext<RoomStore | null>(null);
