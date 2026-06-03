@@ -6,10 +6,15 @@ export interface Participant {
   joinedAt: string;
 }
 
+export type RoomStatus = "lobby" | "playing";
+
 export interface RoomSnapshot {
   code: string;
-  status: "lobby";
+  status: RoomStatus;
   hostId: string;
+  drawerId: string | null;
+  // The secret word, present only when the viewer is the drawer; otherwise null.
+  word: string | null;
   participants: Participant[];
   availableWords: string[];
   roles: ParticipantRole[];
@@ -58,5 +63,11 @@ export const api = {
   fetchRoom(code: string, participantId?: string) {
     const query = participantId ? `?participantId=${encodeURIComponent(participantId)}` : "";
     return request<{ room: RoomSnapshot }>(`/rooms/${encodeURIComponent(code)}${query}`);
+  },
+  startGame(code: string, participantId: string) {
+    return request<RoomSessionResponse>(`/rooms/${encodeURIComponent(code)}/start`, {
+      method: "POST",
+      body: JSON.stringify({ participantId })
+    });
   }
 };
