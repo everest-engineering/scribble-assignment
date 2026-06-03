@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card } from "../components/Card";
+import { DrawingCanvas } from "../components/DrawingCanvas";
 import { GuessForm } from "../components/GuessForm";
 import { ResultPanel } from "../components/ResultPanel";
 import { RoomCodeBadge } from "../components/RoomCodeBadge";
@@ -36,6 +37,14 @@ export function GamePage() {
     }
   }, [room, navigate]);
 
+  useEffect(() => {
+    if (!room) return;
+    const id = setInterval(() => {
+      roomStore.fetchRoom().catch(() => {});
+    }, 2000);
+    return () => clearInterval(id);
+  }, [room, roomStore]);
+
   if (!room) {
     return null;
   }
@@ -56,8 +65,8 @@ export function GamePage() {
 
       <div className="game-page__layout">
         <aside className="game-page__sidebar game-page__sidebar--left">
-          <Scoreboard />
-          <ResultPanel />
+          <Scoreboard scores={room.scores} participants={room.participants} />
+          <ResultPanel guesses={room.guesses} participants={room.participants} />
         </aside>
 
         <div className="game-page__main">
@@ -79,9 +88,7 @@ export function GamePage() {
           </Card>
 
           <Card title="Canvas">
-            <div className="canvas-placeholder" style={{ minHeight: "500px", backgroundColor: "#ffffff", border: "1px solid #e5e7eb" }}>
-              {isDrawer ? "You are drawing!" : "Waiting for drawer..."}
-            </div>
+            <DrawingCanvas room={room} isDrawer={isDrawer} store={roomStore} />
           </Card>
         </div>
 
@@ -99,9 +106,15 @@ export function GamePage() {
             </dl>
           </Card>
 
-          <Card title="Your Guess">
-            <GuessForm />
-          </Card>
+          {!isDrawer && (
+            <Card title="Your Guess">
+              <GuessForm
+                isDrawer={isDrawer}
+                room={room}
+                participantId={participantId ?? ""}
+              />
+            </Card>
+          )}
         </aside>
       </div>
 

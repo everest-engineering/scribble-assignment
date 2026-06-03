@@ -24,8 +24,8 @@ description: "Task list for Gameplay Interaction"
 
 **Purpose**: Confirm the project runs cleanly before making changes.
 
-- [ ] T001 Start backend (`cd backend && npm run dev`) and confirm `GET /health` returns `{ "ok": true }`
-- [ ] T002 Start frontend (`cd frontend && npm run dev`) and confirm the app loads at `http://localhost:5173`
+- [x] T001 Start backend (`cd backend && npm run dev`) and confirm `GET /health` returns `{ "ok": true }`
+- [x] T002 Start frontend (`cd frontend && npm run dev`) and confirm the app loads at `http://localhost:5173`
 
 ---
 
@@ -35,10 +35,10 @@ description: "Task list for Gameplay Interaction"
 
 ⚠️ **CRITICAL**: No user story work can begin until this phase is complete.
 
-- [ ] T003 Add `Stroke` interface (`{ points: Array<{x: number; y: number}>; color: string; lineWidth: number }`) and `Guess` interface (`{ id: string; participantId: string; text: string; correct: boolean; submittedAt: string }`) to `backend/src/models/game.ts`; add `strokes: Stroke[]`, `guesses: Guess[]`, and `scores: Record<string, number>` to both `Room` and `RoomSnapshot` interfaces
-- [ ] T004 In `createRoom`, initialize `strokes: []`, `guesses: []`, `scores: {}`; in `toRoomSnapshot`, include `strokes: room.strokes`, `guesses: room.guesses`, `scores: room.scores` in the returned snapshot in `backend/src/services/roomStore.ts`
-- [ ] T005 In the `startRoom` handler, after setting `room.status = "active"`, reset `room.strokes = []`, `room.guesses = []`, and initialize `room.scores = Object.fromEntries(room.participants.map(p => [p.id, 0]))` in `backend/src/api/rooms.ts`
-- [ ] T006 [P] Add `Stroke` and `Guess` types and add `strokes: Stroke[]`, `guesses: Guess[]`, `scores: Record<string, number>` to the `RoomSnapshot` interface in `frontend/src/services/api.ts`
+- [x] T003 Add `Stroke` interface (`{ points: Array<{x: number; y: number}>; color: string; lineWidth: number }`) and `Guess` interface (`{ id: string; participantId: string; text: string; correct: boolean; submittedAt: string }`) to `backend/src/models/game.ts`; add `strokes: Stroke[]`, `guesses: Guess[]`, and `scores: Record<string, number>` to both `Room` and `RoomSnapshot` interfaces
+- [x] T004 In `createRoom`, initialize `strokes: []`, `guesses: []`, `scores: {}`; in `toRoomSnapshot`, include `strokes: room.strokes`, `guesses: room.guesses`, `scores: room.scores` in the returned snapshot in `backend/src/services/roomStore.ts`
+- [x] T005 In the `startRoom` handler, after setting `room.status = "active"`, reset `room.strokes = []`, `room.guesses = []`, and initialize `room.scores = Object.fromEntries(room.participants.map(p => [p.id, 0]))` in `backend/src/api/rooms.ts`
+- [x] T006 [P] Add `Stroke` and `Guess` types and add `strokes: Stroke[]`, `guesses: Guess[]`, `scores: Record<string, number>` to the `RoomSnapshot` interface in `frontend/src/services/api.ts`
 
 **Checkpoint**: Run `npm run build` in `backend/` — TypeScript must compile with zero errors before proceeding. Confirm `GET /rooms/:code` response includes `"strokes": []`, `"guesses": []`, `"scores": {}` on a newly created room.
 
@@ -52,12 +52,12 @@ description: "Task list for Gameplay Interaction"
 
 ### Implementation for User Story 1
 
-- [ ] T007 [US1] Add `strokeSchema` (`{ participantId: z.string(), stroke: { points: z.array(...), color: z.string().optional(), lineWidth: z.number().optional() } }`) and `clearSchema` (`{ participantId: z.string() }`) to `backend/src/api/schemas.ts`
-- [ ] T008 [US1] Add `POST /:code/stroke` handler (assert caller is drawer, append stroke to `room.strokes`, save, return snapshot) and `POST /:code/clear` handler (assert caller is drawer, set `room.strokes = []`, save, return snapshot) to `backend/src/api/rooms.ts`
-- [ ] T009 [P] [US1] Add `submitStroke(code: string, participantId: string, stroke: Stroke)` and `clearCanvas(code: string, participantId: string)` API methods to `frontend/src/services/api.ts`
-- [ ] T010 [P] [US1] Add `submitStroke(stroke: Stroke)` and `clearCanvas()` methods to the `RoomStore` class in `frontend/src/state/roomStore.ts`, each calling the corresponding API method and updating the room snapshot in store state
-- [ ] T011 [US1] Create `frontend/src/components/DrawingCanvas.tsx`: when `isDrawer` is true, render an interactive `<canvas>` with `onPointerDown`, `onPointerMove`, `onPointerUp` handlers that collect path points and call `store.submitStroke(stroke)` on pointer-up, plus a "Clear Canvas" button that calls `store.clearCanvas()`; when `isDrawer` is false, render a read-only `<canvas>` that uses `useEffect` to redraw all strokes in `room.strokes` whenever the prop changes (iterate strokes: `beginPath → moveTo(points[0]) → lineTo(...) → stroke()`)
-- [ ] T012 [US1] In `frontend/src/pages/GamePage.tsx`, replace the canvas placeholder `<div>` with `<DrawingCanvas room={room} isDrawer={isDrawer} store={roomStore} />`; add a `useEffect` with `setInterval` (~2000ms) that calls `roomStore.fetchRoom()` and is cleaned up on unmount — clears when `room` is null
+- [x] T007 [US1] Add `strokeSchema` (`{ participantId: z.string(), stroke: { points: z.array(...), color: z.string().optional(), lineWidth: z.number().optional() } }`) and `clearSchema` (`{ participantId: z.string() }`) to `backend/src/api/schemas.ts`
+- [x] T008 [US1] Add `POST /:code/stroke` handler (assert caller is drawer, append stroke to `room.strokes`, save, return snapshot) and `POST /:code/clear` handler (assert caller is drawer, set `room.strokes = []`, save, return snapshot) to `backend/src/api/rooms.ts`
+- [x] T009 [P] [US1] Add `submitStroke(code: string, participantId: string, stroke: Stroke)` and `clearCanvas(code: string, participantId: string)` API methods to `frontend/src/services/api.ts`
+- [x] T010 [P] [US1] Add `submitStroke(stroke: Stroke)` and `clearCanvas()` methods to the `RoomStore` class in `frontend/src/state/roomStore.ts`, each calling the corresponding API method and updating the room snapshot in store state
+- [x] T011 [US1] Create `frontend/src/components/DrawingCanvas.tsx`: when `isDrawer` is true, render an interactive `<canvas>` with `onPointerDown`, `onPointerMove`, `onPointerUp` handlers that collect path points and call `store.submitStroke(stroke)` on pointer-up, plus a "Clear Canvas" button that calls `store.clearCanvas()`; when `isDrawer` is false, render a read-only `<canvas>` that uses `useEffect` to redraw all strokes in `room.strokes` whenever the prop changes (iterate strokes: `beginPath → moveTo(points[0]) → lineTo(...) → stroke()`)
+- [x] T012 [US1] In `frontend/src/pages/GamePage.tsx`, replace the canvas placeholder `<div>` with `<DrawingCanvas room={room} isDrawer={isDrawer} store={roomStore} />`; add a `useEffect` with `setInterval` (~2000ms) that calls `roomStore.fetchRoom()` and is cleaned up on unmount — clears when `room` is null
 
 **Checkpoint**: Drawer draws on Tab A; Tab B shows the same drawing within ~2s. Clear works on both tabs. Tab B canvas has no drawing controls.
 
@@ -71,11 +71,11 @@ description: "Task list for Gameplay Interaction"
 
 ### Implementation for User Story 2
 
-- [ ] T013 [US2] Add `guessSchema` (`{ participantId: z.string(), text: z.string() }`) to `backend/src/api/schemas.ts`
-- [ ] T014 [US2] Add `POST /:code/guess` handler to `backend/src/api/rooms.ts`: parse with `guessSchema`; trim `text`; throw 400 if empty; throw 403 if `participantId === room.drawerId`; throw 403 if `room.guesses.some(g => g.participantId === participantId && g.correct)` (player already guessed correctly); compare `text.toLowerCase()` to `room.currentWord!.toLowerCase()` for correctness; create `Guess` object (`{ id: randomUUID(), participantId, text: trimmed, correct, submittedAt: now() }`); push to `room.guesses`; add `correct ? 100 : 0` to `room.scores[participantId]`; save; return `{ guess, room: toRoomSnapshot(updatedRoom, participantId) }`
-- [ ] T015 [P] [US2] Add `submitGuess(code: string, participantId: string, text: string)` API method returning `{ guess: Guess; room: RoomSnapshot }` to `frontend/src/services/api.ts`
-- [ ] T016 [P] [US2] Add `submitGuess(text: string)` method to `RoomStore` in `frontend/src/state/roomStore.ts`: trim text, call `api.submitGuess`, update store room snapshot, return the `Guess` result
-- [ ] T017 [US2] Rewrite `frontend/src/components/GuessForm.tsx`: accept `isDrawer: boolean`, `room: RoomSnapshot`, and `participantId: string` props; return `null` when `isDrawer` is true; derive `alreadyCorrect = room.guesses.some(g => g.participantId === participantId && g.correct)` — if true, render "You already guessed correctly!" and return (no form — handles session restore); add local state for `guessText` (string), `error` (string | null), `result` ("correct" | "incorrect" | null); on submit — trim, set error if empty, else call `roomStore.submitGuess(guessText)`, set `result` from returned guess's `correct` flag, clear `guessText` on success; if `result === "correct"`, show only "Correct!" (hide input and submit button); render input, inline error, and "Incorrect" message for incorrect submissions; update `<GuessForm>` call in `frontend/src/pages/GamePage.tsx` to pass `room={room}` and `participantId={participantId}` alongside `isDrawer`
+- [x] T013 [US2] Add `guessSchema` (`{ participantId: z.string(), text: z.string() }`) to `backend/src/api/schemas.ts`
+- [x] T014 [US2] Add `POST /:code/guess` handler to `backend/src/api/rooms.ts`: parse with `guessSchema`; trim `text`; throw 400 if empty; throw 403 if `participantId === room.drawerId`; throw 403 if `room.guesses.some(g => g.participantId === participantId && g.correct)` (player already guessed correctly); compare `text.toLowerCase()` to `room.currentWord!.toLowerCase()` for correctness; create `Guess` object (`{ id: randomUUID(), participantId, text: trimmed, correct, submittedAt: now() }`); push to `room.guesses`; add `correct ? 100 : 0` to `room.scores[participantId]`; save; return `{ guess, room: toRoomSnapshot(updatedRoom, participantId) }`
+- [x] T015 [P] [US2] Add `submitGuess(code: string, participantId: string, text: string)` API method returning `{ guess: Guess; room: RoomSnapshot }` to `frontend/src/services/api.ts`
+- [x] T016 [P] [US2] Add `submitGuess(text: string)` method to `RoomStore` in `frontend/src/state/roomStore.ts`: trim text, call `api.submitGuess`, update store room snapshot, return the `Guess` result
+- [x] T017 [US2] Rewrite `frontend/src/components/GuessForm.tsx`: accept `isDrawer: boolean`, `room: RoomSnapshot`, and `participantId: string` props; return `null` when `isDrawer` is true; derive `alreadyCorrect = room.guesses.some(g => g.participantId === participantId && g.correct)` — if true, render "You already guessed correctly!" and return (no form — handles session restore); add local state for `guessText` (string), `error` (string | null), `result` ("correct" | "incorrect" | null); on submit — trim, set error if empty, else call `roomStore.submitGuess(guessText)`, set `result` from returned guess's `correct` flag, clear `guessText` on success; if `result === "correct"`, show only "Correct!" (hide input and submit button); render input, inline error, and "Incorrect" message for incorrect submissions; update `<GuessForm>` call in `frontend/src/pages/GamePage.tsx` to pass `room={room}` and `participantId={participantId}` alongside `isDrawer`
 
 **Checkpoint**: Tab B submits empty → inline error. Submits "ROCKET" → "Correct!". Submits "pizza" → "Incorrect". Tab A (drawer) has no form.
 
@@ -89,8 +89,8 @@ description: "Task list for Gameplay Interaction"
 
 ### Implementation for User Story 3
 
-- [ ] T018 [US3] Rewrite `frontend/src/components/ResultPanel.tsx` to accept `guesses: Guess[]` and `participants: Participant[]` as props; render each `Guess` as `"{participantName}: {guess.text} — ✓ Correct"` or `"✗ Incorrect"` in submission order; render "No guesses yet" when the list is empty
-- [ ] T019 [US3] In `frontend/src/pages/GamePage.tsx`, import `Guess` from `api.ts`; pass `room.guesses` and `room.participants` as props to `<ResultPanel>`
+- [x] T018 [US3] Rewrite `frontend/src/components/ResultPanel.tsx` to accept `guesses: Guess[]` and `participants: Participant[]` as props; render each `Guess` as `"{participantName}: {guess.text} — ✓ Correct"` or `"✗ Incorrect"` in submission order; render "No guesses yet" when the list is empty
+- [x] T019 [US3] In `frontend/src/pages/GamePage.tsx`, import `Guess` from `api.ts`; pass `room.guesses` and `room.participants` as props to `<ResultPanel>`
 
 **Checkpoint**: After any guess, all three tabs (drawer + 2 guessers) show the full guess history within ~2 seconds.
 
@@ -104,8 +104,8 @@ description: "Task list for Gameplay Interaction"
 
 ### Implementation for User Story 4
 
-- [ ] T020 [US4] Rewrite `frontend/src/components/Scoreboard.tsx` to accept `scores: Record<string, number>` and `participants: Participant[]` as props; render each participant as `"{name}: {score} pts"` sorted by score descending
-- [ ] T021 [US4] In `frontend/src/pages/GamePage.tsx`, pass `room.scores` and `room.participants` as props to `<Scoreboard>`
+- [x] T020 [US4] Rewrite `frontend/src/components/Scoreboard.tsx` to accept `scores: Record<string, number>` and `participants: Participant[]` as props; render each participant as `"{name}: {score} pts"` sorted by score descending
+- [x] T021 [US4] In `frontend/src/pages/GamePage.tsx`, pass `room.scores` and `room.participants` as props to `<Scoreboard>`
 
 **Checkpoint**: Scoreboard shows all participants at 0 on game start. Updates correctly after correct and incorrect guesses. Consistent across all tabs within ~2 seconds.
 
@@ -115,9 +115,9 @@ description: "Task list for Gameplay Interaction"
 
 **Purpose**: Build validation and end-to-end acceptance check.
 
-- [ ] T022 [P] Run `npm run build` in `backend/` and confirm zero TypeScript errors
-- [ ] T023 [P] Run `npm run build` in `frontend/` and confirm zero TypeScript errors
-- [ ] T024 Complete the full validation flow in `specs/003-gameplay-interaction/quickstart.md` using two browser tabs and confirm all 11 checks in the validation table pass
+- [x] T022 [P] Run `npm run build` in `backend/` and confirm zero TypeScript errors
+- [x] T023 [P] Run `npm run build` in `frontend/` and confirm zero TypeScript errors
+- [x] T024 Complete the full validation flow in `specs/003-gameplay-interaction/quickstart.md` using two browser tabs and confirm all 11 checks in the validation table pass
 
 ---
 

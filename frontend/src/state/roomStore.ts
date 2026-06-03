@@ -7,7 +7,7 @@ import {
   useSyncExternalStore,
   type PropsWithChildren
 } from "react";
-import { api, type RoomSessionResponse, type RoomSnapshot } from "../services/api";
+import { api, type RoomSessionResponse, type RoomSnapshot, type Stroke } from "../services/api";
 
 export interface RoomState {
   room: RoomSnapshot | null;
@@ -20,7 +20,7 @@ type Listener = () => void;
 
 const SESSION_KEY = "scribble_session";
 
-class RoomStore {
+export class RoomStore {
   private state: RoomState = {
     room: null,
     participantId: null,
@@ -121,6 +121,27 @@ class RoomStore {
     const response = await api.fetchRoom(this.state.room.code, this.state.participantId ?? undefined);
     this.setRoomSnapshot(response.room);
     return response.room;
+  }
+
+  async submitStroke(stroke: Stroke) {
+    if (!this.state.room || !this.state.participantId) throw new Error("No active room");
+    const response = await api.submitStroke(this.state.room.code, this.state.participantId, stroke);
+    this.setRoomSnapshot(response.room);
+    return response;
+  }
+
+  async clearCanvas() {
+    if (!this.state.room || !this.state.participantId) throw new Error("No active room");
+    const response = await api.clearCanvas(this.state.room.code, this.state.participantId);
+    this.setRoomSnapshot(response.room);
+    return response;
+  }
+
+  async submitGuess(text: string) {
+    if (!this.state.room || !this.state.participantId) throw new Error("No active room");
+    const response = await api.submitGuess(this.state.room.code, this.state.participantId, text.trim());
+    this.setRoomSnapshot(response.room);
+    return response.guess;
   }
 
   async restoreSession(): Promise<boolean> {

@@ -58,6 +58,9 @@ export function createRoom(playerName?: string) {
     currentWord: null,
     status: "lobby",
     participants: [participant],
+    strokes: [],
+    guesses: [],
+    scores: {},
     createdAt: now(),
     updatedAt: now()
   };
@@ -110,6 +113,9 @@ export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSn
     status: room.status,
     participants: room.participants.map((participant) => ({ ...participant })),
     availableWords: listWords(),
-    roles: [...STARTER_ROLES]
+    roles: [...STARTER_ROLES],
+    strokes: room.strokes.map((s) => ({ ...s, points: s.points.map((p) => ({ ...p })) })),
+    guesses: room.guesses.map((g) => ({ ...g })),
+    scores: { ...room.scores }
   };
 }

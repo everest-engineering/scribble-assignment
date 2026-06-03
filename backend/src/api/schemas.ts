@@ -27,6 +27,24 @@ export const startRoomSchema = z.object({
   participantId: z.string().uuid("participantId must be a valid UUID")
 });
 
+export const strokeSchema = z.object({
+  participantId: z.string(),
+  stroke: z.object({
+    points: z.array(z.object({ x: z.number(), y: z.number() })).min(1, "Stroke must have at least one point"),
+    color: z.string().optional(),
+    lineWidth: z.number().positive().optional()
+  })
+});
+
+export const clearSchema = z.object({
+  participantId: z.string()
+});
+
+export const guessSchema = z.object({
+  participantId: z.string(),
+  text: z.string()
+});
+
 export class HttpError extends Error {
   statusCode: number;
 
