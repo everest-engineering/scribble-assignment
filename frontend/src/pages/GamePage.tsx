@@ -22,12 +22,14 @@ export function GamePage() {
   }
 
   const viewer = room.participants.find((participant) => participant.id === participantId) ?? null;
+  const drawer = room.participants.find((participant) => participant.id === room.drawerId) ?? null;
+  const isDrawer = viewer?.id === room.drawerId;
 
   return (
     <section className="panel game-page">
       <div className="game-page__header">
         <div className="game-page__header-left">
-          <span className="section-kicker">Round 1</span>
+          <span className="section-kicker">Round {room.round}</span>
           <h1 className="game-page__title">Guess the Word!</h1>
         </div>
         <RoomCodeBadge code={room.code} />
@@ -35,6 +37,16 @@ export function GamePage() {
 
       <div className="game-page__layout">
         <aside className="game-page__sidebar game-page__sidebar--left">
+          <Card title="Drawer">
+            <p style={{ fontWeight: 600 }}>{drawer?.name ?? "Unknown"}</p>
+          </Card>
+          {isDrawer && room.secretWord && (
+            <Card title="Your Word">
+              <p style={{ fontSize: "1.25rem", fontWeight: 700, textAlign: "center" }}>
+                {room.secretWord}
+              </p>
+            </Card>
+          )}
           <Scoreboard />
           <ResultPanel />
         </aside>
@@ -42,7 +54,7 @@ export function GamePage() {
         <div className="game-page__main">
           <Card title="Canvas">
             <div className="canvas-placeholder" style={{ minHeight: '500px', backgroundColor: '#ffffff', border: '1px solid #e5e7eb' }}>
-              Waiting for drawer...
+              {isDrawer ? "Draw here..." : "Waiting for drawer..."}
             </div>
           </Card>
         </div>
@@ -55,14 +67,14 @@ export function GamePage() {
                 <dd>{viewer?.name ?? "Unknown player"}</dd>
               </div>
               <div>
-                <dt>Status</dt>
-                <dd>Playing</dd>
+                <dt>Role</dt>
+                <dd>{isDrawer ? "Drawer" : "Guesser"}</dd>
               </div>
             </dl>
           </Card>
 
           <Card title="Your Guess">
-            <GuessForm />
+            <GuessForm disabled={isDrawer} />
           </Card>
         </aside>
       </div>
