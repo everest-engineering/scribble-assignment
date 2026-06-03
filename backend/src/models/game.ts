@@ -4,7 +4,17 @@ export type RoomStatus = "lobby" | "playing";
 export interface Participant {
   id: string;
   name: string;
+  score: number;
   joinedAt: string;
+}
+
+export interface Guess {
+  id: string;
+  participantId: string;
+  playerName: string;
+  text: string;
+  correct: boolean;
+  createdAt: string;
 }
 
 export interface Room {
@@ -14,6 +24,7 @@ export interface Room {
   drawerId: string | null;
   secretWord: string | null;
   participants: Participant[];
+  guesses: Guess[];
   createdAt: string;
   updatedAt: string;
 }
@@ -26,6 +37,7 @@ export interface RoomSnapshot {
   // The secret word is included only for the drawer-viewer; null for everyone else.
   word: string | null;
   participants: Participant[];
+  guesses: Guess[];
   availableWords: string[];
   roles: ParticipantRole[];
 }

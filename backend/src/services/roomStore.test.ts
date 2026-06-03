@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createRoom, joinRoom, startGame, toRoomSnapshot } from "./roomStore.js";
+import { createRoom, joinRoom, startGame, submitGuess, toRoomSnapshot } from "./roomStore.js";
 
 describe("roomStore", () => {
   it("createRoom returns a room with a 4-character uppercase code", () => {
@@ -83,6 +83,70 @@ describe("roomStore", () => {
       const second = startGame(created.room.code, created.participantId);
 
       expect(second).toEqual({ ok: false, error: "not_lobby" });
+    });
+  });
+
+  describe("submitGuess", () => {
+    function playingRoom() {
+      const created = createRoom("Alice");
+      const guest = joinRoom(created.room.code, "Bob");
+      if (!guest) throw new Error("join failed");
+      const started = startGame(created.room.code, created.participantId);
+      if (!started.ok) throw new Error("start failed");
+      return {
+        code: created.room.code,
+        hostId: created.participantId,
+        guestId: guest.participantId,
+        word: started.room.secretWord as string
+      };
+    }
+
+    it("awards 100 for a correct guess, ignoring case and spaces", () => {
+      const game = playingRoom();
+      const result = submitGuess(game.code, game.guestId, `  ${game.word.toUpperCase()}  `);
+
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.guess.correct).toBe(true);
+        const guesser = result.room.participants.find((p) => p.id === game.guestId);
+        expect(guesser?.score).toBe(100);
+      }
+    });
+
+    it("awards 0 and records an incorrect guess", () => {
+      const game = playingRoom();
+      const result = submitGuess(game.code, game.guestId, "definitely-wrong");
+
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.guess.correct).toBe(false);
+        const guesser = result.room.participants.find((p) => p.id === game.guestId);
+        expect(guesser?.score).toBe(0);
+      }
+    });
+
+    it("rejects a guess from the drawer", () => {
+      const game = playingRoom();
+      const result = submitGuess(game.code, game.hostId, game.word);
+
+      expect(result).toEqual({ ok: false, error: "drawer_cannot_guess" });
+    });
+
+    it("rejects a guess when the room is not playing", () => {
+      const created = createRoom("Alice");
+      const guest = joinRoom(created.room.code, "Bob");
+      const result = submitGuess(created.room.code, guest!.participantId, "rocket");
+
+      expect(result).toEqual({ ok: false, error: "not_playing" });
+    });
+
+    it("accumulates guesses in order in the history", () => {
+      const game = playingRoom();
+      submitGuess(game.code, game.guestId, "first");
+      const second = submitGuess(game.code, game.guestId, "second");
+
+      if (!second.ok) throw new Error("expected guess to be recorded");
+      expect(second.room.guesses.map((g) => g.text)).toEqual(["first", "second"]);
     });
   });
 });
