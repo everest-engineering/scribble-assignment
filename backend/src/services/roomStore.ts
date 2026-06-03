@@ -21,6 +21,12 @@ export type SubmitGuessResult =
   | { error: "is-drawer" }
   | null;
 
+export type EndRoundResult =
+  | { room: Room }
+  | { error: "not-host" }
+  | { error: "wrong-state" }
+  | null;
+
 function now() {
   return new Date().toISOString();
 }
@@ -207,6 +213,28 @@ export function submitGuess(
   };
 }
 
+export function endRound(code: string, participantId: string): EndRoundResult {
+  const room = rooms.get(code);
+
+  if (!room) {
+    return null;
+  }
+
+  if (participantId !== room.hostParticipantId) {
+    return { error: "not-host" };
+  }
+
+  if (room.status !== "playing") {
+    return { error: "wrong-state" };
+  }
+
+  room.status = "result";
+  room.updatedAt = now();
+  rooms.set(room.code, room);
+
+  return { room: cloneRoom(room) };
+}
+
 export function getRoom(code: string) {
   const room = rooms.get(code);
   return room ? cloneRoom(room) : null;
@@ -220,11 +248,14 @@ export function saveRoom(room: Room) {
 
 export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSnapshot {
   const round = room.currentRound;
+  const isResultState = room.status === "result";
   const snapshotRound = round
     ? {
         drawerParticipantId: round.drawerParticipantId,
         secretWord:
-          viewerParticipantId === round.drawerParticipantId ? round.secretWord : null
+          isResultState || viewerParticipantId === round.drawerParticipantId
+            ? round.secretWord
+            : null
       }
     : null;
 
@@ -233,7 +264,8 @@ export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSn
     const isPrivilegedViewer =
       viewerParticipantId === entry.guesserParticipantId ||
       (drawerId !== undefined && viewerParticipantId === drawerId);
-    const text = entry.isCorrect && !isPrivilegedViewer ? null : entry.text;
+    const text =
+      isResultState || !entry.isCorrect || isPrivilegedViewer ? entry.text : null;
     return {
       id: entry.id,
       guesserParticipantId: entry.guesserParticipantId,

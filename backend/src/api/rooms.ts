@@ -1,6 +1,7 @@
 import { Router } from "express";
 import {
   createRoomSchema,
+  endRoundSchema,
   HttpError,
   joinRoomSchema,
   roomCodeParamsSchema,
@@ -10,6 +11,7 @@ import {
 } from "./schemas.js";
 import {
   createRoom,
+  endRound,
   getRoom,
   joinRoom,
   startRoom,
@@ -72,6 +74,31 @@ export function createRoomsRouter() {
           throw new HttpError(403, "Only the host can start the game");
         }
         throw new HttpError(400, "Need at least 2 players to start");
+      }
+
+      response.json({
+        room: toRoomSnapshot(result.room, participantId)
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/:code/end", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId } = endRoundSchema.parse(request.body);
+      const result = endRound(code.toUpperCase(), participantId);
+
+      if (result === null) {
+        throw new HttpError(404, "Room not found");
+      }
+
+      if ("error" in result) {
+        if (result.error === "not-host") {
+          throw new HttpError(403, "Only the host can end the round");
+        }
+        throw new HttpError(409, "Cannot end a round that is not in progress");
       }
 
       response.json({

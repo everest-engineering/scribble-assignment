@@ -3,6 +3,7 @@ import type { Room } from "../models/game.js";
 import { STARTER_WORDS } from "../seed/starterData.js";
 import {
   createRoom,
+  endRound,
   joinRoom,
   selectWord,
   startRoom,
@@ -36,6 +37,16 @@ function unwrapGuess(
   }
   return result;
 }
+
+function unwrapEndRound(
+  result: ReturnType<typeof endRound>
+): { room: Room } {
+  if (result === null || "error" in result) {
+    throw new Error(`expected endRound success, got ${JSON.stringify(result)}`);
+  }
+  return result;
+}
+
 
 function setupActiveRoom(): {
   hostId: string;
@@ -374,4 +385,98 @@ describe("roomStore", () => {
       expect(snapshot.guesses[0].text).toBeNull();
     });
   });
+
+  describe("endRound state transition (T003 a-e)", () => {
+    it("from playing state transitions to result and preserves currentRound + guesses + scores", () => {
+      const { code, hostId, guestId, secretWord } = setupActiveRoom();
+      unwrapGuess(submitGuess(code, guestId, secretWord));
+
+      const ended = unwrapEndRound(endRound(code, hostId));
+
+      expect(ended.room.status).toBe("result");
+      expect(ended.room.currentRound).not.toBeNull();
+      expect(ended.room.currentRound!.secretWord).toBe(secretWord);
+      expect(ended.room.guesses).toHaveLength(1);
+      const guesser = ended.room.participants.find((p) => p.id === guestId);
+      expect(guesser?.score).toBe(100);
+    });
+
+    it("rejects a non-host caller with a not-host sentinel", () => {
+      const { code, guestId } = setupActiveRoom();
+
+      const result = endRound(code, guestId);
+
+      expect(result).toEqual({ error: "not-host" });
+    });
+
+    it("rejects a call against a lobby-state room with a wrong-state sentinel", () => {
+      const host = createRoom("Alice");
+
+      const result = endRound(host.room.code, host.participantId);
+
+      expect(result).toEqual({ error: "wrong-state" });
+    });
+
+    it("rejects a call against an already-result room with a wrong-state sentinel", () => {
+      const { code, hostId } = setupActiveRoom();
+      unwrapEndRound(endRound(code, hostId));
+
+      const second = endRound(code, hostId);
+
+      expect(second).toEqual({ error: "wrong-state" });
+    });
+
+    it("returns null for an unknown room code", () => {
+      const result = endRound("ZZZZ", "anyone");
+
+      expect(result).toBeNull();
+    });
+  });
+
+  describe("toRoomSnapshot result-state reveal (T003 f-h)", () => {
+    it("delivers the real secretWord to every viewer when status is result", () => {
+      const { code, hostId, guestId, secretWord } = setupActiveRoom();
+      unwrapGuess(submitGuess(code, guestId, secretWord));
+      const ended = unwrapEndRound(endRound(code, hostId));
+
+      const hostSnap = toRoomSnapshot(ended.room, hostId);
+      const guestSnap = toRoomSnapshot(ended.room, guestId);
+      const unknownSnap = toRoomSnapshot(ended.room, "no-such-id");
+      const anonSnap = toRoomSnapshot(ended.room, undefined);
+
+      expect(hostSnap.currentRound!.secretWord).toBe(secretWord);
+      expect(guestSnap.currentRound!.secretWord).toBe(secretWord);
+      expect(unknownSnap.currentRound!.secretWord).toBe(secretWord);
+      expect(anonSnap.currentRound!.secretWord).toBe(secretWord);
+    });
+
+    it("delivers the real guess text to every viewer when status is result, including for correct entries", () => {
+      const { code, hostId, guestId, secretWord } = setupActiveRoom();
+      unwrapGuess(submitGuess(code, guestId, secretWord));
+      unwrapGuess(submitGuess(code, guestId, "wrong-guess"));
+      const ended = unwrapEndRound(endRound(code, hostId));
+
+      const thirdPartyId = "no-such-id";
+      const thirdPartySnap = toRoomSnapshot(ended.room, thirdPartyId);
+
+      expect(thirdPartySnap.guesses[0].text).toBe(secretWord);
+      expect(thirdPartySnap.guesses[0].isCorrect).toBe(true);
+      expect(thirdPartySnap.guesses[1].text).toBe("wrong-guess");
+      expect(thirdPartySnap.guesses[1].isCorrect).toBe(false);
+    });
+
+    it("REGRESSION: playing-state Scenarios 2 + 3 redactions remain unchanged after the result-state override is added", () => {
+      const { code, guestId, secretWord } = setupActiveRoom();
+      const result = unwrapGuess(submitGuess(code, guestId, secretWord));
+
+      const thirdPartyId = "no-such-id";
+      const snapshot = toRoomSnapshot(result.room, thirdPartyId);
+
+      expect(snapshot.status).toBe("playing");
+      expect(snapshot.currentRound!.secretWord).toBeNull();
+      expect(snapshot.guesses[0].text).toBeNull();
+      expect(snapshot.guesses[0].isCorrect).toBe(true);
+    });
+  });
+
 });

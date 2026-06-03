@@ -263,6 +263,40 @@ describe("GamePage", () => {
     expect(history!.textContent).toContain("incorrect");
   });
 
+  it("renders the End Round button when the viewer is the host (drawer) during a playing round", async () => {
+    await render(
+      "host-id",
+      snapshot({
+        participants: [
+          { id: "host-id", name: "Alice", joinedAt: "t", score: 0 },
+          { id: "guest-id", name: "Bob", joinedAt: "t", score: 0 }
+        ]
+      })
+    );
+
+    const buttons = Array.from(container.querySelectorAll("button")).map(
+      (b) => (b.textContent ?? "").trim()
+    );
+    expect(buttons).toContain("End Round");
+  });
+
+  it("does NOT render an End Round button when the viewer is a non-host guesser", async () => {
+    await render(
+      "guest-id",
+      snapshot({
+        participants: [
+          { id: "host-id", name: "Alice", joinedAt: "t", score: 0 },
+          { id: "guest-id", name: "Bob", joinedAt: "t", score: 0 }
+        ]
+      })
+    );
+
+    const buttons = Array.from(container.querySelectorAll("button")).map(
+      (b) => (b.textContent ?? "").trim()
+    );
+    expect(buttons).not.toContain("End Round");
+  });
+
   it("returns null and navigates away when there is no room", async () => {
     const initialUrl = window.location.href;
     await act(async () => {

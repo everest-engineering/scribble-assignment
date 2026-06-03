@@ -123,6 +123,19 @@ class RoomStore {
     return response.room;
   }
 
+  async endRound() {
+    const room = this.state.room;
+    const participantId = this.state.participantId;
+    if (!room || !participantId) {
+      throw new Error("Cannot end round: no active room or participant identity");
+    }
+
+    const response = await api.endRound(room.code, participantId);
+    this.setRoomSnapshot(response.room);
+    return response.room;
+  }
+
+
   async hydrateSession(roomCode: string, participantId: string) {
     this.setState({
       participantId,

@@ -28,6 +28,8 @@ export const startRoomSchema = z.object({
   participantId: z.string().min(1)
 });
 
+export const endRoundSchema = startRoomSchema;
+
 export const submitGuessSchema = z.object({
   participantId: z.string().min(1),
   text: z

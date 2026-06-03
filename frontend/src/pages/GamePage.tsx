@@ -19,8 +19,22 @@ export function GamePage() {
   useEffect(() => {
     if (!room) {
       navigate("/", { replace: true });
+      return;
+    }
+    if (room.status === "result") {
+      navigate("/result", { replace: true });
     }
   }, [navigate, room]);
+
+  async function handleEndRound() {
+    try {
+      await roomStore.endRound();
+    } catch (caughtError) {
+      // Errors are surfaced via the room store's state; for the host this is
+      // a console-level concern. The next poll will reconcile if needed.
+      console.error(caughtError);
+    }
+  }
 
   if (!room) {
     return null;
@@ -84,6 +98,15 @@ export function GamePage() {
                 {round!.secretWord}
               </p>
               <p>Draw it so the others can guess!</p>
+              <div className="button-row button-row--compact" style={{ marginTop: "12px" }}>
+                <button
+                  className="button button--secondary"
+                  type="button"
+                  onClick={handleEndRound}
+                >
+                  End Round
+                </button>
+              </div>
             </Card>
           ) : (
             <Card title={drawer ? `${drawer.name} is drawing` : "Waiting for the drawer"}>
