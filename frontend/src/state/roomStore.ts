@@ -135,6 +135,18 @@ class RoomStore {
     return response.room;
   }
 
+  async restart() {
+    const room = this.state.room;
+    const participantId = this.state.participantId;
+    if (!room || !participantId) {
+      throw new Error("Cannot restart: no active room or participant identity");
+    }
+
+    const response = await api.restart(room.code, participantId);
+    this.setRoomSnapshot(response.room);
+    return response.room;
+  }
+
 
   async hydrateSession(roomCode: string, participantId: string) {
     this.setState({

@@ -27,6 +27,12 @@ export type EndRoundResult =
   | { error: "wrong-state" }
   | null;
 
+export type RestartRoomResult =
+  | { room: Room }
+  | { error: "not-host" }
+  | { error: "wrong-state" }
+  | null;
+
 function now() {
   return new Date().toISOString();
 }
@@ -229,6 +235,33 @@ export function endRound(code: string, participantId: string): EndRoundResult {
   }
 
   room.status = "result";
+  room.updatedAt = now();
+  rooms.set(room.code, room);
+
+  return { room: cloneRoom(room) };
+}
+
+export function restartRoom(code: string, participantId: string): RestartRoomResult {
+  const room = rooms.get(code);
+
+  if (!room) {
+    return null;
+  }
+
+  if (participantId !== room.hostParticipantId) {
+    return { error: "not-host" };
+  }
+
+  if (room.status !== "result") {
+    return { error: "wrong-state" };
+  }
+
+  for (const participant of room.participants) {
+    participant.score = 0;
+  }
+  room.guesses = [];
+  room.currentRound = null;
+  room.status = "lobby";
   room.updatedAt = now();
   rooms.set(room.code, room);
 

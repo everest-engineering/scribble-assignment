@@ -5,6 +5,7 @@ import {
   createRoom,
   endRound,
   joinRoom,
+  restartRoom,
   selectWord,
   startRoom,
   submitGuess,
@@ -43,6 +44,15 @@ function unwrapEndRound(
 ): { room: Room } {
   if (result === null || "error" in result) {
     throw new Error(`expected endRound success, got ${JSON.stringify(result)}`);
+  }
+  return result;
+}
+
+function unwrapRestart(
+  result: ReturnType<typeof restartRoom>
+): { room: Room } {
+  if (result === null || "error" in result) {
+    throw new Error(`expected restartRoom success, got ${JSON.stringify(result)}`);
   }
   return result;
 }
@@ -476,6 +486,77 @@ describe("roomStore", () => {
       expect(snapshot.currentRound!.secretWord).toBeNull();
       expect(snapshot.guesses[0].text).toBeNull();
       expect(snapshot.guesses[0].isCorrect).toBe(true);
+    });
+  });
+
+  describe("restartRoom state transition (T015 a-f)", () => {
+    it("from result state returns to lobby with cleared round data", () => {
+      const { code, hostId, guestId, secretWord } = setupActiveRoom();
+      unwrapGuess(submitGuess(code, guestId, secretWord));
+      unwrapEndRound(endRound(code, hostId));
+
+      const restarted = unwrapRestart(restartRoom(code, hostId));
+
+      expect(restarted.room.status).toBe("lobby");
+      expect(restarted.room.currentRound).toBeNull();
+      expect(restarted.room.guesses).toEqual([]);
+      expect(restarted.room.participants.every((p) => p.score === 0)).toBe(true);
+    });
+
+    it("preserves the participants list (length, order, ids, names) and hostParticipantId verbatim", () => {
+      const host = createRoom("Alice");
+      const bob = unwrapJoin(joinRoom(host.room.code, "Bob"));
+      const carol = unwrapJoin(joinRoom(host.room.code, "Carol"));
+      const started = unwrapStart(startRoom(host.room.code, host.participantId));
+      unwrapGuess(
+        submitGuess(host.room.code, bob.participantId, started.room.currentRound!.secretWord)
+      );
+      unwrapEndRound(endRound(host.room.code, host.participantId));
+
+      const restarted = unwrapRestart(restartRoom(host.room.code, host.participantId));
+
+      expect(restarted.room.hostParticipantId).toBe(host.participantId);
+      expect(restarted.room.participants.map((p) => p.id)).toEqual([
+        host.participantId,
+        bob.participantId,
+        carol.participantId
+      ]);
+      expect(restarted.room.participants.map((p) => p.name)).toEqual([
+        "Alice",
+        "Bob",
+        "Carol"
+      ]);
+    });
+
+    it("rejects a non-host caller with a not-host sentinel", () => {
+      const { code, hostId, guestId } = setupActiveRoom();
+      unwrapEndRound(endRound(code, hostId));
+
+      const result = restartRoom(code, guestId);
+
+      expect(result).toEqual({ error: "not-host" });
+    });
+
+    it("rejects a call against a lobby-state room with a wrong-state sentinel", () => {
+      const host = createRoom("Alice");
+
+      const result = restartRoom(host.room.code, host.participantId);
+
+      expect(result).toEqual({ error: "wrong-state" });
+    });
+
+    it("rejects a call against a playing-state room with a wrong-state sentinel", () => {
+      const { code, hostId } = setupActiveRoom();
+
+      const result = restartRoom(code, hostId);
+
+      expect(result).toEqual({ error: "wrong-state" });
+    });
+
+    it("returns null for an unknown room code", () => {
+      const result = restartRoom("ZZZZ", "anyone");
+
+      expect(result).toBeNull();
     });
   });
 

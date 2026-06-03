@@ -192,4 +192,48 @@ describe("api service", () => {
     );
   });
 
+  it("restart sends POST to /rooms/:code/restart with participantId in body and the correct base URL", async () => {
+    const mockResponse = {
+      ok: true,
+      json: () =>
+        Promise.resolve({
+          room: {
+            code: "ABCD",
+            status: "lobby",
+            hostParticipantId: "host-id",
+            participants: [],
+            currentRound: null,
+            guesses: [],
+            availableWords: [],
+            roles: [],
+          },
+        }),
+    };
+    vi.mocked(fetch).mockResolvedValue(mockResponse as unknown as Response);
+
+    await api.restart("ABCD", "host-id");
+
+    const calledUrl = vi.mocked(fetch).mock.calls[0]?.[0] as string;
+    expect(calledUrl).toBe("http://localhost:3001/rooms/ABCD/restart");
+    expect(fetch).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({ participantId: "host-id" }),
+      })
+    );
+  });
+
+  it("restart surfaces the server's message verbatim on a non-ok response", async () => {
+    const mockResponse = {
+      ok: false,
+      json: () => Promise.resolve({ message: "Only the host can restart" }),
+    };
+    vi.mocked(fetch).mockResolvedValue(mockResponse as unknown as Response);
+
+    await expect(api.restart("ABCD", "not-the-host")).rejects.toThrow(
+      "Only the host can restart"
+    );
+  });
+
 });

@@ -149,4 +149,41 @@ describe("ResultPage", () => {
     expect(container.textContent).toContain("Waiting for the host to restart");
   });
 
+  it("renders a Restart button only for the host", async () => {
+    await render("host-id", snapshot());
+
+    const buttons = Array.from(container.querySelectorAll("button")).map(
+      (b) => (b.textContent ?? "").trim()
+    );
+    expect(buttons).toContain("Restart");
+  });
+
+  it("does NOT render a Restart button for a non-host viewer", async () => {
+    await render("carol-id", snapshot());
+
+    const buttons = Array.from(container.querySelectorAll("button")).map(
+      (b) => (b.textContent ?? "").trim()
+    );
+    expect(buttons).not.toContain("Restart");
+  });
+
+  it("calls api.restart when the host clicks the Restart button", async () => {
+    const restartSpy = vi.spyOn(api, "restart").mockResolvedValue({
+      room: { ...snapshot(), status: "lobby", currentRound: null, guesses: [] }
+    });
+
+    await render("host-id", snapshot());
+
+    await act(async () => {
+      const button = Array.from(container.querySelectorAll("button")).find(
+        (b) => (b.textContent ?? "").trim() === "Restart"
+      ) as HTMLButtonElement;
+      button.click();
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(restartSpy).toHaveBeenCalledWith("ABCD", "host-id");
+  });
+
 });

@@ -4,10 +4,11 @@ import { Card } from "../components/Card";
 import { RoomCodeBadge } from "../components/RoomCodeBadge";
 import { Scoreboard } from "../components/Scoreboard";
 import { useLobbyPolling } from "../state/useLobbyPolling";
-import { useRoomState } from "../state/roomStore";
+import { useRoomState, useRoomStore } from "../state/roomStore";
 
 export function ResultPage() {
   const navigate = useNavigate();
+  const roomStore = useRoomStore();
   const { room, participantId } = useRoomState();
 
   useLobbyPolling(room?.code ?? null);
@@ -29,6 +30,14 @@ export function ResultPage() {
   const round = room.currentRound;
   const isHost = !!participantId && room.hostParticipantId === participantId;
   const sortedGuesses = [...room.guesses].sort((a, b) => a.order - b.order);
+
+  async function handleRestart() {
+    try {
+      await roomStore.restart();
+    } catch (caughtError) {
+      console.error(caughtError);
+    }
+  }
 
   return (
     <section className="panel game-page">
@@ -82,7 +91,18 @@ export function ResultPage() {
         <aside className="game-page__sidebar game-page__sidebar--right">
           <Card title="What happens next?">
             {isHost ? (
-              <p>You can restart the room to begin a new round.</p>
+              <>
+                <p>You can restart the room to begin a new round.</p>
+                <div className="button-row button-row--compact" style={{ marginTop: "12px" }}>
+                  <button
+                    className="button button--primary"
+                    type="button"
+                    onClick={handleRestart}
+                  >
+                    Restart
+                  </button>
+                </div>
+              </>
             ) : (
               <p aria-live="polite">Waiting for the host to restart…</p>
             )}

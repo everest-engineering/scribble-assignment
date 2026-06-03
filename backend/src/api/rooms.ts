@@ -4,6 +4,7 @@ import {
   endRoundSchema,
   HttpError,
   joinRoomSchema,
+  restartRoomSchema,
   roomCodeParamsSchema,
   roomViewerQuerySchema,
   startRoomSchema,
@@ -14,6 +15,7 @@ import {
   endRound,
   getRoom,
   joinRoom,
+  restartRoom,
   startRoom,
   submitGuess,
   toRoomSnapshot
@@ -99,6 +101,31 @@ export function createRoomsRouter() {
           throw new HttpError(403, "Only the host can end the round");
         }
         throw new HttpError(409, "Cannot end a round that is not in progress");
+      }
+
+      response.json({
+        room: toRoomSnapshot(result.room, participantId)
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/:code/restart", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId } = restartRoomSchema.parse(request.body);
+      const result = restartRoom(code.toUpperCase(), participantId);
+
+      if (result === null) {
+        throw new HttpError(404, "Room not found");
+      }
+
+      if ("error" in result) {
+        if (result.error === "not-host") {
+          throw new HttpError(403, "Only the host can restart");
+        }
+        throw new HttpError(409, "Cannot restart from this state");
       }
 
       response.json({
