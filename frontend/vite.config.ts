@@ -3,6 +3,12 @@ import react from "@vitejs/plugin-react";
 
 export default defineConfig({
   plugins: [react()],
+  resolve: {
+    alias: {
+      shared: new URL("../shared", import.meta.url).pathname
+    },
+    dedupe: ["zod", "react", "react-dom"]
+  },
   server: {
     port: 5173
   }

@@ -1,14 +1,25 @@
 import { useState } from "react";
 
 interface GuessFormProps {
-  disabled?: boolean;
+  isDrawer: boolean;
+  disabled: boolean;
+  onSubmit: (text: string) => void;
 }
 
-export function GuessForm({ disabled = false }: GuessFormProps) {
+// T038: Wired guess form — hides entirely for drawer, disables when correct/finished.
+export function GuessForm({ isDrawer, disabled, onSubmit }: GuessFormProps) {
   const [guessText, setGuessText] = useState("");
+
+  if (isDrawer) {
+    return null;
+  }
 
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    const trimmed = guessText.trim();
+    if (!trimmed) return;
+    onSubmit(trimmed);
+    setGuessText("");
   }
 
   return (
