@@ -20,6 +20,42 @@ export class RoomCapacityError extends Error {
   }
 }
 
+export class StartNotHostError extends Error {
+  constructor() {
+    super("Only the host can start the game");
+    this.name = "StartNotHostError";
+  }
+}
+
+export class StartInvalidStateError extends Error {
+  constructor() {
+    super("Game has already started");
+    this.name = "StartInvalidStateError";
+  }
+}
+
+export class StartInsufficientPlayersError extends Error {
+  constructor() {
+    super("Need at least 2 players to start");
+    this.name = "StartInsufficientPlayersError";
+  }
+}
+
+export function sumCharCodes(code: string) {
+  let sum = 0;
+
+  for (const character of code) {
+    sum += character.charCodeAt(0);
+  }
+
+  return sum;
+}
+
+export function pickWord(code: string, roundIndex: number) {
+  const index = (sumCharCodes(code) + roundIndex) % STARTER_WORDS.length;
+  return STARTER_WORDS[index];
+}
+
 function now() {
   return new Date().toISOString();
 }
@@ -123,6 +159,40 @@ export function getRoom(code: string) {
   return room ? cloneRoom(room) : null;
 }
 
+export function startRound(code: string, participantId: string) {
+  const room = rooms.get(code);
+
+  if (!room) {
+    return null;
+  }
+
+  if (participantId !== room.hostParticipantId) {
+    throw new StartNotHostError();
+  }
+
+  if (room.status !== "lobby") {
+    throw new StartInvalidStateError();
+  }
+
+  if (room.participants.length < 2) {
+    throw new StartInsufficientPlayersError();
+  }
+
+  const drawerParticipantId = room.participants[0].id;
+  const secretWord = pickWord(room.code, 0);
+
+  room.status = "playing";
+  room.currentRound = {
+    roundIndex: 0,
+    drawerParticipantId,
+    secretWord
+  };
+  room.updatedAt = now();
+  rooms.set(room.code, cloneRoom(room));
+
+  return getRoom(room.code);
+}
+
 export function saveRoom(room: Room) {
   room.updatedAt = now();
   rooms.set(room.code, cloneRoom(room));
@@ -130,9 +200,7 @@ export function saveRoom(room: Room) {
 }
 
 export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSnapshot {
-  void viewerParticipantId;
-
-  return {
+  const snapshot: RoomSnapshot = {
     code: room.code,
     status: room.status,
     hostParticipantId: room.hostParticipantId,
@@ -140,4 +208,23 @@ export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSn
     availableWords: listWords(),
     roles: [...STARTER_ROLES]
   };
+
+  if (room.currentRound) {
+    const isDrawer = viewerParticipantId === room.currentRound.drawerParticipantId;
+
+    snapshot.currentRound = {
+      roundIndex: room.currentRound.roundIndex,
+      drawerParticipantId: room.currentRound.drawerParticipantId,
+      secretWord: isDrawer ? room.currentRound.secretWord : null
+    };
+
+    if (viewerParticipantId) {
+      snapshot.viewer = {
+        participantId: viewerParticipantId,
+        isDrawer
+      };
+    }
+  }
+
+  return snapshot;
 }

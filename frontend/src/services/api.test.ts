@@ -59,6 +59,39 @@ describe("api service", () => {
     );
   });
 
+  it("startGame sends POST to /rooms/:code/start with participantId", async () => {
+    const mockResponse = {
+      ok: true,
+      json: () =>
+        Promise.resolve({
+          room: {
+            code: "ABCD",
+            status: "playing",
+            hostParticipantId: "p1",
+            participants: [],
+            availableWords: [],
+            roles: [],
+            currentRound: {
+              roundIndex: 0,
+              drawerParticipantId: "p1",
+              secretWord: "rocket"
+            }
+          }
+        })
+    };
+    vi.mocked(fetch).mockResolvedValue(mockResponse as unknown as Response);
+
+    await api.startGame("ABCD", "p1");
+
+    expect(fetch).toHaveBeenCalledWith(
+      "http://localhost:3001/rooms/ABCD/start",
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({ participantId: "p1" })
+      })
+    );
+  });
+
   it("fetchRoom sends GET to /rooms/:code with participantId query param", async () => {
     const mockResponse = {
       ok: true,

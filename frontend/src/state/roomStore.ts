@@ -103,6 +103,21 @@ class RoomStore {
     return response.room;
   }
 
+  async startGame() {
+    const currentRoom = this.state.room;
+    const participantId = this.state.participantId;
+
+    if (!currentRoom || !participantId) {
+      throw new Error("No active room session");
+    }
+
+    const response = await this.withLoading(() =>
+      api.startGame(currentRoom.code, participantId)
+    );
+    this.setRoomSnapshot(response.room);
+    return response.room;
+  }
+
   async fetchRoomPoll() {
     const currentRoom = this.state.room;
 

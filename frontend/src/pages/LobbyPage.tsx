@@ -9,11 +9,16 @@ import { useRoomState, useRoomStore } from "../state/roomStore";
 export function LobbyPage() {
   const navigate = useNavigate();
   const roomStore = useRoomStore();
-  const { room, participantId, error } = useRoomState();
+  const { room, participantId, error, isLoading } = useRoomState();
 
   useEffect(() => {
     if (!room) {
       navigate("/", { replace: true });
+      return;
+    }
+
+    if (room.status === "playing") {
+      navigate("/game", { replace: true });
     }
   }, [navigate, room]);
 
@@ -80,10 +85,14 @@ export function LobbyPage() {
       <div className="button-row button-row--spread">
         <button
           className="button button--primary"
-          disabled={!canStart}
-          onClick={() => navigate("/game")}
+          disabled={!canStart || isLoading}
+          onClick={() => {
+            void roomStore.startGame().then(() => {
+              navigate("/game");
+            });
+          }}
         >
-          Start Game
+          {isLoading ? "Starting…" : "Start Game"}
         </button>
       </div>
       {startDisabledReason ? (

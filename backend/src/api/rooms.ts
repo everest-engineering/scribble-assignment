@@ -4,7 +4,8 @@ import {
   HttpError,
   joinRoomSchema,
   roomCodeParamsSchema,
-  roomViewerQuerySchema
+  roomViewerQuerySchema,
+  startRoomSchema
 } from "./schemas.js";
 import {
   createRoom,
@@ -12,6 +13,10 @@ import {
   joinRoom,
   PlayerNameValidationError,
   RoomCapacityError,
+  startRound,
+  StartInsufficientPlayersError,
+  StartInvalidStateError,
+  StartNotHostError,
   toRoomSnapshot
 } from "../services/roomStore.js";
 
@@ -51,6 +56,24 @@ export function createRoomsRouter() {
     }
   });
 
+  router.post("/:code/start", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId } = startRoomSchema.parse(request.body);
+      const room = startRound(code.toUpperCase(), participantId);
+
+      if (!room) {
+        throw new HttpError(404, "Unable to start game");
+      }
+
+      response.json({
+        room: toRoomSnapshot(room, participantId)
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
+
   router.get("/:code", (request, response, next) => {
     try {
       const { code } = roomCodeParamsSchema.parse(request.params);
@@ -78,6 +101,14 @@ export function mapRoomStoreError(error: unknown) {
   }
 
   if (error instanceof RoomCapacityError) {
+    return new HttpError(409, error.message);
+  }
+
+  if (error instanceof StartNotHostError) {
+    return new HttpError(403, error.message);
+  }
+
+  if (error instanceof StartInvalidStateError || error instanceof StartInsufficientPlayersError) {
     return new HttpError(409, error.message);
   }
 
