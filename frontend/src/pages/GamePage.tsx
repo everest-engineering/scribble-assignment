@@ -33,6 +33,14 @@ export function GamePage() {
     return () => clearInterval(interval);
   }, [roomStore, roomCode]);
 
+  // When the host restarts, the room returns to the lobby; move everyone back.
+  const roomStatus = room?.status;
+  useEffect(() => {
+    if (roomStatus === "lobby") {
+      navigate("/lobby");
+    }
+  }, [navigate, roomStatus]);
+
   if (!room) {
     return null;
   }
@@ -40,9 +48,16 @@ export function GamePage() {
   const viewer = room.participants.find((participant) => participant.id === participantId) ?? null;
   const drawer = room.participants.find((participant) => participant.id === room.drawerId) ?? null;
   const isDrawer = participantId != null && participantId === room.drawerId;
+  const isHost = participantId != null && participantId === room.hostId;
+  const isEnded = room.status === "ended";
 
   async function handleGuess(text: string) {
     await roomStore.submitGuess(text);
+  }
+
+  async function handleRestart() {
+    await roomStore.restartGame();
+    // Navigation back to the lobby is handled by the status effect above.
   }
 
   return (
@@ -64,7 +79,11 @@ export function GamePage() {
         <div className="game-page__main">
           <Card title="Canvas">
             <p className="drawer-banner">
-              {isDrawer ? (
+              {isEnded ? (
+                <>
+                  Round over! The word was <strong>{room.word}</strong>.
+                </>
+              ) : isDrawer ? (
                 <>
                   You are the drawer. Your word is <strong>{room.word}</strong>.
                 </>
@@ -78,7 +97,7 @@ export function GamePage() {
               <DrawingCanvas />
             ) : (
               <div className="canvas-placeholder" style={{ minHeight: '500px', backgroundColor: '#ffffff', border: '1px solid #e5e7eb' }}>
-                Waiting for the drawer's sketch...
+                {isEnded ? "Round over." : "Waiting for the drawer's sketch..."}
               </div>
             )}
           </Card>
@@ -98,8 +117,23 @@ export function GamePage() {
             </dl>
           </Card>
 
-          <Card title="Your Guess">
-            {isDrawer ? (
+          <Card title={isEnded ? "Round Result" : "Your Guess"}>
+            {isEnded ? (
+              <div className="round-result">
+                <p>
+                  The word was <strong>{room.word}</strong>.
+                </p>
+                {isHost ? (
+                  <button className="button button--primary" type="button" onClick={handleRestart}>
+                    Play Again
+                  </button>
+                ) : (
+                  <p style={{ fontSize: '0.875rem', color: '#6b7280' }}>
+                    Waiting for the host to restart.
+                  </p>
+                )}
+              </div>
+            ) : isDrawer ? (
               <p style={{ fontSize: '0.875rem', color: '#6b7280' }}>
                 You are drawing this round — guessing is for the other players.
               </p>
