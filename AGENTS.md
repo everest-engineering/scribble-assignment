@@ -40,3 +40,10 @@ You are working on a monolithic repository for a multiplayer drawing game ("Scri
 -   Give concise, direct answers.
 -   Do not output large blocks of code if a small change suffices.
 -   When creating or editing files, ensure consistency with the existing directory structure detailed above.
+
+## Active Technologies
+- TypeScript, Node.js 18+, npm 9+ + Express, Zod, React 18, React Router 6, Vite, Vitest (sdd-scribble-assignment)
+- In-memory backend room store only (sdd-scribble-assignment)
+
+## Recent Changes
+- sdd-scribble-assignment: Added TypeScript, Node.js 18+, npm 9+ + Express, Zod, React 18, React Router 6, Vite, Vitest
