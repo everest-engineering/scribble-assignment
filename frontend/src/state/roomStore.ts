@@ -7,13 +7,16 @@ import {
   useSyncExternalStore,
   type PropsWithChildren
 } from "react";
-import { api, type RoomSessionResponse, type RoomSnapshot } from "../services/api";
+import { api, type GuessResult, type RoomSessionResponse, type RoomSnapshot } from "../services/api";
 
 export interface RoomState {
   room: RoomSnapshot | null;
   participantId: string | null;
   error: string | null;
   isLoading: boolean;
+  pollError: string | null;
+  guessResult: GuessResult | null;
+  roundComplete: boolean;
 }
 
 type Listener = () => void;
@@ -23,7 +26,10 @@ class RoomStore {
     room: null,
     participantId: null,
     error: null,
-    isLoading: false
+    isLoading: false,
+    pollError: null,
+    guessResult: null,
+    roundComplete: false
   };
 
   private listeners = new Set<Listener>();
@@ -73,7 +79,8 @@ class RoomStore {
   setRoomSnapshot(room: RoomSnapshot) {
     this.setState({
       room,
-      error: null
+      error: null,
+      roundComplete: room.roundComplete
     });
   }
 
@@ -89,14 +96,77 @@ class RoomStore {
     return response;
   }
 
+  setGuessResult(result: GuessResult | null) {
+    this.setState({ guessResult: result });
+  }
+
+  setRoundComplete(complete: boolean) {
+    this.setState({ roundComplete: complete });
+  }
+
+  setPollError(message: string | null) {
+    this.setState({ pollError: message });
+  }
+
+  async startGame() {
+    const { room, participantId } = this.state;
+
+    if (!room || !participantId) {
+      throw new Error("No active room session");
+    }
+
+    const response = await this.withLoading(() => api.startGame(room.code, participantId));
+    this.setRoomSnapshot(response.room);
+    return response.room;
+  }
+
+  async submitGuess(text: string) {
+    const { room, participantId } = this.state;
+
+    if (!room || !participantId) {
+      throw new Error("No active room session");
+    }
+
+    const response = await this.withLoading(() => api.submitGuess(room.code, participantId, text));
+    this.setGuessResult(response.result);
+
+    if (response.result.roundComplete) {
+      this.setRoundComplete(true);
+    }
+
+    return response.result;
+  }
+
+  async restartGame() {
+    const { room, participantId } = this.state;
+
+    if (!room || !participantId) {
+      throw new Error("No active room session");
+    }
+
+    const response = await this.withLoading(() => api.restartGame(room.code, participantId));
+    this.setRoomSnapshot(response.room);
+    return response.room;
+  }
+
+  async clearCanvas() {
+    const { room, participantId } = this.state;
+
+    if (!room || !participantId) {
+      throw new Error("No active room session");
+    }
+
+    await api.clearCanvas(room.code, participantId);
+  }
+
   async fetchRoom() {
     if (!this.state.room) {
       return null;
     }
 
-    const response = await api.fetchRoom(this.state.room.code, this.state.participantId ?? undefined);
-    this.setRoomSnapshot(response.room);
-    return response.room;
+    const snapshot = await api.fetchRoom(this.state.room.code, this.state.participantId ?? undefined);
+    this.setRoomSnapshot(snapshot.room);
+    return snapshot.room;
   }
 }
 

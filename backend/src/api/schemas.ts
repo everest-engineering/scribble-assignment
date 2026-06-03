@@ -1,19 +1,28 @@
 import { z } from "zod";
 
 export const createRoomSchema = z.object({
-  playerName: z.string().optional()
+  playerName: z.string().trim().min(1, "Player name is required").optional()
 });
 
 export const joinRoomSchema = z.object({
-  playerName: z.string().optional()
+  playerName: z.string().trim().min(1, "Player name is required").optional()
 });
 
 export const roomCodeParamsSchema = z.object({
-  code: z.string()
+  code: z.string().trim().min(1, "Room code is required")
 });
 
 export const roomViewerQuerySchema = z.object({
   participantId: z.string().optional()
+});
+
+export const guessBodySchema = z.object({
+  participantId: z.string().min(1, "Participant ID is required"),
+  text: z.string().trim().min(1, "Guess cannot be empty")
+});
+
+export const startGameBodySchema = z.object({
+  participantId: z.string().min(1, "Participant ID is required")
 });
 
 export class HttpError extends Error {
