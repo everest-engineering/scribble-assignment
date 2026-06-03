@@ -1,21 +1,81 @@
-import { useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card } from "../components/Card";
 import { GuessForm } from "../components/GuessForm";
 import { ResultPanel } from "../components/ResultPanel";
 import { RoomCodeBadge } from "../components/RoomCodeBadge";
 import { Scoreboard } from "../components/Scoreboard";
-import { useRoomState } from "../state/roomStore";
+import { useRoomState, useRoomStore } from "../state/roomStore";
 
 export function GamePage() {
   const navigate = useNavigate();
+  const roomStore = useRoomStore();
   const { room, participantId } = useRoomState();
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const [isDrawing, setIsDrawing] = useState(false);
+  const lastPos = useRef<{ x: number; y: number } | null>(null);
 
   useEffect(() => {
     if (!room) {
       navigate("/", { replace: true });
     }
   }, [navigate, room]);
+
+  useEffect(() => {
+    if (!room) return;
+
+    const pollingRef = setInterval(() => {
+      roomStore.fetchRoom();
+    }, 2000);
+
+    return () => clearInterval(pollingRef);
+  }, [room, roomStore]);
+
+  useEffect(() => {
+    if (!isDrawing) {
+      lastPos.current = null;
+    }
+  }, [isDrawing]);
+
+  function getCanvasPos(e: React.MouseEvent<HTMLCanvasElement>) {
+    const canvas = canvasRef.current;
+    if (!canvas) return { x: 0, y: 0 };
+    const rect = canvas.getBoundingClientRect();
+    return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+  }
+
+  function handleMouseDown(e: React.MouseEvent<HTMLCanvasElement>) {
+    setIsDrawing(true);
+    lastPos.current = getCanvasPos(e);
+  }
+
+  function handleMouseMove(e: React.MouseEvent<HTMLCanvasElement>) {
+    if (!isDrawing) return;
+    const canvas = canvasRef.current;
+    const ctx = canvas?.getContext("2d");
+    if (!ctx || !canvas || !lastPos.current) return;
+
+    const pos = getCanvasPos(e);
+    ctx.beginPath();
+    ctx.moveTo(lastPos.current.x, lastPos.current.y);
+    ctx.lineTo(pos.x, pos.y);
+    ctx.strokeStyle = "#000";
+    ctx.lineWidth = 3;
+    ctx.lineCap = "round";
+    ctx.stroke();
+    lastPos.current = pos;
+  }
+
+  function handleMouseUp() {
+    setIsDrawing(false);
+  }
+
+  function handleClear() {
+    const canvas = canvasRef.current;
+    const ctx = canvas?.getContext("2d");
+    if (!ctx || !canvas) return;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+  }
 
   if (!room) {
     return null;
@@ -53,9 +113,31 @@ export function GamePage() {
 
         <div className="game-page__main">
           <Card title="Canvas">
-            <div className="canvas-placeholder" style={{ minHeight: '500px', backgroundColor: '#ffffff', border: '1px solid #e5e7eb' }}>
-              {isDrawer ? "Draw here..." : "Waiting for drawer..."}
-            </div>
+            <canvas
+              ref={canvasRef}
+              width={600}
+              height={400}
+              style={{
+                width: "100%",
+                height: "auto",
+                aspectRatio: "600 / 400",
+                backgroundColor: "#fff",
+                border: "1px solid #e5e7eb",
+                cursor: isDrawer ? "crosshair" : "default",
+                touchAction: "none"
+              }}
+              onMouseDown={isDrawer ? handleMouseDown : undefined}
+              onMouseMove={isDrawer ? handleMouseMove : undefined}
+              onMouseUp={isDrawer ? handleMouseUp : undefined}
+              onMouseLeave={isDrawer ? handleMouseUp : undefined}
+            />
+            {isDrawer && (
+              <div className="button-row" style={{ marginTop: "8px" }}>
+                <button className="button button--secondary" type="button" onClick={handleClear}>
+                  Clear Canvas
+                </button>
+              </div>
+            )}
           </Card>
         </div>
 
