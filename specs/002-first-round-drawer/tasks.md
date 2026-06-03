@@ -24,8 +24,8 @@ description: "Task list for First Round — Drawer Assignment and Secret Word"
 
 **Purpose**: Confirm the project runs cleanly before making changes.
 
-- [ ] T001 Start backend (`cd backend && npm run dev`) and confirm `GET /health` returns `{ "ok": true }`
-- [ ] T002 Start frontend (`cd frontend && npm run dev`) and confirm the app loads at `http://localhost:5173`
+- [x] T001 Start backend (`cd backend && npm run dev`) and confirm `GET /health` returns `{ "ok": true }`
+- [x] T002 Start frontend (`cd frontend && npm run dev`) and confirm the app loads at `http://localhost:5173`
 
 ---
 
@@ -35,10 +35,10 @@ description: "Task list for First Round — Drawer Assignment and Secret Word"
 
 ⚠️ **CRITICAL**: No user story work can begin until this phase is complete.
 
-- [ ] T003 Add `drawerId: string | null` and `currentWord: string | null` to both `Room` and `RoomSnapshot` interfaces in `backend/src/models/game.ts`
-- [ ] T004 In `createRoom`, initialize `drawerId: null` and `currentWord: null` on the new Room; in `toRoomSnapshot(room, viewerParticipantId?)`, include `drawerId: room.drawerId` and `currentWord: viewerParticipantId === room.drawerId ? room.currentWord : null` in `backend/src/services/roomStore.ts`
-- [ ] T005 In the `startRoom` handler, after setting `room.status = "active"`, set `room.drawerId = room.hostId` and `room.currentWord = STARTER_WORDS[0]` (import `STARTER_WORDS` from `"../seed/starterData.js"`) in `backend/src/api/rooms.ts`
-- [ ] T006 [P] Add `drawerId: string | null` and `currentWord: string | null` to the `RoomSnapshot` interface in `frontend/src/services/api.ts`
+- [x] T003 Add `drawerId: string | null` and `currentWord: string | null` to both `Room` and `RoomSnapshot` interfaces in `backend/src/models/game.ts`
+- [x] T004 In `createRoom`, initialize `drawerId: null` and `currentWord: null` on the new Room; in `toRoomSnapshot(room, viewerParticipantId?)`, include `drawerId: room.drawerId` and `currentWord: viewerParticipantId === room.drawerId ? room.currentWord : null` in `backend/src/services/roomStore.ts`
+- [x] T005 In the `startRoom` handler, after setting `room.status = "active"`, set `room.drawerId = room.hostId` and `room.currentWord = STARTER_WORDS[0]` (import `STARTER_WORDS` from `"../seed/starterData.js"`) in `backend/src/api/rooms.ts`
+- [x] T006 [P] Add `drawerId: string | null` and `currentWord: string | null` to the `RoomSnapshot` interface in `frontend/src/services/api.ts`
 
 **Checkpoint**: Run `npm run build` in `backend/` — TypeScript must compile with zero errors before proceeding. Verify `POST /rooms/:code/start` response includes `"drawerId"` equal to `hostId` and `"currentWord": "rocket"`.
 
@@ -52,8 +52,8 @@ description: "Task list for First Round — Drawer Assignment and Secret Word"
 
 ### Implementation for User Story 1
 
-- [ ] T007 [US1] Add session restore to `frontend/src/pages/GamePage.tsx`: add `useRef(false)` guard `sessionRestoreAttempted`; in a `useEffect` with `[room, navigate, roomStore]` dependency, if `room` is null — attempt `roomStore.restoreSession()` once; if restore fails or the restored `room.status !== "active"`, `navigate("/", { replace: true })`
-- [ ] T008 [US1] Derive `isDrawer = participantId !== null && room.drawerId === participantId` and find the drawer participant with `room.participants.find(p => p.id === room.drawerId)`; display the drawer's name clearly to all participants (e.g., in the Player Info card: "Alice is drawing"); display the viewer's own role label ("You are drawing" if `isDrawer`, "You are guessing" otherwise) in `frontend/src/pages/GamePage.tsx`
+- [x] T007 [US1] Add session restore to `frontend/src/pages/GamePage.tsx`: add `useRef(false)` guard `sessionRestoreAttempted`; in a `useEffect` with `[room, navigate, roomStore]` dependency, if `room` is null — attempt `roomStore.restoreSession()` once; if restore fails or the restored `room.status !== "active"`, `navigate("/", { replace: true })`
+- [x] T008 [US1] Derive `isDrawer = participantId !== null && room.drawerId === participantId` and find the drawer participant with `room.participants.find(p => p.id === room.drawerId)`; display the drawer's name clearly to all participants (e.g., in the Player Info card: "Alice is drawing"); display the viewer's own role label ("You are drawing" if `isDrawer`, "You are guessing" otherwise) in `frontend/src/pages/GamePage.tsx`
 
 **Checkpoint**: Both tabs show drawer identity immediately on game screen load. Tab A shows own role as drawer. Tab B shows own role as guesser. Refreshing Tab A restores the game screen correctly.
 
@@ -67,7 +67,7 @@ description: "Task list for First Round — Drawer Assignment and Secret Word"
 
 ### Implementation for User Story 2
 
-- [ ] T009 [US2] In `frontend/src/pages/GamePage.tsx`, display `room.currentWord` prominently when `isDrawer` (e.g., "Your word: **rocket**"); display a non-revealing placeholder when `!isDrawer` (e.g., "A word has been chosen — start guessing!"); the placeholder must not reveal the word text
+- [x] T009 [US2] In `frontend/src/pages/GamePage.tsx`, display `room.currentWord` prominently when `isDrawer` (e.g., "Your word: **rocket**"); display a non-revealing placeholder when `!isDrawer` (e.g., "A word has been chosen — start guessing!"); the placeholder must not reveal the word text
 
 **Checkpoint**: Drawer sees "rocket" on Tab A. Guesser sees only the placeholder on Tab B. DevTools confirms `currentWord: null` in the guesser's API response. Refreshing Tab B restores the guesser view with the word still hidden.
 
@@ -77,9 +77,9 @@ description: "Task list for First Round — Drawer Assignment and Secret Word"
 
 **Purpose**: Build validation and end-to-end acceptance check.
 
-- [ ] T010 [P] Run `npm run build` in `backend/` and confirm zero TypeScript errors
-- [ ] T011 [P] Run `npm run build` in `frontend/` and confirm zero TypeScript errors
-- [ ] T012 Complete the full validation flow in `specs/002-first-round-drawer/quickstart.md` using two browser tabs and confirm all 9 checks in the validation table pass
+- [x] T010 [P] Run `npm run build` in `backend/` and confirm zero TypeScript errors
+- [x] T011 [P] Run `npm run build` in `frontend/` and confirm zero TypeScript errors
+- [x] T012 Complete the full validation flow in `specs/002-first-round-drawer/quickstart.md` using two browser tabs and confirm all 9 checks in the validation table pass
 
 ---
 

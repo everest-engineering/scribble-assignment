@@ -54,6 +54,8 @@ export function createRoom(playerName?: string) {
   const room: Room = {
     code: generateUniqueCode(),
     hostId: participant.id,
+    drawerId: null,
+    currentWord: null,
     status: "lobby",
     participants: [participant],
     createdAt: now(),
@@ -98,11 +100,13 @@ export function saveRoom(room: Room) {
 }
 
 export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSnapshot {
-  void viewerParticipantId;
-
   return {
     code: room.code,
     hostId: room.hostId,
+    drawerId: room.drawerId,
+    currentWord: viewerParticipantId === room.drawerId && room.drawerId !== null
+      ? room.currentWord
+      : null,
     status: room.status,
     participants: room.participants.map((participant) => ({ ...participant })),
     availableWords: listWords(),

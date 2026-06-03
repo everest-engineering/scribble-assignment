@@ -9,6 +9,7 @@ import {
   startRoomSchema
 } from "./schemas.js";
 import { createRoom, getRoom, joinRoom, saveRoom, toRoomSnapshot } from "../services/roomStore.js";
+import { STARTER_WORDS } from "../seed/starterData.js";
 
 export function createRoomsRouter() {
   const router = Router();
@@ -65,6 +66,8 @@ export function createRoomsRouter() {
       }
 
       room.status = "active";
+      room.drawerId = room.hostId;
+      room.currentWord = STARTER_WORDS[0];
       const updatedRoom = saveRoom(room);
 
       response.json({

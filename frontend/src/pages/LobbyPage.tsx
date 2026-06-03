@@ -58,7 +58,8 @@ export function LobbyPage() {
     if (!canStart || !participantId || !room) return;
     try {
       setStartError(null);
-      await api.startGame(room.code, participantId);
+      const response = await api.startGame(room.code, participantId);
+      roomStore.setRoomSnapshot(response.room);
       navigate("/game");
     } catch (err) {
       setStartError(err instanceof Error ? err.message : "Failed to start game");
