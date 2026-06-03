@@ -43,6 +43,7 @@ function makeRoom(overrides: Record<string, unknown> = {}) {
     scores: { [HOST_ID]: 0, [GUEST_ID]: 0 },
     roundEndsAt: null,
     hasGuessedCorrectly: false,
+    resultExpiresAt: null,
     ...overrides
   };
 }
@@ -61,6 +62,7 @@ const mockFetchRoom = vi.fn().mockResolvedValue(null);
 const mockUpdateCanvas = vi.fn().mockResolvedValue(undefined);
 const mockClearCanvas = vi.fn().mockResolvedValue(undefined);
 const mockSubmitGuess = vi.fn().mockResolvedValue(undefined);
+const mockRestartGame = vi.fn().mockResolvedValue(undefined);
 
 afterEach(cleanup);
 beforeEach(() => {
@@ -69,7 +71,8 @@ beforeEach(() => {
     fetchRoom: mockFetchRoom,
     updateCanvas: mockUpdateCanvas,
     clearCanvas: mockClearCanvas,
-    submitGuess: mockSubmitGuess
+    submitGuess: mockSubmitGuess,
+    restartGame: mockRestartGame
   } as never);
 });
 
@@ -123,6 +126,77 @@ describe("GamePage — polling", () => {
     expect(mockFetchRoom).toHaveBeenCalledTimes(1);
     vi.advanceTimersByTime(2000);
     expect(mockFetchRoom).toHaveBeenCalledTimes(2);
+    vi.useRealTimers();
+  });
+});
+
+// T019: GamePage renders ResultsScreen when status is finished (US1)
+describe("GamePage — ResultsScreen (US1)", () => {
+  it("renders ResultsScreen with the correct word when room is finished", () => {
+    vi.mocked(useRoomState).mockReturnValue(makeState({
+      participantId: GUEST_ID,
+      room: makeRoom({
+        status: "finished",
+        currentWord: "rocket",
+        resultExpiresAt: new Date(Date.now() + 30_000).toISOString()
+      })
+    }));
+    render(<MemoryRouter><GamePage /></MemoryRouter>);
+    expect(screen.getByText(/rocket/i)).toBeTruthy();
+  });
+
+  it("renders Round Over heading when room is finished", () => {
+    vi.mocked(useRoomState).mockReturnValue(makeState({
+      participantId: GUEST_ID,
+      room: makeRoom({
+        status: "finished",
+        currentWord: "rocket",
+        resultExpiresAt: new Date(Date.now() + 30_000).toISOString()
+      })
+    }));
+    render(<MemoryRouter><GamePage /></MemoryRouter>);
+    expect(screen.getByText(/round over/i)).toBeTruthy();
+  });
+});
+
+// T026: polling continues when status is finished (US2)
+describe("GamePage — polling continues during finished status (US2)", () => {
+  it("continues polling when room status is finished", () => {
+    vi.useFakeTimers();
+    vi.mocked(useRoomState).mockReturnValue(makeState({
+      room: makeRoom({
+        status: "finished",
+        resultExpiresAt: new Date(Date.now() + 30_000).toISOString()
+      })
+    }));
+    render(<MemoryRouter><GamePage /></MemoryRouter>);
+    vi.advanceTimersByTime(2000);
+    expect(mockFetchRoom).toHaveBeenCalledTimes(1);
+    vi.advanceTimersByTime(2000);
+    expect(mockFetchRoom).toHaveBeenCalledTimes(2);
+    vi.useRealTimers();
+  });
+});
+
+// T027: navigate to /lobby when polled status becomes lobby (US2)
+describe("GamePage — navigate to lobby when status becomes lobby (US2)", () => {
+  it("calls fetchRoom when polling fires on a finished room", async () => {
+    vi.useFakeTimers();
+    const lobbyRoom = makeRoom({ status: "lobby" });
+    mockFetchRoom.mockResolvedValue(lobbyRoom);
+
+    vi.mocked(useRoomState).mockReturnValue(makeState({
+      room: makeRoom({
+        status: "finished",
+        resultExpiresAt: new Date(Date.now() + 30_000).toISOString()
+      })
+    }));
+
+    render(<MemoryRouter><GamePage /></MemoryRouter>);
+    vi.advanceTimersByTime(2000);
+    await Promise.resolve();
+
+    expect(mockFetchRoom).toHaveBeenCalled();
     vi.useRealTimers();
   });
 });

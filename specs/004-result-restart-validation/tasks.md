@@ -22,9 +22,9 @@
 
 **⚠️ CRITICAL**: No backend or frontend work can begin until this phase is complete.
 
-- [ ] T001 Add `resultExpiresAt: z.string().nullable()` field to `roomSnapshotSchema` in `shared/schemas/room.ts` and add `resultExpiresAt: string | null` to the `RoomSnapshot` interface in `backend/src/models/game.ts`
-- [ ] T002 Add `restartRoomSchema` (`{ participantId: z.string().min(1) }`) to `backend/src/api/schemas.ts`
-- [ ] T003 Add `resultExpiresAt: string | null` field to the `Room` interface in `backend/src/models/game.ts` (initialised to `null` in `createRoom`)
+- [x] T001 Add `resultExpiresAt: z.string().nullable()` field to `roomSnapshotSchema` in `shared/schemas/room.ts` and add `resultExpiresAt: string | null` to the `RoomSnapshot` interface in `backend/src/models/game.ts`
+- [x] T002 Add `restartRoomSchema` (`{ participantId: z.string().min(1) }`) to `backend/src/api/schemas.ts`
+- [x] T003 Add `resultExpiresAt: string | null` field to the `Room` interface in `backend/src/models/game.ts` (initialised to `null` in `createRoom`)
 
 **Checkpoint**: Schema and model contracts defined — backend service and frontend implementation can now proceed.
 
@@ -38,22 +38,22 @@
 
 ### Tests for Foundational Backend (write first — TDD)
 
-- [ ] T004 [P] Write failing tests for `toRoomSnapshot()` revealing `currentWord` to all viewers when `room.status === "finished"` in `backend/src/services/roomStore.test.ts`
-- [ ] T005 [P] Write failing tests for `toRoomSnapshot()` populating `resultExpiresAt` from the room model in `backend/src/services/roomStore.test.ts`
-- [ ] T006 [P] Write failing tests for `submitGuess()` setting `room.scores[drawerId] += 50 * correctGuessers.size` and `resultExpiresAt` when round transitions to `"finished"` (all-correct path) in `backend/src/services/roomStore.test.ts`
-- [ ] T007 [P] Write failing tests for `checkRoundExpiry()` setting drawer score and `resultExpiresAt` when timer expires in `backend/src/services/roomStore.test.ts`
-- [ ] T008 [P] Write failing tests for new `checkResultExpiry()` transitioning `room.status` from `"finished"` to `"lobby"` and clearing all round fields when `Date.now() >= resultExpiresAt` in `backend/src/services/roomStore.test.ts`
-- [ ] T009 [P] Write failing tests for new `restartRoom()` — host-only guard (`not_host`), `not_finished` guard, and successful reset (participants preserved, round fields cleared, status `"lobby"`) in `backend/src/services/roomStore.test.ts`
+- [x] T004 [P] Write failing tests for `toRoomSnapshot()` revealing `currentWord` to all viewers when `room.status === "finished"` in `backend/src/services/roomStore.test.ts`
+- [x] T005 [P] Write failing tests for `toRoomSnapshot()` populating `resultExpiresAt` from the room model in `backend/src/services/roomStore.test.ts`
+- [x] T006 [P] Write failing tests for `submitGuess()` setting `room.scores[drawerId] += 50 * correctGuessers.size` and `resultExpiresAt` when round transitions to `"finished"` (all-correct path) in `backend/src/services/roomStore.test.ts`
+- [x] T007 [P] Write failing tests for `checkRoundExpiry()` setting drawer score and `resultExpiresAt` when timer expires in `backend/src/services/roomStore.test.ts`
+- [x] T008 [P] Write failing tests for new `checkResultExpiry()` transitioning `room.status` from `"finished"` to `"lobby"` and clearing all round fields when `Date.now() >= resultExpiresAt` in `backend/src/services/roomStore.test.ts`
+- [x] T009 [P] Write failing tests for new `restartRoom()` — host-only guard (`not_host`), `not_finished` guard, and successful reset (participants preserved, round fields cleared, status `"lobby"`) in `backend/src/services/roomStore.test.ts`
 
 ### Implementation for Foundational Backend (after tests fail)
 
-- [ ] T010 Update `startRoom()` to initialise `resultExpiresAt: null` on the room in `backend/src/services/roomStore.ts`
-- [ ] T011 Update `toRoomSnapshot()` to expose `currentWord` to all viewers when `room.status === "finished"`, and include `resultExpiresAt: room.resultExpiresAt` in the returned snapshot in `backend/src/services/roomStore.ts`
-- [ ] T012 Update `submitGuess()` to set `room.scores[drawerId] += 50 * correctGuessers.size` and `room.resultExpiresAt = new Date(Date.now() + 30_000).toISOString()` at the point status transitions to `"finished"` in `backend/src/services/roomStore.ts`
-- [ ] T013 Update `checkRoundExpiry()` to set drawer score (`50 * correctGuessers.size`) and `resultExpiresAt` when the timer-expiry transition fires in `backend/src/services/roomStore.ts`
-- [ ] T014 Add `checkResultExpiry(room: Room): void` to `backend/src/services/roomStore.ts` — checks `room.status === "finished"` and `Date.now() >= resultExpiresAt`; clears round state; sets `status = "lobby"`
-- [ ] T015 Add `restartRoom(code, participantId): RestartRoomResult` to `backend/src/services/roomStore.ts` — host-only, `"finished"`-only guard; clears `drawerId`, `currentWord`, `canvasDataUrl`, `guesses`, `scores`, `correctGuessers`, `roundStartedAt`, `resultExpiresAt`; sets `status = "lobby"`
-- [ ] T016 Add `POST /:code/restart` route to `backend/src/api/rooms.ts` using `restartRoomSchema` and `restartRoom()`; return `200 { room: RoomSnapshot }` on success; map `not_found → 404`, `not_host → 403`, `not_finished → 400`
+- [x] T010 Update `startRoom()` to initialise `resultExpiresAt: null` on the room in `backend/src/services/roomStore.ts`
+- [x] T011 Update `toRoomSnapshot()` to expose `currentWord` to all viewers when `room.status === "finished"`, and include `resultExpiresAt: room.resultExpiresAt` in the returned snapshot in `backend/src/services/roomStore.ts`
+- [x] T012 Update `submitGuess()` to set `room.scores[drawerId] += 50 * correctGuessers.size` and `room.resultExpiresAt = new Date(Date.now() + 30_000).toISOString()` at the point status transitions to `"finished"` in `backend/src/services/roomStore.ts`
+- [x] T013 Update `checkRoundExpiry()` to set drawer score (`50 * correctGuessers.size`) and `resultExpiresAt` when the timer-expiry transition fires in `backend/src/services/roomStore.ts`
+- [x] T014 Add `checkResultExpiry(room: Room): void` to `backend/src/services/roomStore.ts` — checks `room.status === "finished"` and `Date.now() >= resultExpiresAt`; clears round state; sets `status = "lobby"`
+- [x] T015 Add `restartRoom(code, participantId): RestartRoomResult` to `backend/src/services/roomStore.ts` — host-only, `"finished"`-only guard; clears `drawerId`, `currentWord`, `canvasDataUrl`, `guesses`, `scores`, `correctGuessers`, `roundStartedAt`, `resultExpiresAt`; sets `status = "lobby"`
+- [x] T016 Add `POST /:code/restart` route to `backend/src/api/rooms.ts` using `restartRoomSchema` and `restartRoom()`; return `200 { room: RoomSnapshot }` on success; map `not_found → 404`, `not_host → 403`, `not_finished → 400`
 
 **Checkpoint**: Backend fully implements round-end, drawer scoring, auto-advance, and restart — all service tests pass. Frontend phases can now proceed in parallel.
 
@@ -67,15 +67,15 @@
 
 ### Tests for User Story 1 (MANDATORY — write first, confirm FAIL)
 
-- [ ] T017 [P] [US1] Write failing test: `ResultsScreen` renders the revealed `currentWord` prominently when given a finished-state room snapshot in `frontend/src/components/ResultsScreen.test.tsx`
-- [ ] T018 [P] [US1] Write failing test: `ResultsScreen` renders each participant's name and score from the `scores` map in `frontend/src/components/ResultsScreen.test.tsx`
-- [ ] T019 [P] [US1] Write failing test: `GamePage` renders `ResultsScreen` (not the canvas/guess layout) when `room.status === "finished"` in `frontend/src/pages/GamePage.test.tsx`
-- [ ] T020 [P] [US1] Write failing accessibility test: axe scan of `ResultsScreen` passes with zero critical/serious violations in `frontend/src/components/ResultsScreen.test.tsx`
+- [x] T017 [P] [US1] Write failing test: `ResultsScreen` renders the revealed `currentWord` prominently when given a finished-state room snapshot in `frontend/src/components/ResultsScreen.test.tsx`
+- [x] T018 [P] [US1] Write failing test: `ResultsScreen` renders each participant's name and score from the `scores` map in `frontend/src/components/ResultsScreen.test.tsx`
+- [x] T019 [P] [US1] Write failing test: `GamePage` renders `ResultsScreen` (not the canvas/guess layout) when `room.status === "finished"` in `frontend/src/pages/GamePage.test.tsx`
+- [x] T020 [P] [US1] Write failing accessibility test: axe scan of `ResultsScreen` passes with zero critical/serious violations in `frontend/src/components/ResultsScreen.test.tsx`
 
 ### Implementation for User Story 1
 
-- [ ] T021 [US1] Create `ResultsScreen` component in `frontend/src/components/ResultsScreen.tsx` — renders correct word, a score list (participant name + points for each entry in `room.scores`), and a placeholder for guess history (to be wired in US3); accepts `room: RoomSnapshot` and `participantId: string` as props
-- [ ] T022 [US1] Update `GamePage.tsx` to conditionally render `<ResultsScreen room={room} participantId={participantId} />` when `room.status === "finished"` and hide the canvas/guess layout
+- [x] T021 [US1] Create `ResultsScreen` component in `frontend/src/components/ResultsScreen.tsx` — renders correct word, a score list (participant name + points for each entry in `room.scores`), and a placeholder for guess history (to be wired in US3); accepts `room: RoomSnapshot` and `participantId: string` as props
+- [x] T022 [US1] Update `GamePage.tsx` to conditionally render `<ResultsScreen room={room} participantId={participantId} />` when `room.status === "finished"` and hide the canvas/guess layout
 
 **Checkpoint**: User Story 1 is independently testable — end a round and all players see the results screen with word and scores.
 
@@ -89,20 +89,20 @@
 
 ### Tests for User Story 2 (MANDATORY — write first, confirm FAIL)
 
-- [ ] T023 [P] [US2] Write failing test: `api.restartGame()` sends `POST /rooms/:code/restart` with correct body and parses the `roomResponseSchema` response in `frontend/src/services/api.test.ts`
-- [ ] T024 [P] [US2] Write failing test: `ResultsScreen` shows a "Return to Lobby" button only when `participantId === room.hostId`, and calls the provided `onRestart` callback when clicked in `frontend/src/components/ResultsScreen.test.tsx`
-- [ ] T025 [P] [US2] Write failing test: `ResultsScreen` renders a countdown when `room.resultExpiresAt` is set, displaying the correct remaining seconds in `frontend/src/components/ResultsScreen.test.tsx`
-- [ ] T026 [P] [US2] Write failing test: `GamePage` polling interval continues when `room.status === "finished"` (interval is not cleared) in `frontend/src/pages/GamePage.test.tsx`
-- [ ] T027 [P] [US2] Write failing test: `GamePage` calls `navigate("/lobby")` when a polled room snapshot returns `status === "lobby"` in `frontend/src/pages/GamePage.test.tsx`
+- [x] T023 [P] [US2] Write failing test: `api.restartGame()` sends `POST /rooms/:code/restart` with correct body and parses the `roomResponseSchema` response in `frontend/src/services/api.test.ts`
+- [x] T024 [P] [US2] Write failing test: `ResultsScreen` shows a "Return to Lobby" button only when `participantId === room.hostId`, and calls the provided `onRestart` callback when clicked in `frontend/src/components/ResultsScreen.test.tsx`
+- [x] T025 [P] [US2] Write failing test: `ResultsScreen` renders a countdown when `room.resultExpiresAt` is set, displaying the correct remaining seconds in `frontend/src/components/ResultsScreen.test.tsx`
+- [x] T026 [P] [US2] Write failing test: `GamePage` polling interval continues when `room.status === "finished"` (interval is not cleared) in `frontend/src/pages/GamePage.test.tsx`
+- [x] T027 [P] [US2] Write failing test: `GamePage` calls `navigate("/lobby")` when a polled room snapshot returns `status === "lobby"` in `frontend/src/pages/GamePage.test.tsx`
 
 ### Implementation for User Story 2
 
-- [ ] T028 [US2] Add `restartGame(code: string, participantId: string): Promise<RoomResponse>` to `frontend/src/services/api.ts` — `POST /rooms/:code/restart` with Zod parse via `roomResponseSchema`
-- [ ] T029 [US2] Add `restartGame()` action to `frontend/src/state/roomStore.ts` — calls `api.restartGame()`, then `setRoomSnapshot()` with the returned room
-- [ ] T030 [US2] Add countdown display to `ResultsScreen.tsx` — uses `resultExpiresAt` ISO timestamp to compute `secondsRemaining` via a `setInterval` tick; renders "Returning to lobby in Xs…" with `aria-live="polite"`; stops ticking at 0
-- [ ] T031 [US2] Add host-only "Return to Lobby" button to `ResultsScreen.tsx` — visible only when `participantId === room.hostId`; calls `onRestart` prop; `aria-label="Return to lobby now"`
-- [ ] T032 [US2] Update `GamePage.tsx` polling `useEffect` to keep the interval alive when `room.status === "finished"` (change condition from `status !== "in-progress"` to `status === "lobby"`)
-- [ ] T033 [US2] Add lobby navigation to `GamePage.tsx` — when a polled snapshot returns `status === "lobby"`, call `navigate("/lobby", { replace: true })`
+- [x] T028 [US2] Add `restartGame(code: string, participantId: string): Promise<RoomResponse>` to `frontend/src/services/api.ts` — `POST /rooms/:code/restart` with Zod parse via `roomResponseSchema`
+- [x] T029 [US2] Add `restartGame()` action to `frontend/src/state/roomStore.ts` — calls `api.restartGame()`, then `setRoomSnapshot()` with the returned room
+- [x] T030 [US2] Add countdown display to `ResultsScreen.tsx` — uses `resultExpiresAt` ISO timestamp to compute `secondsRemaining` via a `setInterval` tick; renders "Returning to lobby in Xs…" with `aria-live="polite"`; stops ticking at 0
+- [x] T031 [US2] Add host-only "Return to Lobby" button to `ResultsScreen.tsx` — visible only when `participantId === room.hostId`; calls `onRestart` prop; `aria-label="Return to lobby now"`
+- [x] T032 [US2] Update `GamePage.tsx` polling `useEffect` to keep the interval alive when `room.status === "finished"` (change condition from `status !== "in-progress"` to `status === "lobby"`)
+- [x] T033 [US2] Add lobby navigation to `GamePage.tsx` — when a polled snapshot returns `status === "lobby"`, call `navigate("/lobby", { replace: true })`
 
 **Checkpoint**: User Story 2 is independently testable — host restart and 30-second auto-advance both return all players to lobby with state cleared.
 
@@ -116,14 +116,14 @@
 
 ### Tests for User Story 3 (MANDATORY — write first, confirm FAIL)
 
-- [ ] T034 [P] [US3] Write failing test: `ResultsScreen` renders guesses in chronological order with each guesser's name when given a snapshot with multiple guesses in `frontend/src/components/ResultsScreen.test.tsx`
-- [ ] T035 [P] [US3] Write failing test: `ResultsScreen` shows an empty state message (e.g., "No guesses were made this round") when `room.guesses` is empty in `frontend/src/components/ResultsScreen.test.tsx`
-- [ ] T036 [P] [US3] Write failing test: correct guess entries have the `guess-entry--correct` CSS class (or equivalent) and incorrect entries do not in `frontend/src/components/ResultsScreen.test.tsx`
+- [x] T034 [P] [US3] Write failing test: `ResultsScreen` renders guesses in chronological order with each guesser's name when given a snapshot with multiple guesses in `frontend/src/components/ResultsScreen.test.tsx`
+- [x] T035 [P] [US3] Write failing test: `ResultsScreen` shows an empty state message (e.g., "No guesses were made this round") when `room.guesses` is empty in `frontend/src/components/ResultsScreen.test.tsx`
+- [x] T036 [P] [US3] Write failing test: correct guess entries have the `guess-entry--correct` CSS class (or equivalent) and incorrect entries do not in `frontend/src/components/ResultsScreen.test.tsx`
 
 ### Implementation for User Story 3
 
-- [ ] T037 [US3] Add full guess history list to `ResultsScreen.tsx` — renders `room.guesses` in order; each entry shows `participantName` and `text`; applies `guess-entry--correct` class and green colour to `correct: true` entries; shows "No guesses were made this round" empty state when `room.guesses.length === 0`
-- [ ] T038 [US3] Remove the guess history placeholder added in T021 and replace it with the full implementation from T037 in `frontend/src/components/ResultsScreen.tsx`
+- [x] T037 [US3] Add full guess history list to `ResultsScreen.tsx` — renders `room.guesses` in order; each entry shows `participantName` and `text`; applies `guess-entry--correct` class and green colour to `correct: true` entries; shows "No guesses were made this round" empty state when `room.guesses.length === 0`
+- [x] T038 [US3] Remove the guess history placeholder added in T021 and replace it with the full implementation from T037 in `frontend/src/components/ResultsScreen.tsx`
 
 **Checkpoint**: All three user stories independently functional and testable.
 
@@ -133,9 +133,9 @@
 
 **Purpose**: Accessibility hardening, coverage verification, and end-to-end validation.
 
-- [ ] T039 [P] Verify `ResultsScreen` countdown `aria-live="polite"` region and restart button `aria-label` are in place; confirm keyboard tab order reaches restart button in `frontend/src/components/ResultsScreen.tsx`
-- [ ] T040 [P] Run `cd backend && npm test` — confirm all tests pass and line/branch coverage ≥ 80%; fix any gaps in `backend/src/services/roomStore.test.ts`
-- [ ] T041 [P] Run `cd frontend && npm test` — confirm all tests pass and line/branch coverage ≥ 80%; fix any gaps in `frontend/src/components/ResultsScreen.test.tsx` and `frontend/src/pages/GamePage.test.tsx`
+- [x] T039 [P] Verify `ResultsScreen` countdown `aria-live="polite"` region and restart button `aria-label` are in place; confirm keyboard tab order reaches restart button in `frontend/src/components/ResultsScreen.tsx`
+- [x] T040 [P] Run `cd backend && npm test` — confirm all tests pass and line/branch coverage ≥ 80%; fix any gaps in `backend/src/services/roomStore.test.ts`
+- [x] T041 [P] Run `cd frontend && npm test` — confirm all tests pass and line/branch coverage ≥ 80%; fix any gaps in `frontend/src/components/ResultsScreen.test.tsx` and `frontend/src/pages/GamePage.test.tsx`
 - [ ] T042 Manual playtest per `specs/004-result-restart-validation/quickstart.md` — verify results screen, countdown, host restart, auto-advance, and player-list preservation end-to-end in two browser tabs
 
 ---

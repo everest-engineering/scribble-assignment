@@ -4,6 +4,7 @@ import {
   createRoomSchema,
   HttpError,
   joinRoomSchema,
+  restartRoomSchema,
   roomCodeParamsSchema,
   roomViewerQuerySchema,
   startRoomRequestSchema,
@@ -15,6 +16,7 @@ import {
   createRoom,
   getRoom,
   joinRoom,
+  restartRoom,
   startRoom,
   submitGuess,
   toRoomSnapshot,
@@ -167,6 +169,27 @@ export function createRoomsRouter() {
       }
 
       response.status(204).send();
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  // POST /:code/restart — host returns all players to lobby from results screen
+  router.post("/:code/restart", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId } = restartRoomSchema.parse(request.body);
+      const result = restartRoom(code.toUpperCase(), participantId);
+
+      if (!result.ok) {
+        if (result.reason === "not_found") throw new HttpError(404, "Room not found");
+        if (result.reason === "not_host") throw new HttpError(403, "Only the host can restart the game");
+        if (result.reason === "not_finished") throw new HttpError(400, "Game has not finished yet");
+      }
+
+      if (!result.ok) throw new HttpError(500, "Unable to restart room");
+
+      response.json({ room: toRoomSnapshot(result.room, participantId) });
     } catch (error) {
       next(error);
     }

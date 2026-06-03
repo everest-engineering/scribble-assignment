@@ -2,6 +2,8 @@ import { randomUUID } from "node:crypto";
 import type { Guess, GuessSnapshot, Participant, Room, RoomSnapshot } from "../models/game.js";
 import { ROUND_DURATION_SECONDS, STARTER_ROLES, STARTER_WORDS } from "../seed/starterData.js";
 
+const RESULT_DISPLAY_SECONDS = 30;
+
 const MAX_PLAYERS = 4;
 
 const rooms = new Map<string, Room>();
@@ -54,7 +56,7 @@ export function listWords() {
   return [...STARTER_WORDS];
 }
 
-// T012: checkRoundExpiry — lazily transitions status to "finished" when timer has expired
+// checkRoundExpiry — lazily transitions status to "finished" when timer has expired
 export function checkRoundExpiry(room: Room): void {
   if (room.status !== "in-progress" || !room.roundStartedAt) {
     return;
@@ -63,6 +65,28 @@ export function checkRoundExpiry(room: Room): void {
   const nowMs = Date.now();
   if (nowMs >= startMs + ROUND_DURATION_SECONDS * 1000) {
     room.status = "finished";
+    if (room.drawerId && room.scores[room.drawerId] !== undefined) {
+      room.scores[room.drawerId] += 50 * room.correctGuessers.size;
+    }
+    room.resultExpiresAt = new Date(nowMs + RESULT_DISPLAY_SECONDS * 1000).toISOString();
+  }
+}
+
+// checkResultExpiry — lazily transitions status from "finished" back to "lobby" after display window
+export function checkResultExpiry(room: Room): void {
+  if (room.status !== "finished" || !room.resultExpiresAt) {
+    return;
+  }
+  if (Date.now() >= new Date(room.resultExpiresAt).getTime()) {
+    room.status = "lobby";
+    room.drawerId = null;
+    room.currentWord = null;
+    room.canvasDataUrl = null;
+    room.guesses = [];
+    room.scores = {};
+    room.correctGuessers = new Set();
+    room.roundStartedAt = null;
+    room.resultExpiresAt = null;
   }
 }
 
@@ -89,7 +113,8 @@ export function createRoom(playerName?: string): CreateRoomResult {
     guesses: [],
     scores: {},
     correctGuessers: new Set(),
-    roundStartedAt: null
+    roundStartedAt: null,
+    resultExpiresAt: null
   };
 
   rooms.set(room.code, room);
@@ -169,6 +194,7 @@ export function startRoom(code: string, participantId: string): StartRoomResult 
   room.scores = scores;
   room.correctGuessers = new Set();
   room.roundStartedAt = now();
+  room.resultExpiresAt = null;
   room.updatedAt = now();
   rooms.set(room.code, room);
 
@@ -177,7 +203,9 @@ export function startRoom(code: string, participantId: string): StartRoomResult 
 
 export function getRoom(code: string) {
   const room = rooms.get(code);
-  return room ? cloneRoom(room) : null;
+  if (!room) return null;
+  checkResultExpiry(room);
+  return cloneRoom(room);
 }
 
 export function saveRoom(room: Room) {
@@ -190,10 +218,14 @@ export function saveRoom(room: Room) {
   return getRoom(room.code);
 }
 
-// T013: toRoomSnapshot includes all new gameplay fields
+// toRoomSnapshot includes all gameplay fields; reveals currentWord to all when finished
 export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSnapshot {
   const currentWord =
-    room.drawerId && viewerParticipantId === room.drawerId ? room.currentWord : null;
+    room.status === "finished"
+      ? room.currentWord
+      : room.drawerId && viewerParticipantId === room.drawerId
+        ? room.currentWord
+        : null;
 
   const participantMap = new Map(room.participants.map((p) => [p.id, p.name]));
 
@@ -226,7 +258,8 @@ export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSn
     guesses,
     scores: { ...room.scores },
     roundEndsAt,
-    hasGuessedCorrectly
+    hasGuessedCorrectly,
+    resultExpiresAt: room.resultExpiresAt
   };
 }
 
@@ -292,6 +325,40 @@ export function clearCanvas(code: string, participantId: string): ClearCanvasRes
   return { ok: true };
 }
 
+type RestartRoomResult =
+  | { ok: true; room: Room }
+  | { ok: false; reason: "not_found" | "not_host" | "not_finished" };
+
+export function restartRoom(code: string, participantId: string): RestartRoomResult {
+  const room = rooms.get(code);
+
+  if (!room) {
+    return { ok: false, reason: "not_found" };
+  }
+
+  if (room.hostId !== participantId) {
+    return { ok: false, reason: "not_host" };
+  }
+
+  if (room.status !== "finished") {
+    return { ok: false, reason: "not_finished" };
+  }
+
+  room.status = "lobby";
+  room.drawerId = null;
+  room.currentWord = null;
+  room.canvasDataUrl = null;
+  room.guesses = [];
+  room.scores = {};
+  room.correctGuessers = new Set();
+  room.roundStartedAt = null;
+  room.resultExpiresAt = null;
+  room.updatedAt = now();
+  rooms.set(room.code, room);
+
+  return { ok: true, room: cloneRoom(room) };
+}
+
 type SubmitGuessResult =
   | { ok: true; guess: Guess }
   | { ok: false; reason: "not_found" | "not_active" | "is_drawer" | "empty_guess" | "already_correct" };
@@ -350,6 +417,10 @@ export function submitGuess(
   const guesserCount = room.participants.filter((p) => p.id !== room.drawerId).length;
   if (room.correctGuessers.size >= guesserCount) {
     room.status = "finished";
+    if (room.drawerId && room.scores[room.drawerId] !== undefined) {
+      room.scores[room.drawerId] += 50 * room.correctGuessers.size;
+    }
+    room.resultExpiresAt = new Date(Date.now() + RESULT_DISPLAY_SECONDS * 1000).toISOString();
   }
 
   rooms.set(room.code, room);

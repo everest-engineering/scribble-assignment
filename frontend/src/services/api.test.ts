@@ -22,7 +22,8 @@ const validRoom = {
   guesses: [],
   scores: {},
   roundEndsAt: null,
-  hasGuessedCorrectly: false
+  hasGuessedCorrectly: false,
+  resultExpiresAt: null
 };
 
 describe("api service", () => {
@@ -111,5 +112,30 @@ describe("api service", () => {
     );
 
     await expect(api.startGame("ABCD", "host-id")).rejects.toThrow();
+  });
+
+  // T023: restartGame sends POST to /rooms/:code/restart and parses roomResponseSchema
+  it("restartGame sends POST to /rooms/:code/restart with participantId", async () => {
+    vi.mocked(fetch).mockResolvedValue(
+      makeMockResponse({ room: validRoom })
+    );
+
+    await api.restartGame("ABCD", "host-id");
+
+    expect(fetch).toHaveBeenCalledWith(
+      expect.stringContaining("/rooms/ABCD/restart"),
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({ participantId: "host-id" })
+      })
+    );
+  });
+
+  it("restartGame throws when response fails Zod validation", async () => {
+    vi.mocked(fetch).mockResolvedValue(
+      makeMockResponse({ room: { code: "ABCD" } })
+    );
+
+    await expect(api.restartGame("ABCD", "host-id")).rejects.toThrow();
   });
 });

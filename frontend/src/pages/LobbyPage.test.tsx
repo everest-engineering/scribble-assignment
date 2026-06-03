@@ -31,6 +31,7 @@ function makeRoom(overrides: Record<string, unknown> = {}) {
     scores: {},
     roundEndsAt: null,
     hasGuessedCorrectly: false,
+    resultExpiresAt: null,
     ...overrides
   };
 }

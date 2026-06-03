@@ -145,6 +145,15 @@ class RoomStore {
     }
   }
 
+  // restartGame — host returns all players to lobby; clears round state
+  async restartGame() {
+    const { room, participantId } = this.state;
+    if (!room || !participantId) return;
+    const response = await this.withLoading(() => api.restartGame(room.code, participantId));
+    this.setRoomSnapshot(response.room);
+    return response.room;
+  }
+
   // T037: submitGuess — submits guess then refreshes room for updated scores/history
   async submitGuess(text: string) {
     const { room, participantId } = this.state;

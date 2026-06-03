@@ -34,7 +34,8 @@ export const roomSnapshotSchema = z.object({
   guesses: z.array(guessSnapshotSchema),
   scores: z.record(z.string(), z.number()),
   roundEndsAt: z.string().nullable(),
-  hasGuessedCorrectly: z.boolean()
+  hasGuessedCorrectly: z.boolean(),
+  resultExpiresAt: z.string().nullable()
 });
 
 export const roomSessionResponseSchema = z.object({

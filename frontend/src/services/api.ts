@@ -79,6 +79,15 @@ export const api = {
     });
   },
 
+  // restartGame — POST /rooms/:code/restart
+  async restartGame(code: string, participantId: string): Promise<RoomResponse> {
+    const raw = await request<unknown>(`/rooms/${encodeURIComponent(code)}/restart`, {
+      method: "POST",
+      body: JSON.stringify({ participantId })
+    });
+    return roomResponseSchema.parse(raw);
+  },
+
   // T036: submitGuess — POST /rooms/:code/guesses
   async submitGuess(code: string, participantId: string, text: string): Promise<GuessSnapshot> {
     const raw = await request<unknown>(`/rooms/${encodeURIComponent(code)}/guesses`, {

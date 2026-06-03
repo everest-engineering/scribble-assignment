@@ -4,6 +4,7 @@ import { Card } from "../components/Card";
 import { DrawingCanvas } from "../components/DrawingCanvas";
 import { GuessForm } from "../components/GuessForm";
 import { ResultPanel } from "../components/ResultPanel";
+import { ResultsScreen } from "../components/ResultsScreen";
 import { RoomCodeBadge } from "../components/RoomCodeBadge";
 import { Scoreboard } from "../components/Scoreboard";
 import { useRoomState, useRoomStore } from "../state/roomStore";
@@ -19,14 +20,17 @@ export function GamePage() {
     }
   }, [navigate, room]);
 
-  // T030: Poll room state every 2 s while round is active
+  // Poll room state every 2 s while round is active or showing results
   useEffect(() => {
-    if (!room || room.status !== "in-progress") return;
-    const id = setInterval(() => {
-      roomStore.fetchRoom();
+    if (!room || room.status === "lobby") return;
+    const id = setInterval(async () => {
+      const updated = await roomStore.fetchRoom();
+      if (updated && updated.status === "lobby") {
+        navigate("/lobby", { replace: true });
+      }
     }, 2000);
     return () => clearInterval(id);
-  }, [room?.status, roomStore]);
+  }, [room?.status, roomStore, navigate]);
 
   if (!room) {
     return null;
@@ -37,6 +41,16 @@ export function GamePage() {
   const isDrawer = participantId === room.drawerId;
   const isActive = room.status === "in-progress";
   const guessDisabled = !isActive || room.hasGuessedCorrectly;
+
+  if (room.status === "finished") {
+    return (
+      <ResultsScreen
+        room={room}
+        participantId={participantId}
+        onRestart={() => roomStore.restartGame()}
+      />
+    );
+  }
 
   return (
     <section className="panel game-page">
@@ -53,12 +67,6 @@ export function GamePage() {
       {isDrawer && room.currentWord ? (
         <p className="game-page__secret-word">Your word: <strong>{room.currentWord}</strong></p>
       ) : null}
-      {room.status === "finished" ? (
-        <p className="game-page__round-end" aria-live="polite">
-          Round over!
-        </p>
-      ) : null}
-
       <div className="game-page__layout">
         <aside className="game-page__sidebar game-page__sidebar--left">
           {/* T039 */}

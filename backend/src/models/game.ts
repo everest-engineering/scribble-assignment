@@ -29,6 +29,7 @@ export interface Room {
   scores: Record<string, number>;
   correctGuessers: Set<string>;
   roundStartedAt: string | null;
+  resultExpiresAt: string | null;
 }
 
 export interface GuessSnapshot {
@@ -54,6 +55,7 @@ export interface RoomSnapshot {
   scores: Record<string, number>;
   roundEndsAt: string | null;
   hasGuessedCorrectly: boolean;
+  resultExpiresAt: string | null;
 }
 
 export interface RoomSessionResponse {
