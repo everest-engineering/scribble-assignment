@@ -23,6 +23,9 @@ export function LobbyPage() {
     if (room?.status === "active") {
       navigate("/game", { replace: true });
     }
+    if (room?.status === "results") {
+      navigate("/results", { replace: true });
+    }
   }, [room?.status, navigate]);
 
   useEffect(() => {

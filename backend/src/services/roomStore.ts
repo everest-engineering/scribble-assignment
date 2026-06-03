@@ -110,6 +110,7 @@ export function saveRoom(room: Room) {
 
 export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSnapshot {
   const isDrawer = viewerParticipantId !== undefined && viewerParticipantId === room.drawerId;
+  const isResults = room.status === "results";
 
   const playerScoresDisplay = Array.from(room.playerScores.entries()).map(([playerId, score]) => {
     const participant = room.participants.find((p) => p.id === playerId);
@@ -124,7 +125,7 @@ export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSn
     drawerId: room.drawerId ?? null,
     availableWords: listWords(),
     roles: [...STARTER_ROLES],
-    currentWord: isDrawer ? room.currentWord : null,
+    currentWord: isResults || isDrawer ? room.currentWord : null,
     strokes: [...room.strokes],
     guesses: [...room.guesses],
     playerScores: playerScoresDisplay
@@ -218,4 +219,42 @@ export function submitGuess(code: string, participantId: string, playerName: str
   rooms.set(room.code, room);
 
   return { snapshot: toRoomSnapshot(cloneRoom(room)), correct: isCorrect };
+}
+
+export function endRound(code: string): RoomSnapshot | null {
+  const room = rooms.get(code);
+
+  if (!room) {
+    return null;
+  }
+
+  if (room.status !== "active") {
+    return null;
+  }
+
+  room.status = "results";
+  room.updatedAt = now();
+  rooms.set(room.code, room);
+
+  return toRoomSnapshot(cloneRoom(room));
+}
+
+export function restartRoom(code: string): RoomSnapshot | null {
+  const room = rooms.get(code);
+
+  if (!room) {
+    return null;
+  }
+
+  room.status = "lobby";
+  room.drawerId = null;
+  room.currentWord = null;
+  room.strokes = [];
+  room.guesses = [];
+  room.playerScores = new Map(room.participants.map((p) => [p.id, 0]));
+  room.hasScored = [];
+  room.updatedAt = now();
+  rooms.set(room.code, room);
+
+  return toRoomSnapshot(cloneRoom(room));
 }

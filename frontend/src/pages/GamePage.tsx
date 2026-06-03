@@ -50,6 +50,7 @@ export function GamePage() {
 
   const viewer = room.participants.find((participant) => participant.id === participantId) ?? null;
   const isDrawer = !!room.drawerId && participantId === room.drawerId;
+  const isHost = room.hostId === participantId;
   const drawerParticipant = room.drawerId
     ? room.participants.find((p) => p.id === room.drawerId)
     : null;
@@ -68,6 +69,15 @@ export function GamePage() {
       await roomStore.clearCanvas();
     } catch {
       // ignore — polling will sync
+    }
+  }
+
+  async function handleEndRound() {
+    try {
+      await roomStore.endRound();
+      navigate("/results");
+    } catch {
+      // error handled via store state
     }
   }
 
@@ -142,7 +152,12 @@ export function GamePage() {
         </aside>
       </div>
 
-      <div className="button-row">
+      <div className="button-row button-row--spread">
+        {isHost && (
+          <button className="button button--primary" onClick={handleEndRound}>
+            End Round
+          </button>
+        )}
         <button className="button button--secondary" onClick={() => {
           roomStore.clearRoom();
           navigate("/lobby");

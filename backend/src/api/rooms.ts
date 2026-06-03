@@ -7,9 +7,11 @@ import {
   roomViewerQuerySchema,
   startRoomSchema,
   addStrokeSchema,
-  submitGuessSchema
+  submitGuessSchema,
+  endRoundSchema,
+  restartRoomSchema
 } from "./schemas.js";
-import { createRoom, getRoom, joinRoom, startRoom, toRoomSnapshot, addStroke, clearCanvas, submitGuess } from "../services/roomStore.js";
+import { createRoom, getRoom, joinRoom, startRoom, toRoomSnapshot, addStroke, clearCanvas, submitGuess, endRound, restartRoom } from "../services/roomStore.js";
 
 export function createRoomsRouter() {
   const router = Router();
@@ -174,6 +176,62 @@ export function createRoomsRouter() {
       }
 
       response.json({ room: snapshot, correct });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/:code/end", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId } = endRoundSchema.parse(request.body);
+      const room = getRoom(code.toUpperCase());
+
+      if (!room) {
+        throw new HttpError(404, "Unable to load room");
+      }
+
+      if (room.hostId !== participantId) {
+        throw new HttpError(403, "Only the host can end the round");
+      }
+
+      if (room.status !== "active") {
+        throw new HttpError(409, "Game is not active");
+      }
+
+      const snapshot = endRound(code.toUpperCase());
+
+      if (!snapshot) {
+        throw new HttpError(404, "Unable to end round");
+      }
+
+      response.json({ room: snapshot });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/:code/restart", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId } = restartRoomSchema.parse(request.body);
+      const room = getRoom(code.toUpperCase());
+
+      if (!room) {
+        throw new HttpError(404, "Unable to load room");
+      }
+
+      if (room.hostId !== participantId) {
+        throw new HttpError(403, "Only the host can restart");
+      }
+
+      const snapshot = restartRoom(code.toUpperCase());
+
+      if (!snapshot) {
+        throw new HttpError(404, "Unable to restart room");
+      }
+
+      response.json({ room: snapshot });
     } catch (error) {
       next(error);
     }

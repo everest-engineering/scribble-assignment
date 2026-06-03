@@ -26,6 +26,14 @@ export const submitGuessSchema = z.object({
   text: z.string().trim().min(1, "Guess cannot be empty")
 });
 
+export const endRoundSchema = z.object({
+  participantId: z.string().uuid("Invalid participant ID")
+});
+
+export const restartRoomSchema = z.object({
+  participantId: z.string().uuid("Invalid participant ID")
+});
+
 export const roomCodeParamsSchema = z.object({
   code: z.string()
 });
