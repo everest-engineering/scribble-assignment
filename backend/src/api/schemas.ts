@@ -15,6 +15,11 @@ export const startGameSchema = z.object({
   participantId: z.string().min(1)
 });
 
+export const guessSchema = z.object({
+  participantId: z.string().min(1),
+  text: z.string().trim().min(1, "Enter a guess.")
+});
+
 // Matches the code shape produced by generateCode: 4 chars from the
 // ambiguity-free alphabet (no I, O, 0, 1). Case-insensitive; normalized upstream.
 export const roomCodeParamsSchema = z.object({

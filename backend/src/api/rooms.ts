@@ -1,6 +1,7 @@
 import { Router } from "express";
 import {
   createRoomSchema,
+  guessSchema,
   HttpError,
   joinRoomSchema,
   roomCodeParamsSchema,
@@ -12,8 +13,10 @@ import {
   getRoom,
   joinRoom,
   startGame,
+  submitGuess,
   toRoomSnapshot,
-  type StartGameError
+  type StartGameError,
+  type SubmitGuessError
 } from "../services/roomStore.js";
 
 const startGameErrors: Record<StartGameError, { status: number; message: string }> = {
@@ -21,6 +24,13 @@ const startGameErrors: Record<StartGameError, { status: number; message: string 
   forbidden: { status: 403, message: "Only the host can start the game." },
   not_lobby: { status: 409, message: "The game has already started." },
   too_few_players: { status: 400, message: "At least 2 players are required to start." }
+};
+
+const guessErrors: Record<SubmitGuessError, { status: number; message: string }> = {
+  not_found: { status: 404, message: "Room not found." },
+  not_playing: { status: 409, message: "The game is not in progress." },
+  not_participant: { status: 403, message: "You are not in this room." },
+  drawer_cannot_guess: { status: 403, message: "The drawer cannot guess." }
 };
 
 export function createRoomsRouter() {
@@ -73,6 +83,26 @@ export function createRoomsRouter() {
       response.json({
         participantId: result.participantId,
         room: toRoomSnapshot(result.room, result.participantId)
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/:code/guess", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId, text } = guessSchema.parse(request.body);
+      const result = submitGuess(code.toUpperCase(), participantId, text);
+
+      if (!result.ok) {
+        const { status, message } = guessErrors[result.error];
+        throw new HttpError(status, message);
+      }
+
+      response.json({
+        guess: result.guess,
+        room: toRoomSnapshot(result.room, participantId)
       });
     } catch (error) {
       next(error);
