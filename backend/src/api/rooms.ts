@@ -7,6 +7,7 @@ import {
   joinRoomSchema,
   roomCodeParamsSchema,
   roomViewerQuerySchema,
+  restartRoomSchema,
   startRoomSchema,
   submitGuessSchema
 } from "./schemas.js";
@@ -21,6 +22,9 @@ import {
   GuessValidationError,
   joinRoom,
   PlayerNameValidationError,
+  restartRoom,
+  RestartInvalidStateError,
+  RestartNotHostError,
   RoomCapacityError,
   RoundNotActiveError,
   startRound,
@@ -145,6 +149,24 @@ export function createRoomsRouter() {
     }
   });
 
+  router.post("/:code/restart", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId } = restartRoomSchema.parse(request.body);
+      const room = restartRoom(code.toUpperCase(), participantId);
+
+      if (!room) {
+        throw new HttpError(404, "Unable to restart game");
+      }
+
+      response.json({
+        room: toRoomSnapshot(room, participantId)
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
+
   router.get("/:code", (request, response, next) => {
     try {
       const { code } = roomCodeParamsSchema.parse(request.params);
@@ -197,9 +219,14 @@ export function mapRoomStoreError(error: unknown) {
     error instanceof RoundNotActiveError ||
     error instanceof StrokeLimitError ||
     error instanceof GuessLimitError ||
-    error instanceof StrokePointsLimitError
+    error instanceof StrokePointsLimitError ||
+    error instanceof RestartInvalidStateError
   ) {
     return new HttpError(409, error.message);
+  }
+
+  if (error instanceof RestartNotHostError) {
+    return new HttpError(403, error.message);
   }
 
   return error;

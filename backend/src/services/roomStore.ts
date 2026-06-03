@@ -93,6 +93,20 @@ export class StrokePointsLimitError extends Error {
   }
 }
 
+export class RestartNotHostError extends Error {
+  constructor() {
+    super("Only the host can restart the game");
+    this.name = "RestartNotHostError";
+  }
+}
+
+export class RestartInvalidStateError extends Error {
+  constructor() {
+    super("Game is not in result state");
+    this.name = "RestartInvalidStateError";
+  }
+}
+
 export function sumCharCodes(code: string) {
   let sum = 0;
 
@@ -377,6 +391,29 @@ export function submitGuess(code: string, participantId: string, text: string) {
   return getRoom(room.code);
 }
 
+export function restartRoom(code: string, participantId: string) {
+  const room = rooms.get(code);
+
+  if (!room) {
+    return null;
+  }
+
+  if (participantId !== room.hostParticipantId) {
+    throw new RestartNotHostError();
+  }
+
+  if (room.status !== "result") {
+    throw new RestartInvalidStateError();
+  }
+
+  room.status = "lobby";
+  room.currentRound = undefined;
+  room.updatedAt = now();
+  rooms.set(room.code, cloneRoom(room));
+
+  return getRoom(room.code);
+}
+
 export function saveRoom(room: Room) {
   room.updatedAt = now();
   rooms.set(room.code, cloneRoom(room));
@@ -395,11 +432,12 @@ export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSn
 
   if (room.currentRound) {
     const isDrawer = viewerParticipantId === room.currentRound.drawerParticipantId;
+    const revealSecretWord = room.status === "result" || isDrawer;
 
     snapshot.currentRound = {
       roundIndex: room.currentRound.roundIndex,
       drawerParticipantId: room.currentRound.drawerParticipantId,
-      secretWord: isDrawer ? room.currentRound.secretWord : null,
+      secretWord: revealSecretWord ? room.currentRound.secretWord : null,
       strokes: room.currentRound.strokes.map((stroke) => ({
         ...stroke,
         points: stroke.points.map((point) => ({ ...point }))

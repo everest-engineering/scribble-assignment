@@ -10,6 +10,9 @@ import {
   normalizePlayerName,
   pickWord,
   PlayerNameValidationError,
+  restartRoom,
+  RestartInvalidStateError,
+  RestartNotHostError,
   RoomCapacityError,
   RoundNotActiveError,
   startRound,
@@ -279,5 +282,55 @@ describe("roomStore", () => {
     expect(snapshot.currentRound?.scores.find((entry) => entry.participantId === guest.participantId)?.score).toBe(
       100
     );
+  });
+
+  it("toRoomSnapshot reveals secret word to all viewers in result state", () => {
+    const host = createRoom("Alice");
+    const code = host.room.code;
+    const guest = joinRoom(code, "Bob")!;
+    const playing = startRound(code, host.participantId)!;
+    const resultRoom = submitGuess(code, guest.participantId, playing.currentRound!.secretWord)!;
+
+    expect(resultRoom.status).toBe("result");
+
+    const drawerSnapshot = toRoomSnapshot(resultRoom, host.participantId);
+    const guesserSnapshot = toRoomSnapshot(resultRoom, guest.participantId);
+
+    expect(drawerSnapshot.currentRound?.secretWord).toBe(playing.currentRound!.secretWord);
+    expect(guesserSnapshot.currentRound?.secretWord).toBe(playing.currentRound!.secretWord);
+  });
+
+  it("restartRoom transitions result to lobby and clears round state", () => {
+    const host = createRoom("Alice");
+    const code = host.room.code;
+    const guest = joinRoom(code, "Bob")!;
+    const playing = startRound(code, host.participantId)!;
+    submitGuess(code, guest.participantId, playing.currentRound!.secretWord);
+
+    const room = restartRoom(code, host.participantId)!;
+
+    expect(room.status).toBe("lobby");
+    expect(room.currentRound).toBeUndefined();
+    expect(room.participants).toHaveLength(2);
+    expect(room.hostParticipantId).toBe(host.participantId);
+  });
+
+  it("restartRoom rejects non-host", () => {
+    const host = createRoom("Alice");
+    const code = host.room.code;
+    const guest = joinRoom(code, "Bob")!;
+    const playing = startRound(code, host.participantId)!;
+    submitGuess(code, guest.participantId, playing.currentRound!.secretWord);
+
+    expect(() => restartRoom(code, guest.participantId)).toThrow(RestartNotHostError);
+  });
+
+  it("restartRoom rejects when not in result state", () => {
+    const host = createRoom("Alice");
+    const code = host.room.code;
+    joinRoom(code, "Bob");
+    startRound(code, host.participantId);
+
+    expect(() => restartRoom(code, host.participantId)).toThrow(RestartInvalidStateError);
   });
 });

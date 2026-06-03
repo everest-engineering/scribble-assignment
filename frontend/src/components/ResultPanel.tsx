@@ -4,15 +4,24 @@ import type { GuessSnapshot, RoomSnapshot } from "../services/api";
 interface ResultPanelProps {
   guesses: GuessSnapshot[];
   status: RoomSnapshot["status"];
+  secretWord: string | null;
 }
 
-export function ResultPanel({ guesses, status }: ResultPanelProps) {
+export function ResultPanel({ guesses, status, secretWord }: ResultPanelProps) {
   return (
-    <Card title="Activity">
+    <Card title={status === "result" ? "Round Result" : "Activity"}>
       <div className="placeholder-block" style={{ backgroundColor: "#f9fafb" }}>
-        {status === "result" ? (
-          <p style={{ fontSize: "0.875rem", color: "#6b7280", marginTop: 0 }}>
-            Round over — full results and restart coming in Scenario 4.
+        {status === "result" && secretWord ? (
+          <p
+            style={{
+              fontSize: "1.125rem",
+              fontWeight: 700,
+              color: "#059669",
+              marginTop: 0,
+              marginBottom: "12px"
+            }}
+          >
+            The word was: {secretWord}
           </p>
         ) : null}
         {guesses.length === 0 ? (

@@ -183,6 +183,21 @@ class RoomStore {
     this.setRoomSnapshot(response.room);
     return response.room;
   }
+
+  async restartGame() {
+    const currentRoom = this.state.room;
+    const participantId = this.state.participantId;
+
+    if (!currentRoom || !participantId) {
+      throw new Error("No active room session");
+    }
+
+    const response = await this.withLoading(() =>
+      api.restartGame(currentRoom.code, participantId)
+    );
+    this.setRoomSnapshot(response.room);
+    return response.room;
+  }
 }
 
 const RoomStoreContext = createContext<RoomStore | null>(null);

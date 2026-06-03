@@ -5,6 +5,7 @@ import {
   createRoomSchema,
   joinRoomSchema,
   playerNameSchema,
+  restartRoomSchema,
   roomCodeParamsSchema,
   startRoomSchema,
   submitGuessSchema
@@ -83,5 +84,15 @@ describe("schemas", () => {
     const result = submitGuessSchema.parse({ participantId: "p1", text: "rocket" });
 
     expect(result.text).toBe("rocket");
+  });
+
+  it("restartRoomSchema accepts participantId", () => {
+    const result = restartRoomSchema.parse({ participantId: "p1" });
+
+    expect(result.participantId).toBe("p1");
+  });
+
+  it("restartRoomSchema rejects empty participantId", () => {
+    expect(() => restartRoomSchema.parse({ participantId: "" })).toThrow();
   });
 });
