@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createRoom, joinRoom, startRoom, toRoomSnapshot, getRoom } from "./roomStore.js";
+import { createRoom, joinRoom, startRoom, toRoomSnapshot, getRoom, submitGuess } from "./roomStore.js";
 
 describe("roomStore", () => {
   it("createRoom returns a room with a 4-character uppercase code", () => {
@@ -102,5 +102,58 @@ describe("roomStore", () => {
 
     expect(result.room.drawerId).toBeNull();
     expect(result.room.currentWord).toBeNull();
+  });
+
+  it("submitGuess awards 100 points for a correct guess", () => {
+    const host = createRoom("Alice");
+    joinRoom(host.room.code, "Bob");
+    startRoom(host.room.code);
+
+    const room = getRoom(host.room.code)!;
+    const bobId = room.participants[1].id;
+    const result = submitGuess(host.room.code, bobId, "Bob", "rocket");
+
+    expect(result.correct).toBe(true);
+    expect(result.snapshot).not.toBeNull();
+    expect(result.snapshot!.playerScores.find((p) => p.playerId === bobId)?.score).toBe(100);
+  });
+
+  it("submitGuess awards 0 points for an incorrect guess", () => {
+    const host = createRoom("Alice");
+    joinRoom(host.room.code, "Bob");
+    startRoom(host.room.code);
+
+    const room = getRoom(host.room.code)!;
+    const bobId = room.participants[1].id;
+    const result = submitGuess(host.room.code, bobId, "Bob", "car");
+
+    expect(result.correct).toBe(false);
+    expect(result.snapshot!.playerScores.find((p) => p.playerId === bobId)?.score).toBe(0);
+  });
+
+  it("submitGuess prevents double-scoring for the same player", () => {
+    const host = createRoom("Alice");
+    joinRoom(host.room.code, "Bob");
+    startRoom(host.room.code);
+
+    const room = getRoom(host.room.code)!;
+    const bobId = room.participants[1].id;
+    submitGuess(host.room.code, bobId, "Bob", "rocket");
+    const result2 = submitGuess(host.room.code, bobId, "Bob", "rocket");
+
+    expect(result2.correct).toBe(true);
+    expect(result2.snapshot!.playerScores.find((p) => p.playerId === bobId)?.score).toBe(100);
+  });
+
+  it("submitGuess matches guesses case-insensitively", () => {
+    const host = createRoom("Alice");
+    joinRoom(host.room.code, "Bob");
+    startRoom(host.room.code);
+
+    const room = getRoom(host.room.code)!;
+    const bobId = room.participants[1].id;
+    const result = submitGuess(host.room.code, bobId, "Bob", "ROCKET");
+
+    expect(result.correct).toBe(true);
   });
 });
