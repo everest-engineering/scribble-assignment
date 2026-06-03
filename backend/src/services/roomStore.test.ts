@@ -65,4 +65,29 @@ describe("roomStore", () => {
     expect(toRoomSnapshot(started.room, host.participantId).secretWord).toBe("rocket");
     expect(toRoomSnapshot(started.room, guest.participantId).secretWord).toBeUndefined();
   });
+
+  it("initializes an active round with deterministic drawer, word, drawing, guesses, and scores", () => {
+    const host = createRoom("Alice");
+    const guest = joinRoom(host.room.code, "Bob");
+    if (!guest) {
+      throw new Error("Expected Bob to join");
+    }
+
+    const started = startGame(host.room.code, host.participantId);
+    const hostSnapshot = toRoomSnapshot(started.room, host.participantId);
+    const guestSnapshot = toRoomSnapshot(started.room, guest.participantId);
+
+    expect(hostSnapshot.status).toBe("active");
+    expect(hostSnapshot.drawerParticipantId).toBe(host.participantId);
+    expect(hostSnapshot.viewerRole).toBe("drawer");
+    expect(guestSnapshot.viewerRole).toBe("guesser");
+    expect(hostSnapshot.secretWord).toBe("rocket");
+    expect(guestSnapshot.secretWord).toBeUndefined();
+    expect(hostSnapshot.drawing.strokes).toEqual([]);
+    expect(hostSnapshot.guesses).toEqual([]);
+    expect(hostSnapshot.scores).toEqual({
+      [host.participantId]: 0,
+      [guest.participantId]: 0
+    });
+  });
 });

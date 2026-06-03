@@ -451,6 +451,14 @@ input {
   font-weight: 500;
 }
 
+.secret-word {
+  margin: 0;
+  color: var(--ink);
+  font-size: 2rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
 /* --- GAME PAGE LAYOUT --- */
 /* Changed layout structure to be much wider and utilize screen space */
 .game-page {

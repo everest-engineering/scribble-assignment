@@ -57,12 +57,12 @@
 
 **Independent Test**: Host starts the game; all players enter active state; only the drawer sees the word.
 
-- [ ] T016 [P] [US2] Add backend tests for active state transition, score initialization, drawer assignment, deterministic word, and viewer-specific secret word visibility in `backend/src/services/roomStore.test.ts`
-- [ ] T017 [P] [US2] Add frontend tests for active game role display and drawer-only word rendering in `frontend/src/pages/GamePage.test.tsx`
-- [ ] T018 [US2] Implement start-game state transition, score initialization, drawer assignment, deterministic word selection, and secret-word filtering in `backend/src/services/roomStore.ts`
-- [ ] T019 [US2] Update frontend navigation and game page state handling for lobby-to-active transition in `frontend/src/pages/LobbyPage.tsx`, `frontend/src/pages/GamePage.tsx`, and `frontend/src/state/roomStore.ts`
-- [ ] T020 [US2] Render player role, drawer identity, and drawer-only secret word messaging in `frontend/src/pages/GamePage.tsx`
-- [ ] T021 [US2] Record scenario 2 validation notes in `docs/spec-kit/validation-notes.md`
+- [X] T016 [P] [US2] Add backend tests for active state transition, score initialization, drawer assignment, deterministic word, and viewer-specific secret word visibility in `backend/src/services/roomStore.test.ts`
+- [X] T017 [P] [US2] Add frontend tests for active game role display and drawer-only word rendering in `frontend/src/pages/GamePage.test.tsx`
+- [X] T018 [US2] Implement start-game state transition, score initialization, drawer assignment, deterministic word selection, and secret-word filtering in `backend/src/services/roomStore.ts`
+- [X] T019 [US2] Update frontend navigation and game page state handling for lobby-to-active transition in `frontend/src/pages/LobbyPage.tsx`, `frontend/src/pages/GamePage.tsx`, and `frontend/src/state/roomStore.ts`
+- [X] T020 [US2] Render player role, drawer identity, and drawer-only secret word messaging in `frontend/src/pages/GamePage.tsx`
+- [X] T021 [US2] Record scenario 2 validation notes in `docs/spec-kit/validation-notes.md`
 
 **Checkpoint**: Scenario 2 acceptance criteria and SC-004 pass without regressing US1.
 
