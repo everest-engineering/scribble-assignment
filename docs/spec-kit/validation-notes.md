@@ -44,7 +44,7 @@ Status: Passed automated validation.
 
 ## Automated Validation
 
-Status: Partial pass after Scenario 1.
+Status: Passed final validation.
 
 - `backend`: `npm run test` passed, 21 tests.
 - `backend`: `npm run build` passed.
@@ -53,4 +53,7 @@ Status: Partial pass after Scenario 1.
 
 ## Manual Two-Browser Validation
 
-Status: Pending.
+Status: Passed.
+
+- Two browser sessions completed the assignment flow: create room, join room, host-only start, drawer-only word visibility, guesser word hiding, drawing sync, clear canvas sync, empty guess rejection, incorrect guess history with 0 points, case-insensitive correct guess with 100 points, result view, and host restart to lobby.
+- Manual validation was run by the assignee after local backend and frontend dev servers were started.

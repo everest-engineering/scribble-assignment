@@ -102,11 +102,11 @@
 
 **Purpose**: Complete assignment evidence and final checks.
 
-- [ ] T036 Run backend tests and build, then record results in `docs/spec-kit/validation-notes.md`
-- [ ] T037 Run frontend tests and build, then record results in `docs/spec-kit/validation-notes.md`
-- [ ] T038 Execute the manual two-browser validation from `specs/001-scribble-game/quickstart.md` and record pass/fail notes in `docs/spec-kit/validation-notes.md`
-- [ ] T039 Complete reflection report covering starter behavior, added behavior, AI usage, tradeoffs, validation, and remaining limitations in `docs/reflection.md`
-- [ ] T040 Review spec, plan, tasks, code, validation notes, and reflection for alignment before PR in `specs/001-scribble-game/spec.md`, `specs/001-scribble-game/plan.md`, `specs/001-scribble-game/tasks.md`, `docs/spec-kit/validation-notes.md`, and `docs/reflection.md`
+- [X] T036 Run backend tests and build, then record results in `docs/spec-kit/validation-notes.md`
+- [X] T037 Run frontend tests and build, then record results in `docs/spec-kit/validation-notes.md`
+- [X] T038 Execute the manual two-browser validation from `specs/001-scribble-game/quickstart.md` and record pass/fail notes in `docs/spec-kit/validation-notes.md`
+- [X] T039 Complete reflection report covering starter behavior, added behavior, AI usage, tradeoffs, validation, and remaining limitations in `docs/reflection.md`
+- [X] T040 Review spec, plan, tasks, code, validation notes, and reflection for alignment before PR in `specs/001-scribble-game/spec.md`, `specs/001-scribble-game/plan.md`, `specs/001-scribble-game/tasks.md`, `docs/spec-kit/validation-notes.md`, and `docs/reflection.md`
 
 ## Dependencies & Execution Order
 
