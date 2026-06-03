@@ -233,11 +233,15 @@ Artifacts are graded for internal consistency, traceability to implementation, a
 |------|---------------------|
 | Discovery | ≥3 gaps + ≥2 assumptions documented; relevant files listed |
 | Spec Kit artifacts | Constitution, spec, plan, tasks committed and internally consistent |
-| Working game flow | Two browsers can join a room, play one round, see synced result, restart |
-| Edge cases & validation | Empty/invalid inputs, case-insensitive guess, multi-room isolation handled |
+| Working game flow | Two browsers can join a room, see synced lobby via auto-polling (~2s), play one round, see synced result, restart cleanly with players preserved |
+| Host & drawer rules | Host-only start with 2-player minimum, drawer is clearly identified, secret word visible only to the drawer |
+| Guess & scoring | Empty/whitespace rejected, case-insensitive match, correct = 100 pts, wrong = 0, drawer cannot guess, history synced to all via polling |
+| Canvas interaction | Drawer can draw (mouse events) and clear canvas — local to drawer's browser only |
+| Edge cases & validation | Empty/invalid inputs, whitespace-only names, bad room codes, multi-room isolation, non-host action rejection, finished-game re-guess prevention |
 | Implementation alignment | Code behavior matches the spec; deviations are documented |
+| Build & type safety | `npm run build` passes for both backend and frontend with zero type errors |
 | Reflection | Reflection explains decisions, AI usage, tradeoffs |
-| Submission clarity (code optional for product roles) | Submission is easy to review |
+| Submission clarity | Submission is easy to review; PR diff aligns with spec |
 
 ## Reflection Report
 
