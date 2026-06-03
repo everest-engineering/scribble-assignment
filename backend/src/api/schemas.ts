@@ -1,12 +1,17 @@
 import { z } from "zod";
 
-/** Player names are finalised in feature group 2 (trim + reject empty/whitespace). */
+const playerName = z
+  .string({ required_error: "Player name is required" })
+  .transform((value) => value.trim())
+  .refine((value) => value.length > 0, "Player name is required")
+  .refine((value) => value.length <= 24, "Player name must be 24 characters or fewer");
+
 export const createRoomSchema = z.object({
-  playerName: z.string()
+  playerName
 });
 
 export const joinRoomSchema = z.object({
-  playerName: z.string()
+  playerName
 });
 
 const roomCode = z
