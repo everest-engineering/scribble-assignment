@@ -6,6 +6,7 @@ import {
   joinRoom,
   startRoom,
   toRoomSnapshot,
+  updateCanvas,
 } from "./roomStore.js";
 
 describe("roomStore", () => {
@@ -119,5 +120,59 @@ describe("roomStore", () => {
     const secondSnapshot = toRoomSnapshot(secondStored, second.participantId);
 
     expect(firstSnapshot.currentWord).toBe(secondSnapshot.currentWord);
+  });
+});
+
+describe("multi-room isolation", () => {
+  it("getRoom for two codes returns distinct rooms with their own participants", () => {
+    const a = createRoom("Alice");
+    const b = createRoom("Bob");
+
+    const roomA = getRoom(a.room.code)!;
+    const roomB = getRoom(b.room.code)!;
+
+    expect(roomA.code).toBe(a.room.code);
+    expect(roomB.code).toBe(b.room.code);
+    expect(roomA.code).not.toBe(roomB.code);
+    expect(roomA.hostId).not.toBe(roomB.hostId);
+  });
+
+  it("joining room A does not add a participant to room B", () => {
+    const a = createRoom("Alice");
+    const b = createRoom("Bob");
+
+    joinRoom(a.room.code, "Charlie");
+
+    const roomB = getRoom(b.room.code)!;
+    expect(roomB.participants).toHaveLength(1);
+    expect(roomB.participants[0].name).toBe("Bob");
+  });
+
+  it("starting room A does not change the status of room B", () => {
+    const a = createRoom("Alice");
+    const b = createRoom("Bob");
+
+    startRoom(a.room.code);
+
+    const roomB = getRoom(b.room.code)!;
+    expect(roomB.status).toBe("lobby");
+  });
+
+  it("canvas updates in room A do not affect strokes in room B", () => {
+    const a = createRoom("Alice");
+    const b = createRoom("Bob");
+
+    startRoom(a.room.code);
+    startRoom(b.room.code);
+
+    updateCanvas(a.room.code, a.participantId, [
+      [
+        { x: 10, y: 20 },
+        { x: 30, y: 40 },
+      ],
+    ]);
+
+    const roomB = getRoom(b.room.code)!;
+    expect(roomB.strokes).toHaveLength(0);
   });
 });
