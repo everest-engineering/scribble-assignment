@@ -1,14 +1,16 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card } from "../components/Card";
+import { DrawingCanvas } from "../components/DrawingCanvas";
 import { GuessForm } from "../components/GuessForm";
 import { ResultPanel } from "../components/ResultPanel";
 import { RoomCodeBadge } from "../components/RoomCodeBadge";
 import { Scoreboard } from "../components/Scoreboard";
-import { useRoomState } from "../state/roomStore";
+import { useRoomState, useRoomStore } from "../state/roomStore";
 
 export function GamePage() {
   const navigate = useNavigate();
+  const roomStore = useRoomStore();
   const { room, participantId } = useRoomState();
 
   useEffect(() => {
@@ -17,6 +19,20 @@ export function GamePage() {
     }
   }, [navigate, room]);
 
+  // Poll the snapshot ~2s so guesses and scores stay in sync for every player.
+  const roomCode = room?.code;
+  useEffect(() => {
+    if (!roomCode) {
+      return;
+    }
+
+    const interval = setInterval(() => {
+      void roomStore.fetchRoom().catch(() => undefined);
+    }, 2000);
+
+    return () => clearInterval(interval);
+  }, [roomStore, roomCode]);
+
   if (!room) {
     return null;
   }
@@ -24,6 +40,10 @@ export function GamePage() {
   const viewer = room.participants.find((participant) => participant.id === participantId) ?? null;
   const drawer = room.participants.find((participant) => participant.id === room.drawerId) ?? null;
   const isDrawer = participantId != null && participantId === room.drawerId;
+
+  async function handleGuess(text: string) {
+    await roomStore.submitGuess(text);
+  }
 
   return (
     <section className="panel game-page">
@@ -37,8 +57,8 @@ export function GamePage() {
 
       <div className="game-page__layout">
         <aside className="game-page__sidebar game-page__sidebar--left">
-          <Scoreboard />
-          <ResultPanel />
+          <Scoreboard participants={room.participants} drawerId={room.drawerId} />
+          <ResultPanel guesses={room.guesses} />
         </aside>
 
         <div className="game-page__main">
@@ -54,9 +74,13 @@ export function GamePage() {
                 </>
               )}
             </p>
-            <div className="canvas-placeholder" style={{ minHeight: '500px', backgroundColor: '#ffffff', border: '1px solid #e5e7eb' }}>
-              {isDrawer ? "Your canvas (drawing tools coming next)..." : "Waiting for the drawer's sketch..."}
-            </div>
+            {isDrawer ? (
+              <DrawingCanvas />
+            ) : (
+              <div className="canvas-placeholder" style={{ minHeight: '500px', backgroundColor: '#ffffff', border: '1px solid #e5e7eb' }}>
+                Waiting for the drawer's sketch...
+              </div>
+            )}
           </Card>
         </div>
 
@@ -75,7 +99,13 @@ export function GamePage() {
           </Card>
 
           <Card title="Your Guess">
-            <GuessForm />
+            {isDrawer ? (
+              <p style={{ fontSize: '0.875rem', color: '#6b7280' }}>
+                You are drawing this round — guessing is for the other players.
+              </p>
+            ) : (
+              <GuessForm onSubmit={handleGuess} />
+            )}
           </Card>
         </aside>
       </div>
