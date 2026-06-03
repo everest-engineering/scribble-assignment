@@ -106,9 +106,7 @@ export function toRoomSnapshot(
   room: Room,
   viewerParticipantId?: string,
 ): RoomSnapshot {
-  void viewerParticipantId;
-
-  return {
+  const snapshot: RoomSnapshot = {
     code: room.code,
     status: room.status,
     hostId: room.hostId,
@@ -116,6 +114,16 @@ export function toRoomSnapshot(
     availableWords: listWords(),
     roles: [...STARTER_ROLES],
   };
+
+  if (room.status === "playing") {
+    snapshot.currentDrawerId = room.currentDrawerId;
+    snapshot.currentWord =
+      viewerParticipantId === room.currentDrawerId
+        ? (room.currentWord ?? null)
+        : null;
+  }
+
+  return snapshot;
 }
 
 export function startRoom(code: string): RoomSnapshot {
@@ -126,6 +134,10 @@ export function startRoom(code: string): RoomSnapshot {
   }
 
   room.status = "playing";
+  room.currentDrawerId = room.hostId;
+  room.roundNumber = 1;
+  room.currentWord =
+    STARTER_WORDS[(room.roundNumber - 1) % STARTER_WORDS.length];
   room.updatedAt = now();
   rooms.set(room.code, room);
 

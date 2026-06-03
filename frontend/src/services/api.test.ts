@@ -86,4 +86,27 @@ describe("api service", () => {
       expect.anything(),
     );
   });
+
+  it("fetchRoom response includes currentDrawerId and currentWord fields in RoomSnapshot", async () => {
+    const mockRoom = {
+      code: "ABCD",
+      status: "playing",
+      hostId: "p1",
+      participants: [{ id: "p1", name: "Alice", joinedAt: "" }],
+      availableWords: [],
+      roles: [],
+      currentDrawerId: "p1",
+      currentWord: "rocket",
+    };
+    const mockResponse = {
+      ok: true,
+      json: () => Promise.resolve({ room: mockRoom }),
+    };
+    vi.mocked(fetch).mockResolvedValue(mockResponse as unknown as Response);
+
+    const result = await api.fetchRoom("ABCD", "p1");
+
+    expect(result.room).toHaveProperty("currentDrawerId", "p1");
+    expect(result.room).toHaveProperty("currentWord", "rocket");
+  });
 });

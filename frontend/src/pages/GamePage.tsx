@@ -1,74 +1,81 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Card } from "../components/Card";
-import { GuessForm } from "../components/GuessForm";
-import { ResultPanel } from "../components/ResultPanel";
 import { RoomCodeBadge } from "../components/RoomCodeBadge";
-import { Scoreboard } from "../components/Scoreboard";
-import { useRoomState } from "../state/roomStore";
+import { useRoomState, useRoomStore } from "../state/roomStore";
 
 export function GamePage() {
   const navigate = useNavigate();
+  const roomStore = useRoomStore();
   const { room, participantId } = useRoomState();
 
   useEffect(() => {
     if (!room) {
       navigate("/", { replace: true });
+      return;
     }
-  }, [navigate, room]);
+
+    const intervalId = setInterval(async () => {
+      try {
+        await roomStore.fetchRoom();
+      } catch {
+        navigate("/", { replace: true });
+      }
+    }, 2000);
+
+    return () => clearInterval(intervalId);
+  }, [navigate, room, roomStore]);
 
   if (!room) {
     return null;
   }
-
-  const viewer = room.participants.find((participant) => participant.id === participantId) ?? null;
 
   return (
     <section className="panel game-page">
       <div className="game-page__header">
         <div className="game-page__header-left">
           <span className="section-kicker">Round 1</span>
-          <h1 className="game-page__title">Guess the Word!</h1>
+          <h1 className="game-page__title">Game in Progress</h1>
         </div>
         <RoomCodeBadge code={room.code} />
       </div>
 
       <div className="game-page__layout">
-        <aside className="game-page__sidebar game-page__sidebar--left">
-          <Scoreboard />
-          <ResultPanel />
-        </aside>
-
         <div className="game-page__main">
-          <Card title="Canvas">
-            <div className="canvas-placeholder" style={{ minHeight: '500px', backgroundColor: '#ffffff', border: '1px solid #e5e7eb' }}>
-              Waiting for drawer...
-            </div>
-          </Card>
+          <div className="word-block">
+            {participantId === room.currentDrawerId &&
+            typeof room.currentWord === "string" &&
+            room.currentWord.length > 0 ? (
+              <div className="word-block__reveal">
+                <span className="word-block__label">Your word:</span>
+                <span className="word-block__word">{room.currentWord}</span>
+              </div>
+            ) : (
+              <p className="word-block__waiting">Waiting for the drawer…</p>
+            )}
+          </div>
+
+          <ul className="participant-list">
+            {room.participants.map((participant) => (
+              <li key={participant.id} className="participant-list__item">
+                <span className="participant-list__name">
+                  {participant.name}
+                </span>
+                <span className="participant-list__role">
+                  {participant.id === room.currentDrawerId
+                    ? "Drawer"
+                    : "Guesser"}
+                </span>
+              </li>
+            ))}
+          </ul>
         </div>
-
-        <aside className="game-page__sidebar game-page__sidebar--right">
-          <Card title="Player Info">
-            <dl className="detail-list">
-              <div>
-                <dt>Name</dt>
-                <dd>{viewer?.name ?? "Unknown player"}</dd>
-              </div>
-              <div>
-                <dt>Status</dt>
-                <dd>Playing</dd>
-              </div>
-            </dl>
-          </Card>
-
-          <Card title="Your Guess">
-            <GuessForm />
-          </Card>
-        </aside>
       </div>
 
       <div className="button-row">
-        <button className="button button--secondary" onClick={() => navigate("/lobby")}>
+        <button
+          className="button button--secondary"
+          onClick={() => navigate("/lobby")}
+        >
           Exit Game
         </button>
       </div>

@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
+import { STARTER_WORDS } from "../seed/starterData.js";
 import {
   createRoom,
+  getRoom,
   joinRoom,
   startRoom,
   toRoomSnapshot,
@@ -48,5 +50,74 @@ describe("roomStore", () => {
 
   it("startRoom throws 404 HttpError for an unknown room code", () => {
     expect(() => startRoom("ZZZZ")).toThrowError("Room not found");
+  });
+
+  it("startRoom sets currentDrawerId equal to the room hostId", () => {
+    const { room, participantId } = createRoom("Alice");
+    startRoom(room.code);
+    const stored = getRoom(room.code);
+    expect(stored?.currentDrawerId).toBe(participantId);
+  });
+
+  it("startRoom sets roundNumber to 1", () => {
+    const { room } = createRoom("Alice");
+    startRoom(room.code);
+    const stored = getRoom(room.code);
+    expect(stored?.roundNumber).toBe(1);
+  });
+
+  it("startRoom snapshot includes currentDrawerId", () => {
+    const { room, participantId } = createRoom("Alice");
+    const snapshot = startRoom(room.code);
+    expect(snapshot.currentDrawerId).toBe(participantId);
+  });
+
+  it("toRoomSnapshot includes currentWord for the drawer", () => {
+    const { room, participantId } = createRoom("Alice");
+    startRoom(room.code);
+    const stored = getRoom(room.code)!;
+    const snapshot = toRoomSnapshot(stored, participantId);
+    expect(snapshot.currentWord).toBe("rocket");
+  });
+
+  it("toRoomSnapshot returns currentWord null for a guesser", () => {
+    const { room } = createRoom("Alice");
+    const join = joinRoom(room.code, "Bob");
+    startRoom(room.code);
+    const stored = getRoom(room.code)!;
+    const snapshot = toRoomSnapshot(stored, join!.participantId);
+    expect(snapshot.currentWord).toBeNull();
+  });
+
+  it("toRoomSnapshot returns currentWord null when no participantId provided", () => {
+    const { room } = createRoom("Alice");
+    startRoom(room.code);
+    const stored = getRoom(room.code)!;
+    const snapshot = toRoomSnapshot(stored);
+    expect(snapshot.currentWord).toBeNull();
+  });
+
+  it("startRoom assigns a currentWord that is a member of STARTER_WORDS", () => {
+    const { room, participantId } = createRoom("Alice");
+    startRoom(room.code);
+    const stored = getRoom(room.code)!;
+    const snapshot = toRoomSnapshot(stored, participantId);
+    expect(
+      (STARTER_WORDS as readonly string[]).includes(snapshot.currentWord!),
+    ).toBe(true);
+  });
+
+  it("startRoom always produces the same currentWord for the same roundNumber", () => {
+    const first = createRoom("Alice");
+    startRoom(first.room.code);
+    const firstStored = getRoom(first.room.code)!;
+    const firstSnapshot = toRoomSnapshot(firstStored, first.participantId);
+
+    const second = createRoom("Bob");
+    startRoom(second.room.code);
+    const secondStored = getRoom(second.room.code)!;
+    const secondSnapshot = toRoomSnapshot(secondStored, second.participantId);
+
+    expect(firstSnapshot.currentWord).toBe(secondSnapshot.currentWord);
   });
 });
