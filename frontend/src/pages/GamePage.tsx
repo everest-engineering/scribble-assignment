@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Card } from "../components/Card";
 import { DrawerWordDisplay } from "../components/DrawerWordDisplay";
 import { DrawingCanvas } from "../components/DrawingCanvas";
+import { CanvasViewer } from "../components/CanvasViewer";
 import { GuessForm } from "../components/GuessForm";
 import { GuessHistory } from "../components/GuessHistory";
 import { ResultPanel } from "../components/ResultPanel";
@@ -98,9 +99,7 @@ export function GamePage() {
                 onClear={handleClear}
               />
             ) : (
-              <div className="canvas-placeholder" style={{ minHeight: "500px", backgroundColor: "#ffffff", border: "1px solid #e5e7eb" }}>
-                Waiting for {drawerName} to draw...
-              </div>
+              <CanvasViewer strokes={room.strokes} />
             )}
           </Card>
         </div>
