@@ -83,7 +83,7 @@ From the result screen, the host can restart the game. On restart, the room retu
 - **FR-009**: A non-host participant attempting the end-round or restart action MUST receive a 403 error; the room MUST NOT be modified.
 - **FR-010**: The end-round action on a room that is not `"playing"` MUST return a 409 error.
 - **FR-011**: The restart action on a room that is not `"ended"` MUST return a 409 error.
-- **FR-012**: The frontend MUST automatically navigate all participants to `/result/:code` when the polled `RoomSnapshot.status` is `"ended"`, without requiring user action.
+- **FR-012**: The frontend MUST automatically navigate all participants to `/result` when the polled `RoomSnapshot.status` is `"ended"`, without requiring user action.
 - **FR-013**: The frontend MUST automatically navigate all participants back to `LobbyPage` when the polled `RoomSnapshot.status` returns to `"lobby"` after having been `"ended"`.
 - **FR-014**: The result screen MUST display the `revealedWord`, the full chronological guess history with submitter names and correct/incorrect indicators, and a ranked scoreboard.
 - **FR-015**: The "End Round" button MUST be visible only to the host on `GamePage` (during `"playing"` status).
@@ -109,7 +109,7 @@ From the result screen, the host can restart the game. On restart, the room retu
 - The existing 2-second polling interval from feature 003 is the sole sync mechanism — no new polling logic is needed; status transitions propagate to all participants within one poll cycle.
 - A round ends in exactly two ways: a correct guess (automatic, triggered by `submitGuess`) or the host manually ending it (`POST /rooms/:code/end`). There is no time-based round expiry.
 - `revealedWord` is added to the `Room` model as an optional field. It is populated on round end and cleared on restart, following the same pattern as `currentWord`.
-- The result screen is a new page/component (`ResultPage`) mounted at the route `/result/:code`, rather than a modal or overlay on `GamePage`. This keeps navigation state explicit: `GamePage` navigates to `/result/:code` on status `"ended"`, and `ResultPage` navigates back to `/lobby/:code` on status `"lobby"`.
+- The result screen is a new page/component (`ResultPage`) mounted at the route `/result`, rather than a modal or overlay on `GamePage`. This keeps navigation state explicit: `GamePage` navigates to `/result` on status `"ended"`, and `ResultPage` navigates back to `/lobby` on status `"lobby"`. Room identity is carried in the frontend store, not in the URL (consistent with all other routes in this project).
 - `RoomStatus` must be extended to include `"ended"` as a third valid value.
 - The host identity is determined by `room.hostId === participantId` — no separate permission system.
 - Re-using the existing `participants` array for the scoreboard on the result screen is sufficient; no need to archive participants outside the room.
@@ -122,4 +122,4 @@ From the result screen, the host can restart the game. On restart, the room retu
 
 - Q: Is the intended behaviour that the first correct guess immediately ends the round for all participants (only the winner scores), or does a correct guess award points without ending the round? → A: First correct guess ends the round immediately — all other guessers stop; only the winner scores (Option A).
 - Q: Should scores reset to zero on restart (fresh game) or accumulate across restarts (multi-round match)? → A: Scores reset to zero on restart — each restart is a completely fresh game (Option A).
-- Q: Should the result screen be a dedicated route or rendered inside `GamePage`? → A: Dedicated route `/result/:code` (Option A).
+- Q: Should the result screen be a dedicated route or rendered inside `GamePage`? → A: Dedicated parameterless route `/result` (Option A — refined post-planning: no `:code` param; store holds room identity, matching all other routes in the project).
