@@ -11,6 +11,21 @@ describe("roomStore", () => {
     expect(result.participantId).toBeDefined();
   });
 
+  it("createRoom marks the creator as the host", () => {
+    const result = createRoom("Alice");
+
+    expect(result.room.hostId).toBe(result.participantId);
+  });
+
+  it("joinRoom preserves the original host", () => {
+    const created = createRoom("Alice");
+    const joined = joinRoom(created.room.code, "Bob");
+
+    expect(joined).not.toBeNull();
+    expect(joined?.room.hostId).toBe(created.participantId);
+    expect(joined?.participantId).not.toBe(created.participantId);
+  });
+
   it("joinRoom returns null for an unknown room code", () => {
     const result = joinRoom("ZZZZ", "Bob");
 
