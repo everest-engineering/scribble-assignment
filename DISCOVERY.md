@@ -49,13 +49,13 @@
 
 ## Assumptions (inferred from code)
 
-1. **All game state must stay in `Room`** — the only server-side entity. Any new fields (round, drawer, word, scores, guesses) must be added to the `Room` model and exposed selectively through `RoomSnapshot`.
-2. **`viewerParticipantId` was stubbed for role-based visibility** — the parameter is intentionally plumbed through `GET /rooms/:code` and `toRoomSnapshot` but not yet used, signalling that per-viewer filtering is the intended pattern for word secrecy.
-3. **No host enforcement is possible without a host flag** — any participant can trigger host-only actions; a `hostId` field (or marking `participants[0]`) is needed before gating UI controls.
-4. **Polling interval is undefined** — the README states polling is required but no target interval is specified. A reasonable default (e.g. 3–5 s) will need to be chosen and made configurable.
-5. **Player names are optional** — the backend defaults to `"Player"` when none is supplied; the UI does not enforce a non-empty name.
-6. **Room codes are case-insensitive by convention** — the backend normalises to uppercase on lookup (`code.toUpperCase()`); the join form mirrors this in the UI.
-7. **Rooms are never cleaned up** — no TTL or eviction logic exists; the in-memory `Map` grows indefinitely while the server is running.
+- **Assumption-1**: **All game state must stay in `Room`** — the only server-side entity. Any new fields (round, drawer, word, scores, guesses) must be added to the `Room` model and exposed selectively through `RoomSnapshot`.
+- **Assumption-2**: **`viewerParticipantId` was stubbed for role-based visibility** — the parameter is intentionally plumbed through `GET /rooms/:code` and `toRoomSnapshot` but not yet used, signalling that per-viewer filtering is the intended pattern for word secrecy.
+- **Assumption-3**: **No host enforcement is possible without a host flag** — any participant can trigger host-only actions; a `hostId` field (or marking `participants[0]`) is needed before gating UI controls.
+- **Assumption-4**: **Polling interval is undefined** — the README states polling is required but no target interval is specified. A reasonable default (e.g. 3–5 s) will need to be chosen and made configurable.
+- **Assumption-5**: **Player names are optional** — the backend defaults to `"Player"` when none is supplied; the UI does not enforce a non-empty name.
+- **Assumption-6**: **Room codes are case-insensitive by convention** — the backend normalises to uppercase on lookup (`code.toUpperCase()`); the join form mirrors this in the UI.
+- **Assumption-7**: **Rooms are never cleaned up** — no TTL or eviction logic exists; the in-memory `Map` grows indefinitely while the server is running.
 
 ### Known Bug in Starter
 
