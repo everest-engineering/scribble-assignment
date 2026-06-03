@@ -146,6 +146,31 @@ export function startRound(code: string, participantId: string) {
   return cloneRoom(room);
 }
 
+/**
+ * Host-only restart: clear the round and reset every score, returning the room to
+ * the lobby with all players preserved so a new round can be started.
+ */
+export function restartRound(code: string, participantId: string) {
+  const room = requireRoom(code, "Room not found");
+
+  if (room.hostId !== participantId) {
+    throw new HttpError(403, "Only the host can restart");
+  }
+
+  if (room.status === "lobby") {
+    throw new HttpError(409, "Game has not started");
+  }
+
+  room.round = null;
+  room.status = "lobby";
+  room.participants.forEach((participant) => {
+    participant.score = 0;
+  });
+  room.updatedAt = now();
+
+  return cloneRoom(room);
+}
+
 function requireActiveRound(room: Room) {
   if (room.status !== "playing" || !room.round) {
     throw new HttpError(409, "No active round");

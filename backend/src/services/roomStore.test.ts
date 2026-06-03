@@ -6,6 +6,7 @@ import {
   getRoom,
   joinRoom,
   pickWord,
+  restartRound,
   startRound,
   submitGuess,
   toRoomSnapshot,

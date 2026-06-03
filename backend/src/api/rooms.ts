@@ -4,6 +4,7 @@ import {
   createRoomSchema,
   guessSchema,
   joinRoomSchema,
+  restartRoomSchema,
   roomCodeParamsSchema,
   roomViewerQuerySchema,
   startRoomSchema
@@ -12,6 +13,7 @@ import {
   createRoom,
   getRoom,
   joinRoom,
+  restartRound,
   startRound,
   submitGuess,
   toRoomSnapshot,
@@ -69,6 +71,20 @@ export function createRoomsRouter() {
       const { code } = roomCodeParamsSchema.parse(request.params);
       const { participantId, strokes } = canvasUpdateSchema.parse(request.body);
       const room = updateCanvas(code, participantId, strokes);
+
+      response.json({
+        room: toRoomSnapshot(room, participantId)
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/:code/restart", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId } = restartRoomSchema.parse(request.body);
+      const room = restartRound(code, participantId);
 
       response.json({
         room: toRoomSnapshot(room, participantId)
