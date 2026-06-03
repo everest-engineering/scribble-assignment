@@ -131,4 +131,29 @@ describe("roomStore", () => {
     submitGuess(game.code, game.guesserId, game.word);
     expect(() => submitGuess(game.code, game.guesserId, game.word)).toThrowError(/no active round/i);
   });
+
+  it("reveals the word to everyone once the round is in results", () => {
+    const game = startedRoom();
+    submitGuess(game.code, game.guesserId, game.word);
+    const room = getRoom(game.code);
+
+    expect(toRoomSnapshot(room, game.guesserId).word).toBe(game.word);
+    expect(toRoomSnapshot(room, game.hostId).word).toBe(game.word);
+  });
+
+  it("restart is host-only, resets scores, clears the round, and keeps players", () => {
+    const game = startedRoom();
+    submitGuess(game.code, game.guesserId, game.word);
+
+    expect(() => restartRound(game.code, game.guesserId)).toThrowError(/host/i);
+
+    const room = restartRound(game.code, game.hostId);
+
+    expect(room.status).toBe("lobby");
+    expect(room.round).toBeNull();
+    expect(room.participants).toHaveLength(2);
+    expect(room.participants.every((participant) => participant.score === 0)).toBe(true);
+
+    expect(() => restartRound(game.code, game.hostId)).toThrowError(/has not started/i);
+  });
 });

@@ -520,6 +520,17 @@ input {
   color: #16a34a;
 }
 
+.result-panel {
+  display: grid;
+  gap: 16px;
+}
+
+.result-panel__winner {
+  margin: 4px 0 12px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
 /* --- GAME PAGE LAYOUT --- */
 /* Changed layout structure to be much wider and utilize screen space */
 .game-page {

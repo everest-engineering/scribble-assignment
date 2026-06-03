@@ -4,6 +4,7 @@ import { Card } from "../components/Card";
 import { DrawingCanvas } from "../components/DrawingCanvas";
 import { GuessForm } from "../components/GuessForm";
 import { GuessHistory } from "../components/GuessHistory";
+import { ResultPanel } from "../components/ResultPanel";
 import { RoomCodeBadge } from "../components/RoomCodeBadge";
 import { Scoreboard } from "../components/Scoreboard";
 import { useRoomPolling, useRoomState, useRoomStore } from "../state/roomStore";
@@ -35,16 +36,23 @@ export function GamePage() {
   }
 
   const isDrawer = room.viewer?.isDrawer ?? false;
+  const isPlaying = room.status === "playing";
+  const isResults = room.status === "results";
   const drawer = room.participants.find((participant) => participant.isDrawer) ?? null;
+
+  const headerKicker = isResults ? "Round over" : isDrawer ? "You are drawing" : "You are guessing";
+  const headerTitle = isResults
+    ? "Results"
+    : isDrawer
+      ? "Draw the secret word!"
+      : "Guess the Word!";
 
   return (
     <section className="panel game-page">
       <div className="game-page__header">
         <div className="game-page__header-left">
-          <span className="section-kicker">{isDrawer ? "You are drawing" : "You are guessing"}</span>
-          <h1 className="game-page__title">
-            {isDrawer ? "Draw the secret word!" : "Guess the Word!"}
-          </h1>
+          <span className="section-kicker">{headerKicker}</span>
+          <h1 className="game-page__title">{headerTitle}</h1>
         </div>
         <RoomCodeBadge code={room.code} />
       </div>
@@ -56,7 +64,7 @@ export function GamePage() {
 
         <div className="game-page__main">
           <Card title="Canvas">
-            {isDrawer ? (
+            {isDrawer && isPlaying ? (
               <div className="canvas-toolbar">
                 <p className="word-banner">
                   Your word: <strong>{room.word ?? "…"}</strong>
@@ -71,22 +79,29 @@ export function GamePage() {
               </div>
             ) : (
               <p className="word-banner">
-                Drawer: <strong>{drawer?.name ?? "—"}</strong>. Watch and guess the word!
+                Drawer: <strong>{drawer?.name ?? "—"}</strong>
+                {isResults ? "" : ". Watch and guess the word!"}
               </p>
             )}
             <DrawingCanvas
               strokes={room.strokes}
-              isDrawer={isDrawer}
+              isDrawer={isDrawer && isPlaying}
               onCommit={(strokes) => void roomStore.updateCanvas(strokes)}
             />
           </Card>
         </div>
 
         <aside className="game-page__sidebar game-page__sidebar--right">
-          <Card title="Your Guess">
-            <GuessForm disabled={isDrawer} />
-          </Card>
-          <GuessHistory guesses={room.guesses} />
+          {isResults ? (
+            <ResultPanel room={room} />
+          ) : (
+            <>
+              <Card title="Your Guess">
+                <GuessForm disabled={isDrawer} />
+              </Card>
+              <GuessHistory guesses={room.guesses} />
+            </>
+          )}
         </aside>
       </div>
 
