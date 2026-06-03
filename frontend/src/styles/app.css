@@ -188,6 +188,16 @@ input {
   color: var(--muted, #6b7280);
 }
 
+.drawer-banner {
+  margin: 0 0 12px;
+  font-size: 1rem;
+  color: var(--ink, #111827);
+}
+
+.drawer-banner strong {
+  color: var(--accent, #4338ca);
+}
+
 .page-header h1,
 .page-header h2 {
   margin: 0;
