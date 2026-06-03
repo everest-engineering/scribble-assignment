@@ -8,14 +8,39 @@ import { useRoomState, useRoomStore } from "../state/roomStore";
 export function LobbyPage() {
   const navigate = useNavigate();
   const roomStore = useRoomStore();
-  const { room, error, isLoading } = useRoomState();
+  const { room, participantId, error, isLoading } = useRoomState();
   const [refreshError, setRefreshError] = useState<string | null>(null);
+  const [startError, setStartError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!room) {
       navigate("/", { replace: true });
     }
   }, [navigate, room]);
+
+  // Once the room is playing, everyone (host and guessers via polling) moves to
+  // the game screen.
+  useEffect(() => {
+    if (room?.status === "playing") {
+      navigate("/game");
+    }
+  }, [navigate, room?.status]);
+
+  // Poll the room snapshot roughly every 2s so new joins appear without a
+  // manual refresh. Keyed on the code so successful polls don't restart it.
+  const roomCode = room?.code;
+  useEffect(() => {
+    if (!roomCode) {
+      return;
+    }
+
+    const interval = setInterval(() => {
+      // A transient poll failure must not stop subsequent polls.
+      void roomStore.fetchRoom().catch(() => undefined);
+    }, 2000);
+
+    return () => clearInterval(interval);
+  }, [roomStore, roomCode]);
 
   async function handleRefresh() {
     try {
@@ -26,9 +51,28 @@ export function LobbyPage() {
     }
   }
 
+  async function handleStart() {
+    try {
+      setStartError(null);
+      await roomStore.startGame();
+      // Navigation is handled by the status effect above.
+    } catch (caughtError) {
+      setStartError(caughtError instanceof Error ? caughtError.message : "Unable to start the game");
+    }
+  }
+
   if (!room) {
     return null;
   }
+
+  const isHost = room.hostId === participantId;
+  const enoughPlayers = room.participants.length >= 2;
+  const canStart = isHost && enoughPlayers;
+  const startHint = !isHost
+    ? "Waiting for the host to start the game."
+    : enoughPlayers
+      ? "Ready to start."
+      : "Waiting for at least one more player.";
 
   return (
     <section className="panel placeholder-page">
@@ -61,7 +105,7 @@ export function LobbyPage() {
           <p className="status-line" style={{ backgroundColor: isLoading ? '#fef3c7' : '#e0e7ff', color: isLoading ? '#b45309' : '#3730a3' }}>
             {isLoading ? "Refreshing players..." : "Ready to play"}
           </p>
-          <p style={{ marginTop: '8px' }}>{error ?? refreshError ?? "Waiting for the host to start the game."}</p>
+          <p style={{ marginTop: '8px' }}>{error ?? refreshError ?? startError ?? "Waiting for the host to start the game."}</p>
         </Card>
       </div>
 
@@ -69,10 +113,16 @@ export function LobbyPage() {
         <button className="button button--secondary" disabled={isLoading} onClick={handleRefresh}>
           {isLoading ? "Refreshing..." : "Refresh Room"}
         </button>
-        <button className="button button--primary" onClick={() => navigate("/game")}>
+        <button
+          className="button button--primary"
+          disabled={!canStart || isLoading}
+          title={startHint}
+          onClick={handleStart}
+        >
           Start Game
         </button>
       </div>
+      <p className="lobby-start-hint">{startHint}</p>
     </section>
   );
 }

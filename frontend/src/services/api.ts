@@ -3,13 +3,30 @@ export type ParticipantRole = "drawer" | "guesser";
 export interface Participant {
   id: string;
   name: string;
+  score: number;
   joinedAt: string;
 }
 
+export interface Guess {
+  id: string;
+  participantId: string;
+  playerName: string;
+  text: string;
+  correct: boolean;
+  createdAt: string;
+}
+
+export type RoomStatus = "lobby" | "playing" | "ended";
+
 export interface RoomSnapshot {
   code: string;
-  status: "lobby";
+  status: RoomStatus;
+  hostId: string;
+  drawerId: string | null;
+  // The secret word, present only when the viewer is the drawer; otherwise null.
+  word: string | null;
   participants: Participant[];
+  guesses: Guess[];
   availableWords: string[];
   roles: ParticipantRole[];
 }
@@ -19,7 +36,7 @@ export interface RoomSessionResponse {
   room: RoomSnapshot;
 }
 
-const API_BASE_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3001/bug";
+const API_BASE_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3001";
 
 async function request<T>(path: string, init?: RequestInit) {
   const response = await fetch(`${API_BASE_URL}${path}`, {
@@ -57,5 +74,26 @@ export const api = {
   fetchRoom(code: string, participantId?: string) {
     const query = participantId ? `?participantId=${encodeURIComponent(participantId)}` : "";
     return request<{ room: RoomSnapshot }>(`/rooms/${encodeURIComponent(code)}${query}`);
+  },
+  startGame(code: string, participantId: string) {
+    return request<RoomSessionResponse>(`/rooms/${encodeURIComponent(code)}/start`, {
+      method: "POST",
+      body: JSON.stringify({ participantId })
+    });
+  },
+  submitGuess(code: string, participantId: string, text: string) {
+    return request<{ guess: Guess; room: RoomSnapshot }>(
+      `/rooms/${encodeURIComponent(code)}/guess`,
+      {
+        method: "POST",
+        body: JSON.stringify({ participantId, text })
+      }
+    );
+  },
+  restartGame(code: string, participantId: string) {
+    return request<RoomSessionResponse>(`/rooms/${encodeURIComponent(code)}/restart`, {
+      method: "POST",
+      body: JSON.stringify({ participantId })
+    });
   }
 };
