@@ -1,14 +1,25 @@
 import { Card } from "./Card";
+import { useRoomState } from "../state/roomStore";
 
 export function Scoreboard() {
+  const { room } = useRoomState();
+  const winnerIds = new Set(room?.result?.winnerParticipantIds ?? []);
+
   return (
     <Card title="Scoreboard">
-      <div className="placeholder-block" style={{ backgroundColor: '#f9fafb' }}>
-        <div className="placeholder-row">
-          <span>Waiting for players...</span>
-          <strong>0</strong>
+      {!room ? null : (
+        <div className="placeholder-block" style={{ backgroundColor: '#f9fafb' }}>
+          {room.participants.map((participant) => (
+            <div className="placeholder-row" key={participant.id}>
+              <span>
+                {participant.name}
+                {winnerIds.has(participant.id) ? " (Winner)" : ""}
+              </span>
+              <strong>{room.scores[participant.id] ?? 0}</strong>
+            </div>
+          ))}
         </div>
-      </div>
+      )}
     </Card>
   );
 }
