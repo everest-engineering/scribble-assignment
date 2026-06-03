@@ -1,5 +1,5 @@
 export type ParticipantRole = "drawer" | "guesser";
-export type RoomStatus = "lobby";
+export type RoomStatus = "lobby" | "playing";
 
 export interface Participant {
   id: string;
@@ -11,6 +11,8 @@ export interface Room {
   code: string;
   status: RoomStatus;
   hostId: string;
+  drawerId: string | null;
+  secretWord: string | null;
   participants: Participant[];
   createdAt: string;
   updatedAt: string;
@@ -20,6 +22,9 @@ export interface RoomSnapshot {
   code: string;
   status: RoomStatus;
   hostId: string;
+  drawerId: string | null;
+  // The secret word is included only for the drawer-viewer; null for everyone else.
+  word: string | null;
   participants: Participant[];
   availableWords: string[];
   roles: ParticipantRole[];

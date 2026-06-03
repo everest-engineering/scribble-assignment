@@ -1,11 +1,18 @@
 import { z } from "zod";
 
+// Names are trimmed; empty/whitespace-only names are rejected.
+const playerNameSchema = z.string().trim().min(1, "Enter a player name.");
+
 export const createRoomSchema = z.object({
-  playerName: z.string().optional()
+  playerName: playerNameSchema
 });
 
 export const joinRoomSchema = z.object({
-  playerName: z.string().optional()
+  playerName: playerNameSchema
+});
+
+export const startGameSchema = z.object({
+  participantId: z.string().min(1)
 });
 
 // Matches the code shape produced by generateCode: 4 chars from the

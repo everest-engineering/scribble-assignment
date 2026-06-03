@@ -8,6 +8,15 @@ describe("schemas", () => {
     expect(result.playerName).toBe("Alice");
   });
 
+  it("createRoomSchema trims surrounding whitespace from playerName", () => {
+    expect(createRoomSchema.parse({ playerName: "  Alice  " }).playerName).toBe("Alice");
+  });
+
+  it("createRoomSchema rejects empty or whitespace-only names", () => {
+    expect(() => createRoomSchema.parse({ playerName: "" })).toThrow();
+    expect(() => createRoomSchema.parse({ playerName: "   " })).toThrow();
+  });
+
   it("roomCodeParamsSchema rejects missing code", () => {
     expect(() => roomCodeParamsSchema.parse({})).toThrow();
   });
