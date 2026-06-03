@@ -126,7 +126,7 @@ Add to `backend/src/api/schemas.ts`:
 Add to `backend/src/api/rooms.ts`:
 - `POST /:code/stroke` — assert drawer, append stroke, save, return snapshot
 - `POST /:code/clear` — assert drawer, reset strokes, save, return snapshot
-- `POST /:code/guess` — assert guesser (not drawer), trim text, reject if empty, compare case-insensitively, create Guess, update score, save, return snapshot + guess
+- `POST /:code/guess` — assert guesser (not drawer), trim text, reject if empty (400), reject with 403 if the participant already has a correct guess in `room.guesses`, compare case-insensitively, create Guess, update score, save, return snapshot + guess
 
 ---
 
@@ -159,7 +159,7 @@ Create `frontend/src/components/DrawingCanvas.tsx`:
 
 ### Slice 6: Frontend Component Wiring
 
-**`GuessForm.tsx`**: Wire to `store.submitGuess(text)`. Client-side reject empty/whitespace text with inline message. Show "Correct!" or "Incorrect" on submit. Clear input on success.
+**`GuessForm.tsx`**: Wire to `store.submitGuess(text)`. Client-side reject empty/whitespace text with inline message. Show "Correct!" or "Incorrect" on submit. Clear input on success. After a correct submission, hide the form permanently and show only the "Correct!" message. On session restore, derive already-guessed state from `room.guesses` (check for a correct entry from the current participant) and hide the form if the player already guessed correctly.
 
 **`Scoreboard.tsx`**: Accept `scores: Record<string, number>` and `participants: Participant[]` as props. Render sorted list of name + score.
 

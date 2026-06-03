@@ -1,8 +1,8 @@
 # Quickstart Validation: Gameplay Interaction
 
-Use two browser tabs (Tab A = host/drawer, Tab B = guesser) with both servers running.
+Use at least two browser tabs (Tab A = host/drawer, Tab B = guesser) with both servers running. For checks 11–13, open a third tab (Tab C) joined as a second guesser before starting the game.
 
-**Setup**: Create a room in Tab A, join with a different name in Tab B, then start the game from Tab A.
+**Setup**: Create a room in Tab A, join with a different name in Tab B (and optionally Tab C), then start the game from Tab A.
 
 ## Validation Table
 
@@ -18,4 +18,6 @@ Use two browser tabs (Tab A = host/drawer, Tab B = guesser) with both servers ru
 | 8 | Check Tab A's guess history | Both guesses appear: "ROCKET ✓" and "pizza ✗" with the guesser's name |
 | 9 | Check Tab A's scoreboard | Drawer score = 0; guesser score = 100 |
 | 10 | In Tab A (drawer), attempt to submit a guess | No guess form is visible to the drawer |
-| 11 | Refresh Tab B | Session restores; Tab B shows same canvas, same guess history, same scores |
+| 11 | In Tab B, after guessing "ROCKET" correctly, attempt to type and submit another guess | Guess form is hidden; "You already guessed correctly!" is shown instead |
+| 12 | Refresh Tab B (after a correct guess) | Session restores; guess form remains hidden — derived from guess history |
+| 13 | Refresh Tab C (a player who has only guessed incorrectly) | Session restores; guess form is still visible — player may continue guessing |

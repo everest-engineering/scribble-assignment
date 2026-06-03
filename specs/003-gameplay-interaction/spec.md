@@ -81,7 +81,7 @@ All players start the round with 0 points. A correct guess awards exactly 100 po
 
 ### Edge Cases
 
-- What happens if a guesser submits the correct word more than once? The second submission is recorded as incorrect (the word has already been guessed correctly by this player; no additional points awarded).
+- What happens if a guesser submits the correct word more than once? Once a player's guess is recorded as correct, further submissions from that player are blocked — the guess form is hidden on the client, and the backend rejects any additional attempt with a 403. A player who has guessed incorrectly may keep submitting until they guess correctly.
 - What happens if the drawer submits a guess? The guess submission form is not shown to the drawer — the attempt is not possible through the UI.
 - What happens if a guess consists entirely of whitespace? It is trimmed to an empty string and rejected with the same validation message as an empty guess.
 - What happens if multiple guessers submit the correct word? Each correct submission is independent — each guesser who submits the right word scores 100 points.
@@ -106,6 +106,7 @@ All players start the round with 0 points. A correct guess awards exactly 100 po
 - **FR-011**: The guess history MUST display each entry with the submitting player's name, the guess text, and a correct/incorrect label, ordered by submission time.
 - **FR-012**: The scoreboard MUST display each participant's current score, initialized to 0 at round start and updated after each correct guess.
 - **FR-013**: All gameplay state (canvas, guesses, scores) MUST be refreshed for all clients via polling at approximately a 2-second interval.
+- **FR-014**: A player who has already submitted a correct guess in the current round MUST NOT be able to submit further guesses. The backend MUST reject any additional guess from that player with a 403 error. The client MUST hide the guess form after a correct submission and MUST derive this state from room.guesses on session restore.
 
 ### Key Entities
 
@@ -120,7 +121,7 @@ All players start the round with 0 points. A correct guess awards exactly 100 po
 ### Measurable Outcomes
 
 - **SC-001**: All players see the drawer's current canvas within approximately 2 seconds of a stroke being drawn or the canvas being cleared.
-- **SC-002**: 100% of empty or whitespace-only guess submissions are rejected with a visible inline message before reaching the server.
+- **SC-002**: 100% of empty or whitespace-only guess submissions are rejected with a visible inline message on the client; the server independently validates and returns a 400 for any that reach it.
 - **SC-003**: A correct guess (case-insensitive, trimmed) is recognized as correct in 100% of valid submissions.
 - **SC-004**: All players see a new guess in the shared history within approximately 2 seconds of it being submitted.
 - **SC-005**: Scoreboard totals are consistent across all players' views within approximately 2 seconds of a score change.
@@ -131,7 +132,7 @@ All players start the round with 0 points. A correct guess awards exactly 100 po
 
 - Drawing input is captured via pointer/mouse events on an HTML canvas element. The canvas state is serialized as an ordered list of strokes stored in room state and polled by all clients.
 - The drawer can draw multiple strokes; each stroke is appended to the stroke list. "Clear canvas" resets the stroke list to empty.
-- A player who has already guessed correctly may submit additional guesses, but they will always be compared against the word and scored accordingly (subsequent correct guesses still score 100 — no deduplication rule is imposed beyond what the constitution specifies).
+- Once a player has a correct guess recorded in the round, the backend rejects any further guess from that player with a 403. The guess form is hidden on the client after a correct submission, and on session restore the client derives this state from room.guesses (checking whether the player already has a correct entry). A player who has guessed incorrectly may continue submitting until they guess correctly.
 - Scores persist for the duration of the active round; they are not reset by canvas clears or guess resubmissions.
 - The drawer's score is 0 for the round (they cannot guess). Their name still appears on the scoreboard.
 - Session restore on page refresh reloads the room snapshot (canvas, guesses, scores) from the backend; no client-side state needs to be preserved across refreshes.
