@@ -45,4 +45,22 @@ describe("api service", () => {
       expect.anything()
     );
   });
+
+  it("startGame sends participant id to /rooms/:code/start", async () => {
+    const mockResponse = {
+      ok: true,
+      json: () => Promise.resolve({ room: { code: "ABCD", status: "active", participants: [] } }),
+    };
+    vi.mocked(fetch).mockResolvedValue(mockResponse as unknown as Response);
+
+    await api.startGame("ABCD", "p1");
+
+    expect(fetch).toHaveBeenCalledWith(
+      expect.stringContaining("/rooms/ABCD/start"),
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({ participantId: "p1" }),
+      })
+    );
+  });
 });

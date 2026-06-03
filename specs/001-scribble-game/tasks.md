@@ -17,9 +17,9 @@
 
 **Purpose**: Verify starter commands and align documentation for the active feature.
 
-- [ ] T001 Verify backend and frontend package scripts, test commands, and build commands in `backend/package.json`, `frontend/package.json`, and `README.md`
-- [ ] T002 [P] Add assignment validation report scaffold in `docs/spec-kit/validation-notes.md`
-- [ ] T003 [P] Add reflection report scaffold in `docs/reflection.md`
+- [X] T001 Verify backend and frontend package scripts, test commands, and build commands in `backend/package.json`, `frontend/package.json`, and `README.md`
+- [X] T002 [P] Add assignment validation report scaffold in `docs/spec-kit/validation-notes.md`
+- [X] T003 [P] Add reflection report scaffold in `docs/reflection.md`
 
 **Checkpoint**: Starter scripts and documentation locations are known before behavior changes.
 
@@ -27,11 +27,11 @@
 
 **Purpose**: Extend shared types, validation schemas, and API/client contracts required by all scenarios.
 
-- [ ] T004 [P] Extend room, participant, round, drawing, guess, score, and viewer-specific snapshot types in `backend/src/models/game.ts` and `frontend/src/services/api.ts`
-- [ ] T005 [P] Add Zod schemas for validated player names, room codes, participant actions, drawing updates, guesses, start, and restart in `backend/src/api/schemas.ts`
-- [ ] T006 [P] Add schema validation tests for player names, room codes, action payloads, and guesses in `backend/src/api/schemas.test.ts`
-- [ ] T007 Add shared room-store helpers for participant lookup, host checks, viewer-specific snapshots, isolated room reset, and deterministic word selection in `backend/src/services/roomStore.ts`
-- [ ] T008 Extend frontend room store actions for start, drawing update, clear drawing, submit guess, restart, and polling-safe fetches in `frontend/src/state/roomStore.ts` and `frontend/src/services/api.ts`
+- [X] T004 [P] Extend room, participant, round, drawing, guess, score, and viewer-specific snapshot types in `backend/src/models/game.ts` and `frontend/src/services/api.ts`
+- [X] T005 [P] Add Zod schemas for validated player names, room codes, participant actions, drawing updates, guesses, start, and restart in `backend/src/api/schemas.ts`
+- [X] T006 [P] Add schema validation tests for player names, room codes, action payloads, and guesses in `backend/src/api/schemas.test.ts`
+- [X] T007 Add shared room-store helpers for participant lookup, host checks, viewer-specific snapshots, isolated room reset, and deterministic word selection in `backend/src/services/roomStore.ts`
+- [X] T008 Extend frontend room store actions for start, drawing update, clear drawing, submit guess, restart, and polling-safe fetches in `frontend/src/state/roomStore.ts` and `frontend/src/services/api.ts`
 
 **Checkpoint**: Shared models and contracts can support every scenario without adding out-of-scope infrastructure.
 
@@ -41,13 +41,13 @@
 
 **Independent Test**: Two sessions can join one room, see participant updates through polling, and verify separate rooms remain isolated.
 
-- [ ] T009 [P] [US1] Add backend tests for create-room host assignment, empty-name rejection, join validation, unknown-room rejection, room isolation, and host-only start preconditions in `backend/src/services/roomStore.test.ts`
-- [ ] T010 [P] [US1] Add frontend API and room-store tests for create/join errors, polling fetch behavior, and start-game action shape in `frontend/src/services/api.test.ts` and `frontend/src/state/roomStore.test.ts`
-- [ ] T011 [US1] Implement validated create/join, host tracking, isolated snapshots, and start precondition service logic in `backend/src/services/roomStore.ts`
-- [ ] T012 [US1] Add start-game route and connect validation/error handling in `backend/src/api/rooms.ts` and `backend/src/api/router.ts`
-- [ ] T013 [US1] Update create/join forms to show validation feedback and prevent whitespace-only names in `frontend/src/pages/CreateRoomPage.tsx` and `frontend/src/pages/JoinRoomPage.tsx`
-- [ ] T014 [US1] Add lobby polling, host badge, participant count, and host-only start button behavior in `frontend/src/pages/LobbyPage.tsx`
-- [ ] T015 [US1] Record scenario 1 validation notes in `docs/spec-kit/validation-notes.md`
+- [X] T009 [P] [US1] Add backend tests for create-room host assignment, empty-name rejection, join validation, unknown-room rejection, room isolation, and host-only start preconditions in `backend/src/services/roomStore.test.ts`
+- [X] T010 [P] [US1] Add frontend API and room-store tests for create/join errors, polling fetch behavior, and start-game action shape in `frontend/src/services/api.test.ts` and `frontend/src/state/roomStore.test.ts`
+- [X] T011 [US1] Implement validated create/join, host tracking, isolated snapshots, and start precondition service logic in `backend/src/services/roomStore.ts`
+- [X] T012 [US1] Add start-game route and connect validation/error handling in `backend/src/api/rooms.ts` and `backend/src/api/router.ts`
+- [X] T013 [US1] Update create/join forms to show validation feedback and prevent whitespace-only names in `frontend/src/pages/CreateRoomPage.tsx` and `frontend/src/pages/JoinRoomPage.tsx`
+- [X] T014 [US1] Add lobby polling, host badge, participant count, and host-only start button behavior in `frontend/src/pages/LobbyPage.tsx`
+- [X] T015 [US1] Record scenario 1 validation notes in `docs/spec-kit/validation-notes.md`
 
 **Checkpoint**: Scenario 1 acceptance criteria and SC-001, SC-002, and SC-003 pass.
 
@@ -162,4 +162,3 @@ T035 -> T036-T040
 - Mark tasks complete as they are finished.
 - Commit after each coherent checkpoint.
 - If behavior changes from the spec, update `spec.md`, then update plan/tasks before continuing.
-
