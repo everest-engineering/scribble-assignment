@@ -3,6 +3,34 @@ import { useNavigate } from "react-router-dom";
 import { PageHeader } from "../components/PageHeader";
 import { useRoomStore } from "../state/roomStore";
 
+function validatePlayerName(rawName: string) {
+  const trimmed = rawName.trim();
+
+  if (!trimmed) {
+    return { error: "Player name is required" as const, value: null };
+  }
+
+  if (trimmed.length > 24) {
+    return { error: "Player name must be 24 characters or fewer" as const, value: null };
+  }
+
+  return { error: null, value: trimmed };
+}
+
+function validateRoomCode(rawCode: string) {
+  const trimmed = rawCode.trim().toUpperCase();
+
+  if (!trimmed) {
+    return { error: "Room code is required" as const, value: null };
+  }
+
+  if (trimmed.length !== 4) {
+    return { error: "Room code must be 4 characters" as const, value: null };
+  }
+
+  return { error: null, value: trimmed };
+}
+
 export function JoinRoomPage() {
   const [playerName, setPlayerName] = useState("");
   const [roomCode, setRoomCode] = useState("");
@@ -13,9 +41,23 @@ export function JoinRoomPage() {
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
+    const nameValidation = validatePlayerName(playerName);
+
+    if (nameValidation.error) {
+      setError(nameValidation.error);
+      return;
+    }
+
+    const codeValidation = validateRoomCode(roomCode);
+
+    if (codeValidation.error) {
+      setError(codeValidation.error);
+      return;
+    }
+
     try {
       setError(null);
-      await roomStore.joinRoom(roomCode.toUpperCase(), playerName);
+      await roomStore.joinRoom(codeValidation.value, nameValidation.value);
       navigate("/lobby");
     } catch (caughtError) {
       setError(caughtError instanceof Error ? caughtError.message : "Unable to join room");

@@ -6,7 +6,14 @@ import {
   roomCodeParamsSchema,
   roomViewerQuerySchema
 } from "./schemas.js";
-import { createRoom, getRoom, joinRoom, toRoomSnapshot } from "../services/roomStore.js";
+import {
+  createRoom,
+  getRoom,
+  joinRoom,
+  PlayerNameValidationError,
+  RoomCapacityError,
+  toRoomSnapshot
+} from "../services/roomStore.js";
 
 export function createRoomsRouter() {
   const router = Router();
@@ -63,4 +70,16 @@ export function createRoomsRouter() {
   });
 
   return router;
+}
+
+export function mapRoomStoreError(error: unknown) {
+  if (error instanceof PlayerNameValidationError) {
+    return new HttpError(400, error.message);
+  }
+
+  if (error instanceof RoomCapacityError) {
+    return new HttpError(409, error.message);
+  }
+
+  return error;
 }

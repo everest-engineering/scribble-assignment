@@ -6,14 +6,45 @@ describe("api service", () => {
     vi.stubGlobal("fetch", vi.fn());
   });
 
+  it("uses http://localhost:3001 as default base URL", async () => {
+    const mockResponse = {
+      ok: true,
+      json: () =>
+        Promise.resolve({
+          participantId: "p1",
+          room: {
+            code: "ABCD",
+            status: "lobby",
+            hostParticipantId: "p1",
+            participants: [],
+            availableWords: [],
+            roles: []
+          }
+        })
+    };
+    vi.mocked(fetch).mockResolvedValue(mockResponse as unknown as Response);
+
+    await api.createRoom("Alice");
+
+    expect(fetch).toHaveBeenCalledWith(
+      "http://localhost:3001/rooms",
+      expect.anything()
+    );
+  });
+
   it("createRoom sends POST to /rooms with playerName in body", async () => {
     const mockResponse = {
       ok: true,
       json: () =>
         Promise.resolve({
           participantId: "p1",
-          room: { code: "ABCD", status: "lobby", participants: [] },
-        }),
+          room: {
+            code: "ABCD",
+            status: "lobby",
+            hostParticipantId: "p1",
+            participants: []
+          }
+        })
     };
     vi.mocked(fetch).mockResolvedValue(mockResponse as unknown as Response);
 
@@ -23,7 +54,7 @@ describe("api service", () => {
       expect.stringContaining("/rooms"),
       expect.objectContaining({
         method: "POST",
-        body: JSON.stringify({ playerName: "Alice" }),
+        body: JSON.stringify({ playerName: "Alice" })
       })
     );
   });
@@ -33,8 +64,13 @@ describe("api service", () => {
       ok: true,
       json: () =>
         Promise.resolve({
-          room: { code: "XYZW", status: "lobby", participants: [] },
-        }),
+          room: {
+            code: "XYZW",
+            status: "lobby",
+            hostParticipantId: "p1",
+            participants: []
+          }
+        })
     };
     vi.mocked(fetch).mockResolvedValue(mockResponse as unknown as Response);
 

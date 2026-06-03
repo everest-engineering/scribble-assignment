@@ -90,13 +90,38 @@ class RoomStore {
   }
 
   async fetchRoom() {
-    if (!this.state.room) {
+    const currentRoom = this.state.room;
+
+    if (!currentRoom) {
       return null;
     }
 
-    const response = await api.fetchRoom(this.state.room.code, this.state.participantId ?? undefined);
+    const response = await this.withLoading(() =>
+      api.fetchRoom(currentRoom.code, this.state.participantId ?? undefined)
+    );
     this.setRoomSnapshot(response.room);
     return response.room;
+  }
+
+  async fetchRoomPoll() {
+    const currentRoom = this.state.room;
+
+    if (!currentRoom) {
+      return null;
+    }
+
+    try {
+      const response = await api.fetchRoom(
+        currentRoom.code,
+        this.state.participantId ?? undefined
+      );
+      this.setRoomSnapshot(response.room);
+      return response.room;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unexpected request failure";
+      this.setState({ error: message });
+      return null;
+    }
   }
 }
 
