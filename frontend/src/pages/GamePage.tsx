@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { CanvasBoard } from "../components/CanvasBoard";
 import { Card } from "../components/Card";
 import { GuessForm } from "../components/GuessForm";
 import { ResultPanel } from "../components/ResultPanel";
@@ -90,14 +91,11 @@ export function GamePage() {
             </Card>
           )}
 
-          <Card title="Canvas">
-            <div
-              className="canvas-placeholder"
-              style={{ minHeight: "500px", backgroundColor: "#ffffff", border: "1px solid #e5e7eb" }}
-            >
-              {isDrawer ? "Drawing canvas (Scenario 3)" : "Watching the drawer (Scenario 3)"}
-            </div>
-          </Card>
+          {isDrawer ? (
+            <Card title="Canvas">
+              <CanvasBoard />
+            </Card>
+          ) : null}
         </div>
 
         <aside className="game-page__sidebar game-page__sidebar--right">
