@@ -16,7 +16,7 @@ export interface Guess {
   createdAt: string;
 }
 
-export type RoomStatus = "lobby" | "playing";
+export type RoomStatus = "lobby" | "playing" | "ended";
 
 export interface RoomSnapshot {
   code: string;
@@ -89,5 +89,11 @@ export const api = {
         body: JSON.stringify({ participantId, text })
       }
     );
+  },
+  restartGame(code: string, participantId: string) {
+    return request<RoomSessionResponse>(`/rooms/${encodeURIComponent(code)}/restart`, {
+      method: "POST",
+      body: JSON.stringify({ participantId })
+    });
   }
 };
