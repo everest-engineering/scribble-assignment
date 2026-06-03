@@ -65,3 +65,15 @@ The starter provided a runnable but intentionally incomplete scaffold for a Scri
 - **Block after correct guess**: Once a player has guessed correctly, the backend rejects any further attempts from that player with a 403. On the client, the guess form is replaced with a "You already guessed correctly!" message. This state is also derived from `room.guesses` on session restore — refreshing the page does not reset the block.
 - **Guess history panel**: All players see a continuously updated list of every guess submitted in the current round, showing the submitter's name, the guess text, and whether it was correct or incorrect.
 - **Scoreboard**: All players see a live scoreboard sorted by score descending, showing each participant's name and current point total. Scores start at 0 when a game begins and update after each correct guess.
+
+---
+
+### Feature 004 — Result, Restart & Final Validation
+
+- **New room status — "ended"**: The room lifecycle was extended from `"lobby" | "active"` to `"lobby" | "active" | "ended"`. No other state fields changed; the status union is the only model addition.
+- **Host-only End Round**: An "End Round" button appears on the active game screen, visible only to the host. Clicking it calls `POST /rooms/:code/end`, which validates that the caller is the host and the room is active before transitioning status to `"ended"`.
+- **Word reveal on end**: When a room transitions to `"ended"`, `toRoomSnapshot` reveals `currentWord` to all players — not just the drawer. This is enforced at the API level: the backend sends the actual word to everyone once the round is over.
+- **Result screen for all players**: When `room.status === "ended"`, the game screen conditionally renders a result view in place of the active game UI. The result view shows the revealed word as a prominent heading, the final scoreboard, and the full guess history. All players see this automatically within ~2 seconds via the existing polling loop.
+- **Host-only Restart**: A "Restart" button appears on the result screen, visible only to the host. Clicking it calls `POST /rooms/:code/restart`, which resets the room to `"lobby"` and clears all round state — `currentWord`, `drawerId`, `strokes`, `guesses`, and `scores` — while preserving the participant list.
+- **Auto-redirect to lobby on restart**: After the host restarts, all players' polling detects `room.status === "lobby"`. The navigation guard in GamePage fires and redirects everyone to `/lobby` automatically — no manual action required from any player.
+- **Session restore on result screen**: Refreshing the browser while on the result screen correctly restores the session and lands the player back on the result view. The existing session restore + navigation guard combination handles this: the guard keeps players on the game page for both `"active"` and `"ended"` status.
