@@ -1,14 +1,30 @@
+import type { ParticipantView } from "../services/api";
 import { Card } from "./Card";
 
-export function Scoreboard() {
+interface ScoreboardProps {
+  participants: ParticipantView[];
+}
+
+export function Scoreboard({ participants }: ScoreboardProps) {
+  const ranked = [...participants].sort((a, b) => b.score - a.score);
+
   return (
     <Card title="Scoreboard">
-      <div className="placeholder-block" style={{ backgroundColor: '#f9fafb' }}>
-        <div className="placeholder-row">
-          <span>Waiting for players...</span>
-          <strong>0</strong>
-        </div>
-      </div>
+      {ranked.length === 0 ? (
+        <p>Waiting for players...</p>
+      ) : (
+        <ul className="player-list">
+          {ranked.map((participant) => (
+            <li key={participant.id}>
+              <span>
+                {participant.name}
+                {participant.isDrawer ? <span className="player-list__meta"> drawer</span> : null}
+              </span>
+              <strong>{participant.score}</strong>
+            </li>
+          ))}
+        </ul>
+      )}
     </Card>
   );
 }

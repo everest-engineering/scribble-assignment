@@ -1,13 +1,18 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card } from "../components/Card";
+import { DrawingCanvas } from "../components/DrawingCanvas";
+import { GuessForm } from "../components/GuessForm";
+import { GuessHistory } from "../components/GuessHistory";
 import { RoomCodeBadge } from "../components/RoomCodeBadge";
-import { useRoomPolling, useRoomState } from "../state/roomStore";
+import { Scoreboard } from "../components/Scoreboard";
+import { useRoomPolling, useRoomState, useRoomStore } from "../state/roomStore";
 
 const POLL_INTERVAL_MS = 2000;
 
 export function GamePage() {
   const navigate = useNavigate();
+  const roomStore = useRoomStore();
   const { room } = useRoomState();
 
   useRoomPolling(POLL_INTERVAL_MS);
@@ -46,51 +51,42 @@ export function GamePage() {
 
       <div className="game-page__layout">
         <aside className="game-page__sidebar game-page__sidebar--left">
-          <Card title="Round">
-            <dl className="detail-list">
-              <div>
-                <dt>Drawer</dt>
-                <dd>{drawer ? drawer.name : "—"}</dd>
-              </div>
-              <div>
-                <dt>Your role</dt>
-                <dd>{isDrawer ? "Drawer" : "Guesser"}</dd>
-              </div>
-            </dl>
-          </Card>
+          <Scoreboard participants={room.participants} />
         </aside>
 
         <div className="game-page__main">
           <Card title="Canvas">
             {isDrawer ? (
-              <p className="word-banner">
-                Your word to draw: <strong>{room.word ?? "…"}</strong>
-              </p>
+              <div className="canvas-toolbar">
+                <p className="word-banner">
+                  Your word: <strong>{room.word ?? "…"}</strong>
+                </p>
+                <button
+                  className="button button--secondary"
+                  type="button"
+                  onClick={() => void roomStore.clearCanvas()}
+                >
+                  Clear Canvas
+                </button>
+              </div>
             ) : (
-              <p className="word-banner">Watch the drawing and guess the word.</p>
+              <p className="word-banner">
+                Drawer: <strong>{drawer?.name ?? "—"}</strong>. Watch and guess the word!
+              </p>
             )}
-            <div
-              className="canvas-placeholder"
-              style={{ minHeight: "500px", backgroundColor: "#ffffff", border: "1px solid #e5e7eb" }}
-            >
-              Drawing tools arrive in the next step…
-            </div>
+            <DrawingCanvas
+              strokes={room.strokes}
+              isDrawer={isDrawer}
+              onCommit={(strokes) => void roomStore.updateCanvas(strokes)}
+            />
           </Card>
         </div>
 
         <aside className="game-page__sidebar game-page__sidebar--right">
-          <Card title="Players">
-            <ul className="player-list">
-              {room.participants.map((participant) => (
-                <li key={participant.id}>
-                  <span>{participant.name}</span>
-                  <span className="player-list__meta">
-                    {participant.isDrawer ? "drawer" : "guesser"}
-                  </span>
-                </li>
-              ))}
-            </ul>
+          <Card title="Your Guess">
+            <GuessForm disabled={isDrawer} />
           </Card>
+          <GuessHistory guesses={room.guesses} />
         </aside>
       </div>
 

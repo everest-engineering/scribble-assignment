@@ -1,7 +1,29 @@
 import { describe, expect, it } from "vitest";
 import { HttpError } from "../api/schemas.js";
 import { STARTER_WORDS } from "../seed/starterData.js";
-import { createRoom, getRoom, joinRoom, pickWord, startRound, toRoomSnapshot } from "./roomStore.js";
+import {
+  createRoom,
+  getRoom,
+  joinRoom,
+  pickWord,
+  startRound,
+  submitGuess,
+  toRoomSnapshot,
+  updateCanvas
+} from "./roomStore.js";
+
+/** Create a host + one guesser and start the round. Returns ids and the word. */
+function startedRoom() {
+  const host = createRoom("Alice");
+  const guesser = joinRoom(host.room.code, "Bob");
+  startRound(host.room.code, host.participantId);
+  return {
+    code: host.room.code,
+    hostId: host.participantId,
+    guesserId: guesser.participantId,
+    word: pickWord(host.room.code)
+  };
+}
 
 describe("roomStore", () => {
   it("createRoom returns a room with a 4-character uppercase code and a host", () => {
@@ -71,5 +93,41 @@ describe("roomStore", () => {
     expect(drawerView.viewer?.role).toBe("drawer");
     expect(guesserView.word).toBeNull();
     expect(guesserView.viewer?.role).toBe("guesser");
+  });
+
+  it("only the drawer can draw, and clear empties the canvas", () => {
+    const game = startedRoom();
+    const stroke = { color: "#000", width: 4, points: [{ x: 1, y: 2 }] };
+
+    expect(() => updateCanvas(game.code, game.guesserId, [stroke])).toThrowError(/drawer/i);
+
+    const drawn = updateCanvas(game.code, game.hostId, [stroke]);
+    expect(drawn.round?.strokes).toHaveLength(1);
+
+    const cleared = updateCanvas(game.code, game.hostId, []);
+    expect(cleared.round?.strokes).toHaveLength(0);
+  });
+
+  it("scores a trimmed, case-insensitive correct guess and ends the round", () => {
+    const game = startedRoom();
+
+    const wrong = submitGuess(game.code, game.guesserId, "nope");
+    expect(wrong.status).toBe("playing");
+    expect(wrong.participants.find((p) => p.id === game.guesserId)?.score).toBe(0);
+
+    const right = submitGuess(game.code, game.guesserId, `  ${game.word.toUpperCase()} `);
+    expect(right.status).toBe("results");
+    expect(right.round?.winnerId).toBe(game.guesserId);
+    expect(right.participants.find((p) => p.id === game.guesserId)?.score).toBe(100);
+    expect(right.round?.guesses).toHaveLength(2);
+  });
+
+  it("rejects the drawer guessing and guesses after the round ends", () => {
+    const game = startedRoom();
+
+    expect(() => submitGuess(game.code, game.hostId, game.word)).toThrowError(/drawer cannot/i);
+
+    submitGuess(game.code, game.guesserId, game.word);
+    expect(() => submitGuess(game.code, game.guesserId, game.word)).toThrowError(/no active round/i);
   });
 });

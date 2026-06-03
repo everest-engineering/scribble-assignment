@@ -1,6 +1,8 @@
 import { Router } from "express";
 import {
+  canvasUpdateSchema,
   createRoomSchema,
+  guessSchema,
   joinRoomSchema,
   roomCodeParamsSchema,
   roomViewerQuerySchema,
@@ -11,7 +13,9 @@ import {
   getRoom,
   joinRoom,
   startRound,
-  toRoomSnapshot
+  submitGuess,
+  toRoomSnapshot,
+  updateCanvas
 } from "../services/roomStore.js";
 
 export function createRoomsRouter() {
@@ -51,6 +55,34 @@ export function createRoomsRouter() {
       const { code } = roomCodeParamsSchema.parse(request.params);
       const { participantId } = startRoomSchema.parse(request.body);
       const room = startRound(code, participantId);
+
+      response.json({
+        room: toRoomSnapshot(room, participantId)
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.put("/:code/canvas", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId, strokes } = canvasUpdateSchema.parse(request.body);
+      const room = updateCanvas(code, participantId, strokes);
+
+      response.json({
+        room: toRoomSnapshot(room, participantId)
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/:code/guesses", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId, text } = guessSchema.parse(request.body);
+      const room = submitGuess(code, participantId, text);
 
       response.json({
         room: toRoomSnapshot(room, participantId)

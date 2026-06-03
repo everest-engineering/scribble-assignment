@@ -31,6 +31,25 @@ export const startRoomSchema = z.object({
   participantId: z.string().min(1, "participantId is required")
 });
 
+const strokeSchema = z.object({
+  color: z.string(),
+  width: z.number(),
+  points: z.array(z.object({ x: z.number(), y: z.number() }))
+});
+
+export const canvasUpdateSchema = z.object({
+  participantId: z.string().min(1, "participantId is required"),
+  strokes: z.array(strokeSchema)
+});
+
+export const guessSchema = z.object({
+  participantId: z.string().min(1, "participantId is required"),
+  text: z
+    .string()
+    .transform((value) => value.trim())
+    .refine((value) => value.length > 0, "Guess cannot be empty")
+});
+
 export class HttpError extends Error {
   statusCode: number;
 

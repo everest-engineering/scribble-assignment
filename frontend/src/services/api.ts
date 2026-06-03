@@ -99,5 +99,17 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ participantId })
     });
+  },
+  updateCanvas(code: string, participantId: string, strokes: Stroke[]) {
+    return request<{ room: RoomSnapshot }>(`/rooms/${encodeURIComponent(code)}/canvas`, {
+      method: "PUT",
+      body: JSON.stringify({ participantId, strokes })
+    });
+  },
+  submitGuess(code: string, participantId: string, text: string) {
+    return request<{ room: RoomSnapshot }>(`/rooms/${encodeURIComponent(code)}/guesses`, {
+      method: "POST",
+      body: JSON.stringify({ participantId, text })
+    });
   }
 };

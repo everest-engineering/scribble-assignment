@@ -5,8 +5,11 @@ import type {
   ParticipantRole,
   Room,
   RoomSnapshot,
+  Stroke,
   ViewerView
 } from "../models/game.js";
+
+const CORRECT_GUESS_SCORE = 100;
 import { STARTER_ROLES, STARTER_WORDS } from "../seed/starterData.js";
 
 const MIN_PLAYERS_TO_START = 2;
@@ -138,6 +141,69 @@ export function startRound(code: string, participantId: string) {
     winnerId: null
   };
   room.status = "playing";
+  room.updatedAt = now();
+
+  return cloneRoom(room);
+}
+
+function requireActiveRound(room: Room) {
+  if (room.status !== "playing" || !room.round) {
+    throw new HttpError(409, "No active round");
+  }
+
+  return room.round;
+}
+
+/** Replace the round's drawing. Only the drawer may draw; clear sends an empty list. */
+export function updateCanvas(code: string, participantId: string, strokes: Stroke[]) {
+  const room = requireRoom(code, "Room not found");
+  const round = requireActiveRound(room);
+
+  if (round.drawerId !== participantId) {
+    throw new HttpError(403, "Only the drawer can draw");
+  }
+
+  round.strokes = strokes;
+  room.updatedAt = now();
+
+  return cloneRoom(room);
+}
+
+/**
+ * Record a guess. The drawer cannot guess; the comparison is trim + case
+ * insensitive. The first correct guess scores 100 and ends the round.
+ */
+export function submitGuess(code: string, participantId: string, text: string) {
+  const room = requireRoom(code, "Room not found");
+  const round = requireActiveRound(room);
+
+  const participant = room.participants.find((member) => member.id === participantId);
+
+  if (!participant) {
+    throw new HttpError(403, "Only players in this room can guess");
+  }
+
+  if (round.drawerId === participantId) {
+    throw new HttpError(403, "The drawer cannot guess");
+  }
+
+  const correct = text.trim().toLowerCase() === round.word.toLowerCase();
+
+  round.guesses.push({
+    id: randomUUID(),
+    participantId,
+    playerName: participant.name,
+    text,
+    correct,
+    createdAt: now()
+  });
+
+  if (correct) {
+    participant.score += CORRECT_GUESS_SCORE;
+    round.winnerId = participantId;
+    room.status = "results";
+  }
+
   room.updatedAt = now();
 
   return cloneRoom(room);
