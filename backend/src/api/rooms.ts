@@ -6,13 +6,17 @@ import {
   roomCodeParamsSchema,
   roomViewerQuerySchema,
   startRoomSchema,
+  submitGuessSchema,
+  updateCanvasSchema,
 } from "./schemas.js";
 import {
   createRoom,
   getRoom,
   joinRoom,
   startRoom,
+  submitGuess,
   toRoomSnapshot,
+  updateCanvas,
 } from "../services/roomStore.js";
 
 export function createRoomsRouter() {
@@ -76,6 +80,30 @@ export function createRoomsRouter() {
       const snapshot = startRoom(code.toUpperCase());
 
       response.json({ room: snapshot });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.patch("/:code/canvas", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId, strokes } = updateCanvasSchema.parse(request.body);
+      const snapshot = updateCanvas(code.toUpperCase(), participantId, strokes);
+
+      response.json({ room: snapshot });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/:code/guesses", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId, text } = submitGuessSchema.parse(request.body);
+      const guess = submitGuess(code.toUpperCase(), participantId, text);
+
+      response.status(201).json({ guess });
     } catch (error) {
       next(error);
     }

@@ -1,6 +1,11 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { DrawingCanvas } from "../components/DrawingCanvas";
+import { GuessForm } from "../components/GuessForm";
+import { ResultPanel } from "../components/ResultPanel";
 import { RoomCodeBadge } from "../components/RoomCodeBadge";
+import { Scoreboard } from "../components/Scoreboard";
+import { api } from "../services/api";
 import { useRoomState, useRoomStore } from "../state/roomStore";
 
 export function GamePage() {
@@ -54,6 +59,29 @@ export function GamePage() {
             )}
           </div>
 
+          <DrawingCanvas
+            strokes={room.strokes ?? []}
+            isDrawer={participantId === room.currentDrawerId}
+            roomCode={room.code}
+            participantId={participantId ?? ""}
+          />
+
+          {participantId === room.currentDrawerId && (
+            <div className="button-row button-row--compact">
+              <button
+                className="button button--secondary clear-button"
+                type="button"
+                onClick={() => {
+                  api
+                    .updateCanvas(room.code, participantId ?? "", [])
+                    .catch(() => {});
+                }}
+              >
+                Clear Canvas
+              </button>
+            </div>
+          )}
+
           <ul className="participant-list">
             {room.participants.map((participant) => (
               <li key={participant.id} className="participant-list__item">
@@ -68,6 +96,24 @@ export function GamePage() {
               </li>
             ))}
           </ul>
+
+          {participantId !== room.currentDrawerId && (
+            <GuessForm
+              roomCode={room.code}
+              participantId={participantId ?? ""}
+            />
+          )}
+        </div>
+
+        <div className="game-page__sidebar">
+          <ResultPanel
+            guesses={room.guesses ?? []}
+            participants={room.participants}
+          />
+          <Scoreboard
+            participants={room.participants}
+            scores={room.scores ?? {}}
+          />
         </div>
       </div>
 
