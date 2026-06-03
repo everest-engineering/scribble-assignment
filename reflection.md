@@ -34,4 +34,21 @@ The starter provided a runnable but intentionally incomplete scaffold for a Scri
 
 ## What did we add?
 
-*(To be completed after implementation)*
+### Feature 001 — Room Setup & Lobby
+
+- **Host tracking**: The player who creates a room is automatically assigned as the host. Host identity is stored on the room and surfaced to all players through the lobby.
+- **Input validation**: Player names that are empty or whitespace-only are rejected with a clear inline error. Room codes containing non-alphanumeric characters are also rejected before hitting the backend.
+- **Lobby polling**: The manual Refresh button was replaced with automatic polling every ~2 seconds, so the participant list updates in real time without any user action.
+- **Host-gated Start Game**: A "Start Game" button appears in the lobby, but only the host can see it enabled — and only once at least 2 players have joined. Other players see a waiting message.
+- **Session persistence**: Refreshing the browser no longer drops a player back to the home screen. Their session is restored from `sessionStorage` and they land back in the lobby.
+- **Start game endpoint**: The backend gained a `POST /rooms/:code/start` endpoint that enforces the host-only and 2-player-minimum rules before transitioning the room to active status.
+
+---
+
+### Feature 002 — Game Start & Drawer Flow
+
+- **Drawer assignment**: When the host starts the game, the host is automatically assigned as the drawer for the first round. Their name is shown clearly to all players on the game screen.
+- **Secret word selection**: A word is deterministically selected from the starter list ("rocket" is always the first word). No randomness is involved — the same game always starts with the same word, consistent with the project's constitution.
+- **Word privacy**: The drawer sees the secret word on their screen. Every other player sees only a neutral placeholder ("A word has been chosen — start guessing!"). This privacy is enforced at the API level — the backend sends `currentWord: null` to anyone who is not the drawer, not just hidden in the UI.
+- **Role display**: Each player's game screen shows their own role — "Drawing" or "Guessing" — so there is no ambiguity about who does what.
+- **Session restore on game screen**: Refreshing the browser while on the game screen correctly restores the session. The drawer still sees their word; guessers still see the placeholder.
