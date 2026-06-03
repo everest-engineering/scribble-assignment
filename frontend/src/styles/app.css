@@ -214,6 +214,43 @@ input {
   cursor: crosshair;
 }
 
+.guess-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.guess-list li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.875rem;
+}
+
+.guess-list__player {
+  font-weight: 600;
+}
+
+.guess-list__text {
+  color: #374151;
+}
+
+.guess-list__item--correct .guess-list__text {
+  color: #047857;
+  font-weight: 600;
+}
+
+.guess-list__badge {
+  margin-left: auto;
+  font-size: 0.75rem;
+  color: #047857;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
 .page-header h1,
 .page-header h2 {
   margin: 0;
