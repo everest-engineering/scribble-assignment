@@ -94,7 +94,7 @@ export function createRoomsRouter() {
       const room = startGame(normalizeCode(code), participantId);
 
       response.json({
-        room: toRoomSnapshot(room)
+        room: toRoomSnapshot(room, participantId)
       });
     } catch (error) {
       next(error);
