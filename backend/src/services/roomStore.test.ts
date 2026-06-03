@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { HttpError } from "../api/schemas.js";
-import { createRoom, getRoom, joinRoom, startRound } from "./roomStore.js";
+import { STARTER_WORDS } from "../seed/starterData.js";
+import { createRoom, getRoom, joinRoom, pickWord, startRound, toRoomSnapshot } from "./roomStore.js";
 
 describe("roomStore", () => {
   it("createRoom returns a room with a 4-character uppercase code and a host", () => {
@@ -40,5 +41,35 @@ describe("roomStore", () => {
     expect(started.status).toBe("playing");
 
     expect(() => startRound(host.room.code, host.participantId)).toThrowError(/already started/i);
+  });
+
+  it("pickWord is deterministic and returns a starter word", () => {
+    expect(pickWord("ABCD")).toBe(pickWord("ABCD"));
+    expect(STARTER_WORDS).toContain(pickWord("WXYZ"));
+  });
+
+  it("startRound makes the host the drawer with a secret word", () => {
+    const host = createRoom("Alice");
+    joinRoom(host.room.code, "Bob");
+
+    const room = startRound(host.room.code, host.participantId);
+
+    expect(room.round?.drawerId).toBe(host.participantId);
+    expect(room.round?.word).toBe(pickWord(host.room.code));
+  });
+
+  it("exposes the word only to the drawer during play", () => {
+    const host = createRoom("Alice");
+    const bob = joinRoom(host.room.code, "Bob");
+    startRound(host.room.code, host.participantId);
+    const room = getRoom(host.room.code);
+
+    const drawerView = toRoomSnapshot(room, host.participantId);
+    const guesserView = toRoomSnapshot(room, bob.participantId);
+
+    expect(drawerView.word).toBe(pickWord(host.room.code));
+    expect(drawerView.viewer?.role).toBe("drawer");
+    expect(guesserView.word).toBeNull();
+    expect(guesserView.viewer?.role).toBe("guesser");
   });
 });

@@ -14,6 +14,12 @@ export function JoinRoomPage() {
     event.preventDefault();
 
     const trimmedCode = roomCode.trim().toUpperCase();
+    const trimmedName = playerName.trim();
+
+    if (trimmedName.length === 0) {
+      setError("Player name is required");
+      return;
+    }
 
     if (trimmedCode.length === 0) {
       setError("Enter a valid 4-character room code");
@@ -22,7 +28,7 @@ export function JoinRoomPage() {
 
     try {
       setError(null);
-      await roomStore.joinRoom(trimmedCode, playerName);
+      await roomStore.joinRoom(trimmedCode, trimmedName);
       navigate("/lobby");
     } catch (caughtError) {
       setError(caughtError instanceof Error ? caughtError.message : "Unable to join room");

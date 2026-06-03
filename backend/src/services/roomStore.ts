@@ -65,6 +65,15 @@ export function listWords() {
   return [...STARTER_WORDS];
 }
 
+/**
+ * Deterministically pick a word from the starter list as a pure function of the
+ * room code, so the same room always gets the same word (reproducible/testable).
+ */
+export function pickWord(code: string) {
+  const charCodeSum = [...code].reduce((sum, character) => sum + character.charCodeAt(0), 0);
+  return STARTER_WORDS[charCodeSum % STARTER_WORDS.length];
+}
+
 export function createRoom(playerName: string) {
   const participant = createParticipant(playerName);
   const room: Room = {
@@ -103,8 +112,8 @@ export function getRoom(code: string) {
 }
 
 /**
- * Validate that the round can begin and move the room into "playing".
- * Drawer assignment and word selection are added in feature group 2.
+ * Validate that the round can begin, assign the drawer (the host) and the
+ * deterministic secret word, and move the room into "playing".
  */
 export function startRound(code: string, participantId: string) {
   const room = requireRoom(code, "Room not found");
@@ -121,6 +130,13 @@ export function startRound(code: string, participantId: string) {
     throw new HttpError(409, "Game already started");
   }
 
+  room.round = {
+    drawerId: room.hostId,
+    word: pickWord(room.code),
+    strokes: [],
+    guesses: [],
+    winnerId: null
+  };
   room.status = "playing";
   room.updatedAt = now();
 
