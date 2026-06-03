@@ -52,3 +52,16 @@ The starter provided a runnable but intentionally incomplete scaffold for a Scri
 - **Word privacy**: The drawer sees the secret word on their screen. Every other player sees only a neutral placeholder ("A word has been chosen — start guessing!"). This privacy is enforced at the API level — the backend sends `currentWord: null` to anyone who is not the drawer, not just hidden in the UI.
 - **Role display**: Each player's game screen shows their own role — "Drawing" or "Guessing" — so there is no ambiguity about who does what.
 - **Session restore on game screen**: Refreshing the browser while on the game screen correctly restores the session. The drawer still sees their word; guessers still see the placeholder.
+
+---
+
+### Feature 003 — Gameplay Interaction
+
+- **Interactive drawing canvas**: The drawer can draw freehand strokes on an HTML5 canvas using pointer events. Each stroke (a series of points with color and line width) is submitted to the backend on pointer-up and stored in `room.strokes`. The drawer can also clear the canvas at any time, which resets `room.strokes` to an empty array.
+- **Live canvas sync for guessers**: Guesser screens display a read-only canvas that redraws all stored strokes on every poll cycle (~2 seconds). The full stroke list is replayed on each update to avoid accumulation artifacts — the canvas is cleared and redrawn from scratch each time.
+- **Polling on the game screen**: The game screen now polls `GET /rooms/:code` every ~2 seconds (via `setInterval`) to keep canvas state, guess history, and scores in sync across all players. The interval is cleaned up on unmount.
+- **Guess submission**: Guessers can submit text guesses via an inline form. The backend trims and case-insensitively compares the guess against the current word. Empty or whitespace-only submissions are rejected with a 400. Correct guesses award 100 points; incorrect guesses award 0.
+- **Drawer excluded from guessing**: The drawer cannot submit guesses. The backend enforces this with a 403, and the client hides the guess form entirely when the player is the drawer.
+- **Block after correct guess**: Once a player has guessed correctly, the backend rejects any further attempts from that player with a 403. On the client, the guess form is replaced with a "You already guessed correctly!" message. This state is also derived from `room.guesses` on session restore — refreshing the page does not reset the block.
+- **Guess history panel**: All players see a continuously updated list of every guess submitted in the current round, showing the submitter's name, the guess text, and whether it was correct or incorrect.
+- **Scoreboard**: All players see a live scoreboard sorted by score descending, showing each participant's name and current point total. Scores start at 0 when a game begins and update after each correct guess.
