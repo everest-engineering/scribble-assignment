@@ -2,13 +2,33 @@ import { useState } from "react";
 
 interface GuessFormProps {
   disabled?: boolean;
+  onSubmitGuess?: (guess: string) => Promise<unknown> | unknown;
 }
 
-export function GuessForm({ disabled = false }: GuessFormProps) {
-  const [guessText, setGuessText] = useState("");
+export function normalizeGuessText(text: string) {
+  return text.trim();
+}
 
-  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+export function GuessForm({ disabled = false, onSubmitGuess }: GuessFormProps) {
+  const [guessText, setGuessText] = useState("");
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    const trimmedGuess = normalizeGuessText(guessText);
+
+    if (!trimmedGuess) {
+      setError("Guess is required");
+      return;
+    }
+
+    try {
+      setError(null);
+      await onSubmitGuess?.(trimmedGuess);
+      setGuessText("");
+    } catch (caughtError) {
+      setError(caughtError instanceof Error ? caughtError.message : "Unable to submit guess");
+    }
   }
 
   return (
@@ -20,8 +40,10 @@ export function GuessForm({ disabled = false }: GuessFormProps) {
           onChange={(event) => setGuessText(event.target.value)}
           placeholder="Type your guess here..."
           disabled={disabled}
+          aria-invalid={Boolean(error)}
         />
       </label>
+      {error ? <p className="form__error">{error}</p> : null}
       <div className="button-row button-row--compact">
         <button className="button button--primary" type="submit" disabled={disabled}>
           Submit Guess

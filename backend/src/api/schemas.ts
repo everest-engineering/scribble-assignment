@@ -1,19 +1,55 @@
 import { z } from "zod";
 
+const playerNameSchema = z
+  .string()
+  .trim()
+  .min(1, "Player name is required")
+  .max(40, "Player name must be 40 characters or fewer");
+
+const roomCodeSchema = z
+  .string()
+  .trim()
+  .toUpperCase()
+  .regex(/^[A-Z0-9]{4}$/, "Room code must be 4 letters or numbers");
+
+const participantIdSchema = z.string().trim().min(1, "Participant id is required");
+
 export const createRoomSchema = z.object({
-  playerName: z.string().optional()
+  playerName: playerNameSchema
 });
 
 export const joinRoomSchema = z.object({
-  playerName: z.string().optional()
+  playerName: playerNameSchema
 });
 
 export const roomCodeParamsSchema = z.object({
-  code: z.string()
+  code: roomCodeSchema
 });
 
 export const roomViewerQuerySchema = z.object({
-  participantId: z.string().optional()
+  participantId: participantIdSchema.optional()
+});
+
+export const participantActionSchema = z.object({
+  participantId: participantIdSchema
+});
+
+export const pointSchema = z.object({
+  x: z.number().finite(),
+  y: z.number().finite()
+});
+
+export const strokeSchema = z.object({
+  id: z.string().trim().min(1),
+  points: z.array(pointSchema)
+});
+
+export const drawingUpdateSchema = participantActionSchema.extend({
+  strokes: z.array(strokeSchema)
+});
+
+export const guessSchema = participantActionSchema.extend({
+  text: z.string().trim().min(1, "Guess is required").max(80, "Guess must be 80 characters or fewer")
 });
 
 export class HttpError extends Error {

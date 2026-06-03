@@ -1,11 +1,31 @@
 import { Card } from "./Card";
+import type { RoomSnapshot } from "../services/api";
 
-export function ResultPanel() {
+interface ResultPanelProps {
+  room: RoomSnapshot;
+}
+
+export function ResultPanel({ room }: ResultPanelProps) {
+  return <ResultPanelView room={room} />;
+}
+
+export function ResultPanelView({ room }: ResultPanelProps) {
   return (
     <Card title="Activity">
-      <div className="placeholder-block" style={{ backgroundColor: '#f9fafb' }}>
-        <p style={{ fontSize: '0.875rem', color: '#6b7280' }}>Game activity and guesses will appear here.</p>
-      </div>
+      {room.guesses.length === 0 ? (
+        <p className="placeholder-note">No guesses yet</p>
+      ) : (
+        <ol className="guess-list">
+          {room.guesses.map((guess) => (
+            <li key={guess.id} className={guess.isCorrect ? "guess-list__item guess-list__item--correct" : "guess-list__item"}>
+              <span>
+                <strong>{guess.participantName}</strong>: {guess.text}
+              </span>
+              <span>{guess.scoreDelta > 0 ? `+${guess.scoreDelta}` : "0"}</span>
+            </li>
+          ))}
+        </ol>
+      )}
     </Card>
   );
 }
