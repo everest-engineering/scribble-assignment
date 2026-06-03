@@ -82,6 +82,10 @@ export function joinRoom(code: string, playerName?: string) {
     return null;
   }
 
+  if (room.status !== "lobby") {
+    throw new HttpError(400, "Game already in progress");
+  }
+
   const participant = createParticipant(playerName);
   room.participants.push(participant);
   room.updatedAt = now();
