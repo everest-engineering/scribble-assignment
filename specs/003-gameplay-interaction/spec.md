@@ -57,6 +57,7 @@ A guesser can type a word into a guess input field and submit it during an activ
 3. **Given** a guesser submits a guess that does not match the secret word, **Then** 0 points are added and the incorrect guess is recorded in history.
 4. **Given** a guesser submits an empty string or whitespace-only input, **Then** the system rejects the submission and no guess is recorded.
 5. **Given** the current player is the drawer, **When** they view the guess input, **Then** the input field is not accessible to them.
+6. **Given** a guesser has already submitted a correct guess this round, **When** they view the guess input, **Then** the input field is disabled and they cannot submit further guesses.
 
 ---
 
@@ -82,6 +83,7 @@ All players in the room see an up-to-date guess history log showing who guessed 
 - What happens if a player submits the same incorrect guess multiple times? Each submission is recorded as a separate entry; no deduplication.
 - What happens if the polling request fails (network error)? The display retains the last known state; no error message interrupts gameplay.
 - What happens when the round has not started yet and a player tries to submit a guess? The guess input is disabled until the round is active.
+- What happens when the last remaining guesser submits a correct guess? The round ends immediately without waiting for the timer to expire.
 
 ## Requirements *(mandatory)*
 
@@ -100,9 +102,13 @@ All players in the room see an up-to-date guess history log showing who guessed 
 - **FR-011**: The system MUST award 0 points for an incorrect guess.
 - **FR-012**: The system MUST maintain a guess history log for each round containing all valid (non-empty) guesses.
 - **FR-013**: The guess history MUST be synced to all players in the room via polling.
-- **FR-014**: Each entry in the guess history MUST include the guesser's display name and the submitted guess text.
+- **FR-014**: Each entry in the guess history MUST include the guesser's display name, the submitted guess text, and the outcome (correct or incorrect), visible to all players.
+- **FR-014a**: Correct guess entries MUST be visually distinguished by displaying the guess text in green.
 - **FR-015**: The guess input field MUST be inaccessible to the drawer during their turn.
 - **FR-016**: Scoring MUST be deterministic: identical inputs always produce identical point outcomes.
+- **FR-017**: Once a guesser submits a correct guess and earns 100 points, their guess input MUST be disabled for the remainder of that round.
+- **FR-018**: A round MUST end when either (a) the round timer expires or (b) all guessers have each submitted a correct guess, whichever occurs first.
+- **FR-019**: When a round ends, all guess inputs and the drawing canvas MUST become inactive (no further submissions or drawing strokes accepted).
 
 ### Key Entities
 
@@ -121,6 +127,14 @@ All players in the room see an up-to-date guess history log showing who guessed 
 - **SC-004**: All players in a room see the same guess history within one polling cycle of a new guess being submitted.
 - **SC-005**: A player completing a full guess submission (type word → submit) can do so in under 10 seconds under normal conditions.
 - **SC-006**: Scoring is deterministic: the same guess text against the same secret word always yields the same score outcome across all sessions.
+
+## Clarifications
+
+### Session 2026-06-03
+
+- Q: After a correct guess, can the guesser submit further guesses that round? → A: No — the guess input is disabled for that guesser for the remainder of the round once they guess correctly.
+- Q: What triggers the end of a round? → A: Time limit expires OR all guessers have guessed correctly, whichever comes first.
+- Q: Is guess outcome (correct/incorrect) visible to all players in the history? → A: Yes — all players see each entry labelled correct or incorrect; correct guess text is displayed in green.
 
 ## Assumptions
 

@@ -31,5 +31,6 @@
 
 ## Notes
 
-- All items pass. Specification is ready for `/speckit-clarify` or `/speckit-plan`.
+- All items pass. Specification updated by clarification session 2026-06-03.
 - "Polling" as a delivery mechanism is user-specified (not an implementation assumption), so its presence in the spec is intentional.
+- Green colouring of correct guesses is a user-specified visual outcome, not an implementation detail.
