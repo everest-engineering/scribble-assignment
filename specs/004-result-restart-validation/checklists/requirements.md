@@ -31,5 +31,6 @@
 
 ## Notes
 
-- All items pass. Spec is ready for `/speckit-clarify` or `/speckit-plan`.
+- All items pass. Spec is ready for `/speckit-plan`.
 - FR-010 (late-joining player during results screen) and edge cases around host-disconnect are flagged as out of scope in Assumptions — intentionally deferred.
+- Clarification session 2026-06-03: 5 questions answered — scoring model (per-round), auto-advance timeout (30s), drawer scoring (50 pts/correct guesser), disconnected player guesses (retained), countdown visibility (shown). All checklist items remain passing.

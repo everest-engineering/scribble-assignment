@@ -41,6 +41,8 @@ After the results screen is displayed, the host can trigger a restart that retur
 2. **Given** the host has restarted the game, **When** players arrive at the lobby, **Then** no previous round data (scores, guesses, drawn word) is visible.
 3. **Given** the host has restarted the game, **When** a non-host player views the lobby, **Then** they see the same player list as before the round, with no round data remaining.
 4. **Given** the results screen is displayed, **When** a non-host player attempts to restart the game, **Then** the restart action is not available to them (only the host can restart).
+5. **Given** the results screen is displayed and the host has not acted, **When** 30 seconds elapse, **Then** all players are automatically returned to the lobby with players preserved and round state cleared.
+6. **Given** the results screen is displayed, **When** any player views it, **Then** a visible countdown is shown indicating seconds remaining before auto-advance, decrementing each second.
 
 ---
 
@@ -63,7 +65,7 @@ All guesses submitted during the round are shown on the results screen so every 
 ### Edge Cases
 
 - What happens when only one player is in the room when the round ends?
-- How does the system handle a player disconnecting mid-round — are their guesses still shown in the history?
+- How does the system handle a player disconnecting mid-round — are their guesses still shown in the history? **Resolved: Yes — guesses and score are retained in the results screen even if the player disconnected.**
 - What if the host disconnects before clicking restart — can another player assume host or is restart blocked?
 - What happens if a player joins the room while the results screen is showing — do they see results or go straight to lobby?
 - What if the round ends at the exact moment a player submits a final guess — is that guess included in history?
@@ -73,19 +75,23 @@ All guesses submitted during the round are shown on the results screen so every 
 ### Functional Requirements
 
 - **FR-001**: System MUST display the correct word to all players when a round ends, regardless of whether the word was guessed.
-- **FR-002**: System MUST show each player's final score for the completed round on the results screen.
+- **FR-002**: System MUST show each player's score for the completed round on the results screen (per-round points only; scores are not cumulative across rounds).
+- **FR-002a**: The drawer's score MUST reflect 50 points earned for each player who correctly guessed the word during the round; this is calculated and displayed on the results screen alongside guesser scores.
 - **FR-003**: System MUST display the full chronological guess history from the round, including the player name for each guess.
 - **FR-004**: System MUST visually distinguish correct guesses from incorrect guesses in the guess history.
 - **FR-005**: System MUST transition all connected players to the results screen simultaneously when a round ends.
-- **FR-006**: System MUST allow only the host to trigger a return-to-lobby restart from the results screen.
+- **FR-006**: System MUST allow only the host to manually trigger an early return-to-lobby from the results screen.
+- **FR-006a**: System MUST automatically return all players to the lobby after 30 seconds on the results screen if the host has not triggered a manual restart.
+- **FR-006b**: System MUST display a visible countdown on the results screen showing how many seconds remain before auto-advance (e.g., "Returning to lobby in 28s…"), updating each second.
 - **FR-007**: System MUST return all current players to the lobby when the host initiates a restart, preserving the player list.
 - **FR-008**: System MUST clear all round-specific state (word, scores, guesses, canvas) when the host initiates a restart.
 - **FR-009**: System MUST show an empty state message in the guess history if no guesses were submitted during the round.
 - **FR-010**: System MUST handle a late-joining player during the results screen by either showing them the results or redirecting them to the lobby.
+- **FR-011**: System MUST retain and display the guesses and score of any player who disconnected mid-round; disconnection does not remove their contribution from the results screen.
 
 ### Key Entities
 
-- **Round Result**: The outcome snapshot of a completed round — includes the correct word, all player scores, and the ordered guess history.
+- **Round Result**: The outcome snapshot of a completed round — includes the correct word, all player scores (guesser scores from correct guesses; drawer score from 50 pts × number of correct guessers), and the ordered guess history.
 - **Player**: A participant in the room, identified by name; persisted across the restart into the lobby.
 - **Guess**: A single guess attempt submitted during the round — includes the player who made it, the guess text, and whether it was correct.
 - **Room**: The shared game session containing players, round state, and the results; persists across rounds with the same players.
@@ -95,11 +101,21 @@ All guesses submitted during the round are shown on the results screen so every 
 ### Measurable Outcomes
 
 - **SC-001**: All players see the results screen (correct word, scores, and guess history) within 2 seconds of a round ending.
-- **SC-002**: 100% of players in the room at round-end are shown accurate scores and the correct word — no player sees stale or missing data.
+- **SC-002**: 100% of players in the room at round-end are shown accurate per-round scores and the correct word — no player sees stale or missing data.
 - **SC-003**: The full guess history on the results screen is complete — no guesses submitted during the round are missing.
-- **SC-004**: After the host triggers a restart, all players arrive in the lobby within 3 seconds and the player list matches the pre-round player list exactly.
+- **SC-004**: After the host triggers a manual restart or the 30-second auto-advance fires, all players arrive in the lobby within 3 seconds and the player list matches the pre-round player list exactly.
 - **SC-005**: Zero round-specific data (word, guesses, scores) is visible to any player after a successful restart to the lobby.
 - **SC-006**: 95% of playtest sessions conclude a round and return to the lobby without requiring a page refresh or manual reconnect.
+
+## Clarifications
+
+### Session 2026-06-03
+
+- Q: Are player scores per-round only or session-cumulative? → A: Per-round only — scores reset to 0 on restart; results screen shows points earned in the current round.
+- Q: Should the results screen auto-advance to the lobby if the host doesn't restart? → A: Yes — auto-advance after ~30 seconds if the host has not acted; host can still trigger early restart.
+- Q: Does the drawer earn any points when a round ends? → A: Yes — drawer earns 50 points for each player who correctly guessed the word during the round.
+- Q: If a player disconnects mid-round, are their guesses retained in the results screen history? → A: Yes — guesses and score of a disconnected player are retained and shown on the results screen.
+- Q: Should the results screen show a visible countdown for the auto-advance? → A: Yes — a visible countdown (e.g., "Returning to lobby in 28s…") is shown to all players.
 
 ## Assumptions
 
