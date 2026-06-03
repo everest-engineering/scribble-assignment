@@ -25,7 +25,7 @@ export interface RoomSnapshot {
   hostId: string;
   drawerId: string | null;
   currentWord: string | null;
-  status: "lobby" | "active";
+  status: "lobby" | "active" | "ended";
   participants: Participant[];
   availableWords: string[];
   roles: ParticipantRole[];
@@ -100,6 +100,18 @@ export const api = {
     return request<{ guess: Guess; room: RoomSnapshot }>(`/rooms/${encodeURIComponent(code)}/guess`, {
       method: "POST",
       body: JSON.stringify({ participantId, text })
+    });
+  },
+  endRoom(code: string, participantId: string) {
+    return request<{ room: RoomSnapshot }>(`/rooms/${encodeURIComponent(code)}/end`, {
+      method: "POST",
+      body: JSON.stringify({ participantId })
+    });
+  },
+  restartRoom(code: string, participantId: string) {
+    return request<{ room: RoomSnapshot }>(`/rooms/${encodeURIComponent(code)}/restart`, {
+      method: "POST",
+      body: JSON.stringify({ participantId })
     });
   }
 };

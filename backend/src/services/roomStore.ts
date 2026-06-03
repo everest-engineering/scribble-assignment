@@ -107,9 +107,11 @@ export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSn
     code: room.code,
     hostId: room.hostId,
     drawerId: room.drawerId,
-    currentWord: viewerParticipantId === room.drawerId && room.drawerId !== null
+    currentWord: room.status === "ended"
       ? room.currentWord
-      : null,
+      : viewerParticipantId === room.drawerId && room.drawerId !== null
+        ? room.currentWord
+        : null,
     status: room.status,
     participants: room.participants.map((participant) => ({ ...participant })),
     availableWords: listWords(),

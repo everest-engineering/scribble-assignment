@@ -3,10 +3,12 @@ import { Router } from "express";
 import {
   clearSchema,
   createRoomSchema,
+  endRoomSchema,
   guessSchema,
   HttpError,
   joinRoomParamsSchema,
   joinRoomSchema,
+  restartRoomSchema,
   roomCodeParamsSchema,
   roomViewerQuerySchema,
   startRoomSchema,
@@ -157,6 +159,49 @@ export function createRoomsRouter() {
       const updatedRoom = saveRoom(room);
 
       response.json({ guess, room: toRoomSnapshot(updatedRoom!, participantId) });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/:code/end", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId } = endRoomSchema.parse(request.body);
+      const room = getRoom(code.toUpperCase());
+
+      if (!room) throw new HttpError(404, "Room not found");
+      if (participantId !== room.hostId) throw new HttpError(403, "Only the host can end the round");
+      if (room.status !== "active") throw new HttpError(400, "Room is not active");
+
+      room.status = "ended";
+      const updatedRoom = saveRoom(room);
+
+      response.json({ room: toRoomSnapshot(updatedRoom!, participantId) });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/:code/restart", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId } = restartRoomSchema.parse(request.body);
+      const room = getRoom(code.toUpperCase());
+
+      if (!room) throw new HttpError(404, "Room not found");
+      if (participantId !== room.hostId) throw new HttpError(403, "Only the host can restart");
+      if (room.status !== "ended") throw new HttpError(400, "Room is not ended");
+
+      room.status = "lobby";
+      room.currentWord = null;
+      room.drawerId = null;
+      room.strokes = [];
+      room.guesses = [];
+      room.scores = {};
+      const updatedRoom = saveRoom(room);
+
+      response.json({ room: toRoomSnapshot(updatedRoom!, participantId) });
     } catch (error) {
       next(error);
     }

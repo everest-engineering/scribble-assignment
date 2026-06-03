@@ -144,6 +144,20 @@ export class RoomStore {
     return response.guess;
   }
 
+  async endRoom() {
+    if (!this.state.room || !this.state.participantId) throw new Error("No active room");
+    const response = await api.endRoom(this.state.room.code, this.state.participantId);
+    this.setRoomSnapshot(response.room);
+    return response;
+  }
+
+  async restartRoom() {
+    if (!this.state.room || !this.state.participantId) throw new Error("No active room");
+    const response = await api.restartRoom(this.state.room.code, this.state.participantId);
+    this.setRoomSnapshot(response.room);
+    return response;
+  }
+
   async restoreSession(): Promise<boolean> {
     try {
       const saved = sessionStorage.getItem(SESSION_KEY);

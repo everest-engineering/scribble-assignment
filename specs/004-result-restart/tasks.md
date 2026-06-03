@@ -24,8 +24,8 @@ description: "Task list for Result, Restart & Final Validation"
 
 **Purpose**: Confirm the project runs cleanly before making changes.
 
-- [ ] T001 Start backend (`cd backend && npm run dev`) and confirm `GET /health` returns `{ "ok": true }`
-- [ ] T002 Start frontend (`cd frontend && npm run dev`) and confirm the app loads at `http://localhost:5173`
+- [x] T001 Start backend (`cd backend && npm run dev`) and confirm `GET /health` returns `{ "ok": true }`
+- [x] T002 Start frontend (`cd frontend && npm run dev`) and confirm the app loads at `http://localhost:5173`
 
 ---
 
@@ -35,10 +35,10 @@ description: "Task list for Result, Restart & Final Validation"
 
 ⚠️ **CRITICAL**: No user story work can begin until this phase is complete.
 
-- [ ] T003 In `backend/src/models/game.ts`, change the `status` field on both `Room` and `RoomSnapshot` from `"lobby" | "active"` to `"lobby" | "active" | "ended"`
-- [ ] T004 In `backend/src/services/roomStore.ts`, update `toRoomSnapshot` so that when `room.status === "ended"`, `currentWord` is always set to `room.currentWord` for all viewers (not nulled out); preserve the existing null-for-non-drawers logic for `"active"` and `"lobby"` states
-- [ ] T005 [P] In `frontend/src/services/api.ts`, extend the `RoomSnapshot.status` type from `"lobby" | "active"` to `"lobby" | "active" | "ended"`
-- [ ] T006 In `frontend/src/pages/GamePage.tsx`, update the `useEffect` that guards navigation based on `room.status`: change it so `"active"` → stay on page (unchanged), `"ended"` → stay on page (new), `"lobby"` → `navigate("/lobby", { replace: true })` (new), anything else → `navigate("/", { replace: true })` (fallback)
+- [x] T003 In `backend/src/models/game.ts`, change the `status` field on both `Room` and `RoomSnapshot` from `"lobby" | "active"` to `"lobby" | "active" | "ended"`
+- [x] T004 In `backend/src/services/roomStore.ts`, update `toRoomSnapshot` so that when `room.status === "ended"`, `currentWord` is always set to `room.currentWord` for all viewers (not nulled out); preserve the existing null-for-non-drawers logic for `"active"` and `"lobby"` states
+- [x] T005 [P] In `frontend/src/services/api.ts`, extend the `RoomSnapshot.status` type from `"lobby" | "active"` to `"lobby" | "active" | "ended"`
+- [x] T006 In `frontend/src/pages/GamePage.tsx`, update the `useEffect` that guards navigation based on `room.status`: change it so `"active"` → stay on page (unchanged), `"ended"` → stay on page (new), `"lobby"` → `navigate("/lobby", { replace: true })` (new), anything else → `navigate("/", { replace: true })` (fallback)
 
 **Checkpoint**: Run `npm run build` in `backend/` — TypeScript must compile with zero errors. Confirm the `status` type change is reflected in both model files before proceeding.
 
@@ -52,12 +52,12 @@ description: "Task list for Result, Restart & Final Validation"
 
 ### Implementation for User Story 1
 
-- [ ] T007 [US1] Add `endRoomSchema` (`{ participantId: z.string() }`) to `backend/src/api/schemas.ts`
-- [ ] T008 [US1] Add `POST /:code/end` handler to `backend/src/api/rooms.ts`: parse with `endRoomSchema`; look up room (404 if missing); throw 403 if `participantId !== room.hostId`; throw 400 if `room.status !== "active"`; set `room.status = "ended"`; save; return `{ room: toRoomSnapshot(room, participantId) }`
-- [ ] T009 [P] [US1] Add `endRoom(code: string, participantId: string): Promise<{ room: RoomSnapshot }>` method to `frontend/src/services/api.ts`
-- [ ] T010 [P] [US1] Add `endRoom()` method to the `RoomStore` class in `frontend/src/state/roomStore.ts`: call `api.endRoom(code, participantId)`, update the room snapshot in store state with the response
-- [ ] T011 [US1] In `frontend/src/pages/GamePage.tsx`, add an "End Round" button inside the active game UI: derive `isHost = participantId !== null && room.hostId === participantId`; render the button only when `isHost && room.status === "active"`; clicking calls `roomStore.endRoom()`
-- [ ] T012 [US1] In `frontend/src/pages/GamePage.tsx`, add a result UI block rendered when `room.status === "ended"`: display a "Round Over" section header; show `room.currentWord` prominently (it is now non-null for all viewers); render `<Scoreboard scores={room.scores} participants={room.participants} />`; render `<ResultPanel guesses={room.guesses} participants={room.participants} />`
+- [x] T007 [US1] Add `endRoomSchema` (`{ participantId: z.string() }`) to `backend/src/api/schemas.ts`
+- [x] T008 [US1] Add `POST /:code/end` handler to `backend/src/api/rooms.ts`: parse with `endRoomSchema`; look up room (404 if missing); throw 403 if `participantId !== room.hostId`; throw 400 if `room.status !== "active"`; set `room.status = "ended"`; save; return `{ room: toRoomSnapshot(room, participantId) }`
+- [x] T009 [P] [US1] Add `endRoom(code: string, participantId: string): Promise<{ room: RoomSnapshot }>` method to `frontend/src/services/api.ts`
+- [x] T010 [P] [US1] Add `endRoom()` method to the `RoomStore` class in `frontend/src/state/roomStore.ts`: call `api.endRoom(code, participantId)`, update the room snapshot in store state with the response
+- [x] T011 [US1] In `frontend/src/pages/GamePage.tsx`, add an "End Round" button inside the active game UI: derive `isHost = participantId !== null && room.hostId === participantId`; render the button only when `isHost && room.status === "active"`; clicking calls `roomStore.endRoom()`
+- [x] T012 [US1] In `frontend/src/pages/GamePage.tsx`, add a result UI block rendered when `room.status === "ended"`: display a "Round Over" section header; show `room.currentWord` prominently (it is now non-null for all viewers); render `<Scoreboard scores={room.scores} participants={room.participants} />`; render `<ResultPanel guesses={room.guesses} participants={room.participants} />`
 
 **Checkpoint**: Tab A clicks "End Round"; both tabs transition to the result view within ~2 seconds. Result view shows the correct word to Tab B (guesser), final scores, and all guesses. Tab B has no End Round button.
 
@@ -71,11 +71,11 @@ description: "Task list for Result, Restart & Final Validation"
 
 ### Implementation for User Story 2
 
-- [ ] T013 [US2] Add `restartRoomSchema` (`{ participantId: z.string() }`) to `backend/src/api/schemas.ts`
-- [ ] T014 [US2] Add `POST /:code/restart` handler to `backend/src/api/rooms.ts`: parse with `restartRoomSchema`; look up room (404 if missing); throw 403 if `participantId !== room.hostId`; throw 400 if `room.status !== "ended"`; reset `room.status = "lobby"`, `room.currentWord = null`, `room.drawerId = null`, `room.strokes = []`, `room.guesses = []`, `room.scores = {}`; save; return `{ room: toRoomSnapshot(room, participantId) }`
-- [ ] T015 [P] [US2] Add `restartRoom(code: string, participantId: string): Promise<{ room: RoomSnapshot }>` method to `frontend/src/services/api.ts`
-- [ ] T016 [P] [US2] Add `restartRoom()` method to the `RoomStore` class in `frontend/src/state/roomStore.ts`: call `api.restartRoom(code, participantId)`, update the room snapshot in store state with the response
-- [ ] T017 [US2] In `frontend/src/pages/GamePage.tsx`, add a "Restart" button inside the result UI block (from T012): render it only when `isHost`; clicking calls `roomStore.restartRoom()`; after calling, the polling will detect `room.status === "lobby"` and the navigation guard (from T006) will redirect all players to `/lobby` automatically
+- [x] T013 [US2] Add `restartRoomSchema` (`{ participantId: z.string() }`) to `backend/src/api/schemas.ts`
+- [x] T014 [US2] Add `POST /:code/restart` handler to `backend/src/api/rooms.ts`: parse with `restartRoomSchema`; look up room (404 if missing); throw 403 if `participantId !== room.hostId`; throw 400 if `room.status !== "ended"`; reset `room.status = "lobby"`, `room.currentWord = null`, `room.drawerId = null`, `room.strokes = []`, `room.guesses = []`, `room.scores = {}`; save; return `{ room: toRoomSnapshot(room, participantId) }`
+- [x] T015 [P] [US2] Add `restartRoom(code: string, participantId: string): Promise<{ room: RoomSnapshot }>` method to `frontend/src/services/api.ts`
+- [x] T016 [P] [US2] Add `restartRoom()` method to the `RoomStore` class in `frontend/src/state/roomStore.ts`: call `api.restartRoom(code, participantId)`, update the room snapshot in store state with the response
+- [x] T017 [US2] In `frontend/src/pages/GamePage.tsx`, add a "Restart" button inside the result UI block (from T012): render it only when `isHost`; clicking calls `roomStore.restartRoom()`; after calling, the polling will detect `room.status === "lobby"` and the navigation guard (from T006) will redirect all players to `/lobby` automatically
 
 **Checkpoint**: Tab A clicks "Restart"; both tabs are redirected to the lobby within ~2 seconds. Lobby shows both players still present; no round state (no word, no guesses, scores cleared). Host can start a new game.
 
@@ -85,8 +85,8 @@ description: "Task list for Result, Restart & Final Validation"
 
 **Purpose**: Build validation and end-to-end acceptance check.
 
-- [ ] T018 [P] Run `npm run build` in `backend/` and confirm zero TypeScript errors
-- [ ] T019 [P] Run `npm run build` in `frontend/` and confirm zero TypeScript errors
+- [x] T018 [P] Run `npm run build` in `backend/` and confirm zero TypeScript errors
+- [x] T019 [P] Run `npm run build` in `frontend/` and confirm zero TypeScript errors
 - [ ] T020 Complete the full validation flow in `specs/004-result-restart/quickstart.md` using two browser tabs and confirm all 15 checks in the validation table pass
 
 ---

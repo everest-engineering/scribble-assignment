@@ -32,9 +32,13 @@ export function GamePage() {
   }, [room, navigate, roomStore]);
 
   useEffect(() => {
-    if (room && room.status !== "active") {
-      navigate("/", { replace: true });
+    if (!room) return;
+    if (room.status === "active" || room.status === "ended") return;
+    if (room.status === "lobby") {
+      navigate("/lobby", { replace: true });
+      return;
     }
+    navigate("/", { replace: true });
   }, [room, navigate]);
 
   useEffect(() => {
@@ -50,8 +54,46 @@ export function GamePage() {
   }
 
   const isDrawer = participantId !== null && room.drawerId === participantId;
+  const isHost = participantId !== null && room.hostId === participantId;
   const drawerParticipant = room.participants.find((p) => p.id === room.drawerId);
   const viewer = room.participants.find((p) => p.id === participantId) ?? null;
+
+  if (room.status === "ended") {
+    return (
+      <section className="panel game-page">
+        <div className="game-page__header">
+          <div className="game-page__header-left">
+            <span className="section-kicker">Round Over</span>
+            <h1 className="game-page__title">
+              The word was: <strong>{room.currentWord}</strong>
+            </h1>
+          </div>
+          <RoomCodeBadge code={room.code} />
+        </div>
+
+        <div className="game-page__layout">
+          <aside className="game-page__sidebar game-page__sidebar--left">
+            <Scoreboard scores={room.scores} participants={room.participants} />
+          </aside>
+
+          <div className="game-page__main">
+            <ResultPanel guesses={room.guesses} participants={room.participants} />
+          </div>
+        </div>
+
+        <div className="button-row">
+          {isHost && (
+            <button
+              className="button button--primary"
+              onClick={() => roomStore.restartRoom().catch(() => {})}
+            >
+              Restart
+            </button>
+          )}
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section className="panel game-page">
@@ -119,6 +161,14 @@ export function GamePage() {
       </div>
 
       <div className="button-row">
+        {isHost && (
+          <button
+            className="button button--primary"
+            onClick={() => roomStore.endRoom().catch(() => {})}
+          >
+            End Round
+          </button>
+        )}
         <button className="button button--secondary" onClick={() => navigate("/lobby")}>
           Exit Game
         </button>
