@@ -98,6 +98,18 @@ class RoomStore {
     this.setRoomSnapshot(response.room);
     return response.room;
   }
+
+  async startGame() {
+    const { room, participantId } = this.state;
+
+    if (!room || !participantId) {
+      return null;
+    }
+
+    const response = await this.withLoading(() => api.startGame(room.code, participantId));
+    this.setRoomSnapshot(response.room);
+    return response.room;
+  }
 }
 
 const RoomStoreContext = createContext<RoomStore | null>(null);
@@ -127,4 +139,33 @@ export function useRoomStore() {
 export function useRoomState() {
   const store = useRoomStore();
   return useSyncExternalStore(store.subscribe, store.getSnapshot, store.getSnapshot);
+}
+
+/**
+ * Poll the current room on an interval while the calling screen is mounted.
+ * A failed poll is swallowed (the store records the error) so transient network
+ * blips never tear down the interval.
+ */
+export function useRoomPolling(intervalMs: number) {
+  const store = useRoomStore();
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const poll = () => {
+      void store.fetchRoom().catch(() => undefined);
+    };
+
+    poll();
+    const timer = window.setInterval(() => {
+      if (!cancelled) {
+        poll();
+      }
+    }, intervalMs);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+    };
+  }, [intervalMs, store]);
 }

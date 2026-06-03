@@ -1,17 +1,53 @@
 export type ParticipantRole = "drawer" | "guesser";
+export type RoomStatus = "lobby" | "playing" | "results";
 
-export interface Participant {
+export interface Point {
+  x: number;
+  y: number;
+}
+
+export interface Stroke {
+  color: string;
+  width: number;
+  points: Point[];
+}
+
+export interface ParticipantView {
   id: string;
   name: string;
-  joinedAt: string;
+  score: number;
+  isHost: boolean;
+  isDrawer: boolean;
+}
+
+export interface GuessView {
+  id: string;
+  participantId: string;
+  playerName: string;
+  text: string;
+  correct: boolean;
+  createdAt: string;
+}
+
+export interface ViewerView {
+  participantId: string;
+  isHost: boolean;
+  isDrawer: boolean;
+  role: ParticipantRole | null;
 }
 
 export interface RoomSnapshot {
   code: string;
-  status: "lobby";
-  participants: Participant[];
+  status: RoomStatus;
+  hostId: string;
+  participants: ParticipantView[];
+  drawerId: string | null;
+  guesses: GuessView[];
+  strokes: Stroke[];
+  word: string | null;
   availableWords: string[];
   roles: ParticipantRole[];
+  viewer: ViewerView | null;
 }
 
 export interface RoomSessionResponse {
@@ -19,7 +55,7 @@ export interface RoomSessionResponse {
   room: RoomSnapshot;
 }
 
-const API_BASE_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3001/bug";
+const API_BASE_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3001";
 
 async function request<T>(path: string, init?: RequestInit) {
   const response = await fetch(`${API_BASE_URL}${path}`, {
@@ -57,5 +93,11 @@ export const api = {
   fetchRoom(code: string, participantId?: string) {
     const query = participantId ? `?participantId=${encodeURIComponent(participantId)}` : "";
     return request<{ room: RoomSnapshot }>(`/rooms/${encodeURIComponent(code)}${query}`);
+  },
+  startGame(code: string, participantId: string) {
+    return request<{ room: RoomSnapshot }>(`/rooms/${encodeURIComponent(code)}/start`, {
+      method: "POST",
+      body: JSON.stringify({ participantId })
+    });
   }
 };
