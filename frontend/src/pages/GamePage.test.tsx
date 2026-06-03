@@ -53,4 +53,17 @@ describe("GamePageView", () => {
     expect(html).toContain("Hidden from guessers");
     expect(html).not.toContain("rocket");
   });
+
+  it("renders shared drawing strokes and clear controls", () => {
+    const roomWithDrawing: RoomSnapshot = {
+      ...activeRoom,
+      drawing: { strokes: [{ id: "stroke-1", points: [{ x: 10, y: 20 }, { x: 30, y: 40 }] }] }
+    };
+    const html = renderToStaticMarkup(
+      <GamePageView room={roomWithDrawing} participantId="p1" onExit={vi.fn()} />
+    );
+
+    expect(html).toContain("M 10 20 L 30 40");
+    expect(html).toContain("Clear Canvas");
+  });
 });

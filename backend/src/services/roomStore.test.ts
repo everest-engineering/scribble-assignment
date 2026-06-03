@@ -1,5 +1,14 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { createRoom, joinRoom, resetRoomsForTest, startGame, toRoomSnapshot } from "./roomStore.js";
+import {
+  clearDrawing,
+  createRoom,
+  joinRoom,
+  resetRoomsForTest,
+  startGame,
+  submitGuess,
+  toRoomSnapshot,
+  updateDrawing
+} from "./roomStore.js";
 
 describe("roomStore", () => {
   beforeEach(() => {
@@ -89,5 +98,68 @@ describe("roomStore", () => {
       [host.participantId]: 0,
       [guest.participantId]: 0
     });
+  });
+
+  it("allows only the drawer to update and clear drawing state", () => {
+    const host = createRoom("Alice");
+    const guest = joinRoom(host.room.code, "Bob");
+    if (!guest) {
+      throw new Error("Expected Bob to join");
+    }
+    startGame(host.room.code, host.participantId);
+
+    expect(() => updateDrawing(host.room.code, guest.participantId, [])).toThrow("Only the drawer can perform this action");
+
+    const drawnRoom = updateDrawing(host.room.code, host.participantId, [
+      { id: "stroke-1", points: [{ x: 10, y: 20 }, { x: 30, y: 40 }] }
+    ]);
+
+    expect(toRoomSnapshot(drawnRoom, guest.participantId).drawing.strokes).toHaveLength(1);
+    expect(toRoomSnapshot(clearDrawing(host.room.code, host.participantId), guest.participantId).drawing.strokes).toEqual([]);
+  });
+
+  it("rejects empty guesses and drawer guesses", () => {
+    const host = createRoom("Alice");
+    const guest = joinRoom(host.room.code, "Bob");
+    if (!guest) {
+      throw new Error("Expected Bob to join");
+    }
+    startGame(host.room.code, host.participantId);
+
+    expect(() => submitGuess(host.room.code, guest.participantId, "   ")).toThrow("Guess is required");
+    expect(() => submitGuess(host.room.code, host.participantId, "rocket")).toThrow("Drawer cannot submit guesses");
+  });
+
+  it("records incorrect guesses with 0 points and keeps the round active", () => {
+    const host = createRoom("Alice");
+    const guest = joinRoom(host.room.code, "Bob");
+    if (!guest) {
+      throw new Error("Expected Bob to join");
+    }
+    startGame(host.room.code, host.participantId);
+
+    const room = submitGuess(host.room.code, guest.participantId, " comet ");
+    const snapshot = toRoomSnapshot(room, guest.participantId);
+
+    expect(snapshot.status).toBe("active");
+    expect(snapshot.guesses).toMatchObject([{ text: "comet", isCorrect: false, scoreDelta: 0 }]);
+    expect(snapshot.scores[guest.participantId]).toBe(0);
+  });
+
+  it("scores case-insensitive correct guesses and moves the room to result", () => {
+    const host = createRoom("Alice");
+    const guest = joinRoom(host.room.code, "Bob");
+    if (!guest) {
+      throw new Error("Expected Bob to join");
+    }
+    startGame(host.room.code, host.participantId);
+
+    const room = submitGuess(host.room.code, guest.participantId, "ROCKET");
+    const snapshot = toRoomSnapshot(room, guest.participantId);
+
+    expect(snapshot.status).toBe("result");
+    expect(snapshot.secretWord).toBe("rocket");
+    expect(snapshot.guesses).toMatchObject([{ text: "ROCKET", isCorrect: true, scoreDelta: 100 }]);
+    expect(snapshot.scores[guest.participantId]).toBe(100);
   });
 });

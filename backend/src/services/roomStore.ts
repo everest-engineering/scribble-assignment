@@ -174,6 +174,44 @@ export function clearDrawing(code: string, participantId: string) {
   return cloneRoom(room);
 }
 
+export function submitGuess(code: string, participantId: string, text: string) {
+  const room = requireActiveRoom(code);
+  const participant = findParticipant(room, participantId);
+  const trimmedText = text.trim();
+
+  if (!participant) {
+    throw new RoomStoreError(404, "Participant not found");
+  }
+  if (room.round.drawerParticipantId === participantId) {
+    throw new RoomStoreError(403, "Drawer cannot submit guesses");
+  }
+  if (!trimmedText) {
+    throw new RoomStoreError(400, "Guess is required");
+  }
+
+  const isCorrect = trimmedText.toLocaleLowerCase() === room.round.secretWord.toLocaleLowerCase();
+  const scoreDelta = isCorrect ? 100 : 0;
+  const guess = {
+    id: randomUUID(),
+    participantId,
+    participantName: participant.name,
+    text: trimmedText,
+    isCorrect,
+    scoreDelta,
+    createdAt: now()
+  };
+
+  room.round.guesses.push(guess);
+  if (scoreDelta > 0) {
+    room.round.scores[participantId] = (room.round.scores[participantId] ?? 0) + scoreDelta;
+    room.round.endedAt = now();
+    room.status = "result";
+  }
+  room.updatedAt = now();
+  rooms.set(room.code, room);
+  return cloneRoom(room);
+}
+
 export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSnapshot {
   const viewer = viewerParticipantId ? findParticipant(room, viewerParticipantId) : null;
   const round = room.round;

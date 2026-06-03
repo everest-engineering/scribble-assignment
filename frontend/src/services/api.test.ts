@@ -63,4 +63,59 @@ describe("api service", () => {
       })
     );
   });
+
+  it("updateDrawing sends strokes to /rooms/:code/drawing", async () => {
+    const mockResponse = {
+      ok: true,
+      json: () => Promise.resolve({ room: { code: "ABCD", status: "active", participants: [] } }),
+    };
+    vi.mocked(fetch).mockResolvedValue(mockResponse as unknown as Response);
+    const strokes = [{ id: "stroke-1", points: [{ x: 10, y: 20 }] }];
+
+    await api.updateDrawing("ABCD", "p1", strokes);
+
+    expect(fetch).toHaveBeenCalledWith(
+      expect.stringContaining("/rooms/ABCD/drawing"),
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({ participantId: "p1", strokes }),
+      })
+    );
+  });
+
+  it("clearDrawing sends participant id to /rooms/:code/drawing/clear", async () => {
+    const mockResponse = {
+      ok: true,
+      json: () => Promise.resolve({ room: { code: "ABCD", status: "active", participants: [] } }),
+    };
+    vi.mocked(fetch).mockResolvedValue(mockResponse as unknown as Response);
+
+    await api.clearDrawing("ABCD", "p1");
+
+    expect(fetch).toHaveBeenCalledWith(
+      expect.stringContaining("/rooms/ABCD/drawing/clear"),
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({ participantId: "p1" }),
+      })
+    );
+  });
+
+  it("submitGuess sends trimmed guess text to /rooms/:code/guesses caller payload", async () => {
+    const mockResponse = {
+      ok: true,
+      json: () => Promise.resolve({ room: { code: "ABCD", status: "active", participants: [] } }),
+    };
+    vi.mocked(fetch).mockResolvedValue(mockResponse as unknown as Response);
+
+    await api.submitGuess("ABCD", "p2", "rocket");
+
+    expect(fetch).toHaveBeenCalledWith(
+      expect.stringContaining("/rooms/ABCD/guesses"),
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({ participantId: "p2", text: "rocket" }),
+      })
+    );
+  });
 });

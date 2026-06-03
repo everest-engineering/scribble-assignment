@@ -459,6 +459,64 @@ input {
   text-transform: uppercase;
 }
 
+.drawing-board {
+  display: grid;
+  gap: 16px;
+}
+
+.drawing-board__canvas {
+  width: 100%;
+  aspect-ratio: 10 / 7;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #ffffff;
+  touch-action: none;
+}
+
+.drawing-board__canvas--active {
+  cursor: crosshair;
+}
+
+.drawing-board__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.score-list,
+.guess-list {
+  display: grid;
+  gap: 10px;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.score-list li,
+.guess-list__item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-strong);
+}
+
+.score-list strong {
+  color: var(--ink);
+  font-size: 1.125rem;
+}
+
+.guess-list__item--correct {
+  border-color: #86efac;
+  background: #f0fdf4;
+  color: #14532d;
+}
+
 /* --- GAME PAGE LAYOUT --- */
 /* Changed layout structure to be much wider and utilize screen space */
 .game-page {

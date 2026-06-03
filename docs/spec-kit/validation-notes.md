@@ -27,7 +27,12 @@ Status: Passed automated validation.
 
 ## Scenario 3 - Gameplay Interaction
 
-Status: Pending.
+Status: Passed automated validation.
+
+- Backend room store tests cover drawer-only drawing updates, clear drawing, empty guess rejection, drawer guess rejection, incorrect guesses, case-insensitive correct guesses, 100-point scoring, and result transition.
+- Backend routes now accept drawing updates, clear actions, and guesses with schema validation.
+- Frontend tests cover drawing path rendering, clear controls, API/store request handling, trimmed guess normalization, score rendering, and shared guess history rendering.
+- Game page now polls active rooms, renders a shared SVG drawing canvas, allows only the drawer to draw/clear, disables guessing for the drawer, and shows synchronized scores and guesses.
 
 ## Scenario 4 - Result, Restart & Final Validation
 
@@ -37,9 +42,9 @@ Status: Pending.
 
 Status: Partial pass after Scenario 1.
 
-- `backend`: `npm run test` passed, 15 tests.
+- `backend`: `npm run test` passed, 19 tests.
 - `backend`: `npm run build` passed.
-- `frontend`: `npm run test` passed, 8 tests.
+- `frontend`: `npm run test` passed, 18 tests.
 - `frontend`: `npm run build` passed.
 
 ## Manual Two-Browser Validation

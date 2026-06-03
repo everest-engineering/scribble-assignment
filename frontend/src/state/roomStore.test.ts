@@ -73,4 +73,38 @@ describe("RoomStore", () => {
     expect(api.startGame).toHaveBeenCalledWith("ABCD", "p1");
     expect(store.getSnapshot().room?.status).toBe("active");
   });
+
+  it("updateDrawing stores the returned drawing snapshot", async () => {
+    const response: RoomSessionResponse = { participantId: "p1", room: { ...lobbyRoom, status: "active", viewerRole: "drawer" } };
+    const strokes = [{ id: "stroke-1", points: [{ x: 10, y: 20 }] }];
+    vi.mocked(api.createRoom).mockResolvedValue(response);
+    vi.mocked(api.updateDrawing).mockResolvedValue({ room: { ...response.room, drawing: { strokes } } });
+    const store = new RoomStore();
+
+    await store.createRoom("Alice");
+    await store.updateDrawing(strokes);
+
+    expect(api.updateDrawing).toHaveBeenCalledWith("ABCD", "p1", strokes);
+    expect(store.getSnapshot().room?.drawing.strokes).toHaveLength(1);
+  });
+
+  it("submitGuess stores the returned guess and score snapshot", async () => {
+    const response: RoomSessionResponse = { participantId: "p2", room: { ...lobbyRoom, status: "active", viewerRole: "guesser" } };
+    vi.mocked(api.joinRoom).mockResolvedValue(response);
+    vi.mocked(api.submitGuess).mockResolvedValue({
+      room: {
+        ...response.room,
+        guesses: [{ id: "g1", participantId: "p2", participantName: "Bob", text: "rocket", isCorrect: true, scoreDelta: 100, createdAt: "now" }],
+        scores: { p1: 0, p2: 100 }
+      }
+    });
+    const store = new RoomStore();
+
+    await store.joinRoom("ABCD", "Bob");
+    await store.submitGuess("rocket");
+
+    expect(api.submitGuess).toHaveBeenCalledWith("ABCD", "p2", "rocket");
+    expect(store.getSnapshot().room?.guesses).toHaveLength(1);
+    expect(store.getSnapshot().room?.scores.p2).toBe(100);
+  });
 });

@@ -72,14 +72,14 @@
 
 **Independent Test**: Drawer drawing and clear actions sync; empty guesses are rejected; incorrect and correct guesses update history and scores.
 
-- [ ] T022 [P] [US3] Add backend tests for drawer-only drawing updates, clear drawing, guess validation, drawer-guess rejection, incorrect guesses, correct guesses, scoring, and result transition in `backend/src/services/roomStore.test.ts`
-- [ ] T023 [P] [US3] Add frontend tests for drawing controls, guess form validation, guess history, and score rendering in `frontend/src/pages/GamePage.test.tsx`, `frontend/src/components/GuessForm.test.tsx`, and `frontend/src/components/Scoreboard.test.tsx`
-- [ ] T024 [US3] Implement drawing update, clear drawing, submit guess, score update, and result transition service logic in `backend/src/services/roomStore.ts`
-- [ ] T025 [US3] Add drawing, clear, and guess routes in `backend/src/api/rooms.ts`
-- [ ] T026 [US3] Implement API client and room-store methods for drawing, clear, and guesses in `frontend/src/services/api.ts` and `frontend/src/state/roomStore.ts`
-- [ ] T027 [US3] Replace placeholder canvas with drawer-only interactive drawing and clear controls in `frontend/src/pages/GamePage.tsx` and `frontend/src/styles/app.css`
-- [ ] T028 [US3] Implement guess form submission, feedback, synced history, and score display in `frontend/src/components/GuessForm.tsx`, `frontend/src/components/Scoreboard.tsx`, and `frontend/src/pages/GamePage.tsx`
-- [ ] T029 [US3] Record scenario 3 validation notes in `docs/spec-kit/validation-notes.md`
+- [X] T022 [P] [US3] Add backend tests for drawer-only drawing updates, clear drawing, guess validation, drawer-guess rejection, incorrect guesses, correct guesses, scoring, and result transition in `backend/src/services/roomStore.test.ts`
+- [X] T023 [P] [US3] Add frontend tests for drawing controls, guess form validation, guess history, and score rendering in `frontend/src/pages/GamePage.test.tsx`, `frontend/src/components/GuessForm.test.tsx`, and `frontend/src/components/Scoreboard.test.tsx`
+- [X] T024 [US3] Implement drawing update, clear drawing, submit guess, score update, and result transition service logic in `backend/src/services/roomStore.ts`
+- [X] T025 [US3] Add drawing, clear, and guess routes in `backend/src/api/rooms.ts`
+- [X] T026 [US3] Implement API client and room-store methods for drawing, clear, and guesses in `frontend/src/services/api.ts` and `frontend/src/state/roomStore.ts`
+- [X] T027 [US3] Replace placeholder canvas with drawer-only interactive drawing and clear controls in `frontend/src/pages/GamePage.tsx` and `frontend/src/styles/app.css`
+- [X] T028 [US3] Implement guess form submission, feedback, synced history, and score display in `frontend/src/components/GuessForm.tsx`, `frontend/src/components/Scoreboard.tsx`, and `frontend/src/pages/GamePage.tsx`
+- [X] T029 [US3] Record scenario 3 validation notes in `docs/spec-kit/validation-notes.md`
 
 **Checkpoint**: Scenario 3 acceptance criteria and SC-005 and SC-006 pass without regressing US1-US2.
 
