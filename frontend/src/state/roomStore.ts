@@ -7,7 +7,7 @@ import {
   useSyncExternalStore,
   type PropsWithChildren
 } from "react";
-import { api, type RoomSessionResponse, type RoomSnapshot } from "../services/api";
+import { api, type RoomSessionResponse, type RoomSnapshot, type StrokeInput } from "../services/api";
 
 export interface RoomState {
   room: RoomSnapshot | null;
@@ -90,11 +90,111 @@ class RoomStore {
   }
 
   async fetchRoom() {
-    if (!this.state.room) {
+    const currentRoom = this.state.room;
+
+    if (!currentRoom) {
       return null;
     }
 
-    const response = await api.fetchRoom(this.state.room.code, this.state.participantId ?? undefined);
+    const response = await this.withLoading(() =>
+      api.fetchRoom(currentRoom.code, this.state.participantId ?? undefined)
+    );
+    this.setRoomSnapshot(response.room);
+    return response.room;
+  }
+
+  async startGame() {
+    const currentRoom = this.state.room;
+    const participantId = this.state.participantId;
+
+    if (!currentRoom || !participantId) {
+      throw new Error("No active room session");
+    }
+
+    const response = await this.withLoading(() =>
+      api.startGame(currentRoom.code, participantId)
+    );
+    this.setRoomSnapshot(response.room);
+    return response.room;
+  }
+
+  async fetchRoomPoll() {
+    const currentRoom = this.state.room;
+
+    if (!currentRoom) {
+      return null;
+    }
+
+    try {
+      const response = await api.fetchRoom(
+        currentRoom.code,
+        this.state.participantId ?? undefined
+      );
+      this.setRoomSnapshot(response.room);
+      return response.room;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unexpected request failure";
+      this.setState({ error: message });
+      return null;
+    }
+  }
+
+  async appendStroke(stroke: StrokeInput) {
+    const currentRoom = this.state.room;
+    const participantId = this.state.participantId;
+
+    if (!currentRoom || !participantId) {
+      throw new Error("No active room session");
+    }
+
+    const response = await this.withLoading(() =>
+      api.appendStroke(currentRoom.code, participantId, stroke)
+    );
+    this.setRoomSnapshot(response.room);
+    return response.room;
+  }
+
+  async clearStrokes() {
+    const currentRoom = this.state.room;
+    const participantId = this.state.participantId;
+
+    if (!currentRoom || !participantId) {
+      throw new Error("No active room session");
+    }
+
+    const response = await this.withLoading(() =>
+      api.clearStrokes(currentRoom.code, participantId)
+    );
+    this.setRoomSnapshot(response.room);
+    return response.room;
+  }
+
+  async submitGuess(text: string) {
+    const currentRoom = this.state.room;
+    const participantId = this.state.participantId;
+
+    if (!currentRoom || !participantId) {
+      throw new Error("No active room session");
+    }
+
+    const response = await this.withLoading(() =>
+      api.submitGuess(currentRoom.code, participantId, text)
+    );
+    this.setRoomSnapshot(response.room);
+    return response.room;
+  }
+
+  async restartGame() {
+    const currentRoom = this.state.room;
+    const participantId = this.state.participantId;
+
+    if (!currentRoom || !participantId) {
+      throw new Error("No active room session");
+    }
+
+    const response = await this.withLoading(() =>
+      api.restartGame(currentRoom.code, participantId)
+    );
     this.setRoomSnapshot(response.room);
     return response.room;
   }

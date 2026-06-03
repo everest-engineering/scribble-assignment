@@ -1,49 +1,98 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { Canvas } from "../components/Canvas";
 import { Card } from "../components/Card";
 import { GuessForm } from "../components/GuessForm";
 import { ResultPanel } from "../components/ResultPanel";
 import { RoomCodeBadge } from "../components/RoomCodeBadge";
 import { Scoreboard } from "../components/Scoreboard";
-import { useRoomState } from "../state/roomStore";
+import { useRoomPolling } from "../hooks/useRoomPolling";
+import { useRoomState, useRoomStore } from "../state/roomStore";
 
 export function GamePage() {
   const navigate = useNavigate();
-  const { room, participantId } = useRoomState();
+  const roomStore = useRoomStore();
+  const { room, participantId, isLoading } = useRoomState();
 
   useEffect(() => {
     if (!room) {
       navigate("/", { replace: true });
+      return;
+    }
+
+    if (room.status === "lobby") {
+      navigate("/lobby", { replace: true });
     }
   }, [navigate, room]);
 
-  if (!room) {
+  useRoomPolling(() => {
+    void roomStore.fetchRoomPoll();
+  }, Boolean(room && (room.status === "playing" || room.status === "result")));
+
+  if (!room || !participantId) {
     return null;
   }
 
   const viewer = room.participants.find((participant) => participant.id === participantId) ?? null;
+  const isHost = participantId === room.hostParticipantId;
+  const isDrawer = room.viewer?.isDrawer ?? false;
+  const secretWord = room.currentRound?.secretWord ?? null;
+  const strokes = room.currentRound?.strokes ?? [];
+  const guesses = room.currentRound?.guesses ?? [];
+  const scores = room.currentRound?.scores ?? [];
+  const isResult = room.status === "result";
+  const canGuess = room.status === "playing" && !isDrawer;
+  const canDraw = room.status === "playing" && isDrawer;
+  const roundLabel =
+    room.currentRound !== undefined ? `Round ${room.currentRound.roundIndex + 1}` : "Round 1";
+  const statusLabel =
+    room.status === "result" ? "Result" : room.status === "playing" ? "Playing" : room.status;
 
   return (
     <section className="panel game-page">
       <div className="game-page__header">
         <div className="game-page__header-left">
-          <span className="section-kicker">Round 1</span>
-          <h1 className="game-page__title">Guess the Word!</h1>
+          <span className="section-kicker">{roundLabel}</span>
+          <h1 className="game-page__title">{isResult ? "Round Over!" : "Guess the Word!"}</h1>
         </div>
         <RoomCodeBadge code={room.code} />
       </div>
 
       <div className="game-page__layout">
         <aside className="game-page__sidebar game-page__sidebar--left">
-          <Scoreboard />
-          <ResultPanel />
+          {isResult ? (
+            <Card title="Final Scores">
+              <Scoreboard scores={scores} />
+            </Card>
+          ) : isDrawer && secretWord ? (
+            <Card title="Your Word">
+              <p className="word-card" style={{ fontSize: "1.5rem", fontWeight: 700, margin: 0 }}>
+                {secretWord}
+              </p>
+              <p style={{ marginTop: "8px", color: "#6b7280" }}>Draw this word for others to guess.</p>
+            </Card>
+          ) : (
+            <Card title="What's being drawn?">
+              <p style={{ margin: 0 }}>Watch the canvas and submit your guess when ready.</p>
+            </Card>
+          )}
+          {!isResult ? <Scoreboard scores={scores} /> : null}
+          <ResultPanel guesses={guesses} status={room.status} secretWord={secretWord} />
         </aside>
 
         <div className="game-page__main">
           <Card title="Canvas">
-            <div className="canvas-placeholder" style={{ minHeight: '500px', backgroundColor: '#ffffff', border: '1px solid #e5e7eb' }}>
-              Waiting for drawer...
-            </div>
+            <Canvas
+              strokes={strokes}
+              isDrawer={isDrawer}
+              disabled={!canDraw}
+              onStrokeComplete={(points) => {
+                void roomStore.appendStroke({ points, color: "#000000", width: 2 });
+              }}
+              onClear={() => {
+                void roomStore.clearStrokes();
+              }}
+            />
           </Card>
         </div>
 
@@ -55,22 +104,56 @@ export function GamePage() {
                 <dd>{viewer?.name ?? "Unknown player"}</dd>
               </div>
               <div>
+                <dt>Role</dt>
+                <dd>{isDrawer ? "Drawer" : "Guesser"}</dd>
+              </div>
+              <div>
                 <dt>Status</dt>
-                <dd>Playing</dd>
+                <dd>{statusLabel}</dd>
               </div>
             </dl>
           </Card>
 
           <Card title="Your Guess">
-            <GuessForm />
+            {isResult ? (
+              <p style={{ fontSize: "0.875rem", color: "#6b7280", margin: 0 }}>
+                Round is over. Wait for the host to restart.
+              </p>
+            ) : isDrawer ? (
+              <p style={{ fontSize: "0.875rem", color: "#6b7280", margin: 0 }}>
+                Only guessers can submit guesses.
+              </p>
+            ) : (
+              <GuessForm disabled={!canGuess} />
+            )}
           </Card>
         </aside>
       </div>
 
       <div className="button-row">
-        <button className="button button--secondary" onClick={() => navigate("/lobby")}>
-          Exit Game
-        </button>
+        {isResult && isHost ? (
+          <button
+            className="button button--primary"
+            disabled={isLoading}
+            onClick={() => {
+              void roomStore.restartGame().then(() => {
+                navigate("/lobby");
+              });
+            }}
+          >
+            {isLoading ? "Restarting…" : "Play Again"}
+          </button>
+        ) : null}
+        {!isResult ? (
+          <button className="button button--secondary" onClick={() => navigate("/lobby")}>
+            Exit Game
+          </button>
+        ) : null}
+        {isResult && !isHost ? (
+          <p className="form__error" style={{ margin: 0 }}>
+            Only the host can restart the game
+          </p>
+        ) : null}
       </div>
     </section>
   );

@@ -1,6 +1,7 @@
 import type { NextFunction, Request, Response } from "express";
 import { Router } from "express";
-import { createRoomsRouter } from "./rooms.js";
+import type { ZodError } from "zod";
+import { createRoomsRouter, mapRoomStoreError } from "./rooms.js";
 
 export function createApiRouter() {
   const router = Router();
@@ -30,12 +31,19 @@ export function errorHandler(
   _next: NextFunction
 ) {
   if (error.name === "ZodError") {
-    response.status(400).json({ message: "Invalid request payload" });
+    const zodError = error as ZodError;
+    const message = zodError.issues[0]?.message ?? "Invalid request payload";
+    response.status(400).json({ message });
     return;
   }
 
-  const statusCode = error.statusCode ?? 500;
+  const mappedError = mapRoomStoreError(error);
+  const resolvedError = mappedError instanceof Error ? mappedError : error;
+  const statusCode =
+    "statusCode" in resolvedError && typeof resolvedError.statusCode === "number"
+      ? resolvedError.statusCode
+      : 500;
   response.status(statusCode).json({
-    message: error.message || "Unexpected server error"
+    message: resolvedError.message || "Unexpected server error"
   });
 }
