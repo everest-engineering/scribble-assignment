@@ -6,10 +6,11 @@ import { ResultPanel } from "../components/ResultPanel";
 import { RoomCodeBadge } from "../components/RoomCodeBadge";
 import { Scoreboard } from "../components/Scoreboard";
 import { useLobbyPolling } from "../state/useLobbyPolling";
-import { useRoomState } from "../state/roomStore";
+import { useRoomState, useRoomStore } from "../state/roomStore";
 
 export function GamePage() {
   const navigate = useNavigate();
+  const roomStore = useRoomStore();
   const { room, participantId } = useRoomState();
 
   useLobbyPolling(room?.code ?? null);
@@ -85,9 +86,15 @@ export function GamePage() {
             </dl>
           </Card>
 
-          <Card title="Your Guess">
-            <GuessForm />
-          </Card>
+          {isDrawer ? null : (
+            <Card title="Your Guess">
+              <GuessForm
+                onSubmit={async (text) => {
+                  await roomStore.submitGuess(text);
+                }}
+              />
+            </Card>
+          )}
         </aside>
       </div>
 

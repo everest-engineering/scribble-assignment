@@ -106,6 +106,56 @@ describe("GamePage", () => {
     expect(text).toContain("Guesser");
   });
 
+  it("calls roomStore.submitGuess with the trimmed text when a guesser submits a guess", async () => {
+    const submitSpy = vi
+      .spyOn(api, "submitGuess")
+      .mockResolvedValue({ room: snapshot() });
+
+    await render(
+      "guest-id",
+      snapshot({
+        participants: [
+          { id: "host-id", name: "Alice", joinedAt: "t", score: 0 },
+          { id: "guest-id", name: "Bob", joinedAt: "t", score: 0 }
+        ]
+      })
+    );
+
+    const input = container.querySelector(".form__input") as HTMLInputElement;
+    expect(input).not.toBeNull();
+    await act(async () => {
+      const setter = Object.getOwnPropertyDescriptor(
+        window.HTMLInputElement.prototype,
+        "value"
+      )?.set;
+      setter?.call(input, "  rocket  ");
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+      const button = container.querySelector(
+        "button[type='submit']"
+      ) as HTMLButtonElement;
+      button.click();
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(submitSpy).toHaveBeenCalledWith("ABCD", "guest-id", "rocket");
+  });
+
+  it("does NOT render a GuessForm when the viewer is the drawer", async () => {
+    await render(
+      "host-id",
+      snapshot({
+        participants: [
+          { id: "host-id", name: "Alice", joinedAt: "t", score: 0 },
+          { id: "guest-id", name: "Bob", joinedAt: "t", score: 0 }
+        ]
+      })
+    );
+
+    const form = container.querySelector("form");
+    expect(form).toBeNull();
+  });
+
   it("returns null and navigates away when there is no room", async () => {
     const initialUrl = window.location.href;
     await act(async () => {

@@ -103,4 +103,48 @@ describe("api service", () => {
       "Only the host can start the game"
     );
   });
+
+  it("submitGuess sends POST to /rooms/:code/guess with participantId and text in body", async () => {
+    const mockResponse = {
+      ok: true,
+      json: () =>
+        Promise.resolve({
+          room: {
+            code: "ABCD",
+            status: "playing",
+            hostParticipantId: "host-id",
+            participants: [],
+            currentRound: { drawerParticipantId: "host-id", secretWord: null },
+            guesses: [],
+            availableWords: [],
+            roles: [],
+          },
+        }),
+    };
+    vi.mocked(fetch).mockResolvedValue(mockResponse as unknown as Response);
+
+    await api.submitGuess("ABCD", "guest-id", "rocket");
+
+    const calledUrl = vi.mocked(fetch).mock.calls[0]?.[0] as string;
+    expect(calledUrl).toBe("http://localhost:3001/rooms/ABCD/guess");
+    expect(fetch).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({ participantId: "guest-id", text: "rocket" }),
+      })
+    );
+  });
+
+  it("submitGuess surfaces the server's message verbatim on a non-ok response", async () => {
+    const mockResponse = {
+      ok: false,
+      json: () => Promise.resolve({ message: "Only guessers can submit guesses" }),
+    };
+    vi.mocked(fetch).mockResolvedValue(mockResponse as unknown as Response);
+
+    await expect(api.submitGuess("ABCD", "drawer-id", "rocket")).rejects.toThrow(
+      "Only guessers can submit guesses"
+    );
+  });
 });

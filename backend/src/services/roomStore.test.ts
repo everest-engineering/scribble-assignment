@@ -6,6 +6,7 @@ import {
   joinRoom,
   selectWord,
   startRoom,
+  submitGuess,
   toRoomSnapshot
 } from "./roomStore.js";
 
@@ -25,6 +26,35 @@ function unwrapStart(
     throw new Error(`expected start success, got ${JSON.stringify(result)}`);
   }
   return result;
+}
+
+function unwrapGuess(
+  result: ReturnType<typeof submitGuess>
+): { room: Room; guessId: string } {
+  if (result === null || "error" in result) {
+    throw new Error(`expected guess success, got ${JSON.stringify(result)}`);
+  }
+  return result;
+}
+
+function setupActiveRoom(): {
+  hostId: string;
+  guestId: string;
+  code: string;
+  secretWord: string;
+} {
+  const host = createRoom("Alice");
+  const guest = (joinRoom(host.room.code, "Bob") as unknown) as {
+    room: Room;
+    participantId: string;
+  };
+  const started = unwrapStart(startRoom(host.room.code, host.participantId));
+  return {
+    hostId: host.participantId,
+    guestId: guest.participantId,
+    code: host.room.code,
+    secretWord: started.room.currentRound!.secretWord
+  };
 }
 
 describe("roomStore", () => {
@@ -200,4 +230,148 @@ describe("roomStore", () => {
     });
   });
 
+  describe("submitGuess scoring + cap (T006 a-h)", () => {
+    it("appends a correct guess and bumps the guesser's score to 100", () => {
+      const { code, guestId, secretWord } = setupActiveRoom();
+
+      const result = unwrapGuess(submitGuess(code, guestId, secretWord));
+
+      expect(result.room.guesses).toHaveLength(1);
+      const entry = result.room.guesses[0];
+      expect(entry.guesserParticipantId).toBe(guestId);
+      expect(entry.text).toBe(secretWord);
+      expect(entry.isCorrect).toBe(true);
+      expect(entry.order).toBe(0);
+
+      const guesser = result.room.participants.find((p) => p.id === guestId);
+      expect(guesser?.score).toBe(100);
+    });
+
+    it("caps score at 100: a second correct guess by the same participant does not bump the score", () => {
+      const { code, guestId, secretWord } = setupActiveRoom();
+
+      unwrapGuess(submitGuess(code, guestId, secretWord));
+      const second = unwrapGuess(submitGuess(code, guestId, secretWord));
+
+      expect(second.room.guesses).toHaveLength(2);
+      expect(second.room.guesses[1].isCorrect).toBe(true);
+      expect(second.room.guesses[1].order).toBe(1);
+
+      const guesser = second.room.participants.find((p) => p.id === guestId);
+      expect(guesser?.score).toBe(100);
+    });
+
+    it("trims surrounding whitespace, preserves original casing, and matches case-insensitively", () => {
+      const { code, guestId, secretWord } = setupActiveRoom();
+      const mixedCase = secretWord
+        .split("")
+        .map((c, i) => (i % 2 === 0 ? c.toUpperCase() : c.toLowerCase()))
+        .join("");
+      const padded = `  ${mixedCase}  `;
+
+      const result = unwrapGuess(submitGuess(code, guestId, padded.trim()));
+
+      expect(result.room.guesses[0].text).toBe(mixedCase);
+      expect(result.room.guesses[0].isCorrect).toBe(true);
+    });
+
+    it("records an incorrect guess without changing the score", () => {
+      const { code, guestId } = setupActiveRoom();
+
+      const result = unwrapGuess(submitGuess(code, guestId, "definitely-wrong"));
+
+      expect(result.room.guesses[0].isCorrect).toBe(false);
+      const guesser = result.room.participants.find((p) => p.id === guestId);
+      expect(guesser?.score).toBe(0);
+    });
+
+    it("rejects a guess from the drawer with an is-drawer sentinel", () => {
+      const { code, hostId, secretWord } = setupActiveRoom();
+
+      const result = submitGuess(code, hostId, secretWord);
+
+      expect(result).toEqual({ error: "is-drawer" });
+    });
+
+    it("rejects a guess against a lobby-state room with a not-playing sentinel", () => {
+      const host = createRoom("Alice");
+      unwrapJoin(joinRoom(host.room.code, "Bob"));
+
+      const result = submitGuess(host.room.code, host.participantId, "rocket");
+
+      expect(result).toEqual({ error: "not-playing" });
+    });
+
+    it("returns null for an unknown room code", () => {
+      const result = submitGuess("ZZZZ", "anyone", "rocket");
+
+      expect(result).toBeNull();
+    });
+
+    it("startRoom resets every participant's score to 0 and initializes guesses to []", () => {
+      const { code, guestId, secretWord, hostId } = setupActiveRoom();
+      unwrapGuess(submitGuess(code, guestId, secretWord));
+
+      const replayed = unwrapStart(startRoom(code, hostId));
+      expect(replayed.room.guesses.length).toBeGreaterThan(0);
+      expect(
+        replayed.room.participants.find((p) => p.id === guestId)?.score
+      ).toBe(100);
+
+      const freshHost = createRoom("Carol");
+      const freshGuest = unwrapJoin(joinRoom(freshHost.room.code, "Dave"));
+      const freshStart = unwrapStart(
+        startRoom(freshHost.room.code, freshHost.participantId)
+      );
+      expect(freshStart.room.guesses).toEqual([]);
+      expect(
+        freshStart.room.participants.every((p) => p.score === 0)
+      ).toBe(true);
+      expect(freshGuest.room.code).toBe(freshHost.room.code);
+    });
+  });
+
+  describe("toRoomSnapshot guess-text redaction filter (T006 i-l)", () => {
+    it("delivers the real text to the original guesser for their own correct entries", () => {
+      const { code, guestId, secretWord } = setupActiveRoom();
+      const result = unwrapGuess(submitGuess(code, guestId, secretWord));
+
+      const snapshot = toRoomSnapshot(result.room, guestId);
+
+      expect(snapshot.guesses[0].text).toBe(secretWord);
+      expect(snapshot.guesses[0].isCorrect).toBe(true);
+    });
+
+    it("delivers the real text to the drawer for every correct entry, regardless of guesser", () => {
+      const { code, hostId, guestId, secretWord } = setupActiveRoom();
+      const result = unwrapGuess(submitGuess(code, guestId, secretWord));
+
+      const snapshot = toRoomSnapshot(result.room, hostId);
+
+      expect(snapshot.guesses[0].text).toBe(secretWord);
+    });
+
+    it("redacts correct-guess text for third-party viewers and preserves incorrect text", () => {
+      const { code, guestId, secretWord } = setupActiveRoom();
+      unwrapGuess(submitGuess(code, guestId, secretWord));
+      const result = unwrapGuess(submitGuess(code, guestId, "wrong-guess"));
+
+      const thirdPartyId = "no-such-id";
+      const snapshot = toRoomSnapshot(result.room, thirdPartyId);
+
+      expect(snapshot.guesses[0].text).toBeNull();
+      expect(snapshot.guesses[0].isCorrect).toBe(true);
+      expect(snapshot.guesses[1].text).toBe("wrong-guess");
+      expect(snapshot.guesses[1].isCorrect).toBe(false);
+    });
+
+    it("treats an undefined viewer as non-privileged and redacts correct entries", () => {
+      const { code, guestId, secretWord } = setupActiveRoom();
+      const result = unwrapGuess(submitGuess(code, guestId, secretWord));
+
+      const snapshot = toRoomSnapshot(result.room, undefined);
+
+      expect(snapshot.guesses[0].text).toBeNull();
+    });
+  });
 });

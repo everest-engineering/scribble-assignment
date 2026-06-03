@@ -15,6 +15,12 @@ export type JoinRoomResult =
   | { error: "room-not-open" }
   | null;
 
+export type SubmitGuessResult =
+  | { room: Room; guessId: string }
+  | { error: "not-playing" }
+  | { error: "is-drawer" }
+  | null;
+
 function now() {
   return new Date().toISOString();
 }
@@ -130,6 +136,10 @@ export function startRoom(code: string, participantId: string): StartRoomResult 
     return { error: "needs-quorum" };
   }
 
+  for (const participant of room.participants) {
+    participant.score = 0;
+  }
+  room.guesses = [];
   room.status = "playing";
   room.currentRound = {
     drawerParticipantId: room.hostParticipantId,
@@ -141,6 +151,59 @@ export function startRoom(code: string, participantId: string): StartRoomResult 
   return {
     room: cloneRoom(room),
     participantId
+  };
+}
+
+export function submitGuess(
+  code: string,
+  participantId: string,
+  text: string
+): SubmitGuessResult {
+  const room = rooms.get(code);
+
+  if (!room) {
+    return null;
+  }
+
+  if (room.status !== "playing" || !room.currentRound) {
+    return { error: "not-playing" };
+  }
+
+  if (participantId === room.currentRound.drawerParticipantId) {
+    return { error: "is-drawer" };
+  }
+
+  const isCorrect =
+    text.toLowerCase() === room.currentRound.secretWord.toLowerCase();
+
+  const hadPriorCorrect = room.guesses.some(
+    (entry) =>
+      entry.guesserParticipantId === participantId && entry.isCorrect
+  );
+
+  if (isCorrect && !hadPriorCorrect) {
+    const guesser = room.participants.find((p) => p.id === participantId);
+    if (guesser) {
+      guesser.score += 100;
+    }
+  }
+
+  const guess = {
+    id: randomUUID(),
+    guesserParticipantId: participantId,
+    text,
+    isCorrect,
+    submittedAt: now(),
+    order: room.guesses.length
+  };
+
+  room.guesses.push(guess);
+  room.updatedAt = now();
+  rooms.set(room.code, room);
+
+  return {
+    room: cloneRoom(room),
+    guessId: guess.id
   };
 }
 
@@ -165,13 +228,29 @@ export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSn
       }
     : null;
 
+  const drawerId = round?.drawerParticipantId;
+  const snapshotGuesses = room.guesses.map((entry) => {
+    const isPrivilegedViewer =
+      viewerParticipantId === entry.guesserParticipantId ||
+      (drawerId !== undefined && viewerParticipantId === drawerId);
+    const text = entry.isCorrect && !isPrivilegedViewer ? null : entry.text;
+    return {
+      id: entry.id,
+      guesserParticipantId: entry.guesserParticipantId,
+      text,
+      isCorrect: entry.isCorrect,
+      submittedAt: entry.submittedAt,
+      order: entry.order
+    };
+  });
+
   return {
     code: room.code,
     status: room.status,
     hostParticipantId: room.hostParticipantId,
     participants: room.participants.map((participant) => ({ ...participant })),
     currentRound: snapshotRound,
-    guesses: [],
+    guesses: snapshotGuesses,
     availableWords: listWords(),
     roles: [...STARTER_ROLES]
   };

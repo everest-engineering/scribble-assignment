@@ -111,6 +111,18 @@ class RoomStore {
     return response.room;
   }
 
+  async submitGuess(text: string) {
+    const room = this.state.room;
+    const participantId = this.state.participantId;
+    if (!room || !participantId) {
+      throw new Error("Cannot submit guess: no active room or participant identity");
+    }
+
+    const response = await api.submitGuess(room.code, participantId, text);
+    this.setRoomSnapshot(response.room);
+    return response.room;
+  }
+
   async hydrateSession(roomCode: string, participantId: string) {
     this.setState({
       participantId,

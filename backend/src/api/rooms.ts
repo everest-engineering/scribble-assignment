@@ -5,13 +5,15 @@ import {
   joinRoomSchema,
   roomCodeParamsSchema,
   roomViewerQuerySchema,
-  startRoomSchema
+  startRoomSchema,
+  submitGuessSchema
 } from "./schemas.js";
 import {
   createRoom,
   getRoom,
   joinRoom,
   startRoom,
+  submitGuess,
   toRoomSnapshot
 } from "../services/roomStore.js";
 
@@ -70,6 +72,31 @@ export function createRoomsRouter() {
           throw new HttpError(403, "Only the host can start the game");
         }
         throw new HttpError(400, "Need at least 2 players to start");
+      }
+
+      response.json({
+        room: toRoomSnapshot(result.room, participantId)
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/:code/guess", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId, text } = submitGuessSchema.parse(request.body);
+      const result = submitGuess(code.toUpperCase(), participantId, text);
+
+      if (result === null) {
+        throw new HttpError(404, "Room not found");
+      }
+
+      if ("error" in result) {
+        if (result.error === "not-playing") {
+          throw new HttpError(409, "Round has not started");
+        }
+        throw new HttpError(403, "Only guessers can submit guesses");
       }
 
       response.json({

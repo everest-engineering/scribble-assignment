@@ -3,7 +3,8 @@ import {
   createRoomSchema,
   joinRoomSchema,
   roomCodeParamsSchema,
-  startRoomSchema
+  startRoomSchema,
+  submitGuessSchema
 } from "./schemas.js";
 
 describe("schemas", () => {
@@ -98,5 +99,44 @@ describe("schemas", () => {
     expect(() => startRoomSchema.parse({})).toThrow();
     expect(() => startRoomSchema.parse({ participantId: "" })).toThrow();
     expect(() => startRoomSchema.parse({ participantId: 42 })).toThrow();
+  });
+
+  it("submitGuessSchema accepts a non-empty participantId and text", () => {
+    const result = submitGuessSchema.parse({ participantId: "x", text: "rocket" });
+
+    expect(result.participantId).toBe("x");
+    expect(result.text).toBe("rocket");
+  });
+
+  it("submitGuessSchema trims surrounding whitespace from text", () => {
+    const result = submitGuessSchema.parse({ participantId: "x", text: "  rocket  " });
+
+    expect(result.text).toBe("rocket");
+  });
+
+  it("submitGuessSchema rejects an empty text with 'Enter a guess'", () => {
+    try {
+      submitGuessSchema.parse({ participantId: "x", text: "" });
+      throw new Error("expected schema to throw");
+    } catch (error) {
+      expect(
+        (error as { issues?: Array<{ message: string }> }).issues?.[0]?.message
+      ).toBe("Enter a guess");
+    }
+  });
+
+  it("submitGuessSchema rejects a whitespace-only text with 'Enter a guess'", () => {
+    try {
+      submitGuessSchema.parse({ participantId: "x", text: "   " });
+      throw new Error("expected schema to throw");
+    } catch (error) {
+      expect(
+        (error as { issues?: Array<{ message: string }> }).issues?.[0]?.message
+      ).toBe("Enter a guess");
+    }
+  });
+
+  it("submitGuessSchema rejects a missing participantId", () => {
+    expect(() => submitGuessSchema.parse({ text: "rocket" })).toThrow();
   });
 });
