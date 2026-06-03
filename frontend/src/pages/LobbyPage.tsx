@@ -10,12 +10,21 @@ export function LobbyPage() {
   const roomStore = useRoomStore();
   const { room, participantId, error, isLoading } = useRoomState();
   const [refreshError, setRefreshError] = useState<string | null>(null);
+  const [startError, setStartError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!room) {
       navigate("/", { replace: true });
     }
   }, [navigate, room]);
+
+  // Once the room is playing, everyone (host and guessers via polling) moves to
+  // the game screen.
+  useEffect(() => {
+    if (room?.status === "playing") {
+      navigate("/game");
+    }
+  }, [navigate, room?.status]);
 
   // Poll the room snapshot roughly every 2s so new joins appear without a
   // manual refresh. Keyed on the code so successful polls don't restart it.
@@ -39,6 +48,16 @@ export function LobbyPage() {
       await roomStore.fetchRoom();
     } catch (caughtError) {
       setRefreshError(caughtError instanceof Error ? caughtError.message : "Unable to refresh room");
+    }
+  }
+
+  async function handleStart() {
+    try {
+      setStartError(null);
+      await roomStore.startGame();
+      // Navigation is handled by the status effect above.
+    } catch (caughtError) {
+      setStartError(caughtError instanceof Error ? caughtError.message : "Unable to start the game");
     }
   }
 
@@ -86,7 +105,7 @@ export function LobbyPage() {
           <p className="status-line" style={{ backgroundColor: isLoading ? '#fef3c7' : '#e0e7ff', color: isLoading ? '#b45309' : '#3730a3' }}>
             {isLoading ? "Refreshing players..." : "Ready to play"}
           </p>
-          <p style={{ marginTop: '8px' }}>{error ?? refreshError ?? "Waiting for the host to start the game."}</p>
+          <p style={{ marginTop: '8px' }}>{error ?? refreshError ?? startError ?? "Waiting for the host to start the game."}</p>
         </Card>
       </div>
 
@@ -96,9 +115,9 @@ export function LobbyPage() {
         </button>
         <button
           className="button button--primary"
-          disabled={!canStart}
+          disabled={!canStart || isLoading}
           title={startHint}
-          onClick={() => navigate("/game")}
+          onClick={handleStart}
         >
           Start Game
         </button>
