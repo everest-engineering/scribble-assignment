@@ -44,7 +44,35 @@ export function GamePage() {
 
       <div className="game-page__layout">
         <aside className="game-page__sidebar game-page__sidebar--left">
-          <Scoreboard />
+          <Scoreboard
+            participants={room.participants}
+            drawerParticipantId={round?.drawerParticipantId}
+          />
+          <Card title="Guess history">
+            {room.guesses.length === 0 ? (
+              <p>No guesses yet.</p>
+            ) : (
+              <ul className="player-list" data-testid="guess-history">
+                {[...room.guesses]
+                  .sort((a, b) => a.order - b.order)
+                  .map((entry) => {
+                    const guesser =
+                      room.participants.find((p) => p.id === entry.guesserParticipantId) ?? null;
+                    const displayedText = entry.text === null ? "<correct guess>" : entry.text;
+                    return (
+                      <li key={entry.id}>
+                        <span>
+                          <strong>{guesser?.name ?? "Unknown"}</strong>: {displayedText}
+                        </span>
+                        <span className="player-list__meta">
+                          {entry.isCorrect ? "correct" : "incorrect"}
+                        </span>
+                      </li>
+                    );
+                  })}
+              </ul>
+            )}
+          </Card>
           <ResultPanel />
         </aside>
 

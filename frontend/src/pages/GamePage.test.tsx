@@ -156,6 +156,113 @@ describe("GamePage", () => {
     expect(form).toBeNull();
   });
 
+  it("renders the scoreboard with participants and their scores, tagging the drawer", async () => {
+    await render(
+      "guest-id",
+      snapshot({
+        participants: [
+          { id: "host-id", name: "Alice", joinedAt: "t", score: 0 },
+          { id: "guest-id", name: "Bob", joinedAt: "t", score: 100 }
+        ]
+      })
+    );
+
+    const items = Array.from(container.querySelectorAll(".player-list li"));
+    expect(items.length).toBeGreaterThanOrEqual(2);
+    expect(items[0].textContent).toContain("Alice");
+    expect(items[0].textContent).toContain("Drawer");
+    expect(items[1].textContent).toContain("Bob");
+    expect(items[1].textContent).toContain("100");
+  });
+
+  it("renders guess history with real text for the original guesser", async () => {
+    await render(
+      "guest-id",
+      snapshot({
+        participants: [
+          { id: "host-id", name: "Alice", joinedAt: "t", score: 0 },
+          { id: "guest-id", name: "Bob", joinedAt: "t", score: 100 }
+        ],
+        guesses: [
+          {
+            id: "g1",
+            guesserParticipantId: "guest-id",
+            text: "rocket",
+            isCorrect: true,
+            submittedAt: "t",
+            order: 0
+          }
+        ]
+      })
+    );
+
+    const history = container.querySelector('[data-testid="guess-history"]');
+    expect(history).not.toBeNull();
+    expect(history!.textContent).toContain("Bob");
+    expect(history!.textContent).toContain("rocket");
+    expect(history!.textContent).toContain("correct");
+    expect(history!.textContent).not.toContain("<correct guess>");
+  });
+
+  it("renders the redaction placeholder for a correct entry whose text is null", async () => {
+    await render(
+      "carol-id",
+      snapshot({
+        participants: [
+          { id: "host-id", name: "Alice", joinedAt: "t", score: 0 },
+          { id: "bob-id", name: "Bob", joinedAt: "t", score: 100 },
+          { id: "carol-id", name: "Carol", joinedAt: "t", score: 0 }
+        ],
+        guesses: [
+          {
+            id: "g1",
+            guesserParticipantId: "bob-id",
+            text: null,
+            isCorrect: true,
+            submittedAt: "t",
+            order: 0
+          }
+        ]
+      })
+    );
+
+    const history = container.querySelector('[data-testid="guess-history"]');
+    expect(history).not.toBeNull();
+    expect(history!.textContent).toContain("Bob");
+    expect(history!.textContent).toContain("<correct guess>");
+    for (const word of ["rocket", "pizza", "castle", "guitar", "sunflower"]) {
+      expect(history!.textContent).not.toContain(word);
+    }
+  });
+
+  it("renders the literal text for an incorrect entry regardless of viewer", async () => {
+    await render(
+      "carol-id",
+      snapshot({
+        participants: [
+          { id: "host-id", name: "Alice", joinedAt: "t", score: 0 },
+          { id: "bob-id", name: "Bob", joinedAt: "t", score: 0 },
+          { id: "carol-id", name: "Carol", joinedAt: "t", score: 0 }
+        ],
+        guesses: [
+          {
+            id: "g1",
+            guesserParticipantId: "bob-id",
+            text: "banana",
+            isCorrect: false,
+            submittedAt: "t",
+            order: 0
+          }
+        ]
+      })
+    );
+
+    const history = container.querySelector('[data-testid="guess-history"]');
+    expect(history).not.toBeNull();
+    expect(history!.textContent).toContain("banana");
+    expect(history!.textContent).toContain("incorrect");
+  });
+
   it("returns null and navigates away when there is no room", async () => {
     const initialUrl = window.location.href;
     await act(async () => {
