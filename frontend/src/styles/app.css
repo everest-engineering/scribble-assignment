@@ -198,6 +198,22 @@ input {
   color: var(--accent, #4338ca);
 }
 
+.drawing-canvas {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.drawing-canvas__surface {
+  width: 100%;
+  aspect-ratio: 8 / 5;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  touch-action: none;
+  cursor: crosshair;
+}
+
 .page-header h1,
 .page-header h2 {
   margin: 0;
