@@ -184,6 +184,8 @@ export function submitGuess(code: string, participantId: string, text: string): 
 
   if (correct) {
     participant.score += CORRECT_GUESS_POINTS;
+    // A correct guess ends the round; the result is then shared with everyone.
+    room.status = "ended";
   }
 
   room.updatedAt = now();
@@ -192,15 +194,47 @@ export function submitGuess(code: string, participantId: string, text: string): 
   return { ok: true, room: cloneRoom(room), guess: { ...guess } };
 }
 
+export type RestartGameError = "not_found" | "forbidden";
+
+export type RestartGameResult =
+  | { ok: true; room: Room; participantId: string }
+  | { ok: false; error: RestartGameError };
+
+export function restartGame(code: string, participantId: string): RestartGameResult {
+  const room = rooms.get(code);
+
+  if (!room) {
+    return { ok: false, error: "not_found" };
+  }
+
+  if (room.hostId !== participantId) {
+    return { ok: false, error: "forbidden" };
+  }
+
+  room.status = "lobby";
+  room.drawerId = null;
+  room.secretWord = null;
+  room.guesses = [];
+  room.participants.forEach((participant) => {
+    participant.score = 0;
+  });
+  room.updatedAt = now();
+  rooms.set(room.code, room);
+
+  return { ok: true, room: cloneRoom(room), participantId };
+}
+
 export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSnapshot {
   const isDrawer = viewerParticipantId != null && viewerParticipantId === room.drawerId;
+  // The word is revealed to the drawer during play, and to everyone once ended.
+  const revealWord = isDrawer || room.status === "ended";
 
   return {
     code: room.code,
     status: room.status,
     hostId: room.hostId,
     drawerId: room.drawerId,
-    word: isDrawer ? room.secretWord : null,
+    word: revealWord ? room.secretWord : null,
     participants: room.participants.map((participant) => ({ ...participant })),
     guesses: room.guesses.map((guess) => ({ ...guess })),
     availableWords: listWords(),

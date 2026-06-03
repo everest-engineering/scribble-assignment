@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { createRoom, joinRoom, startGame, submitGuess, toRoomSnapshot } from "./roomStore.js";
+import {
+  createRoom,
+  joinRoom,
+  restartGame,
+  startGame,
+  submitGuess,
+  toRoomSnapshot
+} from "./roomStore.js";
 
 describe("roomStore", () => {
   it("createRoom returns a room with a 4-character uppercase code", () => {
@@ -147,6 +154,62 @@ describe("roomStore", () => {
 
       if (!second.ok) throw new Error("expected guess to be recorded");
       expect(second.room.guesses.map((g) => g.text)).toEqual(["first", "second"]);
+    });
+
+    it("ends the round on a correct guess and reveals the word to everyone", () => {
+      const game = playingRoom();
+      const result = submitGuess(game.code, game.guestId, game.word);
+
+      if (!result.ok) throw new Error("expected guess to succeed");
+      expect(result.room.status).toBe("ended");
+      expect(toRoomSnapshot(result.room, game.guestId).word).toBe(game.word);
+      expect(toRoomSnapshot(result.room, "any-viewer").word).toBe(game.word);
+    });
+
+    it("rejects further guesses once the round has ended", () => {
+      const game = playingRoom();
+      submitGuess(game.code, game.guestId, game.word);
+      const after = submitGuess(game.code, game.guestId, "late");
+
+      expect(after).toEqual({ ok: false, error: "not_playing" });
+    });
+  });
+
+  describe("restartGame", () => {
+    function endedRoom() {
+      const created = createRoom("Alice");
+      const guest = joinRoom(created.room.code, "Bob");
+      if (!guest) throw new Error("join failed");
+      const started = startGame(created.room.code, created.participantId);
+      if (!started.ok) throw new Error("start failed");
+      submitGuess(created.room.code, guest.participantId, started.room.secretWord as string);
+      return { code: created.room.code, hostId: created.participantId, guestId: guest.participantId };
+    }
+
+    it("resets round state and preserves participants", () => {
+      const game = endedRoom();
+      const result = restartGame(game.code, game.hostId);
+
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.room.status).toBe("lobby");
+        expect(result.room.drawerId).toBeNull();
+        expect(result.room.secretWord).toBeNull();
+        expect(result.room.guesses).toEqual([]);
+        expect(result.room.participants).toHaveLength(2);
+        expect(result.room.participants.every((p) => p.score === 0)).toBe(true);
+      }
+    });
+
+    it("rejects a non-host requester", () => {
+      const game = endedRoom();
+      const result = restartGame(game.code, game.guestId);
+
+      expect(result).toEqual({ ok: false, error: "forbidden" });
+    });
+
+    it("returns not_found for an unknown room", () => {
+      expect(restartGame("ZZZZ", "whoever")).toEqual({ ok: false, error: "not_found" });
     });
   });
 });
