@@ -17,6 +17,22 @@ export function LobbyPage() {
     }
   }, [navigate, room]);
 
+  // Poll the room snapshot roughly every 2s so new joins appear without a
+  // manual refresh. Keyed on the code so successful polls don't restart it.
+  const roomCode = room?.code;
+  useEffect(() => {
+    if (!roomCode) {
+      return;
+    }
+
+    const interval = setInterval(() => {
+      // A transient poll failure must not stop subsequent polls.
+      void roomStore.fetchRoom().catch(() => undefined);
+    }, 2000);
+
+    return () => clearInterval(interval);
+  }, [roomStore, roomCode]);
+
   async function handleRefresh() {
     try {
       setRefreshError(null);
