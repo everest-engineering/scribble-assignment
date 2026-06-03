@@ -23,7 +23,7 @@ export interface SnapshotRound {
 
 export interface RoomSnapshot {
   code: string;
-  status: "lobby" | "playing";
+  status: "lobby" | "playing" | "result";
   hostParticipantId: string;
   participants: Participant[];
   currentRound: SnapshotRound | null;
