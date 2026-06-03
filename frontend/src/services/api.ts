@@ -7,7 +7,7 @@ export interface Participant {
   isHost: boolean;
 }
 
-export type RoomStatus = "lobby" | "playing";
+export type RoomStatus = "lobby" | "playing" | "finished";
 
 export interface Guess {
   participantId: string;
@@ -84,6 +84,12 @@ export const api = {
     return request<{ room: RoomSnapshot }>(`/rooms/${encodeURIComponent(code)}/guess`, {
       method: "POST",
       body: JSON.stringify({ participantId, text })
+    });
+  },
+  restartGame(code: string, participantId: string) {
+    return request<{ room: RoomSnapshot }>(`/rooms/${encodeURIComponent(code)}/restart`, {
+      method: "POST",
+      body: JSON.stringify({ participantId })
     });
   }
 };

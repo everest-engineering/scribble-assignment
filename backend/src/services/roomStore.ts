@@ -174,6 +174,7 @@ export function submitGuess(code: string, participantId: string, text: string) {
 
   if (isCorrect && room.scores[participantId] === undefined) {
     room.scores[participantId] = 100;
+    room.status = "finished";
   }
 
   room.updatedAt = now();
@@ -182,15 +183,41 @@ export function submitGuess(code: string, participantId: string, text: string) {
   return toRoomSnapshot(room, participantId);
 }
 
+export function restartGame(code: string, participantId: string) {
+  const room = rooms.get(code);
+
+  if (!room) {
+    throw new HttpError(404, "Room not found");
+  }
+
+  const participant = room.participants.find((p) => p.id === participantId);
+
+  if (!participant || !participant.isHost) {
+    throw new HttpError(403, "Only the host can restart the game");
+  }
+
+  room.status = "lobby";
+  room.drawerId = "";
+  room.secretWord = "";
+  room.round = 0;
+  room.guesses = [];
+  room.scores = {};
+  room.updatedAt = now();
+  rooms.set(room.code, room);
+
+  return cloneRoom(room);
+}
+
 export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSnapshot {
   const isDrawer = !!(room.drawerId && viewerParticipantId === room.drawerId);
+  const showWord = isDrawer || room.status === "finished";
 
   return {
     code: room.code,
     status: room.status,
     participants: room.participants.map((participant) => ({ ...participant })),
     drawerId: room.drawerId ?? "",
-    secretWord: isDrawer ? room.secretWord : undefined,
+    secretWord: showWord ? room.secretWord : undefined,
     round: room.round ?? 0,
     guesses: room.guesses.map((g) => ({ ...g })),
     scores: { ...room.scores },

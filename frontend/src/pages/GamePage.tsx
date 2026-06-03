@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card } from "../components/Card";
 import { GuessForm } from "../components/GuessForm";
+import { PageHeader } from "../components/PageHeader";
 import { ResultPanel } from "../components/ResultPanel";
 import { RoomCodeBadge } from "../components/RoomCodeBadge";
 import { Scoreboard } from "../components/Scoreboard";
@@ -84,6 +85,52 @@ export function GamePage() {
   const viewer = room.participants.find((participant) => participant.id === participantId) ?? null;
   const drawer = room.participants.find((participant) => participant.id === room.drawerId) ?? null;
   const isDrawer = viewer?.id === room.drawerId;
+  const isFinished = room.status === "finished";
+  const isHost = viewer?.isHost ?? false;
+
+  async function handleRestart() {
+    try {
+      await roomStore.restartGame();
+      navigate("/lobby");
+    } catch (e) {
+      // error handled by store
+    }
+  }
+
+  if (isFinished) {
+    return (
+      <section className="panel placeholder-page">
+        <div className="lobby-header">
+          <PageHeader
+            kicker="Round Over"
+            title="Results"
+            description={`The word was: ${room.secretWord}`}
+          />
+          <RoomCodeBadge code={room.code} />
+        </div>
+
+        <div className="summary-grid">
+          <Scoreboard />
+          <ResultPanel />
+        </div>
+
+        <div className="button-row button-row--spread">
+          <button className="button button--secondary" onClick={() => navigate("/")}>
+            Exit to Home
+          </button>
+          {isHost ? (
+            <button className="button button--primary" onClick={handleRestart}>
+              Play Again
+            </button>
+          ) : (
+            <button className="button button--secondary" disabled>
+              Waiting for host...
+            </button>
+          )}
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section className="panel game-page">

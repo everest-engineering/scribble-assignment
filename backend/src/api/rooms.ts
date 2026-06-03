@@ -4,11 +4,12 @@ import {
   guessSchema,
   HttpError,
   joinRoomSchema,
+  restartSchema,
   roomCodeParamsSchema,
   roomViewerQuerySchema,
   startGameSchema
 } from "./schemas.js";
-import { createRoom, getRoom, joinRoom, startGame, submitGuess, toRoomSnapshot } from "../services/roomStore.js";
+import { createRoom, getRoom, joinRoom, restartGame, startGame, submitGuess, toRoomSnapshot } from "../services/roomStore.js";
 
 function normalizeCode(code: string) {
   return code.trim().toUpperCase();
@@ -107,6 +108,18 @@ export function createRoomsRouter() {
       const snapshot = submitGuess(normalizeCode(code), participantId, text);
 
       response.json({ room: snapshot });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/:code/restart", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId } = restartSchema.parse(request.body);
+      const room = restartGame(normalizeCode(code), participantId);
+
+      response.json({ room: toRoomSnapshot(room) });
     } catch (error) {
       next(error);
     }

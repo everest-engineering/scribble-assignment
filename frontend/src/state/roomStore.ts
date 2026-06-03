@@ -121,6 +121,20 @@ class RoomStore {
     this.setRoomSnapshot(response.room);
   }
 
+  async restartGame() {
+    if (!this.state.room || !this.state.participantId) {
+      return;
+    }
+
+    const response = await this.withLoading(() =>
+      api.restartGame(this.state.room!.code, this.state.participantId!)
+    );
+    this.setRoomSession({
+      participantId: this.state.participantId!,
+      room: response.room
+    });
+  }
+
   clearSession() {
     this.setState({
       room: null,
