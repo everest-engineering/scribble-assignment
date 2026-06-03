@@ -36,6 +36,15 @@ You are working on a monolithic repository for a multiplayer drawing game ("Scri
 -   **No Databases**: Do not use any database (SQL, NoSQL, SQLite, etc.). All data is stored in-memory only.
 -   **No Authentication**: Do not add authentication, sessions, JWT, or OAuth.
 
+<!-- SPECKIT START -->
+## Active Plan
+
+**Feature**: Draw, Guess & Score
+**Plan**: `specs/003-draw-guess-score/plan.md`
+**Data Model**: `specs/003-draw-guess-score/data-model.md`
+**API Contracts**: `specs/003-draw-guess-score/contracts/api.md`
+**Tasks**: `specs/003-draw-guess-score/tasks.md`
+
 ## Agent Persona
 -   Give concise, direct answers.
 -   Do not output large blocks of code if a small change suffices.

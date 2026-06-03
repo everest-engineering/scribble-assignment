@@ -7,26 +7,35 @@ import {
   useSyncExternalStore,
   type PropsWithChildren
 } from "react";
-import { api, type RoomSessionResponse, type RoomSnapshot } from "../services/api";
+import { api, type GuessResult, type Point, type RoomSessionResponse, type RoomSnapshot } from "../services/api";
 
 export interface RoomState {
   room: RoomSnapshot | null;
   participantId: string | null;
   error: string | null;
+  submitError: string | null;
   isLoading: boolean;
+  isHost: boolean;
+  isDrawer: boolean;
+  secretWord: string | null;
 }
 
 type Listener = () => void;
 
-class RoomStore {
+export class RoomStore {
   private state: RoomState = {
     room: null,
     participantId: null,
     error: null,
-    isLoading: false
+    submitError: null,
+    isLoading: false,
+    isHost: false,
+    isDrawer: false,
+    secretWord: null
   };
 
   private listeners = new Set<Listener>();
+  private pollingIntervalId: ReturnType<typeof setInterval> | null = null;
 
   subscribe = (listener: Listener) => {
     this.listeners.add(listener);
@@ -66,14 +75,19 @@ class RoomStore {
     this.setState({
       participantId: response.participantId,
       room: response.room,
-      error: null
+      error: null,
+      isHost: response.participantId === response.room.hostId,
+      isDrawer: response.participantId === response.room.drawerId,
+      secretWord: response.secretWord ?? null
     });
   }
 
   setRoomSnapshot(room: RoomSnapshot) {
     this.setState({
       room,
-      error: null
+      error: null,
+      isHost: this.state.participantId === room.hostId,
+      isDrawer: this.state.participantId === room.drawerId
     });
   }
 
@@ -95,8 +109,131 @@ class RoomStore {
     }
 
     const response = await api.fetchRoom(this.state.room.code, this.state.participantId ?? undefined);
-    this.setRoomSnapshot(response.room);
+    this.setRoomSession(response);
     return response.room;
+  }
+
+  startPolling() {
+    if (this.pollingIntervalId) {
+      return;
+    }
+
+    this.pollingIntervalId = setInterval(() => {
+      this.fetchRoom().catch(() => {
+        this.setState({ error: "Unable to reach the server. Retrying..." });
+      });
+    }, 2000);
+  }
+
+  stopPolling() {
+    if (this.pollingIntervalId) {
+      clearInterval(this.pollingIntervalId);
+      this.pollingIntervalId = null;
+    }
+  }
+
+  async startGame() {
+    if (!this.state.room || !this.state.participantId) {
+      return null;
+    }
+
+    const response = await this.withLoading(() =>
+      api.startGame(this.state.room!.code, this.state.participantId!)
+    );
+
+    if (response) {
+      this.setRoomSnapshot(response.room);
+    }
+
+    return response;
+  }
+
+  async addStroke(points: Point[]) {
+    if (!this.state.room || !this.state.participantId || !this.state.isDrawer) {
+      return;
+    }
+
+    const drawerColor = "#000000";
+    const drawerWidth = 3;
+
+    try {
+      await api.addStroke(this.state.room.code, this.state.participantId, points, drawerColor, drawerWidth);
+    } catch {
+      this.setState({ error: "Failed to save stroke. Retrying..." });
+    }
+  }
+
+  async clearCanvas() {
+    if (!this.state.room || !this.state.participantId || !this.state.isDrawer) {
+      return;
+    }
+
+    try {
+      const result = await api.clearCanvas(this.state.room.code, this.state.participantId);
+      this.setState({ room: { ...this.state.room, strokes: result.strokes } });
+    } catch {
+      this.setState({ error: "Failed to clear canvas. Retrying..." });
+    }
+  }
+
+  async endRound() {
+    if (!this.state.room || !this.state.participantId) {
+      return null;
+    }
+
+    const response = await this.withLoading(() =>
+      api.endRound(this.state.room!.code, this.state.participantId!)
+    );
+
+    if (response) {
+      this.setRoomSession(response);
+    }
+
+    return response;
+  }
+
+  async restartGame() {
+    if (!this.state.room || !this.state.participantId) {
+      return null;
+    }
+
+    const response = await this.withLoading(() =>
+      api.restartGame(this.state.room!.code, this.state.participantId!)
+    );
+
+    if (response) {
+      this.setRoomSession(response);
+    }
+
+    return response;
+  }
+
+  async submitGuess(text: string): Promise<GuessResult | null> {
+    if (!this.state.room || !this.state.participantId) {
+      return null;
+    }
+
+    const trimmed = text.trim();
+    if (!trimmed) {
+      this.setState({ submitError: "Guess cannot be empty" });
+      return null;
+    }
+
+    if (trimmed.length > 100) {
+      this.setState({ submitError: "Guess must be 100 characters or fewer" });
+      return null;
+    }
+
+    this.setState({ submitError: null });
+
+    try {
+      const result = await api.submitGuess(this.state.room.code, this.state.participantId, text);
+      return result;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Guess could not be submitted — please try again";
+      this.setState({ submitError: message });
+      return null;
+    }
   }
 }
 

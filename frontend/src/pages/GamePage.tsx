@@ -1,19 +1,33 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { Canvas } from "../components/Canvas";
 import { Card } from "../components/Card";
-import { GuessForm } from "../components/GuessForm";
-import { ResultPanel } from "../components/ResultPanel";
+import { GuessHistory } from "../components/GuessHistory";
+import { GuessInput } from "../components/GuessInput";
 import { RoomCodeBadge } from "../components/RoomCodeBadge";
 import { Scoreboard } from "../components/Scoreboard";
-import { useRoomState } from "../state/roomStore";
+import { useRoomStore, useRoomState } from "../state/roomStore";
 
 export function GamePage() {
   const navigate = useNavigate();
-  const { room, participantId } = useRoomState();
+  const { room, participantId, isDrawer, isHost, secretWord } = useRoomState();
+  const store = useRoomStore();
 
   useEffect(() => {
     if (!room) {
       navigate("/", { replace: true });
+      return;
+    }
+
+    store.startPolling();
+    return () => {
+      store.stopPolling();
+    };
+  }, [navigate, room, store]);
+
+  useEffect(() => {
+    if (room && room.status === "reveal") {
+      navigate("/result", { replace: true });
     }
   }, [navigate, room]);
 
@@ -28,22 +42,27 @@ export function GamePage() {
       <div className="game-page__header">
         <div className="game-page__header-left">
           <span className="section-kicker">Round 1</span>
-          <h1 className="game-page__title">Guess the Word!</h1>
+          <h1 className="game-page__title">{isDrawer ? "Draw the Word!" : "Guess the Word!"}</h1>
         </div>
         <RoomCodeBadge code={room.code} />
       </div>
 
       <div className="game-page__layout">
         <aside className="game-page__sidebar game-page__sidebar--left">
-          <Scoreboard />
-          <ResultPanel />
+          <Scoreboard participants={room.participants} scores={room.scores} currentUserId={participantId} />
+          <GuessHistory guesses={room.guesses} participantId={participantId} />
         </aside>
 
         <div className="game-page__main">
-          <Card title="Canvas">
-            <div className="canvas-placeholder" style={{ minHeight: '500px', backgroundColor: '#ffffff', border: '1px solid #e5e7eb' }}>
-              Waiting for drawer...
-            </div>
+          <Card title={isDrawer ? "Draw the word" : "Canvas"}>
+            <Canvas strokes={room.strokes} isDrawer={isDrawer} />
+            {isDrawer && (
+              <div className="button-row">
+                <button className="button button--secondary" onClick={() => store.clearCanvas()}>
+                  Clear Canvas
+                </button>
+              </div>
+            )}
           </Card>
         </div>
 
@@ -56,21 +75,37 @@ export function GamePage() {
               </div>
               <div>
                 <dt>Status</dt>
-                <dd>Playing</dd>
+                <dd>{isDrawer ? "Drawing" : "Guessing"}</dd>
               </div>
+              {isDrawer && secretWord && (
+                <div>
+                  <dt>Your Word</dt>
+                  <dd className="secret-word">{secretWord}</dd>
+                </div>
+              )}
             </dl>
+            {isDrawer && (
+              <div className="drawer-badge">You are the drawer</div>
+            )}
           </Card>
 
-          <Card title="Your Guess">
-            <GuessForm />
-          </Card>
+          {!isDrawer && (
+            <Card title="Your Guess">
+              <GuessInput />
+            </Card>
+          )}
         </aside>
       </div>
 
-      <div className="button-row">
+      <div className="button-row button-row--spread">
         <button className="button button--secondary" onClick={() => navigate("/lobby")}>
           Exit Game
         </button>
+        {isHost && (
+          <button className="button button--primary" onClick={() => store.endRound()}>
+            End Round
+          </button>
+        )}
       </div>
     </section>
   );
