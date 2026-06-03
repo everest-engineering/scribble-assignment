@@ -11,8 +11,10 @@ export interface RoomSnapshot {
   status: "lobby" | "active";
   participants: Participant[];
   hostId: string;
+  drawerId: string | null;
   availableWords: string[];
   roles: ParticipantRole[];
+  currentWord: string | null;
 }
 
 export interface RoomSessionResponse {

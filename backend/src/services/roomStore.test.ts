@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createRoom, joinRoom, startRoom } from "./roomStore.js";
+import { createRoom, joinRoom, startRoom, toRoomSnapshot, getRoom } from "./roomStore.js";
 
 describe("roomStore", () => {
   it("createRoom returns a room with a 4-character uppercase code", () => {
@@ -45,5 +45,52 @@ describe("roomStore", () => {
     const snapshot = startRoom("ZZZZ");
 
     expect(snapshot).toBeNull();
+  });
+
+  it("startRoom assigns drawerId to hostId", () => {
+    const host = createRoom("Alice");
+    joinRoom(host.room.code, "Bob");
+    const snapshot = startRoom(host.room.code);
+
+    expect(snapshot).not.toBeNull();
+    expect(snapshot!.drawerId).toBe(host.participantId);
+    expect(snapshot!.drawerId).toBe(snapshot!.hostId);
+  });
+
+  it("startRoom selects a non-null currentWord for the drawer", () => {
+    const host = createRoom("Alice");
+    joinRoom(host.room.code, "Bob");
+    const drawerSnapshot = startRoom(host.room.code);
+
+    expect(drawerSnapshot).not.toBeNull();
+    expect(drawerSnapshot!.currentWord).not.toBeNull();
+    expect(drawerSnapshot!.currentWord).toMatch(/^[a-z]+$/);
+  });
+
+  it("toRoomSnapshot hides currentWord from non-drawer viewers", () => {
+    const host = createRoom("Alice");
+    const joinResult = joinRoom(host.room.code, "Bob");
+    startRoom(host.room.code);
+
+    const guesserSnapshot = toRoomSnapshot(getRoom(host.room.code)!, joinResult!.participantId);
+    expect(guesserSnapshot.currentWord).toBeNull();
+  });
+
+  it("toRoomSnapshot shows currentWord to the drawer", () => {
+    const host = createRoom("Alice");
+    joinRoom(host.room.code, "Bob");
+    startRoom(host.room.code);
+
+    const room = getRoom(host.room.code)!;
+    const drawerSnapshot = toRoomSnapshot(room, room.drawerId!);
+
+    expect(drawerSnapshot.currentWord).not.toBeNull();
+  });
+
+  it("createRoom initializes drawerId and currentWord as null", () => {
+    const result = createRoom("Alice");
+
+    expect(result.room.drawerId).toBeNull();
+    expect(result.room.currentWord).toBeNull();
   });
 });

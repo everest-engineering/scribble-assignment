@@ -83,6 +83,10 @@ export function createRoomsRouter() {
 
       const snapshot = startRoom(code.toUpperCase());
 
+      if (!snapshot || !snapshot.currentWord) {
+        throw new HttpError(500, "No words available to start the game");
+      }
+
       response.json({ room: snapshot });
     } catch (error) {
       next(error);

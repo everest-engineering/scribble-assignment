@@ -45,6 +45,12 @@ export function listWords() {
   return [...STARTER_WORDS];
 }
 
+export function selectWordForRound(roundNumber: number): string | null {
+  const words = STARTER_WORDS as readonly string[];
+  if (words.length === 0) return null;
+  return STARTER_WORDS[(roundNumber - 1) % words.length];
+}
+
 export function createRoom(playerName: string) {
   const participant = createParticipant(playerName);
   const room: Room = {
@@ -52,6 +58,8 @@ export function createRoom(playerName: string) {
     status: "lobby",
     participants: [participant],
     hostId: participant.id,
+    drawerId: null,
+    currentWord: null,
     createdAt: now(),
     updatedAt: now()
   };
@@ -94,15 +102,17 @@ export function saveRoom(room: Room) {
 }
 
 export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSnapshot {
-  void viewerParticipantId;
+  const isDrawer = viewerParticipantId !== undefined && viewerParticipantId === room.drawerId;
 
   return {
     code: room.code,
     status: room.status,
     participants: room.participants.map((participant) => ({ ...participant })),
     hostId: room.hostId,
+    drawerId: room.drawerId,
     availableWords: listWords(),
-    roles: [...STARTER_ROLES]
+    roles: [...STARTER_ROLES],
+    currentWord: isDrawer ? room.currentWord : null
   };
 }
 
@@ -114,8 +124,10 @@ export function startRoom(code: string): RoomSnapshot | null {
   }
 
   room.status = "active";
+  room.drawerId = room.hostId;
+  room.currentWord = selectWordForRound(1);
   room.updatedAt = now();
   rooms.set(room.code, room);
 
-  return toRoomSnapshot(cloneRoom(room));
+  return toRoomSnapshot(cloneRoom(room), room.drawerId);
 }
