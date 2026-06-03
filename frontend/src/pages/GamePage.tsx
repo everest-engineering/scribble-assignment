@@ -23,6 +23,12 @@ export function GamePage() {
   }, [navigate, room]);
 
   useEffect(() => {
+    if (room?.status === "lobby") {
+      navigate("/lobby", { replace: true });
+    }
+  }, [navigate, room?.status]);
+
+  useEffect(() => {
     if (!room) return;
 
     const pollingRef = setInterval(() => {
