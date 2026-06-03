@@ -1,15 +1,16 @@
 import { useState } from "react";
 import { api } from "../services/api";
+import { useRoomStore } from "../state/roomStore";
 
 interface GuessFormProps {
   roomCode: string;
   participantId: string;
-  onGuess: () => void;
 }
 
-export function GuessForm({ roomCode, participantId, onGuess }: GuessFormProps) {
+export function GuessForm({ roomCode, participantId }: GuessFormProps) {
   const [guessText, setGuessText] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const roomStore = useRoomStore();
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -21,9 +22,9 @@ export function GuessForm({ roomCode, participantId, onGuess }: GuessFormProps) 
 
     try {
       setError(null);
-      await api.submitGuess(roomCode, participantId, guessText);
+      const result = await api.submitGuess(roomCode, participantId, guessText);
+      roomStore.setRoomSnapshot(result.room);
       setGuessText("");
-      onGuess();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to submit guess");
     }

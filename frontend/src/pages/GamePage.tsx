@@ -136,7 +136,6 @@ export function GamePage() {
               <GuessForm
                 roomCode={room.code}
                 participantId={participantId ?? ""}
-                onGuess={() => roomStore.fetchRoom()}
               />
             </Card>
           )}
@@ -144,7 +143,10 @@ export function GamePage() {
       </div>
 
       <div className="button-row">
-        <button className="button button--secondary" onClick={() => navigate("/lobby")}>
+        <button className="button button--secondary" onClick={() => {
+          roomStore.clearRoom();
+          navigate("/lobby");
+        }}>
           Exit Game
         </button>
       </div>

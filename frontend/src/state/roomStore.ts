@@ -77,6 +77,15 @@ class RoomStore {
     });
   }
 
+  clearRoom() {
+    this.setState({
+      room: null,
+      participantId: null,
+      error: null,
+      isLoading: false
+    });
+  }
+
   async createRoom(playerName: string) {
     const response = await this.withLoading(() => api.createRoom(playerName));
     this.setRoomSession(response);
