@@ -76,6 +76,16 @@ describe("roomStore", () => {
     expect(guesserSnapshot.currentWord).toBeNull();
   });
 
+  it("toRoomSnapshot includes drawerId for guesser viewers", () => {
+    const host = createRoom("Alice");
+    const joinResult = joinRoom(host.room.code, "Bob");
+    startRoom(host.room.code);
+
+    const guesserSnapshot = toRoomSnapshot(getRoom(host.room.code)!, joinResult!.participantId);
+    expect(guesserSnapshot.drawerId).toBe(host.participantId);
+    expect(guesserSnapshot.drawerId).not.toBeNull();
+  });
+
   it("toRoomSnapshot shows currentWord to the drawer", () => {
     const host = createRoom("Alice");
     joinRoom(host.room.code, "Bob");

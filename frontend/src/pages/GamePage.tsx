@@ -23,7 +23,7 @@ export function GamePage() {
   }
 
   const viewer = room.participants.find((participant) => participant.id === participantId) ?? null;
-  const isDrawer = room.drawerId !== null && participantId === room.drawerId;
+  const isDrawer = !!room.drawerId && participantId === room.drawerId;
   const drawerParticipant = room.drawerId
     ? room.participants.find((p) => p.id === room.drawerId)
     : null;

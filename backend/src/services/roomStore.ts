@@ -109,7 +109,7 @@ export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSn
     status: room.status,
     participants: room.participants.map((participant) => ({ ...participant })),
     hostId: room.hostId,
-    drawerId: room.drawerId,
+    drawerId: room.drawerId ?? null,
     availableWords: listWords(),
     roles: [...STARTER_ROLES],
     currentWord: isDrawer ? room.currentWord : null
