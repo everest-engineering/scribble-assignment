@@ -66,4 +66,28 @@ describe("GamePageView", () => {
     expect(html).toContain("M 10 20 L 30 40");
     expect(html).toContain("Clear Canvas");
   });
+
+  it("shows result word and restart control from the result snapshot", () => {
+    const resultRoom: RoomSnapshot = {
+      ...activeRoom,
+      status: "result",
+      viewerRole: "guesser",
+      viewerParticipantId: "p2",
+      secretWord: "rocket",
+      canRestart: false,
+      guesses: [{ id: "g1", participantId: "p2", participantName: "Bob", text: "rocket", isCorrect: true, scoreDelta: 100, createdAt: "now" }],
+      scores: { p1: 0, p2: 100 },
+      participants: activeRoom.participants.map((participant) =>
+        participant.id === "p2" ? { ...participant, score: 100 } : participant
+      )
+    };
+    const html = renderToStaticMarkup(
+      <GamePageView room={resultRoom} participantId="p2" onExit={vi.fn()} />
+    );
+
+    expect(html).toContain("Round Complete");
+    expect(html).toContain("rocket");
+    expect(html).toContain("Restart Room");
+    expect(html).toContain("disabled");
+  });
 });

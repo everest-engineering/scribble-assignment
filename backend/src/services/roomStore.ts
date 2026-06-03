@@ -212,6 +212,24 @@ export function submitGuess(code: string, participantId: string, text: string) {
   return cloneRoom(room);
 }
 
+export function restartRoom(code: string, participantId: string) {
+  const room = rooms.get(code.trim().toUpperCase());
+
+  if (!room) {
+    throw new RoomStoreError(404, "Unable to load room");
+  }
+  ensureHost(room, participantId);
+  if (room.status !== "result") {
+    throw new RoomStoreError(400, "Room is not ready to restart");
+  }
+
+  room.status = "lobby";
+  room.round = null;
+  room.updatedAt = now();
+  rooms.set(room.code, room);
+  return cloneRoom(room);
+}
+
 export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSnapshot {
   const viewer = viewerParticipantId ? findParticipant(room, viewerParticipantId) : null;
   const round = room.round;

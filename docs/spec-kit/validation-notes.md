@@ -36,15 +36,19 @@ Status: Passed automated validation.
 
 ## Scenario 4 - Result, Restart & Final Validation
 
-Status: Pending.
+Status: Passed automated validation.
+
+- Backend tests cover result snapshots for all participants, host-only restart, non-host restart rejection, participant preservation, and clearing drawer, secret word, drawing, guesses, scores, and result state.
+- Frontend tests cover result state rendering, final word visibility, score and guess history rendering, restart request shape, and stored lobby transition after restart.
+- Game page now keeps polling result rooms so all players can observe host restart and return to lobby.
 
 ## Automated Validation
 
 Status: Partial pass after Scenario 1.
 
-- `backend`: `npm run test` passed, 19 tests.
+- `backend`: `npm run test` passed, 21 tests.
 - `backend`: `npm run build` passed.
-- `frontend`: `npm run test` passed, 18 tests.
+- `frontend`: `npm run test` passed, 21 tests.
 - `frontend`: `npm run build` passed.
 
 ## Manual Two-Browser Validation

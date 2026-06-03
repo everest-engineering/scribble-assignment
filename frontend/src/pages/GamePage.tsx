@@ -24,11 +24,12 @@ export function GamePage() {
 
     if (room.status === "lobby") {
       navigate("/lobby", { replace: true });
+      return;
     }
   }, [navigate, room]);
 
   useEffect(() => {
-    if (!room || room.status !== "active") {
+    if (!room || (room.status !== "active" && room.status !== "result")) {
       return undefined;
     }
 
@@ -51,6 +52,7 @@ export function GamePage() {
       onDrawingChange={(strokes) => roomStore.updateDrawing(strokes)}
       onClearDrawing={() => roomStore.clearDrawing()}
       onSubmitGuess={(guess) => roomStore.submitGuess(guess)}
+      onRestart={() => roomStore.restartRoom()}
     />
   );
 }
@@ -62,9 +64,10 @@ interface GamePageViewProps {
   onDrawingChange?: (strokes: Stroke[]) => Promise<unknown> | unknown;
   onClearDrawing?: () => Promise<unknown> | unknown;
   onSubmitGuess?: (guess: string) => Promise<unknown> | unknown;
+  onRestart?: () => Promise<unknown> | unknown;
 }
 
-export function GamePageView({ room, participantId, onExit, onDrawingChange, onClearDrawing, onSubmitGuess }: GamePageViewProps) {
+export function GamePageView({ room, participantId, onExit, onDrawingChange, onClearDrawing, onSubmitGuess, onRestart }: GamePageViewProps) {
   const svgRef = useRef<SVGSVGElement | null>(null);
   const [draftStrokes, setDraftStrokes] = useState<Stroke[]>(room.drawing.strokes);
   const [activeStrokeId, setActiveStrokeId] = useState<string | null>(null);
@@ -74,8 +77,9 @@ export function GamePageView({ room, participantId, onExit, onDrawingChange, onC
   const isDrawer = room.viewerRole === "drawer";
   const isActive = room.status === "active";
   const canDraw = isActive && isDrawer;
-  const title = isDrawer ? "Draw the Word" : "Guess the Word!";
-  const statusLabel = isActive ? (isDrawer ? "Drawing" : "Guessing") : "Waiting";
+  const isResult = room.status === "result";
+  const title = isResult ? "Round Complete" : isDrawer ? "Draw the Word" : "Guess the Word!";
+  const statusLabel = isResult ? "Result" : isActive ? (isDrawer ? "Drawing" : "Guessing") : "Waiting";
   const visibleStrokes = useMemo(() => draftStrokes, [draftStrokes]);
 
   useEffect(() => {
@@ -142,6 +146,10 @@ export function GamePageView({ room, participantId, onExit, onDrawingChange, onC
     } catch (caughtError) {
       setDrawingError(caughtError instanceof Error ? caughtError.message : "Unable to clear drawing");
     }
+  }
+
+  async function handleRestart() {
+    await onRestart?.();
   }
 
   return (
@@ -213,7 +221,7 @@ export function GamePageView({ room, participantId, onExit, onDrawingChange, onC
           </Card>
 
           <Card title="Word">
-            {isDrawer && room.secretWord ? (
+            {(isDrawer || isResult) && room.secretWord ? (
               <p className="secret-word">{room.secretWord}</p>
             ) : (
               <p className="placeholder-note">Hidden from guessers</p>
@@ -223,6 +231,15 @@ export function GamePageView({ room, participantId, onExit, onDrawingChange, onC
           <Card title="Your Guess">
             <GuessForm disabled={!isActive || isDrawer} onSubmitGuess={onSubmitGuess} />
           </Card>
+
+          {isResult ? (
+            <Card title="Result">
+              <p className="placeholder-note">Final score recorded</p>
+              <button className="button button--primary" type="button" disabled={!room.canRestart} onClick={handleRestart}>
+                Restart Room
+              </button>
+            </Card>
+          ) : null}
         </aside>
       </div>
 

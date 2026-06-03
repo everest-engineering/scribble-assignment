@@ -4,6 +4,7 @@ import {
   createRoom,
   joinRoom,
   resetRoomsForTest,
+  restartRoom,
   startGame,
   submitGuess,
   toRoomSnapshot,
@@ -161,5 +162,46 @@ describe("roomStore", () => {
     expect(snapshot.secretWord).toBe("rocket");
     expect(snapshot.guesses).toMatchObject([{ text: "ROCKET", isCorrect: true, scoreDelta: 100 }]);
     expect(snapshot.scores[guest.participantId]).toBe(100);
+  });
+
+  it("shows result details to every participant after a correct guess", () => {
+    const host = createRoom("Alice");
+    const guest = joinRoom(host.room.code, "Bob");
+    if (!guest) {
+      throw new Error("Expected Bob to join");
+    }
+    startGame(host.room.code, host.participantId);
+    const resultRoom = submitGuess(host.room.code, guest.participantId, "rocket");
+
+    const hostSnapshot = toRoomSnapshot(resultRoom, host.participantId);
+    const guestSnapshot = toRoomSnapshot(resultRoom, guest.participantId);
+
+    expect(hostSnapshot.secretWord).toBe("rocket");
+    expect(guestSnapshot.secretWord).toBe("rocket");
+    expect(hostSnapshot.guesses).toHaveLength(1);
+    expect(guestSnapshot.scores[guest.participantId]).toBe(100);
+  });
+
+  it("allows only the host to restart from result and clears round state", () => {
+    const host = createRoom("Alice");
+    const guest = joinRoom(host.room.code, "Bob");
+    if (!guest) {
+      throw new Error("Expected Bob to join");
+    }
+    startGame(host.room.code, host.participantId);
+    submitGuess(host.room.code, guest.participantId, "rocket");
+
+    expect(() => restartRoom(host.room.code, guest.participantId)).toThrow("Only the host can perform this action");
+
+    const restarted = restartRoom(host.room.code, host.participantId);
+    const snapshot = toRoomSnapshot(restarted, host.participantId);
+
+    expect(snapshot.status).toBe("lobby");
+    expect(snapshot.participants).toHaveLength(2);
+    expect(snapshot.drawerParticipantId).toBeNull();
+    expect(snapshot.secretWord).toBeUndefined();
+    expect(snapshot.drawing.strokes).toEqual([]);
+    expect(snapshot.guesses).toEqual([]);
+    expect(snapshot.scores).toEqual({});
   });
 });

@@ -89,12 +89,12 @@
 
 **Independent Test**: Result shows word, scores, and history to all players; only host can restart; restart resets round state.
 
-- [ ] T030 [P] [US4] Add backend tests for result snapshot contents, host-only restart, non-host restart rejection, restart state reset, and participant preservation in `backend/src/services/roomStore.test.ts`
-- [ ] T031 [P] [US4] Add frontend tests for result panel rendering and host-only restart UI in `frontend/src/components/ResultPanel.test.tsx` and `frontend/src/pages/GamePage.test.tsx`
-- [ ] T032 [US4] Implement restart service logic and route handling in `backend/src/services/roomStore.ts` and `backend/src/api/rooms.ts`
-- [ ] T033 [US4] Render result state, final scores, full guess history, and host-only restart action in `frontend/src/components/ResultPanel.tsx`, `frontend/src/components/Scoreboard.tsx`, and `frontend/src/pages/GamePage.tsx`
-- [ ] T034 [US4] Add restart client/store methods and lobby transition handling in `frontend/src/services/api.ts`, `frontend/src/state/roomStore.ts`, and `frontend/src/pages/GamePage.tsx`
-- [ ] T035 [US4] Record scenario 4 validation notes in `docs/spec-kit/validation-notes.md`
+- [X] T030 [P] [US4] Add backend tests for result snapshot contents, host-only restart, non-host restart rejection, restart state reset, and participant preservation in `backend/src/services/roomStore.test.ts`
+- [X] T031 [P] [US4] Add frontend tests for result panel rendering and host-only restart UI in `frontend/src/components/ResultPanel.test.tsx` and `frontend/src/pages/GamePage.test.tsx`
+- [X] T032 [US4] Implement restart service logic and route handling in `backend/src/services/roomStore.ts` and `backend/src/api/rooms.ts`
+- [X] T033 [US4] Render result state, final scores, full guess history, and host-only restart action in `frontend/src/components/ResultPanel.tsx`, `frontend/src/components/Scoreboard.tsx`, and `frontend/src/pages/GamePage.tsx`
+- [X] T034 [US4] Add restart client/store methods and lobby transition handling in `frontend/src/services/api.ts`, `frontend/src/state/roomStore.ts`, and `frontend/src/pages/GamePage.tsx`
+- [X] T035 [US4] Record scenario 4 validation notes in `docs/spec-kit/validation-notes.md`
 
 **Checkpoint**: Scenario 4 acceptance criteria and SC-007 and SC-008 pass without regressing US1-US3.
 

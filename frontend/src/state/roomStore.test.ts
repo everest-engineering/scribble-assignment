@@ -107,4 +107,17 @@ describe("RoomStore", () => {
     expect(store.getSnapshot().room?.guesses).toHaveLength(1);
     expect(store.getSnapshot().room?.scores.p2).toBe(100);
   });
+
+  it("restartRoom stores the returned lobby snapshot", async () => {
+    const resultRoom = { ...lobbyRoom, status: "result" as const, canRestart: true };
+    vi.mocked(api.createRoom).mockResolvedValue({ participantId: "p1", room: resultRoom });
+    vi.mocked(api.restartRoom).mockResolvedValue({ room: { ...lobbyRoom, status: "lobby" } });
+    const store = new RoomStore();
+
+    await store.createRoom("Alice");
+    await store.restartRoom();
+
+    expect(api.restartRoom).toHaveBeenCalledWith("ABCD", "p1");
+    expect(store.getSnapshot().room?.status).toBe("lobby");
+  });
 });
