@@ -8,7 +8,7 @@ import { useRoomState, useRoomStore } from "../state/roomStore";
 export function LobbyPage() {
   const navigate = useNavigate();
   const roomStore = useRoomStore();
-  const { room, error, isLoading } = useRoomState();
+  const { room, participantId, error, isLoading } = useRoomState();
   const [refreshError, setRefreshError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -45,6 +45,15 @@ export function LobbyPage() {
   if (!room) {
     return null;
   }
+
+  const isHost = room.hostId === participantId;
+  const enoughPlayers = room.participants.length >= 2;
+  const canStart = isHost && enoughPlayers;
+  const startHint = !isHost
+    ? "Waiting for the host to start the game."
+    : enoughPlayers
+      ? "Ready to start."
+      : "Waiting for at least one more player.";
 
   return (
     <section className="panel placeholder-page">
@@ -85,10 +94,16 @@ export function LobbyPage() {
         <button className="button button--secondary" disabled={isLoading} onClick={handleRefresh}>
           {isLoading ? "Refreshing..." : "Refresh Room"}
         </button>
-        <button className="button button--primary" onClick={() => navigate("/game")}>
+        <button
+          className="button button--primary"
+          disabled={!canStart}
+          title={startHint}
+          onClick={() => navigate("/game")}
+        >
           Start Game
         </button>
       </div>
+      <p className="lobby-start-hint">{startHint}</p>
     </section>
   );
 }
