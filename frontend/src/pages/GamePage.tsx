@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { Canvas } from "../components/Canvas";
 import { Card } from "../components/Card";
 import { GuessForm } from "../components/GuessForm";
 import { ResultPanel } from "../components/ResultPanel";
@@ -26,7 +27,7 @@ export function GamePage() {
 
   useRoomPolling(() => {
     void roomStore.fetchRoomPoll();
-  }, Boolean(room && room.status === "playing"));
+  }, Boolean(room && (room.status === "playing" || room.status === "result")));
 
   if (!room || !participantId) {
     return null;
@@ -35,8 +36,15 @@ export function GamePage() {
   const viewer = room.participants.find((participant) => participant.id === participantId) ?? null;
   const isDrawer = room.viewer?.isDrawer ?? false;
   const secretWord = room.currentRound?.secretWord ?? null;
+  const strokes = room.currentRound?.strokes ?? [];
+  const guesses = room.currentRound?.guesses ?? [];
+  const scores = room.currentRound?.scores ?? [];
+  const canGuess = room.status === "playing" && !isDrawer;
+  const canDraw = room.status === "playing" && isDrawer;
   const roundLabel =
     room.currentRound !== undefined ? `Round ${room.currentRound.roundIndex + 1}` : "Round 1";
+  const statusLabel =
+    room.status === "result" ? "Result" : room.status === "playing" ? "Playing" : room.status;
 
   return (
     <section className="panel game-page">
@@ -62,22 +70,23 @@ export function GamePage() {
               <p style={{ margin: 0 }}>Watch the canvas and submit your guess when ready.</p>
             </Card>
           )}
-          <Scoreboard />
-          <ResultPanel />
+          <Scoreboard scores={scores} />
+          <ResultPanel guesses={guesses} status={room.status} />
         </aside>
 
         <div className="game-page__main">
           <Card title="Canvas">
-            <div
-              className="canvas-placeholder"
-              style={{
-                minHeight: "500px",
-                backgroundColor: "#ffffff",
-                border: "1px solid #e5e7eb"
+            <Canvas
+              strokes={strokes}
+              isDrawer={isDrawer}
+              disabled={!canDraw}
+              onStrokeComplete={(points) => {
+                void roomStore.appendStroke({ points, color: "#000000", width: 2 });
               }}
-            >
-              {isDrawer ? "You are the drawer — canvas coming in Scenario 3." : "Waiting for drawer…"}
-            </div>
+              onClear={() => {
+                void roomStore.clearStrokes();
+              }}
+            />
           </Card>
         </div>
 
@@ -94,13 +103,19 @@ export function GamePage() {
               </div>
               <div>
                 <dt>Status</dt>
-                <dd>Playing</dd>
+                <dd>{statusLabel}</dd>
               </div>
             </dl>
           </Card>
 
           <Card title="Your Guess">
-            <GuessForm />
+            {isDrawer ? (
+              <p style={{ fontSize: "0.875rem", color: "#6b7280", margin: 0 }}>
+                Only guessers can submit guesses.
+              </p>
+            ) : (
+              <GuessForm disabled={!canGuess} />
+            )}
           </Card>
         </aside>
       </div>

@@ -1,16 +1,23 @@
 import { describe, expect, it } from "vitest";
 import {
+  appendStroke,
+  clearStrokes,
   createRoom,
+  DrawNotDrawerError,
+  DrawerCannotGuessError,
   joinRoom,
   MAX_PARTICIPANTS,
   normalizePlayerName,
   pickWord,
   PlayerNameValidationError,
   RoomCapacityError,
+  RoundNotActiveError,
   startRound,
   StartInsufficientPlayersError,
   StartInvalidStateError,
   StartNotHostError,
+  StrokeLimitError,
+  submitGuess,
   sumCharCodes,
   toRoomSnapshot
 } from "./roomStore.js";
@@ -118,5 +125,159 @@ describe("roomStore", () => {
     expect(guesserSnapshot.currentRound?.secretWord).toBeNull();
     expect(drawerSnapshot.viewer?.isDrawer).toBe(true);
     expect(guesserSnapshot.viewer?.isDrawer).toBe(false);
+  });
+
+  it("startRound initializes all scores to zero", () => {
+    const host = createRoom("Alice");
+    const code = host.room.code;
+    const guest = joinRoom(code, "Bob")!;
+    const room = startRound(code, host.participantId)!;
+
+    expect(room.currentRound?.scores[host.participantId]).toBe(0);
+    expect(room.currentRound?.scores[guest.participantId]).toBe(0);
+  });
+
+  it("appendStroke adds stroke for drawer", () => {
+    const host = createRoom("Alice");
+    const code = host.room.code;
+    joinRoom(code, "Bob");
+    startRound(code, host.participantId);
+
+    const room = appendStroke(code, host.participantId, {
+      points: [
+        { x: 1, y: 2 },
+        { x: 3, y: 4 }
+      ]
+    });
+
+    expect(room?.currentRound?.strokes).toHaveLength(1);
+  });
+
+  it("appendStroke rejects non-drawer", () => {
+    const host = createRoom("Alice");
+    const code = host.room.code;
+    const guest = joinRoom(code, "Bob")!;
+    startRound(code, host.participantId);
+
+    expect(() =>
+      appendStroke(code, guest.participantId, {
+        points: [
+          { x: 1, y: 2 },
+          { x: 3, y: 4 }
+        ]
+      })
+    ).toThrow(DrawNotDrawerError);
+  });
+
+  it("clearStrokes empties stroke list", () => {
+    const host = createRoom("Alice");
+    const code = host.room.code;
+    joinRoom(code, "Bob");
+    startRound(code, host.participantId);
+    appendStroke(code, host.participantId, {
+      points: [
+        { x: 1, y: 2 },
+        { x: 3, y: 4 }
+      ]
+    });
+
+    const room = clearStrokes(code, host.participantId);
+
+    expect(room?.currentRound?.strokes).toHaveLength(0);
+  });
+
+  it("submitGuess records incorrect guess without score change", () => {
+    const host = createRoom("Alice");
+    const code = host.room.code;
+    const guest = joinRoom(code, "Bob")!;
+    startRound(code, host.participantId);
+
+    const room = submitGuess(code, guest.participantId, "wrong")!;
+
+    expect(room.status).toBe("playing");
+    expect(room.currentRound?.guesses).toHaveLength(1);
+    expect(room.currentRound?.guesses[0].isCorrect).toBe(false);
+    expect(room.currentRound?.scores[guest.participantId]).toBe(0);
+  });
+
+  it("submitGuess awards 100 and transitions to result on correct guess", () => {
+    const host = createRoom("Alice");
+    const code = host.room.code;
+    const guest = joinRoom(code, "Bob")!;
+    const playing = startRound(code, host.participantId)!;
+    const secretWord = playing.currentRound!.secretWord;
+
+    const room = submitGuess(code, guest.participantId, `  ${secretWord.toUpperCase()}  `)!;
+
+    expect(room.status).toBe("result");
+    expect(room.currentRound?.scores[guest.participantId]).toBe(100);
+    expect(room.currentRound?.winnerParticipantId).toBe(guest.participantId);
+  });
+
+  it("submitGuess rejects drawer", () => {
+    const host = createRoom("Alice");
+    const code = host.room.code;
+    joinRoom(code, "Bob");
+    startRound(code, host.participantId);
+
+    expect(() => submitGuess(code, host.participantId, "rocket")).toThrow(DrawerCannotGuessError);
+  });
+
+  it("submitGuess rejects after result state", () => {
+    const host = createRoom("Alice");
+    const code = host.room.code;
+    const guest = joinRoom(code, "Bob")!;
+    const playing = startRound(code, host.participantId)!;
+    submitGuess(code, guest.participantId, playing.currentRound!.secretWord);
+
+    expect(() => submitGuess(code, guest.participantId, "again")).toThrow(RoundNotActiveError);
+  });
+
+  it("appendStroke rejects when stroke cap reached", () => {
+    const host = createRoom("Alice");
+    const code = host.room.code;
+    joinRoom(code, "Bob");
+    startRound(code, host.participantId);
+
+    for (let index = 0; index < 500; index += 1) {
+      appendStroke(code, host.participantId, {
+        points: [
+          { x: 1, y: 2 },
+          { x: 3, y: 4 }
+        ]
+      });
+    }
+
+    expect(() =>
+      appendStroke(code, host.participantId, {
+        points: [
+          { x: 1, y: 2 },
+          { x: 3, y: 4 }
+        ]
+      })
+    ).toThrow(StrokeLimitError);
+  });
+
+  it("toRoomSnapshot includes strokes and guesses for all viewers", () => {
+    const host = createRoom("Alice");
+    const code = host.room.code;
+    const guest = joinRoom(code, "Bob")!;
+    startRound(code, host.participantId);
+    appendStroke(code, host.participantId, {
+      points: [
+        { x: 1, y: 2 },
+        { x: 3, y: 4 }
+      ]
+    });
+    submitGuess(code, guest.participantId, "wrong");
+    const room = submitGuess(code, guest.participantId, pickWord(code, 0))!;
+
+    const snapshot = toRoomSnapshot(room, guest.participantId);
+
+    expect(snapshot.currentRound?.strokes).toHaveLength(1);
+    expect(snapshot.currentRound?.guesses.length).toBeGreaterThanOrEqual(2);
+    expect(snapshot.currentRound?.scores.find((entry) => entry.participantId === guest.participantId)?.score).toBe(
+      100
+    );
   });
 });

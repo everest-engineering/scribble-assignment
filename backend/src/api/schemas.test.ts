@@ -1,10 +1,13 @@
 import { describe, expect, it } from "vitest";
 import {
+  appendStrokeSchema,
+  clearStrokesSchema,
   createRoomSchema,
   joinRoomSchema,
   playerNameSchema,
   roomCodeParamsSchema,
-  startRoomSchema
+  startRoomSchema,
+  submitGuessSchema
 } from "./schemas.js";
 
 describe("schemas", () => {
@@ -46,5 +49,39 @@ describe("schemas", () => {
 
   it("startRoomSchema rejects empty participantId", () => {
     expect(() => startRoomSchema.parse({ participantId: "" })).toThrow();
+  });
+
+  it("appendStrokeSchema accepts valid stroke body", () => {
+    const result = appendStrokeSchema.parse({
+      participantId: "p1",
+      points: [
+        { x: 1, y: 2 },
+        { x: 3, y: 4 }
+      ]
+    });
+
+    expect(result.participantId).toBe("p1");
+    expect(result.points).toHaveLength(2);
+  });
+
+  it("appendStrokeSchema rejects too few points", () => {
+    expect(() =>
+      appendStrokeSchema.parse({
+        participantId: "p1",
+        points: [{ x: 1, y: 2 }]
+      })
+    ).toThrow();
+  });
+
+  it("clearStrokesSchema accepts participantId", () => {
+    const result = clearStrokesSchema.parse({ participantId: "p1" });
+
+    expect(result.participantId).toBe("p1");
+  });
+
+  it("submitGuessSchema accepts text", () => {
+    const result = submitGuessSchema.parse({ participantId: "p1", text: "rocket" });
+
+    expect(result.text).toBe("rocket");
   });
 });

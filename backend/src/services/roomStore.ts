@@ -1,10 +1,13 @@
 import { randomUUID } from "node:crypto";
-import type { Participant, Room, RoomSnapshot } from "../models/game.js";
+import type { Guess, Point, Room, RoomSnapshot, Stroke } from "../models/game.js";
 import { STARTER_ROLES, STARTER_WORDS } from "../seed/starterData.js";
 
 const rooms = new Map<string, Room>();
 
 export const MAX_PARTICIPANTS = 8;
+export const MAX_STROKES = 500;
+export const MAX_GUESSES = 200;
+export const MAX_POINTS_PER_STROKE = 250;
 
 export class PlayerNameValidationError extends Error {
   constructor(message: string) {
@@ -38,6 +41,55 @@ export class StartInsufficientPlayersError extends Error {
   constructor() {
     super("Need at least 2 players to start");
     this.name = "StartInsufficientPlayersError";
+  }
+}
+
+export class DrawNotDrawerError extends Error {
+  constructor() {
+    super("Only the drawer can draw");
+    this.name = "DrawNotDrawerError";
+  }
+}
+
+export class DrawerCannotGuessError extends Error {
+  constructor() {
+    super("Drawer cannot guess");
+    this.name = "DrawerCannotGuessError";
+  }
+}
+
+export class RoundNotActiveError extends Error {
+  constructor() {
+    super("Round is not active");
+    this.name = "RoundNotActiveError";
+  }
+}
+
+export class GuessValidationError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "GuessValidationError";
+  }
+}
+
+export class StrokeLimitError extends Error {
+  constructor() {
+    super("Stroke limit reached");
+    this.name = "StrokeLimitError";
+  }
+}
+
+export class GuessLimitError extends Error {
+  constructor() {
+    super("Guess limit reached");
+    this.name = "GuessLimitError";
+  }
+}
+
+export class StrokePointsLimitError extends Error {
+  constructor() {
+    super("Stroke has too many points");
+    this.name = "StrokePointsLimitError";
   }
 }
 
@@ -95,7 +147,7 @@ export function normalizePlayerName(name?: string) {
   return trimmed;
 }
 
-function createParticipant(name: string): Participant {
+function createParticipant(name: string) {
   return {
     id: randomUUID(),
     name,
@@ -105,6 +157,36 @@ function createParticipant(name: string): Participant {
 
 function cloneRoom(room: Room) {
   return structuredClone(room);
+}
+
+function initializeScores(room: Room) {
+  const scores: Record<string, number> = {};
+
+  for (const participant of room.participants) {
+    scores[participant.id] = 0;
+  }
+
+  return scores;
+}
+
+function getParticipantName(room: Room, participantId: string) {
+  return room.participants.find((participant) => participant.id === participantId)?.name ?? "Unknown";
+}
+
+function requirePlayingRound(room: Room) {
+  if (room.status !== "playing" || !room.currentRound) {
+    throw new RoundNotActiveError();
+  }
+
+  return room.currentRound;
+}
+
+function requireDrawer(room: Room, participantId: string) {
+  const round = requirePlayingRound(room);
+
+  if (participantId !== round.drawerParticipantId) {
+    throw new DrawNotDrawerError();
+  }
 }
 
 export function listWords() {
@@ -185,8 +267,110 @@ export function startRound(code: string, participantId: string) {
   room.currentRound = {
     roundIndex: 0,
     drawerParticipantId,
-    secretWord
+    secretWord,
+    strokes: [],
+    guesses: [],
+    scores: initializeScores(room)
   };
+  room.updatedAt = now();
+  rooms.set(room.code, cloneRoom(room));
+
+  return getRoom(room.code);
+}
+
+export interface StrokeInput {
+  points: Point[];
+  color?: string;
+  width?: number;
+}
+
+export function appendStroke(code: string, participantId: string, input: StrokeInput) {
+  const room = rooms.get(code);
+
+  if (!room) {
+    return null;
+  }
+
+  requireDrawer(room, participantId);
+  const round = room.currentRound!;
+
+  if (round.strokes.length >= MAX_STROKES) {
+    throw new StrokeLimitError();
+  }
+
+  if (input.points.length < 2 || input.points.length > MAX_POINTS_PER_STROKE) {
+    throw new StrokePointsLimitError();
+  }
+
+  const stroke: Stroke = {
+    id: randomUUID(),
+    points: input.points.map((point) => ({ x: point.x, y: point.y })),
+    color: input.color ?? "#000000",
+    width: input.width ?? 2
+  };
+
+  round.strokes.push(stroke);
+  room.updatedAt = now();
+  rooms.set(room.code, cloneRoom(room));
+
+  return getRoom(room.code);
+}
+
+export function clearStrokes(code: string, participantId: string) {
+  const room = rooms.get(code);
+
+  if (!room) {
+    return null;
+  }
+
+  requireDrawer(room, participantId);
+  room.currentRound!.strokes = [];
+  room.updatedAt = now();
+  rooms.set(room.code, cloneRoom(room));
+
+  return getRoom(room.code);
+}
+
+export function submitGuess(code: string, participantId: string, text: string) {
+  const room = rooms.get(code);
+
+  if (!room) {
+    return null;
+  }
+
+  const round = requirePlayingRound(room);
+
+  if (participantId === round.drawerParticipantId) {
+    throw new DrawerCannotGuessError();
+  }
+
+  const trimmed = text.trim();
+
+  if (!trimmed) {
+    throw new GuessValidationError("Guess is required");
+  }
+
+  if (round.guesses.length >= MAX_GUESSES) {
+    throw new GuessLimitError();
+  }
+
+  const isCorrect = trimmed.toLowerCase() === round.secretWord.toLowerCase();
+  const guess: Guess = {
+    id: randomUUID(),
+    participantId,
+    text: trimmed,
+    isCorrect,
+    createdAt: now()
+  };
+
+  round.guesses.push(guess);
+
+  if (isCorrect) {
+    round.scores[participantId] = (round.scores[participantId] ?? 0) + 100;
+    round.winnerParticipantId = participantId;
+    room.status = "result";
+  }
+
   room.updatedAt = now();
   rooms.set(room.code, cloneRoom(room));
 
@@ -215,7 +399,25 @@ export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSn
     snapshot.currentRound = {
       roundIndex: room.currentRound.roundIndex,
       drawerParticipantId: room.currentRound.drawerParticipantId,
-      secretWord: isDrawer ? room.currentRound.secretWord : null
+      secretWord: isDrawer ? room.currentRound.secretWord : null,
+      strokes: room.currentRound.strokes.map((stroke) => ({
+        ...stroke,
+        points: stroke.points.map((point) => ({ ...point }))
+      })),
+      guesses: room.currentRound.guesses.map((guess) => ({
+        id: guess.id,
+        participantId: guess.participantId,
+        participantName: getParticipantName(room, guess.participantId),
+        text: guess.text,
+        isCorrect: guess.isCorrect,
+        createdAt: guess.createdAt
+      })),
+      scores: room.participants.map((participant) => ({
+        participantId: participant.id,
+        name: participant.name,
+        score: room.currentRound!.scores[participant.id] ?? 0
+      })),
+      winnerParticipantId: room.currentRound.winnerParticipantId ?? null
     };
 
     if (viewerParticipantId) {
