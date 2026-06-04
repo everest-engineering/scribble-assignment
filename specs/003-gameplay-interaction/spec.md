@@ -141,6 +141,18 @@ Alice at 0.
 
 ---
 
+## Clarifications
+
+### Session 2026-06-04
+
+- Q: How should guess text be rendered in the history list — as plain text (HTML-escaped) or can it contain markup? → A: Plain text only — always HTML-escape guess text before display (use `textContent`).
+- Q: What does the non-interactive canvas placeholder for guessers visually look like? → A: Styled container with a short text label, e.g. "Watch the drawer!".
+- Q: After a rejected empty/whitespace guess, should the input field be cleared or retain the user's input? → A: Retain input value and display error message inline; do not clear the field.
+- Q: When / how does the gameplay round end — is end-of-round in scope for Scenario 3? → A: Out of scope; gameplay continues indefinitely until the player navigates away.
+- Q: How should correct vs. incorrect guesses be visually distinguished in the history list? → A: Colour-coded rows — green background/text for correct, red for incorrect.
+
+---
+
 ## Requirements *(mandatory)*
 
 ### Functional Requirements
@@ -149,16 +161,20 @@ Alice at 0.
   freehand drawing.
 - **FR-002**: The canvas MUST have a "Clear Canvas" button visible only to the drawer; clicking
   it MUST wipe the canvas blank.
-- **FR-003**: The canvas MUST remain a non-interactive placeholder for guessers.
+- **FR-003**: The canvas MUST remain a non-interactive placeholder for guessers, displayed
+  as a styled container with the label "Watch the drawer!" (pointer events disabled).
 - **FR-004**: The guess form MUST trim whitespace from submitted guesses before processing.
 - **FR-005**: Trimmed empty guesses MUST be rejected with a user-visible error message; no
-  submission is made.
+  submission is made. The input field MUST retain its value so the player can correct it.
 - **FR-006**: Guess comparison MUST be case-insensitive (e.g., "ROCKET", "rocket", "Rocket"
   all match the secret word "rocket").
 - **FR-007**: A correct guess MUST award 100 points to the guessing player.
 - **FR-008**: An incorrect guess MUST award 0 points (score unchanged).
 - **FR-009**: Every submitted guess MUST be stored on the room with the player's name, the
-  guess text, and a correct/incorrect flag.
+  guess text, and a correct/incorrect flag. In the UI, correct guesses MUST be displayed with
+  a green background/text and incorrect guesses with a red background/text.
+- **FR-009a**: Guess text MUST be rendered as plain text only — never interpreted as HTML
+  markup — to prevent injection attacks from player-submitted content.
 - **FR-010**: The guess history and scores MUST be included in the room snapshot returned
   by the existing fetch-room endpoint.
 - **FR-011**: The game screen MUST poll the room snapshot at approximately 2-second intervals
@@ -199,6 +215,12 @@ Alice at 0.
   a correct guess being submitted.
 
 ---
+
+## Out of Scope
+
+- **Round termination**: No end-of-round state or transition is implemented in Scenario 3.
+  Gameplay continues indefinitely; the only exit is the player navigating away from the game
+  screen (which stops polling per FR-012).
 
 ## Assumptions
 
