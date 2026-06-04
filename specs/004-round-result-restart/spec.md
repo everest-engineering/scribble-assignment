@@ -4,7 +4,7 @@
 
 **Created**: 2026-06-04
 
-**Status**: Draft
+**Status**: Clarified
 
 **Input**: User description: "Round Result, Restart & Final Validation — Brownfield enhancement of the Scribble starter. Scenario: Given a round ends (triggered when any guesser submits a correct guess or the host manually ends the round), When the result state is displayed, Then all players see the correct word revealed (no longer viewer-gated), the final scores for all participants, and the complete guess history in the RoomSnapshot. The host sees a 'Restart Game' button in the result view. When the host clicks restart, Then the room status transitions from 'playing' back to 'lobby', all round-scoped state is cleared (strokes reset to [], guesses reset to [], drawerId reset to null, currentWord reset to null, scores reset to 0 for all participants), but the participant list (names and IDs) is preserved. All players see the lobby screen on their next poll without any manual action. Non-host players in the result view see a waiting message such as 'Waiting for host to restart...'. On restart, the existing hostId is preserved. The room code is unchanged. The restart is initiated by a new POST /rooms/:code/restart endpoint that checks participantId === hostId (403 otherwise) and room.status === 'playing' or 'finished' (400 otherwise). The response returns the updated RoomSnapshot with status 'lobby' and all cleared fields."
 
@@ -134,9 +134,15 @@ cycle.
   in the result state).
 - **FR-004**: The frontend MUST render a result view when `room.status === "finished"`. This
   view MUST display: the correct word, the scoreboard (sorted by score descending), and
-  the full guess history.
+  the full guess history. The result view is rendered inline inside `GamePage` via
+  conditional rendering on `room.status`; no separate route or page navigation occurs.
+- **FR-004a**: When `room.status === "lobby"` while the player is on `GamePage` (after a
+  restart), the page MUST render simplified lobby content: the participant list and a
+  "Start Game" button visible only to the host; non-hosts see a waiting message. No
+  automatic navigation to `/lobby` occurs.
 - **FR-005**: When `room.status === "finished"` and the current participant is the host,
-  the frontend MUST render a "Restart Game" button.
+  the frontend MUST render a "Restart Game" button inside the inline result view on
+  `GamePage`.
 - **FR-006**: When `room.status === "finished"` and the current participant is NOT the
   host, the frontend MUST render a waiting message (e.g., "Waiting for host to restart...")
   and MUST NOT show the restart button.
@@ -179,11 +185,17 @@ cycle.
 
 - `"finished"` is a new valid value for `RoomStatus` alongside `"lobby"` and `"playing"`.
 - The existing `GamePage` component (from Scenario 3) will be extended to handle the
-  `"finished"` status by rendering a result view instead of the active game canvas.
-- The existing `LobbyPage` component (from Scenario 1) already handles `"lobby"` status;
-  no changes are needed there. After restart, players will naturally see the lobby view
-  because polling updates `RoomState` and the router or conditional rendering switches
-  the display.
+  `"finished"` status by rendering a result view inline instead of the active game canvas.
+  No separate route or `ResultPage` is introduced (Q1 clarification).
+- After restart, all players remain on `GamePage`; the page conditionally renders simplified
+  lobby content when `status === "lobby"`. No automatic navigation to `/lobby` occurs
+  (Q2 clarification).
+- The simplified lobby content on `GamePage` shows the participant list and a host-gated
+  "Start Game" button; non-hosts see a waiting message. It does not include create/join room
+  controls (those belong to the dedicated `LobbyPage`) (Q3 clarification).
+- The existing `LobbyPage` component (from Scenario 1) remains for the initial create/join
+  flow. After restart, players stay on `GamePage` which renders simplified lobby content
+  when `status === "lobby"`; `LobbyPage` is not involved in the restart flow.
 - The `POST /rooms/:code/guess` handler from Scenario 3 is the only place where a
   correct guess is processed; adding `room.status = "finished"` there is a single-line
   extension.

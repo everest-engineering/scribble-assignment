@@ -20,6 +20,12 @@
 - [x] Acceptance scenarios cover happy path and edge cases
 - [x] Edge cases section populated
 
+## Clarifications Resolved (post /speckit.clarify)
+
+- [x] Result view location: inline conditional rendering inside `GamePage.tsx`; no separate route (FR-004)
+- [x] Post-restart navigation: stay on `GamePage`; conditionally render simplified lobby content when `status === "lobby"` (FR-004a)
+- [x] Simplified lobby content: participant list + host-gated "Start Game" button; non-hosts see waiting message
+
 ## Constitution Alignment
 
 - [x] No WebSockets or real-time push (Principle III — all sync via polling)
