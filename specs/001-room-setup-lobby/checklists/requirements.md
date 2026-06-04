@@ -31,4 +31,11 @@
 
 ## Notes
 
-All items pass. Spec is ready for `/speckit.clarify` or `/speckit.plan`.
+All items pass. Clarification complete (5/5 questions answered). Spec is ready for `/speckit.plan`.
+
+**Clarifications applied**:
+- Q1: Non-host game navigation via poll detecting `status: "playing"` (FR-012)
+- Q2: Poll failures show inline error, polling continues (FR-014)
+- Q3: Non-host Start Game button visible + permanently disabled with label (FR-013)
+- Q4: Host abandonment — no reassignment, room stalls (FR-015)
+- Q5: Host navigates immediately on successful Start Game response (FR-011)

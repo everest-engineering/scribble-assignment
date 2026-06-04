@@ -4,7 +4,7 @@
 
 **Created**: 2026-06-04
 
-**Status**: Draft
+**Status**: Clarified
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -72,6 +72,9 @@ tabs show the new participant within ~2 seconds without any manual action.
    player's lobby updates to show the new participant within approximately 2 seconds.
 2. **Given** a player navigates away from the lobby, **When** the lobby unmounts, **Then** polling
    stops and no further network requests are made for that tab.
+3. **Given** a poll request fails (network error or server error), **When** the error is received,
+   **Then** an inline error message is shown in the lobby and polling continues on the next
+   interval without interruption.
 
 ---
 
@@ -89,12 +92,16 @@ enabled; have the host click it and confirm both tabs transition to the game scr
 **Acceptance Scenarios**:
 
 1. **Given** the current player is the host and at least 2 players are in the lobby, **When**
-   they click Start Game, **Then** the game begins and all players are moved to the game screen.
-2. **Given** the current player is the host but only 1 player is present, **When** they view the
+   they click Start Game and the request succeeds, **Then** the host navigates immediately to
+   the game screen and the room status becomes `playing`.
+2. **Given** a non-host player is in the lobby and the room status changes to `playing`, **When**
+   the next poll completes, **Then** the non-host player is automatically navigated to the game
+   screen.
+3. **Given** the current player is the host but only 1 player is present, **When** they view the
    lobby, **Then** the Start Game button is disabled with a message indicating more players are
    needed.
-3. **Given** the current player is not the host, **When** they view the lobby, **Then** the Start
-   Game button is not available to them (hidden or permanently disabled).
+4. **Given** the current player is not the host, **When** they view the lobby, **Then** the Start
+   Game button is visible but permanently disabled with the label "Only the host can start".
 
 ---
 
@@ -106,6 +113,9 @@ enabled; have the host click it and confirm both tabs transition to the game scr
   must guarantee code uniqueness before persisting.
 - What happens when a player refreshes the browser page while in the lobby? They lose their
   in-memory session (expected; no persistence is in scope).
+- What happens if the host closes their tab? There is no host reassignment. The room remains
+  in the lobby state but no participant can start the game; other players must create a new
+  room.
 
 ## Requirements *(mandatory)*
 
@@ -126,7 +136,17 @@ enabled; have the host click it and confirm both tabs transition to the game scr
 - **FR-008**: The Start Game action MUST be available only to the host of the room.
 - **FR-009**: The Start Game action MUST be disabled until at least 2 players are present in the
   room.
-- **FR-010**: The Start Game action MUST transition the room to the game phase for all participants.
+- **FR-010**: The Start Game action MUST transition the room status to `playing` on the backend.
+- **FR-011**: The host MUST be navigated to the game screen immediately upon a successful Start
+  Game response.
+- **FR-012**: Non-host players MUST be automatically navigated to the game screen when their
+  next lobby poll returns `status: "playing"`.
+- **FR-013**: The Start Game button for non-host players MUST be visible but permanently disabled
+  with the label "Only the host can start".
+- **FR-014**: When a lobby poll fails, the lobby MUST display an inline error message and
+  continue polling; polling MUST NOT stop on a transient error.
+- **FR-015**: Host abandonment (tab close / navigation away) MUST NOT trigger host reassignment;
+  the room remains stalled in lobby state.
 
 ### Key Entities
 
@@ -164,3 +184,10 @@ enabled; have the host click it and confirm both tabs transition to the game scr
   session-recovery mechanism is required.
 - The manual Refresh button in the starter lobby MAY be retained alongside automatic polling as
   a convenience, but it is not required once polling is in place.
+- Non-host players navigate to the game screen via poll detection (status `playing`), not via
+  a direct push or broadcast from the host's action.
+- The host navigates immediately on a successful Start Game API response; they do not wait for
+  a poll cycle.
+- Polling errors are non-fatal: an inline message is shown and the interval continues.
+- Host abandonment results in a stalled room with no reassignment; this is expected behaviour
+  given the in-memory-only constraint.
