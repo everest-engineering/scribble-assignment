@@ -1,0 +1,19 @@
+# Constitution
+
+## Engineering Principles
+- Extend, don't rewrite. All changes build on existing code.
+- In-memory only. No databases, no WebSockets, no auth.
+- TypeScript strict. No `any`. Prefer `unknown` for dynamic types.
+- Server is single source of truth. Client is a view layer.
+- Validate all inputs server-side with Zod.
+
+## AI Usage Rules
+- AI may draft code, but the author must read and understand every line before committing.
+- AI must not generate out-of-scope features (multi-round, timers, WebSockets, etc.).
+- AI must check existing conventions before writing new code.
+
+## Review Discipline
+- Test with two browser tabs after each feature group.
+- Spec must be updated before implementation of that group begins.
+- Commit granularly: one logical change per commit.
+- Run `npm run build` in both backend and frontend before final commit.
