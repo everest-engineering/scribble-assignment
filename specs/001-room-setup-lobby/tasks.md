@@ -21,7 +21,7 @@
 - [ ] T003 Add `hostId: string` field to `RoomSnapshot` interface in `backend/src/models/game.ts`
 - [ ] T004 Set `hostId = participant.id` (first participant) in `createRoom()` in `backend/src/services/roomStore.ts`
 - [ ] T005 Forward `hostId` from `Room` to `RoomSnapshot` in `toRoomSnapshot()` in `backend/src/services/roomStore.ts`
-- [ ] T006 Tighten `displayName()` in `backend/src/services/roomStore.ts` to trim input and reject empty/whitespace-only strings by throwing (name validation moved to schemas, this becomes a safety guard)
+- [ ] T006 Keep `displayName()` in `backend/src/services/roomStore.ts` as a passive fallback (existing `name || "Player"` behaviour); Zod schemas (T007/T008) are the sole validation gate — do not add a throw here to avoid double-failure paths with mismatched error shapes (FR-002)
 
 ---
 
@@ -32,7 +32,7 @@
 - [ ] T007 Update `createRoomSchema` in `backend/src/api/schemas.ts` to require `playerName` as a trimmed non-empty string (`z.string().trim().min(1)`)
 - [ ] T008 Update `joinRoomSchema` in `backend/src/api/schemas.ts` to require `playerName` as a trimmed non-empty string (`z.string().trim().min(1)`)
 - [ ] T009 Add `startGameSchema` to `backend/src/api/schemas.ts`: `z.object({ participantId: z.string().uuid() })`
-- [ ] T010 Add `POST /:code/start` route handler in `backend/src/api/rooms.ts` that: validates `participantId === room.hostId` (403 if not), validates `participants.length >= 2` (400 if not), sets `room.status = "playing"` via `saveRoom()`, returns `{ room: toRoomSnapshot(room, participantId) }`
+- [ ] T010 Add `POST /:code/start` route handler in `backend/src/api/rooms.ts` that: normalises `:code` to uppercase via `code.toUpperCase()` (FR-003, matching existing `join` pattern in rooms.ts:32), validates `participantId === room.hostId` (403 if not), validates `participants.length >= 2` (400 if not), sets `room.status = "playing"` via `saveRoom()`, returns `{ room: toRoomSnapshot(room, participantId) }`
 
 ---
 
@@ -82,9 +82,9 @@
 
 - [ ] T022 [US4] Add `startGame(): Promise<RoomSnapshot>` method to `RoomStore` in `frontend/src/state/roomStore.ts`: calls `api.startGame(room.code, participantId)`, updates room snapshot via `setRoomSnapshot`
 - [ ] T023 [US4] Compute `isHost` and `canStart` in `frontend/src/pages/LobbyPage.tsx`: `isHost = room.hostId === participantId`; `canStart = isHost && room.participants.length >= 2`
-- [ ] T024 [US4] Replace the existing unconditional Start Game button in `frontend/src/pages/LobbyPage.tsx` with a button that: is `disabled` when `!canStart`; shows label `"Only the host can start"` when `!isHost`; shows `"Need at least 2 players"` when `isHost && participants.length < 2`; calls `handleStartGame()` when enabled
+- [ ] T024 [US4] Replace the existing unconditional Start Game button in `frontend/src/pages/LobbyPage.tsx` with a button that: is `disabled` when `!canStart`; shows label `"Only the host can start"` when `!isHost` (FR-013); shows `"Need at least 2 players"` when `isHost && participants.length < 2` (FR-009 — implementation extension not contradicting any FR); calls `handleStartGame()` when enabled
 - [ ] T025 [US4] Add `handleStartGame()` async handler in `frontend/src/pages/LobbyPage.tsx`: calls `roomStore.startGame()`; on success calls `navigate("/game")`; on error sets local error state
-- [ ] T026 [US4] In the lobby polling handler (T018/T020), add detection: if polled `room.status === "playing"` and `!isHost`, call `navigate("/game")` — non-host auto-navigation
+- [ ] T026 [US4] In `frontend/src/pages/LobbyPage.tsx` polling `useEffect` (T020), add a `useEffect` (or inline check after `roomStore.startPolling` snapshot update) that watches `room.status`: when `room.status === "playing"` and `!isHost`, call `navigate("/game")` — this check runs in `LobbyPage` where `isHost` is available, NOT inside `RoomStore.startPolling` which has no access to `participantId` (FR-012)
 
 ---
 
@@ -93,6 +93,7 @@
 **Purpose**: Cleanup, type safety verification, and manual validation pass.
 
 - [ ] T027 [P] Verify no `any` types introduced across all modified files: `backend/src/models/game.ts`, `backend/src/services/roomStore.ts`, `backend/src/api/schemas.ts`, `backend/src/api/rooms.ts`, `frontend/src/services/api.ts`, `frontend/src/state/roomStore.ts`, `frontend/src/pages/LobbyPage.tsx`, `frontend/src/pages/CreateRoomPage.tsx`, `frontend/src/pages/JoinRoomPage.tsx`
+- [ ] T031 [P] Verify no code path mutates `room.hostId` after `createRoom()` in `backend/src/services/roomStore.ts`: confirm `joinRoom()`, `saveRoom()`, and `toRoomSnapshot()` never overwrite `hostId`; confirm `POST /:code/start` handler does not alter `hostId` (FR-015)
 - [ ] T028 [P] Run `cd backend && npm run build` and confirm zero TypeScript errors
 - [ ] T029 [P] Run `cd frontend && npm run build` and confirm zero TypeScript errors
 - [ ] T030 Manual two-tab acceptance test per plan.md Testing Strategy: create room (Tab A), join (Tab B), verify polling, verify Start Game gates, verify navigation for both host and non-host
@@ -114,7 +115,7 @@ T020 → T021                  (US3 lobby changes — depend on T018-T019)
 T022                         (US4 store — depends on T013, T016-T019)
 T023 → T024 → T025           (US4 lobby — depend on T022)
 T026                         (US4 poll detection — depends on T020, T023)
-T027, T028, T029, T030       (polish — depend on all preceding tasks)
+T027, T028, T029, T030, T031 (polish — depend on all preceding tasks)
 ```
 
 ## Parallel Execution Opportunities
@@ -125,6 +126,7 @@ T027, T028, T029, T030       (polish — depend on all preceding tasks)
 | US1 client | T012, T013 | Different files |
 | US2 validations | T014, T015 | Same file — write sequentially |
 | Build checks | T027, T028, T029 | Fully independent |
+| Host-immutability guard | T031 | Fully independent |
 
 ## Implementation Strategy
 
