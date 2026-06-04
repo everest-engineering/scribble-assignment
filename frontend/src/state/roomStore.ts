@@ -110,6 +110,27 @@ class RoomStore {
       return response.room;
     });
   }
+
+  async submitGuess(guessText: string) {
+    if (!this.state.room || !this.state.participantId) {
+      return;
+    }
+
+    const response = await api.submitGuess(
+      this.state.room.code,
+      this.state.participantId,
+      guessText
+    );
+    this.setRoomSnapshot(response.room);
+  }
+
+  async updateCanvas(canvasData: string | null) {
+    if (!this.state.room || !this.state.participantId) {
+      return;
+    }
+
+    await api.updateCanvas(this.state.room.code, this.state.participantId, canvasData);
+  }
 }
 
 const RoomStoreContext = createContext<RoomStore | null>(null);

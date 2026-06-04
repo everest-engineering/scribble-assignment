@@ -8,9 +8,10 @@
 
 **Input**: Scenario 3 — Gameplay Interaction: Given a round is active with a drawer and guessers
 (all scores start at 0), When the drawer draws/clears the canvas and guessers submit their
-guesses, Then the drawing is visible on the drawer's screen; guesses are trimmed,
-case-insensitively compared, and empty ones rejected; the guess history is synced to all
-players via polling; correct guesses score 100 (incorrect add 0).
+guesses, Then the drawing is visible on both the drawer's screen and the guessers' screens
+(synced via polling); guesses are trimmed, case-insensitively compared, and empty ones
+rejected; the guess history is synced to all players via polling; correct guesses score 100
+(incorrect add 0).
 
 **Depends on**: Scenario 1 (room setup, polling pattern) and Scenario 2 (drawer identity,
 secret word, game screen structure).
@@ -22,14 +23,16 @@ secret word, game screen structure).
 ### User Story 1 — Drawer Draws and Clears the Canvas (Priority: P1)
 
 The drawer uses the game screen canvas to draw freehand. They can also clear the canvas to
-start over. The drawing is visible on the drawer's own screen.
+start over. The drawing is visible on the drawer's own screen and synced to guessers via
+polling so they can see what is being drawn.
 
 **Why this priority**: Without drawing, there is nothing for guessers to guess from. The canvas
 is the core interaction for the drawer role.
 
-**Independent Test**: One tab as Alice (drawer). After game start, Alice can draw on the canvas
-by clicking and dragging. The drawing appears in real time on Alice's screen. Alice can click
-"Clear Canvas" and the drawing disappears.
+**Independent Test**: Two tabs — Alice (drawer) and Bob (guesser). Alice draws on the canvas.
+The drawing appears in real time on Alice's screen. Within approximately 2 seconds, Bob's tab
+shows a snapshot of Alice's drawing. Alice clicks "Clear Canvas" — her canvas clears, and
+within 2 seconds Bob's view also shows the cleared state.
 
 **Acceptance Scenarios**:
 
@@ -39,8 +42,10 @@ by clicking and dragging. The drawing appears in real time on Alice's screen. Al
    canvas is wiped clean and the drawing area is blank.
 3. **Given** Alice is the drawer, **When** she views the canvas, **Then** the canvas is
    interactive (pointer events enabled) and clearly distinct from the guesser's view.
-4. **Given** Bob is a guesser, **When** he views the canvas area, **Then** it remains a
-   non-interactive placeholder (drawing by guessers is not supported).
+4. **Given** Bob is a guesser, **When** Alice completes a stroke, **Then** Bob's game screen
+   shows a snapshot of the current drawing within approximately 2 seconds (non-interactive).
+5. **Given** Alice clears the canvas, **When** Bob's next poll fires, **Then** Bob's view
+   reverts to the "Watch the drawer!" placeholder.
 
 ---
 
@@ -146,7 +151,7 @@ Alice at 0.
 ### Session 2026-06-04
 
 - Q: How should guess text be rendered in the history list — as plain text (HTML-escaped) or can it contain markup? → A: Plain text only — always HTML-escape guess text before display (use `textContent`).
-- Q: What does the non-interactive canvas placeholder for guessers visually look like? → A: Styled container with a short text label, e.g. "Watch the drawer!".
+- Q: What does the non-interactive canvas placeholder for guessers visually look like? → A: When no drawing exists yet, a styled container with label "Watch the drawer!". Once the drawer has made strokes, guessers see a live snapshot image of the drawing (updated via polling). Clearing the canvas reverts to the placeholder.
 - Q: After a rejected empty/whitespace guess, should the input field be cleared or retain the user's input? → A: Retain input value and display error message inline; do not clear the field.
 - Q: When / how does the gameplay round end — is end-of-round in scope for Scenario 3? → A: Out of scope; gameplay continues indefinitely until the player navigates away.
 - Q: How should correct vs. incorrect guesses be visually distinguished in the history list? → A: Colour-coded rows — green background/text for correct, red for incorrect.
@@ -161,8 +166,10 @@ Alice at 0.
   freehand drawing.
 - **FR-002**: The canvas MUST have a "Clear Canvas" button visible only to the drawer; clicking
   it MUST wipe the canvas blank.
-- **FR-003**: The canvas MUST remain a non-interactive placeholder for guessers, displayed
-  as a styled container with the label "Watch the drawer!" (pointer events disabled).
+- **FR-003**: Guessers MUST see a read-only, non-interactive view of the canvas area. When no
+  drawing has been made yet (or after a clear), a "Watch the drawer!" placeholder is shown.
+  Once the drawer has drawn, guessers see a snapshot image of the current drawing, updated
+  via the existing poll cycle. Guessers cannot draw or interact with the canvas.
 - **FR-004**: The guess form MUST trim whitespace from submitted guesses before processing.
 - **FR-005**: Trimmed empty guesses MUST be rejected with a user-visible error message; no
   submission is made. The input field MUST retain its value so the player can correct it.
@@ -175,8 +182,11 @@ Alice at 0.
   a green background/text and incorrect guesses with a red background/text.
 - **FR-009a**: Guess text MUST be rendered as plain text only — never interpreted as HTML
   markup — to prevent injection attacks from player-submitted content.
-- **FR-010**: The guess history and scores MUST be included in the room snapshot returned
-  by the existing fetch-room endpoint.
+- **FR-010**: The guess history, scores, and current canvas snapshot MUST be included in the
+  room snapshot returned by the existing fetch-room endpoint.
+- **FR-010a**: After each completed drawing stroke (`mouseup`), the drawer's client MUST
+  send the current canvas state as a base64 PNG to `PUT /rooms/:code/canvas`. On "Clear
+  Canvas", a null value MUST be sent to reset the stored canvas state.
 - **FR-011**: The game screen MUST poll the room snapshot at approximately 2-second intervals
   to keep guess history and scores current.
 - **FR-012**: Game screen polling MUST stop when the player navigates away.
@@ -190,10 +200,12 @@ Alice at 0.
 
 - **Guess**: A single guess submission. Contains the guesser's participant ID, the guesser's
   display name, the submitted text (trimmed), and a boolean indicating whether it was correct.
-- **Room** (extended): Gains a `guesses: Guess[]` array and a `scores: Record<string, number>`
-  map (keyed by participant ID, value is the current score). Both are initialised at game start.
-- **RoomSnapshot** (extended): Includes the full `guesses` array and `scores` map so all
-  players receive live state on every poll.
+- **Room** (extended): Gains a `guesses: Guess[]` array, a `scores: Record<string, number>`
+  map (keyed by participant ID, value is the current score), and a `canvasData: string | null`
+  field (base64 PNG data URL of the current drawing, or null when the canvas is blank). All
+  three are initialised at game start.
+- **RoomSnapshot** (extended): Includes the full `guesses` array, `scores` map, and
+  `canvasData` field so all players receive live state on every poll.
 
 ---
 
@@ -202,7 +214,10 @@ Alice at 0.
 ### Measurable Outcomes
 
 - **SC-001**: The drawer can draw freehand on the canvas and clear it, all within the
-  same browser session without any page reload.
+  same browser session without any page reload. After each stroke, the drawing appears
+  on the guesser's tab within approximately 2 seconds without any manual interaction.
+- **SC-007**: When the drawer clears the canvas, the guesser's view reverts to the
+  "Watch the drawer!" placeholder within approximately 2 seconds.
 - **SC-002**: A correct guess submitted by a guesser results in a score of 100 for that
   player, visible on both tabs within 3 seconds.
 - **SC-003**: An empty or whitespace-only guess is rejected with a visible error message
@@ -224,11 +239,13 @@ Alice at 0.
 
 ## Assumptions
 
-- Drawing is local to the drawer's screen only. Canvas state is NOT synchronised to guessers
-  (WebSockets are out of scope; polling canvas pixel data is not required by the spec).
 - The `<canvas>` HTML element is introduced in this scenario to replace the placeholder div
   from Scenario 2. The drawer draws using mouse pointer events (mousedown, mousemove, mouseup).
   Touch support is out of scope.
+- Canvas state is synced to guessers via HTTP polling — not WebSockets. After each stroke
+  the drawer's client encodes the canvas as a base64 PNG and sends it to `PUT /rooms/:code/canvas`.
+  Guessers receive the latest canvas snapshot on every poll via the room snapshot. This means
+  guessers see updates within approximately 2 seconds of each stroke completion, not in real time.
 - Guesses are appended to a `guesses` array on the `Room` object in the backend store and
   returned in every snapshot thereafter. No separate guess endpoint is needed — a single
   `POST /rooms/:code/guess` endpoint stores the guess and returns the updated snapshot.

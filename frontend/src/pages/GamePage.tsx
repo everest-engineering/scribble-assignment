@@ -1,15 +1,21 @@
-import { useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card } from "../components/Card";
 import { GuessForm } from "../components/GuessForm";
 import { ResultPanel } from "../components/ResultPanel";
 import { RoomCodeBadge } from "../components/RoomCodeBadge";
 import { Scoreboard } from "../components/Scoreboard";
-import { useRoomState } from "../state/roomStore";
+import { useRoomState, useRoomStore } from "../state/roomStore";
+
+const POLL_INTERVAL_MS = 2000;
 
 export function GamePage() {
   const navigate = useNavigate();
+  const store = useRoomStore();
   const { room, participantId } = useRoomState();
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const isDrawingRef = useRef(false);
+  const [pollError, setPollError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!room) {
@@ -17,11 +23,85 @@ export function GamePage() {
     }
   }, [navigate, room]);
 
+  const isDrawer = room !== null && room.drawerId !== undefined && room.drawerId === participantId;
+
+  // Drawing effect — attaches mouse listeners to canvas for the drawer
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!isDrawer || !canvas) return;
+
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    ctx.lineWidth = 2;
+    ctx.lineCap = "round";
+    ctx.strokeStyle = "#000000";
+
+    function onMouseDown(event: MouseEvent) {
+      isDrawingRef.current = true;
+      ctx!.beginPath();
+      ctx!.moveTo(event.offsetX, event.offsetY);
+    }
+
+    function onMouseMove(event: MouseEvent) {
+      if (!isDrawingRef.current) return;
+      ctx!.lineTo(event.offsetX, event.offsetY);
+      ctx!.stroke();
+    }
+
+    function onMouseUp() {
+      if (isDrawingRef.current) {
+        isDrawingRef.current = false;
+        store.updateCanvas(canvas.toDataURL()).catch(() => undefined);
+      }
+    }
+
+    canvas.addEventListener("mousedown", onMouseDown);
+    canvas.addEventListener("mousemove", onMouseMove);
+    canvas.addEventListener("mouseup", onMouseUp);
+    canvas.addEventListener("mouseleave", onMouseUp);
+
+    return () => {
+      canvas.removeEventListener("mousedown", onMouseDown);
+      canvas.removeEventListener("mousemove", onMouseMove);
+      canvas.removeEventListener("mouseup", onMouseUp);
+      canvas.removeEventListener("mouseleave", onMouseUp);
+    };
+  }, [isDrawer, store]);
+
+  // Polling effect — syncs room state every 2 s; redirects on 404
+  useEffect(() => {
+    const id = setInterval(async () => {
+      try {
+        await store.fetchRoom();
+        setPollError(null);
+      } catch (error) {
+        const msg = error instanceof Error ? error.message : "";
+        if (msg.includes("404") || msg.includes("Unable to load room")) {
+          navigate("/", { replace: true });
+        } else {
+          setPollError(msg || "Failed to sync room state");
+        }
+      }
+    }, POLL_INTERVAL_MS);
+
+    return () => clearInterval(id);
+  }, [store, navigate]);
+
   if (!room) {
     return null;
   }
 
-  const isDrawer = room.drawerId !== undefined && room.drawerId === participantId;
+  function handleClearCanvas() {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    canvas.getContext("2d")?.clearRect(0, 0, canvas.width, canvas.height);
+    store.updateCanvas(null).catch(() => undefined);
+  }
+
+  async function handleGuessSubmit(guessText: string) {
+    await store.submitGuess(guessText);
+  }
 
   return (
     <section className="panel game-page">
@@ -59,14 +139,42 @@ export function GamePage() {
           ) : null}
 
           <Card title="Canvas">
-            <div
-              className="canvas-placeholder"
-              style={{ minHeight: "500px", backgroundColor: "#ffffff", border: "1px solid #e5e7eb" }}
-            >
-              {isDrawer
-                ? "Draw here — drawing interaction enabled in next step"
-                : "Waiting for drawer..."}
-            </div>
+            {isDrawer ? (
+              <>
+                <canvas
+                  ref={canvasRef}
+                  width={800}
+                  height={500}
+                  style={{ display: "block", border: "1px solid #e5e7eb", backgroundColor: "#ffffff" }}
+                />
+                <div className="button-row" style={{ marginTop: "8px" }}>
+                  <button className="button button--secondary" onClick={handleClearCanvas}>
+                    Clear Canvas
+                  </button>
+                </div>
+              </>
+            ) : room.canvasData ? (
+              <img
+                src={room.canvasData}
+                alt="Drawing canvas"
+                style={{ display: "block", border: "1px solid #e5e7eb", maxWidth: "100%" }}
+              />
+            ) : (
+              <div
+                style={{
+                  minHeight: "500px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  backgroundColor: "#f9fafb",
+                  border: "1px solid #e5e7eb",
+                  fontSize: "1rem",
+                  color: "#6b7280"
+                }}
+              >
+                Watch the drawer!
+              </div>
+            )}
           </Card>
         </div>
 
@@ -102,7 +210,7 @@ export function GamePage() {
 
           {!isDrawer ? (
             <Card title="Your Guess">
-              <GuessForm />
+              <GuessForm onSubmit={handleGuessSubmit} />
             </Card>
           ) : (
             <Card title="Your Guess">
@@ -111,6 +219,10 @@ export function GamePage() {
           )}
         </aside>
       </div>
+
+      {pollError ? (
+        <p style={{ color: "#991b1b", fontSize: "0.875rem", marginTop: "8px" }}>{pollError}</p>
+      ) : null}
 
       <div className="button-row">
         <button className="button button--secondary" onClick={() => navigate("/lobby")}>

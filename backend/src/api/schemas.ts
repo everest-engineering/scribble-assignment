@@ -20,6 +20,16 @@ export const startRoomSchema = z.object({
   participantId: z.string()
 });
 
+export const guessSchema = z.object({
+  participantId: z.string(),
+  guessText: z.string()
+});
+
+export const canvasSchema = z.object({
+  participantId: z.string(),
+  canvasData: z.string().nullable()
+});
+
 export class HttpError extends Error {
   statusCode: number;
 
