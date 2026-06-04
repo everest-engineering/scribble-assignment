@@ -1,5 +1,14 @@
 import { z } from "zod";
 
+const roomCodeInputSchema = z
+  .string()
+  .trim()
+  .min(1, "Room code is required")
+  .transform((value) => value.toUpperCase())
+  .pipe(z.string().regex(/^[A-Z0-9]{4}$/, "Invalid room code"));
+
+const participantIdSchema = z.string().trim().min(1, "Participant id is required");
+
 export const createRoomSchema = z.object({
   playerName: z.string().optional()
 });
@@ -9,11 +18,19 @@ export const joinRoomSchema = z.object({
 });
 
 export const roomCodeParamsSchema = z.object({
-  code: z.string()
+  code: roomCodeInputSchema
 });
 
 export const roomViewerQuerySchema = z.object({
   participantId: z.string().optional()
+});
+
+export const startRoomSchema = z.object({
+  participantId: participantIdSchema
+});
+
+export const leaveRoomSchema = z.object({
+  participantId: participantIdSchema
 });
 
 export class HttpError extends Error {

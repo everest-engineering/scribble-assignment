@@ -88,6 +88,10 @@ Fetch the latest room snapshot for lobby polling.
 }
 ```
 
+If the room no longer exists because the host left before the game started, the
+frontend should treat this response as a room-deleted signal and redirect the
+remaining participants home.
+
 ## `POST /rooms/:code/start`
 
 Start the room as the host.

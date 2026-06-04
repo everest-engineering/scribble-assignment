@@ -1,4 +1,5 @@
 export type ParticipantRole = "drawer" | "guesser";
+export type RoomStatus = "lobby" | "game";
 
 export interface Participant {
   id: string;
@@ -8,7 +9,8 @@ export interface Participant {
 
 export interface RoomSnapshot {
   code: string;
-  status: "lobby";
+  status: RoomStatus;
+  hostParticipantId: string;
   participants: Participant[];
   availableWords: string[];
   roles: ParticipantRole[];
@@ -17,6 +19,15 @@ export interface RoomSnapshot {
 export interface RoomSessionResponse {
   participantId: string;
   room: RoomSnapshot;
+}
+
+export class ApiError extends Error {
+  statusCode: number;
+
+  constructor(statusCode: number, message: string) {
+    super(message);
+    this.statusCode = statusCode;
+  }
 }
 
 const API_BASE_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3001";
@@ -35,7 +46,11 @@ async function request<T>(path: string, init?: RequestInit) {
       message?: string;
     };
 
-    throw new Error(errorBody.message ?? "Request failed");
+    throw new ApiError(response.status, errorBody.message ?? "Request failed");
+  }
+
+  if (response.status === 204) {
+    return undefined as T;
   }
 
   return (await response.json()) as T;
@@ -57,5 +72,18 @@ export const api = {
   fetchRoom(code: string, participantId?: string) {
     const query = participantId ? `?participantId=${encodeURIComponent(participantId)}` : "";
     return request<{ room: RoomSnapshot }>(`/rooms/${encodeURIComponent(code)}${query}`);
+  },
+  startRoom(code: string, participantId: string) {
+    return request<{ room: RoomSnapshot }>(`/rooms/${encodeURIComponent(code)}/start`, {
+      method: "POST",
+      body: JSON.stringify({ participantId })
+    });
+  },
+  leaveRoom(code: string, participantId: string) {
+    return request<{ ok: true; deleted: boolean }>(`/rooms/${encodeURIComponent(code)}/leave`, {
+      method: "POST",
+      body: JSON.stringify({ participantId }),
+      keepalive: true
+    });
   }
 };

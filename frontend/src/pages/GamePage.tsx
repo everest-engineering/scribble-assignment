@@ -12,10 +12,15 @@ export function GamePage() {
   const { room, participantId } = useRoomState();
 
   useEffect(() => {
-    if (!room) {
+    if (!room && !participantId) {
       navigate("/", { replace: true });
+      return;
     }
-  }, [navigate, room]);
+
+    if (room?.status === "lobby") {
+      navigate("/lobby", { replace: true });
+    }
+  }, [navigate, participantId, room]);
 
   if (!room) {
     return null;

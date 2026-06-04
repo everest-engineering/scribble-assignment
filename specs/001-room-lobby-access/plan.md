@@ -7,9 +7,9 @@
 ## Summary
 
 Implement room creation/join flows with a fully isolated in-memory room store,
-automatic lobby polling, and host-only start rules. Extend the existing HTTP
-stack and room state patterns rather than introducing new transport or state
-layers.
+automatic 2000 ms lobby polling, host-only start rules, and host-departure
+cleanup before game start. Extend the existing HTTP stack and room state
+patterns rather than introducing new transport or state layers.
 
 ## Technical Context
 
@@ -20,16 +20,15 @@ layers.
 **Storage**: In-memory room store only
 
 **Testing**: Vitest for backend room-store and schema coverage, frontend
-service/store coverage, and browser validation for multi-tab polling and
-host/start flows
+service/store coverage, and browser validation for multi-tab polling,
+host-departure cleanup, and host/start flows
 
 **Target Platform**: Local web app in modern browsers, backend on Node.js
 
 **Project Type**: Full-stack web application
 
-**Performance Goals**: Lobby changes should become visible on a polling cycle
-of about 2 seconds, with acceptable visibility within 1500-2500 ms; room
-actions should feel immediate for local development
+**Performance Goals**: Lobby changes should become visible on a 2000 ms
+polling cycle; room actions should feel immediate for local development
 
 **Constraints**: No WebSockets, no database, no authentication, no sessions,
 no new routing or state libraries, no top-level dependencies unless justified

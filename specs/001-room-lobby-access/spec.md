@@ -15,6 +15,27 @@
 - Q: How isolated must rooms be in the backend store? → A: Rooms must be fully
   isolated in memory; actions in one room must never bleed into or affect any
   other room.
+- Q: How often should lobby polling occur? → A: Polling should occur every 2
+  seconds, which is 2000 ms.
+- Q: What terminology should be used for room members and roles? → A:
+  `participant` is the general term for a room member, `host` is the creator of
+  the room, and `guesser` is the non-drawing player role.
+- Q: What does room isolation include when a host leaves before the game starts?
+  → A: Room actions, state, and updates remain confined to that room.
+  Creating a room must always create a new room with a unique code. Invalid or
+  whitespace-only code input must not create a room. If the host leaves before
+  the game starts, the room must be deleted and all participants redirected to
+  the home page. Room state terms like lobby state, current room state, and
+  room snapshot must be defined and used consistently.
+- Q: How should lobby polling behave on navigation away or tab close? → A: The
+  frontend should poll the backend every 2 seconds, which is 2000 ms, to check
+  for room updates. Polling should stop when the user navigates away from the
+  room page or closes the tab. If the user remains on the room page, polling
+  should continue.
+- Q: How should the host start the game? → A: The host must wait for all
+  players to join before starting the game. The host starts the game by
+  clicking the `Start Game` button in the lobby. The game starts immediately
+  after that click and proceeds to the first round.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -71,13 +92,14 @@ game, and only after at least two players are present.
 **Acceptance Scenarios**:
 
 1. **Given** multiple players are in the same room, **When** the lobby is left
-   open, **Then** the player list refreshes automatically about every 2 seconds.
+   open, **Then** the player list refreshes automatically every 2000 ms.
 2. **Given** fewer than 2 players are in a room, **When** the host tries to
    start the game, **Then** the game does not start.
 3. **Given** 2 or more players are in a room, **When** a non-host tries to
    start the game, **Then** the game does not start.
-4. **Given** 2 or more players are in a room, **When** the host starts the game,
-   **Then** the room advances out of the lobby for all players in that room.
+4. **Given** 2 or more players are in a room, **When** the host clicks the
+   `Start Game` button in the lobby, **Then** the room starts immediately and
+   proceeds to the first round for all players in that room.
 
 ### Edge Cases
 
@@ -92,29 +114,37 @@ game, and only after at least two players are present.
 ### Functional Requirements
 
 - **FR-001**: The system MUST allow a player to create a room and assign that
-  player as the host of the new room.
+  player as the host of the new room. The room code should be deleted after the room ends and should not be reused.
 - **FR-002**: The system MUST allow a player to join an existing room using a
   unique room code.
 - **FR-003**: The system MUST reject empty, whitespace-only, or invalid room
-  codes with a clear, user-facing error message.
+  codes with a clear, user-facing error message, and must not create a room for
+  invalid or whitespace-only room code input.
 - **FR-004**: The system MUST keep each room's player list, lobby state, and
-  all room actions fully isolated from every other room so changes in one room
-  can never affect another room.
+  room snapshot, and all room actions fully isolated from every other room so
+  changes in one room can never affect another room.
 - **FR-005**: The system MUST refresh lobby state automatically without manual
-  reload at a steady interval of about 2 seconds, with acceptable visibility
-  within 1500-2500 ms.
+  reload on a 2000 ms interval while the user remains on the room page, and
+  stop polling when the user navigates away or closes the tab.
 - **FR-006**: The system MUST allow only the host to start the game.
 - **FR-007**: The system MUST prevent the game from starting until at least 2
   players are present in the room.
 - **FR-008**: The system MUST apply the start-game rules consistently for every
   player in the same room.
+- **FR-009**: If the host leaves before the game starts, the system MUST delete
+  the room and redirect all remaining participants to the home page.
 
 ### Key Entities *(include if feature involves data)*
 
 - **Room**: A shared game space identified by a unique code, with a host and a
   participant list.
+- **Room State**: The authoritative mutable backend record for a room.
+- **Room Snapshot**: The read-only room view returned to clients for polling
+  and lobby display.
 - **Participant**: A person in a room with a display name and a role in the
-  lobby or game flow.
+  lobby or game flow. In story text, this may also be called a player.
+- **Host**: The participant who created the room and controls the start action.
+- **Guesser**: The non-drawing player role used after the room enters gameplay.
 - **Lobby State**: The current visible room state before the game starts,
   including who is present and whether the room can start.
 - **Room Isolation**: The guarantee that a room's state, updates, and actions
@@ -131,7 +161,7 @@ game, and only after at least two players are present.
 - **SC-003**: Players in different rooms never see each other's lobby members
   in normal use.
 - **SC-004**: The lobby updates automatically without manual refresh, with
-  changes becoming visible within 1500-2500 ms.
+  changes becoming visible within 2000 ms.
 - **SC-005**: A non-host cannot start the game in any room.
 - **SC-006**: The host cannot start the game until the room has at least 2
   players.
@@ -139,8 +169,10 @@ game, and only after at least two players are present.
 ## Assumptions
 
 - Room codes are unique within the running game session.
-- The lobby refresh happens automatically while the player remains on the lobby
-  screen.
+- The lobby refresh happens automatically every 2000 ms while the participant
+  remains on the room page.
 - A clear error message is visible to the player when room entry fails.
 - The host remains the host for the lifetime of the room unless the room is
-  reset by the game flow.
+  deleted or reset by the game flow.
+- Polling stops when the participant navigates away from the room page or
+  closes the tab.

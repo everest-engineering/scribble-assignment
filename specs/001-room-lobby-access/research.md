@@ -14,9 +14,9 @@
 
 ## 2. Lobby Refresh Strategy
 
-- Decision: Keep the frontend polling the room snapshot endpoint on a roughly
-  2-second interval, with acceptable visibility within 1500-2500 ms, while the
-  user remains in the lobby.
+- Decision: Keep the frontend polling the room snapshot endpoint on a 2000 ms
+  interval while the participant remains on the room page. Stop polling when
+  the user navigates away or closes the tab.
 - Rationale: The project explicitly forbids push transport, and the existing
   `roomStore.ts` already supports fetching snapshots by room code plus
   participant identifier.
@@ -25,10 +25,25 @@
   - Manual refresh only: rejected because the acceptance criteria require
     automatic lobby updates.
 
-## 3. Host-Only Start Gate
+## 3. Host Departure Handling
+
+- Decision: If the host leaves before the game starts, delete the room on the
+  backend and let the frontend redirect remaining participants home when the
+  next poll returns 404.
+- Rationale: This keeps room state isolated, avoids orphaned lobby state, and
+  uses the existing polling flow instead of adding push transport.
+- Alternatives considered:
+  - Keep the room open with no host: rejected because the room would be stuck
+    without a valid start owner.
+  - Auto-promote another participant: rejected because the feature only defines
+    the creator as host.
+
+## 4. Host-Only Start Gate
 
 - Decision: Add an explicit start-room action that is authorized by the
-  caller's `participantId` and validated against the room's recorded host.
+  caller's `participantId` and validated against the room's recorded host. The
+  lobby exposes a `Start Game` button for the host, and a successful click
+  starts the game immediately and advances to the first round.
 - Rationale: There is no authentication layer, so the only stable identity in
   the current design is the participant record returned at room creation or
   join time.
@@ -38,7 +53,7 @@
   - First participant inferred on demand: rejected because host identity must
     stay explicit and deterministic.
 
-## 4. Room State Transition Model
+## 5. Room State Transition Model
 
 - Decision: Extend room status from `lobby` to `game` when the host starts the
   room and at least two participants are present.
@@ -50,7 +65,7 @@
   - Implicit status from participant count alone: rejected because it cannot
     represent the post-start game state.
 
-## 5. Frontend State Integration
+## 6. Frontend State Integration
 
 - Decision: Keep the existing `roomStore.ts` pattern and extend the current API
   wrapper instead of introducing a new state library.
