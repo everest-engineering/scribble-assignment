@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createRoom, getRoom, joinRoom, startGame, toRoomSnapshot } from "./roomStore.js";
+import { createRoom, getRoom, joinRoom, startGame, submitGuess, toRoomSnapshot } from "./roomStore.js";
 
 describe("roomStore", () => {
 
@@ -122,5 +122,101 @@ describe("roomStore", () => {
     const snapshot = toRoomSnapshot(result.room);
 
     expect(snapshot.secretWord).toBeUndefined();
+  });
+
+  it("submitGuess records a correct guess and awards 100 points", () => {
+    const created = createRoom("Alice");
+    joinRoom(created.room.code, "Bob");
+    const game = startGame(created.room.code, created.participantId);
+    const bobId = game.room.participants[1].id;
+
+    const result = submitGuess(created.room.code, bobId, game.room.secretWord);
+
+    expect(result.room.guesses).toHaveLength(1);
+    expect(result.room.guesses[0].isCorrect).toBe(true);
+    expect(result.room.guesses[0].playerName).toBe("Bob");
+    expect(result.room.scores[bobId]).toBe(100);
+  });
+
+  it("submitGuess records an incorrect guess and awards 0 points", () => {
+    const created = createRoom("Alice");
+    joinRoom(created.room.code, "Bob");
+    const game = startGame(created.room.code, created.participantId);
+    const bobId = game.room.participants[1].id;
+
+    const result = submitGuess(created.room.code, bobId, "wronganswer");
+
+    expect(result.room.guesses).toHaveLength(1);
+    expect(result.room.guesses[0].isCorrect).toBe(false);
+    expect(result.room.scores[bobId]).toBe(0);
+  });
+
+  it("submitGuess is case-insensitive", () => {
+    const created = createRoom("Alice");
+    joinRoom(created.room.code, "Bob");
+    const game = startGame(created.room.code, created.participantId);
+    const bobId = game.room.participants[1].id;
+
+    const result = submitGuess(created.room.code, bobId, game.room.secretWord.toUpperCase());
+
+    expect(result.room.guesses[0].isCorrect).toBe(true);
+  });
+
+  it("submitGuess trims whitespace before comparing", () => {
+    const created = createRoom("Alice");
+    joinRoom(created.room.code, "Bob");
+    const game = startGame(created.room.code, created.participantId);
+    const bobId = game.room.participants[1].id;
+
+    const result = submitGuess(created.room.code, bobId, `  ${game.room.secretWord}  `);
+
+    expect(result.room.guesses[0].isCorrect).toBe(true);
+    expect(result.room.guesses[0].text).toBe(`  ${game.room.secretWord}  `);
+  });
+
+  it("submitGuess prevents drawer from guessing", () => {
+    const created = createRoom("Alice");
+    joinRoom(created.room.code, "Bob");
+    const game = startGame(created.room.code, created.participantId);
+
+    expect(() => submitGuess(created.room.code, created.participantId, "anything")).toThrow(
+      "Drawer cannot submit guesses"
+    );
+  });
+
+  it("submitGuess does not double-score on duplicate correct", () => {
+    const created = createRoom("Alice");
+    joinRoom(created.room.code, "Bob");
+    const game = startGame(created.room.code, created.participantId);
+    const bobId = game.room.participants[1].id;
+
+    submitGuess(created.room.code, bobId, game.room.secretWord);
+    const result = submitGuess(created.room.code, bobId, game.room.secretWord);
+
+    expect(result.room.scores[bobId]).toBe(100);
+  });
+
+  it("submitGuess throws for unknown room", () => {
+    expect(() => submitGuess("ZZZZ", "some-id", "test")).toThrow("Room not found");
+  });
+
+  it("submitGuess throws when game not playing", () => {
+    const created = createRoom("Alice");
+
+    expect(() => submitGuess(created.room.code, created.participantId, "test")).toThrow(
+      "Game is not in progress"
+    );
+  });
+
+  it("submitGuess includes guesses and scores in snapshot", () => {
+    const created = createRoom("Alice");
+    joinRoom(created.room.code, "Bob");
+    const game = startGame(created.room.code, created.participantId);
+    const bobId = game.room.participants[1].id;
+
+    const result = submitGuess(created.room.code, bobId, "wrong");
+
+    expect(result.room.guesses).toHaveLength(1);
+    expect(result.room.scores[bobId]).toBe(0);
   });
 });
