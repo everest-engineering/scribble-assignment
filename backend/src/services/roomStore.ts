@@ -159,8 +159,11 @@ export function submitGuess(code: string, participantId: string, text: string) {
   const isCorrect = trimmed.toLowerCase() === room.secretWord.toLowerCase();
   const alreadyCorrect = (room.scores[participantId] ?? 0) >= 100;
 
-  if (isCorrect && !alreadyCorrect) {
-    room.scores[participantId] = (room.scores[participantId] ?? 0) + 100;
+  if (isCorrect) {
+    if (!alreadyCorrect) {
+      room.scores[participantId] = (room.scores[participantId] ?? 0) + 100;
+    }
+    room.status = "result";
   }
 
   if (!isCorrect && !room.scores[participantId]) {
@@ -184,10 +187,35 @@ export function submitGuess(code: string, participantId: string, text: string) {
   };
 }
 
+export function restartGame(code: string, participantId: string) {
+  const room = rooms.get(code);
+
+  if (!room) {
+    throw new HttpError(404, "Room not found");
+  }
+
+  if (room.hostId !== participantId) {
+    throw new HttpError(403, "Only the host can restart the game");
+  }
+
+  room.drawerId = "";
+  room.secretWord = "";
+  room.round = 0;
+  room.guesses = [];
+  room.scores = {};
+  room.status = "lobby";
+  room.updatedAt = now();
+  rooms.set(room.code, room);
+
+  return {
+    room: cloneRoom(room)
+  };
+}
+
 export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSnapshot {
   const isDrawer = viewerParticipantId === room.drawerId;
 
-  return {
+  const snapshot: RoomSnapshot = {
     code: room.code,
     status: room.status,
     hostId: room.hostId,
@@ -200,4 +228,10 @@ export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSn
     availableWords: listWords(),
     roles: [...STARTER_ROLES]
   };
+
+  if (room.status === "result") {
+    snapshot.correctWord = room.secretWord;
+  }
+
+  return snapshot;
 }
