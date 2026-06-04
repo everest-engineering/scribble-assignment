@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createRoom, getRoom, joinRoom, saveDrawing, startGame, submitGuess, toRoomSnapshot } from "./roomStore.js";
+import { createRoom, getRoom, joinRoom, restartGame, saveDrawing, startGame, submitGuess, toRoomSnapshot } from "./roomStore.js";
 
 describe("roomStore", () => {
   it("createRoom returns a room with a 4-character uppercase code", () => {
@@ -163,5 +163,47 @@ describe("roomStore", () => {
     expect(guessResult!.guesses[0].correct).toBe(false);
     const guesser = guessResult!.participants.find((p) => p.id === joinResult!.participantId);
     expect(guesser!.score).toBe(0);
+  });
+
+  it("restartGame returns null if room not finished", () => {
+    const result = createRoom("Alice");
+    joinRoom(result.room.code, "Bob");
+
+    expect(restartGame(result.room.code, result.participantId)).toBeNull();
+  });
+
+  it("restartGame returns null if non-host tries", () => {
+    const result = createRoom("Alice");
+    joinRoom(result.room.code, "Bob");
+    const gameRoom = startGame(result.room.code, result.participantId);
+    const joinResult = joinRoom(result.room.code, "Charlie");
+    const word = gameRoom!.word!;
+    submitGuess(result.room.code, joinResult!.participantId, word);
+
+    const guesserRestart = restartGame(result.room.code, joinResult!.participantId);
+
+    expect(guesserRestart).toBeNull();
+  });
+
+  it("restartGame resets to lobby with players preserved", () => {
+    const result = createRoom("Alice");
+    joinRoom(result.room.code, "Bob");
+    const gameRoom = startGame(result.room.code, result.participantId);
+    const charlieJoin = joinRoom(result.room.code, "Charlie");
+    const word = gameRoom!.word!;
+    submitGuess(result.room.code, charlieJoin!.participantId, word);
+
+    const restarted = restartGame(result.room.code, result.participantId);
+
+    expect(restarted).not.toBeNull();
+    expect(restarted!.status).toBe("lobby");
+    expect(restarted!.participants).toHaveLength(3);
+    expect(restarted!.word).toBeNull();
+    expect(restarted!.drawingData).toBeNull();
+    expect(restarted!.guesses).toHaveLength(0);
+    restarted!.participants.forEach((p) => {
+      expect(p.score).toBe(0);
+      expect(p.isDrawer).toBe(false);
+    });
   });
 });

@@ -51,6 +51,7 @@ export function GamePage() {
 
   const viewer = room.participants.find((participant) => participant.id === participantId) ?? null;
   const isDrawer = viewer?.isDrawer ?? false;
+  const isHost = viewer?.isHost ?? false;
   const isFinished = room.status === "finished";
 
   async function handleSaveDrawing(dataUrl: string) {
@@ -59,6 +60,15 @@ export function GamePage() {
 
   async function handleSubmitGuess(text: string) {
     await roomStore.submitGuess(text);
+  }
+
+  async function handleRestart() {
+    try {
+      await roomStore.restartGame();
+      navigate("/lobby");
+    } catch {
+      // stay
+    }
   }
 
   return (
@@ -122,6 +132,11 @@ export function GamePage() {
       </div>
 
       <div className="button-row">
+        {isFinished && isHost ? (
+          <button className="button button--primary" onClick={handleRestart}>
+            Restart Game
+          </button>
+        ) : null}
         <button className="button button--secondary" onClick={() => navigate("/lobby")}>
           Exit Game
         </button>

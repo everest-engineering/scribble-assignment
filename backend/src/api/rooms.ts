@@ -9,7 +9,7 @@ import {
   startGameParamsSchema,
   submitGuessSchema
 } from "./schemas.js";
-import { createRoom, getRoom, joinRoom, saveDrawing, startGame, submitGuess, toRoomSnapshot } from "../services/roomStore.js";
+import { createRoom, getRoom, joinRoom, restartGame, saveDrawing, startGame, submitGuess, toRoomSnapshot } from "../services/roomStore.js";
 
 export function createRoomsRouter() {
   const router = Router();
@@ -91,6 +91,24 @@ export function createRoomsRouter() {
 
       if (!room) {
         throw new HttpError(403, "Unable to submit guess");
+      }
+
+      response.json({
+        room: toRoomSnapshot(room, participantId)
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/:code/restart", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId } = startGameParamsSchema.parse(request.body);
+      const room = restartGame(code.toUpperCase(), participantId);
+
+      if (!room) {
+        throw new HttpError(403, "Only the host can restart the game");
       }
 
       response.json({

@@ -186,6 +186,33 @@ export function submitGuess(code: string, participantId: string, text: string) {
   return cloneRoom(room);
 }
 
+export function restartGame(code: string, participantId: string) {
+  const room = rooms.get(code);
+
+  if (!room || room.status !== "finished") {
+    return null;
+  }
+
+  const participant = room.participants.find((p) => p.id === participantId);
+
+  if (!participant || !participant.isHost) {
+    return null;
+  }
+
+  room.status = "lobby";
+  room.word = null;
+  room.drawingData = null;
+  room.guesses = [];
+  room.participants.forEach((p) => {
+    p.score = 0;
+    p.isDrawer = false;
+  });
+  room.updatedAt = now();
+  rooms.set(room.code, room);
+
+  return cloneRoom(room);
+}
+
 export function getRoom(code: string) {
   const room = rooms.get(code);
   return room ? cloneRoom(room) : null;
