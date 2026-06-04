@@ -9,7 +9,11 @@ export const joinRoomSchema = z.object({
 });
 
 export const roomCodeParamsSchema = z.object({
-  code: z.string()
+  code: z
+    .string()
+    .trim()
+    .length(4, "Room code must be 4 characters")
+    .regex(/^[A-Z0-9]+$/i, "Room code contains invalid characters")
 });
 
 export const roomViewerQuerySchema = z.object({
