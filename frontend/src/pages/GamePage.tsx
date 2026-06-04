@@ -5,17 +5,46 @@ import { GuessForm } from "../components/GuessForm";
 import { ResultPanel } from "../components/ResultPanel";
 import { RoomCodeBadge } from "../components/RoomCodeBadge";
 import { Scoreboard } from "../components/Scoreboard";
-import { useRoomState } from "../state/roomStore";
+import { useRoomState, useRoomStore } from "../state/roomStore";
 
 export function GamePage() {
   const navigate = useNavigate();
   const { room, participantId } = useRoomState();
+  const roomStore = useRoomStore();
 
   useEffect(() => {
     if (!room) {
       navigate("/", { replace: true });
     }
   }, [navigate, room]);
+
+  useEffect(() => {
+    if (!room) return;
+
+    const viewer = room.participants.find((participant) => participant.id === participantId) ?? null;
+    const isHost = !!viewer?.isHost;
+
+    if (!room.gameStarted && !isHost) {
+      navigate("/lobby", { replace: true });
+      return;
+    }
+
+    let intervalId: number;
+
+    const refresh = async () => {
+      try {
+        const fetched = await roomStore.fetchRoom();
+        if (fetched && !fetched.gameStarted && !isHost) {
+          navigate("/lobby", { replace: true });
+        }
+      } catch {
+        // ignore polling errors here
+      }
+    };
+
+    intervalId = window.setInterval(refresh, 2000);
+    return () => window.clearInterval(intervalId);
+  }, [room, participantId, roomStore, navigate]);
 
   if (!room) {
     return null;
