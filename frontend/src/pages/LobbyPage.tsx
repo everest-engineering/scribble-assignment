@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card } from "../components/Card";
 import { PageHeader } from "../components/PageHeader";
@@ -8,8 +8,9 @@ import { useRoomState, useRoomStore } from "../state/roomStore";
 export function LobbyPage() {
   const navigate = useNavigate();
   const roomStore = useRoomStore();
-  const { room, error, isLoading } = useRoomState();
-  const [refreshError, setRefreshError] = useState<string | null>(null);
+  const { room, participantId, error, isLoading } = useRoomState();
+  const [startError, setStartError] = useState<string | null>(null);
+  const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
     if (!room) {
@@ -17,13 +18,45 @@ export function LobbyPage() {
     }
   }, [navigate, room]);
 
-  async function handleRefresh() {
-    try {
-      setRefreshError(null);
-      await roomStore.fetchRoom();
-    } catch (caughtError) {
-      setRefreshError(caughtError instanceof Error ? caughtError.message : "Unable to refresh room");
+  useEffect(() => {
+    if (room?.status === "playing") {
+      navigate("/game", { replace: true });
     }
+  }, [navigate, room?.status]);
+
+  useEffect(() => {
+    if (!room) {
+      return;
+    }
+
+    pollingRef.current = setInterval(() => {
+      roomStore.fetchRoom();
+    }, 2000);
+
+    return () => {
+      if (pollingRef.current) {
+        clearInterval(pollingRef.current);
+      }
+    };
+  }, [room, roomStore]);
+
+  const viewer = room?.participants.find((p) => p.id === participantId);
+  const isHost = viewer?.isHost ?? false;
+  const canStart = isHost && (room?.participants.length ?? 0) >= 2;
+
+  async function handleStart() {
+    try {
+      setStartError(null);
+      await roomStore.startGame();
+      navigate("/game");
+    } catch (caughtError) {
+      setStartError(caughtError instanceof Error ? caughtError.message : "Unable to start game");
+    }
+  }
+
+  function handleLeave() {
+    roomStore.clearSession();
+    navigate("/");
   }
 
   if (!room) {
@@ -50,7 +83,9 @@ export function LobbyPage() {
               {room.participants.map((participant) => (
                 <li key={participant.id}>
                   <span>{participant.name}</span>
-                  <span className="player-list__meta">joined</span>
+                  <span className="player-list__meta">
+                    {participant.isHost ? "host" : "joined"}
+                  </span>
                 </li>
               ))}
             </ul>
@@ -61,16 +96,26 @@ export function LobbyPage() {
           <p className="status-line" style={{ backgroundColor: isLoading ? '#fef3c7' : '#e0e7ff', color: isLoading ? '#b45309' : '#3730a3' }}>
             {isLoading ? "Refreshing players..." : "Ready to play"}
           </p>
-          <p style={{ marginTop: '8px' }}>{error ?? refreshError ?? "Waiting for the host to start the game."}</p>
+          <p style={{ marginTop: '8px' }}>{error ?? startError ?? "Waiting for the host to start the game."}</p>
         </Card>
       </div>
 
       <div className="button-row button-row--spread">
-        <button className="button button--secondary" disabled={isLoading} onClick={handleRefresh}>
-          {isLoading ? "Refreshing..." : "Refresh Room"}
+        <button className="button button--secondary" onClick={handleLeave}>
+          Leave Room
         </button>
-        <button className="button button--primary" onClick={() => navigate("/game")}>
-          Start Game
+        <button
+          className="button button--primary"
+          disabled={!canStart || isLoading}
+          onClick={handleStart}
+        >
+          {!isHost && room.participants.length < 2
+            ? "Waiting for players..."
+            : !isHost
+              ? "Waiting for host..."
+              : room.participants.length < 2
+                ? "Need at least 2 players"
+                : "Start Game"}
         </button>
       </div>
     </section>
