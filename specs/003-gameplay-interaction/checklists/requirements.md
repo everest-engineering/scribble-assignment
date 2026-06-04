@@ -31,6 +31,7 @@
 
 ## Notes
 
-- All items pass. Spec is ready for `/speckit-clarify` or `/speckit-plan`.
-- Drawing data representation noted as a plan-phase decision in Assumptions, not an implementation detail leak.
-- No [NEEDS CLARIFICATION] markers — all decisions were resolvable from the user description, constitution, and prior feature context.
+- All 16/16 items pass after three clarification sessions (2026-06-05).
+- Session 1: Drawing format (stroke-based), guess history visibility (plaintext), drawing tools (single black pen), ~2s polling.
+- Session 2: Client-side trim + UI warning for empty guesses, input field clear/disable behavior after submission.
+- Session 3: Confirmed case-insensitive backend comparison (PIZZA/Pizza/pizza examples), added explicit scoreboard UI requirement (FR-017a).
