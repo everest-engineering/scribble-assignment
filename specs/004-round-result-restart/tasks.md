@@ -147,7 +147,7 @@ are 0, strokes/guesses empty, drawerId null.
 ```
 T001 → T002   (store chain — sequential, same file)
 T003 parallel with T001–T002 (different file — schemas)
-T004 depends on T002 (needs restartRoom for reference, though not directly used in guess)
+T004 depends on T001 (needs toRoomSnapshot gating change for FR-001 to be testable)
 T005 depends on T002, T003
 T006 depends on T002, T003
 T007–T008 (frontend API) depend on nothing backend-specific; parallel with T004–T006
