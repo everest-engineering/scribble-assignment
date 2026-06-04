@@ -98,6 +98,16 @@ class RoomStore {
     this.setRoomSnapshot(response.room);
     return response.room;
   }
+
+  async startGame() {
+    if (!this.state.room) {
+      return null;
+    }
+
+    const response = await this.withLoading(() => api.startGame(this.state.room!.code));
+    this.setRoomSnapshot(response.room);
+    return response.room;
+  }
 }
 
 const RoomStoreContext = createContext<RoomStore | null>(null);
