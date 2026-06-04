@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import type { Participant, Room, RoomSnapshot } from "../models/game.js";
+import type { Guess, Participant, Room, RoomSnapshot, Stroke } from "../models/game.js";
 import { STARTER_ROLES, STARTER_WORDS } from "../seed/starterData.js";
 
 const rooms = new Map<string, Room>();
@@ -62,6 +62,8 @@ export function createRoom(playerName?: string) {
     status: "lobby",
     hostId: participant.id,
     participants: [participant],
+    strokes: [],
+    guesses: [],
     createdAt: now(),
     updatedAt: now()
   };
@@ -133,6 +135,98 @@ export function startGame(code: string, participantId: string) {
   return { started: true, room: cloneRoom(room) };
 }
 
+export function addStroke(code: string, participantId: string, stroke: Stroke) {
+  const room = rooms.get(code);
+
+  if (!room) {
+    throw Object.assign(new Error("Room not found"), { statusCode: 404 });
+  }
+
+  if (room.status !== "playing") {
+    throw Object.assign(new Error("Game is not in progress"), { statusCode: 400 });
+  }
+
+  if (room.drawerId !== participantId) {
+    throw Object.assign(new Error("Only the drawer can draw"), { statusCode: 403 });
+  }
+
+  room.strokes.push(stroke);
+  room.updatedAt = now();
+  rooms.set(room.code, room);
+
+  return cloneRoom(room);
+}
+
+export function clearStrokes(code: string, participantId: string) {
+  const room = rooms.get(code);
+
+  if (!room) {
+    throw Object.assign(new Error("Room not found"), { statusCode: 404 });
+  }
+
+  if (room.status !== "playing") {
+    throw Object.assign(new Error("Game is not in progress"), { statusCode: 400 });
+  }
+
+  if (room.drawerId !== participantId) {
+    throw Object.assign(new Error("Only the drawer can clear the canvas"), { statusCode: 403 });
+  }
+
+  room.strokes = [];
+  room.updatedAt = now();
+  rooms.set(room.code, room);
+
+  return cloneRoom(room);
+}
+
+export function submitGuess(code: string, participantId: string, text: string) {
+  const room = rooms.get(code);
+
+  if (!room) {
+    throw Object.assign(new Error("Room not found"), { statusCode: 404 });
+  }
+
+  if (room.status !== "playing") {
+    throw Object.assign(new Error("Game is not in progress"), { statusCode: 400 });
+  }
+
+  if (room.drawerId === participantId) {
+    throw Object.assign(new Error("Drawer cannot submit guesses"), { statusCode: 403 });
+  }
+
+  const trimmed = text.trim();
+  if (!trimmed) {
+    throw Object.assign(new Error("Guess cannot be empty"), { statusCode: 400 });
+  }
+
+  const participant = room.participants.find((p) => p.id === participantId);
+  if (!participant) {
+    throw Object.assign(new Error("Participant not found"), { statusCode: 404 });
+  }
+
+  const isCorrect = trimmed.toLowerCase() === room.secretWord?.toLowerCase();
+
+  const guess: Guess = {
+    participantId,
+    participantName: participant.name,
+    text: trimmed,
+    correct: isCorrect,
+    timestamp: now()
+  };
+
+  room.guesses.push(guess);
+
+  if (isCorrect) {
+    participant.score = (participant.score ?? 0) + 100;
+    room.status = "result";
+  }
+
+  room.updatedAt = now();
+  rooms.set(room.code, room);
+
+  return { guess, room: cloneRoom(room) };
+}
+
 export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSnapshot {
   const scores: Record<string, number> = {};
   for (const p of room.participants) {
@@ -150,6 +244,8 @@ export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSn
     round: room.round ?? 1,
     participants: room.participants.map((p) => ({ ...p })),
     scores,
+    strokes: room.strokes ?? [],
+    guesses: room.guesses ?? [],
     availableWords: listWords(),
     roles: [...STARTER_ROLES]
   };
