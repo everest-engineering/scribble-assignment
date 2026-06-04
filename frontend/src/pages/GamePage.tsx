@@ -33,6 +33,12 @@ export function GamePage() {
     };
   }, [room, roomStore]);
 
+  useEffect(() => {
+    if (room?.status === "lobby") {
+      navigate("/lobby", { replace: true });
+    }
+  }, [room?.status, navigate]);
+
   const handleSubmitGuess = useCallback(
     (guess: string) => roomStore.submitGuess(guess),
     [roomStore]
@@ -53,6 +59,8 @@ export function GamePage() {
     ) ?? null;
 
   const isDrawer = room.drawerId === participantId;
+  const isHost = room.hostId === participantId;
+  const isFinished = room.status === "finished";
 
   return (
     <section className="panel game-page">
@@ -67,14 +75,27 @@ export function GamePage() {
       <div className="game-page__layout">
         <aside className="game-page__sidebar game-page__sidebar--left">
           <Scoreboard scores={room.scores} participants={room.participants} />
-          <ResultPanel guesses={room.guesses} />
+          <ResultPanel
+            guesses={room.guesses}
+            isFinished={isFinished}
+            secretWord={room.secretWord}
+            scores={room.scores}
+            participants={room.participants}
+          />
         </aside>
 
-        <div className="game-page__main">
-          <Card title="Canvas">
-            <CanvasBoard disabled={!isDrawer} />
-          </Card>
-        </div>
+        {!isFinished && (
+          <div className="game-page__main">
+            <Card title="Canvas">
+              <CanvasBoard
+              disabled={!isDrawer}
+              drawing={room.drawing}
+              onSaveStroke={(points) => roomStore.saveDrawing(points)}
+              onClearCanvas={() => roomStore.clearDrawing()}
+            />
+            </Card>
+          </div>
+        )}
 
         <aside className="game-page__sidebar game-page__sidebar--right">
           <Card title="Player Info">
@@ -108,19 +129,40 @@ export function GamePage() {
             </dl>
           </Card>
 
-          <Card title="Your Guess">
-            <GuessForm disabled={isDrawer} onSubmitGuess={handleSubmitGuess} />
-          </Card>
+          {!isFinished && (
+            <Card title="Your Guess">
+              <GuessForm disabled={isDrawer} onSubmitGuess={handleSubmitGuess} />
+            </Card>
+          )}
         </aside>
       </div>
 
       <div className="button-row">
-        <button
-          className="button button--secondary"
-          onClick={() => navigate("/lobby")}
-        >
-          Exit Game
-        </button>
+        {isFinished ? (
+          <>
+            <button
+              className="button button--secondary"
+              onClick={() => navigate("/lobby")}
+            >
+              Exit to Lobby
+            </button>
+            {isHost && (
+              <button
+                className="button button--primary"
+                onClick={() => roomStore.restartGame()}
+              >
+                Restart Game
+              </button>
+            )}
+          </>
+        ) : (
+          <button
+            className="button button--secondary"
+            onClick={() => navigate("/lobby")}
+          >
+            Exit Game
+          </button>
+        )}
       </div>
     </section>
   );

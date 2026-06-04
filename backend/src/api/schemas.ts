@@ -13,6 +13,20 @@ export const joinRoomSchema = z.object({
   playerName: playerNameSchema
 });
 
+export const saveDrawingSchema = z.object({
+  participantId: z.string(),
+  points: z.array(
+    z.object({
+      x: z.number(),
+      y: z.number()
+    })
+  )
+});
+
+export const clearDrawingSchema = z.object({
+  participantId: z.string()
+});
+
 export const guessSchema = z.object({
   participantId: z.string(),
   guess: z
@@ -30,6 +44,10 @@ export const roomCodeParamsSchema = z.object({
 });
 
 export const startGameSchema = z.object({
+  participantId: z.string()
+});
+
+export const restartGameSchema = z.object({
   participantId: z.string()
 });
 

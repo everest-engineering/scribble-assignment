@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import type {
+  DrawingPoint,
   Participant,
   ParticipantScore,
   Room,
@@ -187,8 +188,77 @@ export function submitGuess(
     if (score) {
       score.score += 100;
     }
+
+    room.status = "finished";
   }
 
+  room.updatedAt = now();
+
+  rooms.set(room.code, room);
+
+  return cloneRoom(room);
+}
+
+export function saveDrawing(
+  code: string,
+  participantId: string,
+  points: DrawingPoint[]
+) {
+  const room = rooms.get(code);
+
+  if (!room) {
+    return null;
+  }
+
+  if (room.drawerId !== participantId) {
+    return null;
+  }
+
+  room.drawing.push(...points);
+  room.updatedAt = now();
+
+  rooms.set(room.code, room);
+
+  return cloneRoom(room);
+}
+
+export function clearDrawing(code: string, participantId: string) {
+  const room = rooms.get(code);
+
+  if (!room) {
+    return null;
+  }
+
+  if (room.drawerId !== participantId) {
+    return null;
+  }
+
+  room.drawing = [];
+  room.updatedAt = now();
+
+  rooms.set(room.code, room);
+
+  return cloneRoom(room);
+}
+
+export function restartGame(code: string, participantId: string) {
+  const room = rooms.get(code);
+
+  if (!room) {
+    return null;
+  }
+
+  if (room.hostId !== participantId) {
+    return null;
+  }
+
+  room.status = "lobby";
+  room.drawing = [];
+  room.guesses = [];
+  room.scores = room.participants.map((p) => ({
+    participantId: p.id,
+    score: 0
+  }));
   room.updatedAt = now();
 
   rooms.set(room.code, room);

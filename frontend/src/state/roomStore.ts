@@ -7,7 +7,7 @@ import {
   useSyncExternalStore,
   type PropsWithChildren
 } from "react";
-import { api, type RoomSessionResponse, type RoomSnapshot } from "../services/api";
+import { api, type DrawingPoint, type RoomSessionResponse, type RoomSnapshot } from "../services/api";
 
 export interface RoomState {
   room: RoomSnapshot | null;
@@ -121,6 +121,41 @@ class RoomStore {
       const response = await api.startGame(room.code, participantId);
       this.setRoomSnapshot(response.room);
     });
+  }
+
+  async restartGame() {
+    const { room, participantId } = this.state;
+
+    if (!room || !participantId) {
+      return;
+    }
+
+    await this.withLoading(async () => {
+      const response = await api.restartGame(room.code, participantId);
+      this.setRoomSnapshot(response.room);
+    });
+  }
+
+  async saveDrawing(points: DrawingPoint[]) {
+    const { room, participantId } = this.state;
+
+    if (!room || !participantId) {
+      return;
+    }
+
+    const response = await api.saveDrawing(room.code, participantId, points);
+    this.setRoomSnapshot(response.room);
+  }
+
+  async clearDrawing() {
+    const { room, participantId } = this.state;
+
+    if (!room || !participantId) {
+      return;
+    }
+
+    const response = await api.clearDrawing(room.code, participantId);
+    this.setRoomSnapshot(response.room);
   }
 }
 

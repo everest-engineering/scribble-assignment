@@ -1,5 +1,5 @@
 export type ParticipantRole = "drawer" | "guesser";
-export type RoomStatus = "lobby" | "playing";
+export type RoomStatus = "lobby" | "playing" | "finished";
 
 export interface Participant {
   id: string;
@@ -10,6 +10,7 @@ export interface Participant {
 export interface DrawingPoint {
   x: number;
   y: number;
+  penDown?: boolean;
 }
 
 export interface GuessEntry {
