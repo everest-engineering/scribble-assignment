@@ -117,20 +117,42 @@ export function startGame(code: string, hostParticipantId: string) {
     throw new Error("Cannot start game: at least 2 players are required");
   }
   room.status = "active";
+  room.drawerId = room.hostId;
+  room.currentWord = STARTER_WORDS[0];
+  
+  // Set roles on participants
+  room.participants.forEach((p) => {
+    p.role = p.id === room.drawerId ? "drawer" : "guesser";
+  });
+
   room.updatedAt = now();
   rooms.set(room.code, room);
   return cloneRoom(room);
 }
 
 export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSnapshot {
-  void viewerParticipantId;
+  const participants = room.participants.map((p) => {
+    const role = room.status === "active" ? (p.id === room.drawerId ? "drawer" as const : "guesser" as const) : undefined;
+    return { ...p, role };
+  });
+
+  let wordTemplate: string | undefined;
+  if (room.status === "active" && room.currentWord) {
+    if (viewerParticipantId === room.drawerId) {
+      wordTemplate = room.currentWord;
+    } else {
+      wordTemplate = room.currentWord.split("").map((c) => (c === " " ? " " : "_")).join("");
+    }
+  }
 
   return {
     code: room.code,
     status: room.status,
     hostId: room.hostId,
-    participants: room.participants.map((participant) => ({ ...participant })),
+    participants,
     availableWords: listWords(),
-    roles: [...STARTER_ROLES]
+    roles: [...STARTER_ROLES],
+    drawerId: room.drawerId,
+    wordTemplate
   };
 }

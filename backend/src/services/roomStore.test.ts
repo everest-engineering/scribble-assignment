@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createRoom, joinRoom, startGame } from "./roomStore.js";
+import { createRoom, joinRoom, startGame, toRoomSnapshot } from "./roomStore.js";
 
 describe("roomStore", () => {
   it("createRoom returns a room with a 4-character uppercase code and assigns hostId", () => {
@@ -45,11 +45,25 @@ describe("roomStore", () => {
     it("successfully sets room status to active if host starts and there are >= 2 players", () => {
       const creator = createRoom("Alice");
       const code = creator.room.code;
-      joinRoom(code, "Bob");
+      const guest = joinRoom(code, "Bob");
 
       const startedRoom = startGame(code, creator.participantId);
       expect(startedRoom).toBeDefined();
       expect(startedRoom!.status).toBe("active");
+      expect(startedRoom!.drawerId).toBe(creator.participantId);
+      expect(startedRoom!.currentWord).toBe("rocket");
+      
+      const hostParticipant = startedRoom!.participants.find(p => p.id === creator.participantId);
+      const guestParticipant = startedRoom!.participants.find(p => p.id === guest!.participantId);
+      expect(hostParticipant?.role).toBe("drawer");
+      expect(guestParticipant?.role).toBe("guesser");
+
+      const hostSnapshot = toRoomSnapshot(startedRoom!, creator.participantId);
+      const guestSnapshot = toRoomSnapshot(startedRoom!, guest!.participantId);
+
+      expect(hostSnapshot.drawerId).toBe(creator.participantId);
+      expect(hostSnapshot.wordTemplate).toBe("rocket");
+      expect(guestSnapshot.wordTemplate).toBe("______");
     });
   });
 });

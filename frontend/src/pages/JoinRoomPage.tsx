@@ -15,6 +15,10 @@ export function JoinRoomPage() {
 
     try {
       setError(null);
+      if (!playerName.trim()) {
+        setError("Username cannot be empty or only whitespace.");
+        return;
+      }
       await roomStore.joinRoom(roomCode.toUpperCase(), playerName);
       navigate("/lobby");
     } catch (caughtError) {

@@ -5,6 +5,7 @@ export interface Participant {
   id: string;
   name: string;
   joinedAt: string;
+  role?: ParticipantRole;
 }
 
 export interface Room {
@@ -12,6 +13,8 @@ export interface Room {
   status: RoomStatus;
   hostId: string;
   participants: Participant[];
+  drawerId?: string;
+  currentWord?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -23,6 +26,8 @@ export interface RoomSnapshot {
   participants: Participant[];
   availableWords: string[];
   roles: ParticipantRole[];
+  drawerId?: string;
+  wordTemplate?: string;
 }
 
 export interface RoomSessionResponse {

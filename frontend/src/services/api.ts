@@ -4,6 +4,7 @@ export interface Participant {
   id: string;
   name: string;
   joinedAt: string;
+  role?: ParticipantRole;
 }
 
 export interface RoomSnapshot {
@@ -13,6 +14,8 @@ export interface RoomSnapshot {
   participants: Participant[];
   availableWords: string[];
   roles: ParticipantRole[];
+  drawerId?: string;
+  wordTemplate?: string;
 }
 
 export interface RoomSessionResponse {

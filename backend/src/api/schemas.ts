@@ -1,11 +1,17 @@
 import { z } from "zod";
 
 export const createRoomSchema = z.object({
-  playerName: z.string().optional().transform(val => val ? val.trim() : undefined)
+  playerName: z
+    .string({ required_error: "Username cannot be empty or only whitespace." })
+    .trim()
+    .min(1, "Username cannot be empty or only whitespace.")
 });
 
 export const joinRoomSchema = z.object({
-  playerName: z.string().optional().transform(val => val ? val.trim() : undefined)
+  playerName: z
+    .string({ required_error: "Username cannot be empty or only whitespace." })
+    .trim()
+    .min(1, "Username cannot be empty or only whitespace.")
 });
 
 export const roomCodeParamsSchema = z.object({

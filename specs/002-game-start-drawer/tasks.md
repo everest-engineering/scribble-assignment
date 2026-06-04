@@ -22,7 +22,7 @@
 
 **Purpose**: Project initialization and basic structure
 
-- [ ] T001 Configure development environments and run initial server verifies in `backend/package.json`
+- [x] T001 Configure development environments and run initial server verifies in `backend/package.json`
 
 ---
 
@@ -32,7 +32,7 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T002 Verify model structure in `backend/src/models/game.ts`
+- [x] T002 Verify model structure in `backend/src/models/game.ts`
 
 ---
 
@@ -44,10 +44,10 @@
 
 ### Implementation for User Story 1
 
-- [ ] T003 [US1] Update validation schemas in `backend/src/api/schemas.ts` to trim usernames and reject empty/whitespace-only strings
-- [ ] T004 [US1] Update create room route controller in `backend/src/api/rooms.ts` to utilize the trimmed/validated schemas
-- [ ] T005 [US1] Update join room route controller in `backend/src/api/rooms.ts` to utilize the trimmed/validated schemas
-- [ ] T006 [P] [US1] Update error handling in landing page component in `frontend/src/pages/LandingPage.tsx` to handle trimmed values and display empty username errors
+- [x] T003 [US1] Update validation schemas in `backend/src/api/schemas.ts` to trim usernames and reject empty/whitespace-only strings
+- [x] T004 [US1] Update create room route controller in `backend/src/api/rooms.ts` to utilize the trimmed/validated schemas
+- [x] T005 [US1] Update join room route controller in `backend/src/api/rooms.ts` to utilize the trimmed/validated schemas
+- [x] T006 [P] [US1] Update error handling in landing page component in `frontend/src/pages/LandingPage.tsx` to handle trimmed values and display empty username errors
 
 ---
 
@@ -59,11 +59,11 @@
 
 ### Implementation for User Story 2
 
-- [ ] T007 [US2] Update the `Room` interface and add `drawerId` and roles properties in `backend/src/models/game.ts`
-- [ ] T008 [US2] Implement drawer designation and room state updates in `backend/src/services/roomStore.ts`
-- [ ] T009 [US2] Update start game route handler in `backend/src/api/rooms.ts` to verify and apply new role properties
-- [ ] T010 [P] [US2] Update frontend room state management to process drawer role in `frontend/src/state/roomStore.ts`
-- [ ] T011 [US2] Update game UI component in `frontend/src/pages/GamePage.tsx` to display clearly who the drawer is
+- [x] T007 [US2] Update the `Room` interface and add `drawerId` and roles properties in `backend/src/models/game.ts`
+- [x] T008 [US2] Implement drawer designation and room state updates in `backend/src/services/roomStore.ts`
+- [x] T009 [US2] Update start game route handler in `backend/src/api/rooms.ts` to verify and apply new role properties
+- [x] T010 [P] [US2] Update frontend room state management to process drawer role in `frontend/src/state/roomStore.ts`
+- [x] T011 [US2] Update game UI component in `frontend/src/pages/GamePage.tsx` to display clearly who the drawer is
 
 ---
 
@@ -75,9 +75,9 @@
 
 ### Implementation for User Story 3
 
-- [ ] T012 [US3] Implement word selection logic in `startGame` service in `backend/src/services/roomStore.ts`
-- [ ] T013 [US3] Implement word masking filter in `toRoomSnapshot` method in `backend/src/services/roomStore.ts`
-- [ ] T014 [P] [US3] Update frontend game dashboard in `frontend/src/pages/GamePage.tsx` to show secret word to drawer and mask it for guessers
+- [x] T012 [US3] Implement word selection logic in `startGame` service in `backend/src/services/roomStore.ts`
+- [x] T013 [US3] Implement word masking filter in `toRoomSnapshot` method in `backend/src/services/roomStore.ts`
+- [x] T014 [P] [US3] Update frontend game dashboard in `frontend/src/pages/GamePage.tsx` to show secret word to drawer and mask it for guessers
 
 ---
 
@@ -85,4 +85,4 @@
 
 **Purpose**: Final check and verification
 
-- [ ] T015 Run quickstart.md validation scenario checks.
+- [x] T015 Run quickstart.md validation scenario checks.
