@@ -22,6 +22,8 @@ describe("RoomStore", () => {
         hostParticipantId: "p1",
         currentDrawerId: null,
         participants: [],
+        drawing: [],
+        guessHistory: [],
         availableWords: []
       }
     });
@@ -44,6 +46,8 @@ describe("RoomStore", () => {
         hostParticipantId: "p1",
         currentDrawerId: null,
         participants: [],
+        drawing: [],
+        guessHistory: [],
         availableWords: []
       }
     });
@@ -57,6 +61,8 @@ describe("RoomStore", () => {
         hostParticipantId: "p1",
         currentDrawerId: null,
         participants: [],
+        drawing: [],
+        guessHistory: [],
         availableWords: []
       }
     });
@@ -84,6 +90,8 @@ describe("RoomStore", () => {
         hostParticipantId: "p1",
         currentDrawerId: null,
         participants: [],
+        drawing: [],
+        guessHistory: [],
         availableWords: []
       }
     });
@@ -95,5 +103,66 @@ describe("RoomStore", () => {
       hostParticipantId: null,
       roomStatus: null
     });
+  });
+
+  it("submits guesses and updates the active room snapshot", async () => {
+    vi.spyOn(api, "submitGuess").mockResolvedValue({
+      room: {
+        code: "ABCD",
+        status: "game",
+        hostParticipantId: "p1",
+        currentDrawerId: "p1",
+        participants: [
+          {
+            id: "p1",
+            name: "Alice",
+            joinedAt: "2026-06-05T00:00:00.000Z",
+            score: 0,
+            hasGuessedCorrectly: false,
+            role: "drawer"
+          },
+          {
+            id: "p2",
+            name: "Bob",
+            joinedAt: "2026-06-05T00:00:01.000Z",
+            score: 100,
+            hasGuessedCorrectly: true,
+            role: "guesser"
+          }
+        ],
+        drawing: [],
+        guessHistory: [
+          {
+            participantId: "p2",
+            participantName: "Bob",
+            guess: "rocket",
+            isCorrect: true
+          }
+        ],
+        availableWords: [],
+        currentWord: "rocket"
+      }
+    });
+
+    const store = new RoomStore();
+    store.setRoomSession({
+      participantId: "p2",
+      room: {
+        code: "ABCD",
+        status: "game",
+        hostParticipantId: "p1",
+        currentDrawerId: "p1",
+        participants: [],
+        drawing: [],
+        guessHistory: [],
+        availableWords: [],
+        currentWord: "rocket"
+      }
+    });
+
+    await store.submitGuess("rocket");
+
+    expect(store.getSnapshot().room?.guessHistory).toHaveLength(1);
+    expect(store.getSnapshot().room?.participants.find((participant) => participant.id === "p2")?.score).toBe(100);
   });
 });

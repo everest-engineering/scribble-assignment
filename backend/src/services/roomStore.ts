@@ -1,10 +1,20 @@
 import { randomUUID } from "node:crypto";
 import type { Participant, Room, RoomSnapshot } from "../models/game.js";
-import type { ParticipantRole } from "../models/game.js";
+import type { DrawingPoint, ParticipantRole, Stroke } from "../models/game.js";
 import { STARTER_WORDS } from "../seed/starterData.js";
 
 const rooms = new Map<string, Room>();
 const usedCodes = new Set<string>();
+const DRAWING_COLOR = "#111827";
+const DRAWING_LINE_WIDTH = 4;
+
+export type GameActionFailureReason =
+  | "not_found"
+  | "not_member"
+  | "forbidden"
+  | "not_in_game"
+  | "empty_guess"
+  | "already_solved";
 
 function now() {
   return new Date().toISOString();
@@ -39,7 +49,9 @@ function createParticipant(name: string): Participant {
   return {
     id: randomUUID(),
     name: displayName(name),
-    joinedAt: now()
+    joinedAt: now(),
+    score: 0,
+    hasGuessedCorrectly: false
   };
 }
 
@@ -87,6 +99,8 @@ export function createRoom(playerName: string) {
     hostParticipantId: participant.id,
     currentDrawerId: null,
     participants: [participant],
+    drawing: [],
+    guessHistory: [],
     createdAt: now(),
     updatedAt: now()
   };
@@ -156,8 +170,165 @@ export function startRoom(code: string, participantId: string):
 
   room.currentDrawerId = room.hostParticipantId;
   room.currentWord = getStarterWordForRoomCode(room.code);
+  room.drawing = [];
+  room.guessHistory = [];
+  room.participants = room.participants.map((participant) => ({
+    ...participant,
+    score: 0,
+    hasGuessedCorrectly: false
+  }));
   assignRoles(room);
   room.status = "game";
+  room.updatedAt = now();
+  rooms.set(room.code, room);
+
+  return { room: cloneRoom(room) };
+}
+
+function findParticipant(room: Room, participantId: string) {
+  const participantIndex = findParticipantIndex(room, participantId);
+
+  if (participantIndex === -1) {
+    return null;
+  }
+
+  return {
+    participant: room.participants[participantIndex],
+    participantIndex
+  };
+}
+
+function isGameRoom(room: Room) {
+  return room.status === "game" && Boolean(room.currentWord);
+}
+
+function appendDrawingStroke(room: Room, stroke: Stroke) {
+  room.drawing.push({
+    points: stroke.points.map((point) => ({ ...point })),
+    color: stroke.color,
+    lineWidth: stroke.lineWidth
+  });
+}
+
+export function submitDrawingStroke(code: string, participantId: string, points: DrawingPoint[]):
+  | { room: Room }
+  | { error: GameActionFailureReason } {
+  const room = rooms.get(code);
+
+  if (!room) {
+    return { error: "not_found" };
+  }
+
+  if (!isGameRoom(room)) {
+    return { error: "not_in_game" };
+  }
+
+  const participantResult = findParticipant(room, participantId);
+
+  if (!participantResult) {
+    return { error: "not_member" };
+  }
+
+  if (participantResult.participant.id !== room.currentDrawerId) {
+    return { error: "forbidden" };
+  }
+
+  appendDrawingStroke(room, {
+    points,
+    color: DRAWING_COLOR,
+    lineWidth: DRAWING_LINE_WIDTH
+  });
+  room.updatedAt = now();
+  rooms.set(room.code, room);
+
+  return { room: cloneRoom(room) };
+}
+
+export function clearCanvas(code: string, participantId: string):
+  | { room: Room }
+  | { error: GameActionFailureReason } {
+  const room = rooms.get(code);
+
+  if (!room) {
+    return { error: "not_found" };
+  }
+
+  if (!isGameRoom(room)) {
+    return { error: "not_in_game" };
+  }
+
+  const participantResult = findParticipant(room, participantId);
+
+  if (!participantResult) {
+    return { error: "not_member" };
+  }
+
+  if (participantResult.participant.id !== room.currentDrawerId) {
+    return { error: "forbidden" };
+  }
+
+  room.drawing = [];
+  room.updatedAt = now();
+  rooms.set(room.code, room);
+
+  return { room: cloneRoom(room) };
+}
+
+export function submitGuess(code: string, participantId: string, guessText: string):
+  | { room: Room }
+  | { error: GameActionFailureReason } {
+  const room = rooms.get(code);
+
+  if (!room) {
+    return { error: "not_found" };
+  }
+
+  if (!isGameRoom(room)) {
+    return { error: "not_in_game" };
+  }
+
+  const participantResult = findParticipant(room, participantId);
+
+  if (!participantResult) {
+    return { error: "not_member" };
+  }
+
+  const participant = participantResult.participant;
+
+  if (participant.id === room.currentDrawerId) {
+    return { error: "forbidden" };
+  }
+
+  const guess = displayName(guessText);
+
+  if (!guess) {
+    return { error: "empty_guess" };
+  }
+
+  if (participant.hasGuessedCorrectly) {
+    return { error: "already_solved" };
+  }
+
+  const currentWord = room.currentWord?.trim().toLowerCase();
+
+  if (!currentWord) {
+    return { error: "not_in_game" };
+  }
+
+  const isCorrect = guess.toLowerCase() === currentWord;
+
+  room.guessHistory.push({
+    participantId: participant.id,
+    participantName: participant.name,
+    guess,
+    isCorrect
+  });
+
+  if (isCorrect) {
+    participant.score += 100;
+    participant.hasGuessedCorrectly = true;
+  }
+
   room.updatedAt = now();
   rooms.set(room.code, room);
 
@@ -212,6 +383,12 @@ export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSn
     hostParticipantId: room.hostParticipantId,
     currentDrawerId: room.currentDrawerId,
     participants: room.participants.map((participant) => ({ ...participant })),
+    drawing: room.drawing.map((stroke) => ({
+      points: stroke.points.map((point) => ({ ...point })),
+      color: stroke.color,
+      lineWidth: stroke.lineWidth
+    })),
+    guessHistory: room.guessHistory.map((entry) => ({ ...entry })),
     availableWords: listWords()
   };
 

@@ -26,7 +26,10 @@ export function Scoreboard({ room, participantId }: ScoreboardProps) {
                 {participant.name}
                 {isViewer ? <span className="player-list__self">you</span> : null}
               </span>
-              <span className={`player-list__meta player-list__meta--${role}`}>{role}</span>
+              <span className="player-list__meta-group">
+                <span className={`player-list__meta player-list__meta--${role}`}>{role}</span>
+                <span className="player-list__score">{participant.score} pts</span>
+              </span>
             </li>
           );
         })}

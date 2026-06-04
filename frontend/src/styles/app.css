@@ -377,6 +377,13 @@ input {
   font-weight: 500;
 }
 
+.form__status {
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: 0.925rem;
+  line-height: 1.5;
+}
+
 .player-list {
   display: grid;
   gap: 12px;
@@ -435,6 +442,12 @@ input {
   font-weight: 400;
 }
 
+.player-list__meta-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
 .player-list__meta--drawer {
   color: #1d4ed8;
   font-weight: 700;
@@ -442,6 +455,12 @@ input {
 
 .player-list__meta--guesser {
   color: #6b7280;
+}
+
+.player-list__score {
+  color: var(--ink);
+  font-size: 0.95rem;
+  font-weight: 700;
 }
 
 .status-line,
@@ -489,6 +508,121 @@ input {
   color: var(--ink-soft);
   font-size: 1.125rem;
   font-weight: 500;
+}
+
+.drawing-canvas {
+  display: grid;
+  gap: 16px;
+}
+
+.drawing-canvas__surface {
+  display: block;
+  width: 100%;
+  min-height: 460px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background:
+    radial-gradient(circle at 20% 20%, rgba(37, 99, 235, 0.08), transparent 28%),
+    linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.75);
+  touch-action: none;
+  cursor: crosshair;
+}
+
+.drawing-canvas__surface--active {
+  cursor: crosshair;
+}
+
+.drawing-canvas__background {
+  fill: transparent;
+}
+
+.drawing-canvas__placeholder {
+  fill: #94a3b8;
+  font-size: 24px;
+  font-weight: 600;
+  text-anchor: middle;
+  dominant-baseline: middle;
+}
+
+.drawing-canvas__footer {
+  display: grid;
+  gap: 12px;
+}
+
+.drawing-canvas__hint {
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: 0.95rem;
+}
+
+.drawing-canvas__status {
+  margin: 0;
+  color: #b45309;
+  font-size: 0.925rem;
+  font-weight: 600;
+}
+
+.drawing-canvas__clear-button {
+  min-width: 180px;
+}
+
+.activity-feed {
+  display: grid;
+  gap: 12px;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.activity-feed__item {
+  display: grid;
+  gap: 8px;
+  padding: 16px 18px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface-strong);
+}
+
+.activity-feed__item--correct {
+  border-color: rgba(16, 185, 129, 0.3);
+  background: rgba(236, 253, 245, 0.8);
+}
+
+.activity-feed__row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+}
+
+.activity-feed__name {
+  color: var(--ink);
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.activity-feed__tag {
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: #e0e7ff;
+  color: #1d4ed8;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.activity-feed__tag--correct {
+  background: #d1fae5;
+  color: #047857;
+}
+
+.activity-feed__guess {
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: 0.95rem;
+  word-break: break-word;
 }
 
 .word-reveal,

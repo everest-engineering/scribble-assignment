@@ -10,8 +10,8 @@
 
 **Purpose**: Project initialization and basic structure
 
-- [ ] T001 Confirm feature docs are present and aligned in `specs/003-gameplay-interaction/plan.md`, `specs/003-gameplay-interaction/spec.md`, `specs/003-gameplay-interaction/research.md`, `specs/003-gameplay-interaction/data-model.md`, and `specs/003-gameplay-interaction/contracts/room-gameplay-api.md`
-- [ ] T002 Add gameplay API contract notes for room polling, guess submission, and drawing updates in `specs/003-gameplay-interaction/contracts/room-gameplay-api.md`
+- [X] T001 Confirm feature docs are present and aligned in `specs/003-gameplay-interaction/plan.md`, `specs/003-gameplay-interaction/spec.md`, `specs/003-gameplay-interaction/research.md`, `specs/003-gameplay-interaction/data-model.md`, and `specs/003-gameplay-interaction/contracts/room-gameplay-api.md`
+- [X] T002 Add gameplay API contract notes for room polling, guess submission, and drawing updates in `specs/003-gameplay-interaction/contracts/room-gameplay-api.md`
 
 ---
 
@@ -19,12 +19,12 @@
 
 **Purpose**: Core infrastructure that MUST be complete before any user story can be implemented
 
-- [ ] T003 Extend shared room/game models to carry drawing state, guess history, participant scores, and correct-guess tracking in `backend/src/models/game.ts`
-- [ ] T004 Update room snapshot serialization to include drawing, guess history, and participant scores in `backend/src/services/roomStore.ts`
-- [ ] T005 [P] Add request schemas for drawing submissions, guess submissions, and room-state validation in `backend/src/api/schemas.ts`
-- [ ] T006 [P] Add gameplay response shapes to the frontend API layer in `frontend/src/services/api.ts`
-- [ ] T007 [P] Extend the frontend room store state to retain drawing, guess history, and score-driven room snapshots in `frontend/src/state/roomStore.ts`
-- [ ] T008 Add shared polling refresh behavior for game-state updates in `frontend/src/state/roomStore.ts`
+- [X] T003 Extend shared room/game models to carry drawing state, guess history, participant scores, and correct-guess tracking in `backend/src/models/game.ts`
+- [X] T004 Update room snapshot serialization to include drawing, guess history, and participant scores in `backend/src/services/roomStore.ts`
+- [X] T005 [P] Add request schemas for drawing submissions, guess submissions, and room-state validation in `backend/src/api/schemas.ts`
+- [X] T006 [P] Add gameplay response shapes to the frontend API layer in `frontend/src/services/api.ts`
+- [X] T007 [P] Extend the frontend room store state to retain drawing, guess history, and score-driven room snapshots in `frontend/src/state/roomStore.ts`
+- [X] T008 Add shared polling refresh behavior for game-state updates in `frontend/src/state/roomStore.ts`
 
 **Checkpoint**: Foundation ready - user story implementation can now begin in order
 
@@ -38,12 +38,12 @@
 
 ### Implementation for User Story 1
 
-- [ ] T009 [US1] Implement drawing and clear-canvas room mutations in `backend/src/services/roomStore.ts`
-- [ ] T010 [P] [US1] Add drawing endpoints to the room router in `backend/src/api/rooms.ts`
-- [ ] T011 [P] [US1] Wire drawing request validation into `backend/src/api/schemas.ts`
-- [ ] T012 [P] [US1] Create a drawing canvas component with stroke capture and clear handling in `frontend/src/components/DrawingCanvas.tsx`
-- [ ] T013 [US1] Mount `DrawingCanvas` in `frontend/src/pages/GamePage.tsx` and connect it to the current drawer/guesser role
-- [ ] T014 [US1] Render polling-driven drawing state in `frontend/src/components/DrawingCanvas.tsx` for guessers and the drawer
+- [X] T009 [US1] Implement drawing and clear-canvas room mutations in `backend/src/services/roomStore.ts`
+- [X] T010 [P] [US1] Add drawing endpoints to the room router in `backend/src/api/rooms.ts`
+- [X] T011 [P] [US1] Wire drawing request validation into `backend/src/api/schemas.ts`
+- [X] T012 [P] [US1] Create a drawing canvas component with stroke capture and clear handling in `frontend/src/components/DrawingCanvas.tsx`
+- [X] T013 [US1] Mount `DrawingCanvas` in `frontend/src/pages/GamePage.tsx` and connect it to the current drawer/guesser role
+- [X] T014 [US1] Render polling-driven drawing state in `frontend/src/components/DrawingCanvas.tsx` for guessers and the drawer
 
 **Checkpoint**: User Story 1 should be fully functional and testable independently
 
@@ -57,11 +57,11 @@
 
 ### Implementation for User Story 2
 
-- [ ] T015 [US2] Implement guess submission validation and case-insensitive comparison in `backend/src/services/roomStore.ts`
-- [ ] T016 [P] [US2] Add guess submission endpoint handling in `backend/src/api/rooms.ts`
-- [ ] T017 [P] [US2] Add guess request and response validation in `backend/src/api/schemas.ts`
-- [ ] T018 [P] [US2] Implement guess form submission, empty-input warning, and input clearing in `frontend/src/components/GuessForm.tsx`
-- [ ] T019 [US2] Disable guess submission after a correct guess in `frontend/src/components/GuessForm.tsx` and `frontend/src/pages/GamePage.tsx`
+- [X] T015 [US2] Implement guess submission validation and case-insensitive comparison in `backend/src/services/roomStore.ts`
+- [X] T016 [P] [US2] Add guess submission endpoint handling in `backend/src/api/rooms.ts`
+- [X] T017 [P] [US2] Add guess request and response validation in `backend/src/api/schemas.ts`
+- [X] T018 [P] [US2] Implement guess form submission, empty-input warning, and input clearing in `frontend/src/components/GuessForm.tsx`
+- [X] T019 [US2] Disable guess submission after a correct guess in `frontend/src/components/GuessForm.tsx` and `frontend/src/pages/GamePage.tsx`
 
 **Checkpoint**: User Story 2 should be fully functional and testable independently
 
@@ -75,10 +75,10 @@
 
 ### Implementation for User Story 3
 
-- [ ] T020 [US3] Persist ordered guess-history entries with participant name, guess text, and correctness flag in `backend/src/services/roomStore.ts`
-- [ ] T021 [P] [US3] Include guess history in room snapshots returned by `backend/src/api/rooms.ts`
-- [ ] T022 [P] [US3] Add guess-history rendering to `frontend/src/components/ResultPanel.tsx`
-- [ ] T023 [US3] Wire polling updates so guess-history changes refresh the activity panel in `frontend/src/state/roomStore.ts`
+- [X] T020 [US3] Persist ordered guess-history entries with participant name, guess text, and correctness flag in `backend/src/services/roomStore.ts`
+- [X] T021 [P] [US3] Include guess history in room snapshots returned by `backend/src/api/rooms.ts`
+- [X] T022 [P] [US3] Add guess-history rendering to `frontend/src/components/ResultPanel.tsx`
+- [X] T023 [US3] Wire polling updates so guess-history changes refresh the activity panel in `frontend/src/state/roomStore.ts`
 
 **Checkpoint**: User Story 3 should be fully functional and testable independently
 
@@ -92,10 +92,10 @@
 
 ### Implementation for User Story 4
 
-- [ ] T024 [US4] Track participant scores in the room model and apply +100 only on correct guesses in `backend/src/models/game.ts` and `backend/src/services/roomStore.ts`
-- [ ] T025 [P] [US4] Include participant scores in the room snapshot returned by `backend/src/api/rooms.ts`
-- [ ] T026 [P] [US4] Render score values in `frontend/src/components/Scoreboard.tsx`
-- [ ] T027 [US4] Ensure the scoreboard updates on each polling cycle in `frontend/src/state/roomStore.ts`
+- [X] T024 [US4] Track participant scores in the room model and apply +100 only on correct guesses in `backend/src/models/game.ts` and `backend/src/services/roomStore.ts`
+- [X] T025 [P] [US4] Include participant scores in the room snapshot returned by `backend/src/api/rooms.ts`
+- [X] T026 [P] [US4] Render score values in `frontend/src/components/Scoreboard.tsx`
+- [X] T027 [US4] Ensure the scoreboard updates on each polling cycle in `frontend/src/state/roomStore.ts`
 
 **Checkpoint**: User Story 4 should be fully functional and testable independently
 
@@ -105,9 +105,9 @@
 
 **Purpose**: Improvements that affect multiple user stories
 
-- [ ] T028 [P] Verify the end-to-end polling flow in `specs/003-gameplay-interaction/quickstart.md`
-- [ ] T029 Clean up any dead room-state fields or unused UI branches in `backend/src/` and `frontend/src/`
-- [ ] T030 Review room snapshot payloads and trim any duplicate fields in `backend/src/api/rooms.ts` and `frontend/src/services/api.ts`
+- [X] T028 [P] Verify the end-to-end polling flow in `specs/003-gameplay-interaction/quickstart.md`
+- [X] T029 Clean up any dead room-state fields or unused UI branches in `backend/src/` and `frontend/src/`
+- [X] T030 Review room snapshot payloads and trim any duplicate fields in `backend/src/api/rooms.ts` and `frontend/src/services/api.ts`
 
 ---
 

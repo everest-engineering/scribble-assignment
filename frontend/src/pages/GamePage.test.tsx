@@ -6,7 +6,12 @@ import { GamePage } from "./GamePage";
 const mocks = vi.hoisted(() => ({
   navigate: vi.fn(),
   roomStore: {
-    leaveRoom: vi.fn()
+    leaveRoom: vi.fn(),
+    startLobbyPolling: vi.fn(),
+    stopLobbyPolling: vi.fn(),
+    submitGuess: vi.fn(),
+    submitStroke: vi.fn(),
+    clearCanvas: vi.fn()
   },
   roomState: {
     room: {
@@ -20,13 +25,26 @@ const mocks = vi.hoisted(() => ({
           id: "participant-1",
           name: "Alice",
           joinedAt: "2026-06-05T00:00:00.000Z",
-          role: "drawer"
+          role: "drawer",
+          score: 0,
+          hasGuessedCorrectly: false
         },
         {
           id: "participant-2",
           name: "Bob",
           joinedAt: "2026-06-05T00:00:01.000Z",
-          role: "guesser"
+          role: "guesser",
+          score: 100,
+          hasGuessedCorrectly: true
+        }
+      ],
+      drawing: [],
+      guessHistory: [
+        {
+          participantId: "participant-2",
+          participantName: "Bob",
+          guess: "rocket",
+          isCorrect: true
         }
       ],
       availableWords: []
@@ -57,6 +75,11 @@ describe("GamePage", () => {
   beforeEach(() => {
     mocks.navigate.mockReset();
     mocks.roomStore.leaveRoom.mockReset();
+    mocks.roomStore.startLobbyPolling.mockReset();
+    mocks.roomStore.stopLobbyPolling.mockReset();
+    mocks.roomStore.submitGuess.mockReset();
+    mocks.roomStore.submitStroke.mockReset();
+    mocks.roomStore.clearCanvas.mockReset();
     document.body.innerHTML = "";
   });
 
@@ -84,6 +107,7 @@ describe("GamePage", () => {
     expect(container.textContent).toContain("drawer");
     expect(container.querySelector(".word-reveal")?.textContent).toContain("rocket");
     expect(container.querySelector(".word-mask")).toBeNull();
+    expect(mocks.roomStore.startLobbyPolling).toHaveBeenCalled();
 
     await act(async () => {
       root.unmount();
@@ -109,6 +133,7 @@ describe("GamePage", () => {
     expect(container.textContent).toContain("guesser");
     expect(container.querySelector(".word-reveal")).toBeNull();
     expect(container.querySelector(".word-mask__text")?.textContent).toContain("Hidden from guessers");
+    expect(mocks.roomStore.startLobbyPolling).toHaveBeenCalled();
 
     await act(async () => {
       root.unmount();
@@ -140,6 +165,7 @@ describe("GamePage", () => {
     });
 
     expect(mocks.roomStore.leaveRoom).toHaveBeenCalledTimes(1);
+    expect(mocks.roomStore.stopLobbyPolling).toHaveBeenCalled();
     vi.useRealTimers();
   });
 });

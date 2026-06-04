@@ -1,11 +1,31 @@
 export type ParticipantRole = "drawer" | "guesser";
 export type RoomStatus = "lobby" | "game";
 
+export interface DrawingPoint {
+  x: number;
+  y: number;
+}
+
+export interface Stroke {
+  points: DrawingPoint[];
+  color: string;
+  lineWidth: number;
+}
+
+export interface GuessEntry {
+  participantId: string;
+  participantName: string;
+  guess: string;
+  isCorrect: boolean;
+}
+
 export interface Participant {
   id: string;
   name: string;
   joinedAt: string;
   role?: ParticipantRole;
+  score: number;
+  hasGuessedCorrectly: boolean;
 }
 
 export interface RoomSnapshot {
@@ -14,6 +34,8 @@ export interface RoomSnapshot {
   hostParticipantId: string;
   currentDrawerId: string | null;
   participants: Participant[];
+  drawing: Stroke[];
+  guessHistory: GuessEntry[];
   availableWords: string[];
   currentWord?: string;
 }
@@ -74,6 +96,24 @@ export const api = {
   fetchRoom(code: string, participantId?: string) {
     const query = participantId ? `?participantId=${encodeURIComponent(participantId)}` : "";
     return request<{ room: RoomSnapshot }>(`/rooms/${encodeURIComponent(code)}${query}`);
+  },
+  submitStroke(code: string, participantId: string, points: DrawingPoint[]) {
+    return request<{ room: RoomSnapshot }>(`/rooms/${encodeURIComponent(code)}/drawing/strokes`, {
+      method: "POST",
+      body: JSON.stringify({ participantId, points })
+    });
+  },
+  clearCanvas(code: string, participantId: string) {
+    return request<{ room: RoomSnapshot }>(`/rooms/${encodeURIComponent(code)}/drawing/clear`, {
+      method: "POST",
+      body: JSON.stringify({ participantId })
+    });
+  },
+  submitGuess(code: string, participantId: string, guess: string) {
+    return request<{ room: RoomSnapshot }>(`/rooms/${encodeURIComponent(code)}/guess`, {
+      method: "POST",
+      body: JSON.stringify({ participantId, guess })
+    });
   },
   startRoom(code: string, participantId: string) {
     return request<{ room: RoomSnapshot }>(`/rooms/${encodeURIComponent(code)}/start`, {

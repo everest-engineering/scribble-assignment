@@ -6,21 +6,25 @@ import { LobbyPage } from "./LobbyPage";
 const mocks = vi.hoisted(() => {
   const roomSession = {
     participantId: "participant-1",
-    room: {
-      code: "ABCD",
-      status: "lobby",
-      hostParticipantId: "participant-1",
-      currentDrawerId: null,
-      participants: [
-        {
-          id: "participant-1",
-          name: "Alice",
-          joinedAt: "2026-06-05T00:00:00.000Z"
-        }
-      ],
-      availableWords: []
-    }
-  };
+      room: {
+        code: "ABCD",
+        status: "lobby",
+        hostParticipantId: "participant-1",
+        currentDrawerId: null,
+        participants: [
+          {
+            id: "participant-1",
+            name: "Alice",
+            joinedAt: "2026-06-05T00:00:00.000Z",
+            score: 0,
+            hasGuessedCorrectly: false
+          }
+        ],
+        drawing: [],
+        guessHistory: [],
+        availableWords: []
+      }
+    };
 
   return {
     navigate: vi.fn(),

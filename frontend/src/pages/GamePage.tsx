@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card } from "../components/Card";
+import { DrawingCanvas } from "../components/DrawingCanvas";
 import { GuessForm } from "../components/GuessForm";
 import { ResultPanel } from "../components/ResultPanel";
 import { RoomCodeBadge } from "../components/RoomCodeBadge";
@@ -34,17 +35,11 @@ export function GamePage() {
       cleanupArmedRef.current = true;
     }, 0);
 
-    const handleBeforeUnload = () => {
-      void roomStore.leaveRoom();
-    };
-
-    window.addEventListener("beforeunload", handleBeforeUnload);
-    window.addEventListener("pagehide", handleBeforeUnload);
+    roomStore.startLobbyPolling();
 
     return () => {
       window.clearTimeout(cleanupTimerId);
-      window.removeEventListener("beforeunload", handleBeforeUnload);
-      window.removeEventListener("pagehide", handleBeforeUnload);
+      roomStore.stopLobbyPolling();
 
       if (cleanupArmedRef.current) {
         void roomStore.leaveRoom();
@@ -60,6 +55,7 @@ export function GamePage() {
   const drawer = room.participants.find((participant) => participant.id === room.currentDrawerId) ?? null;
   const viewerRole = viewer?.role ?? (viewer?.id === room.currentDrawerId ? "drawer" : null);
   const isDrawer = viewerRole === "drawer";
+  const viewerHasGuessedCorrectly = Boolean(viewer?.hasGuessedCorrectly);
 
   async function handleExitGame() {
     await roomStore.leaveRoom();
@@ -84,9 +80,7 @@ export function GamePage() {
 
         <div className="game-page__main">
           <Card title="Canvas" badge={drawer ? `Drawer: ${drawer.name}` : "Waiting"}>
-            <div className="canvas-placeholder">
-              Waiting for drawer to start sketching...
-            </div>
+            <DrawingCanvas />
           </Card>
         </div>
 
@@ -119,7 +113,7 @@ export function GamePage() {
           </Card>
 
           <Card title="Your Guess">
-            <GuessForm />
+            <GuessForm disabled={isDrawer || viewerHasGuessedCorrectly} />
           </Card>
         </aside>
       </div>

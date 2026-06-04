@@ -19,6 +19,8 @@ describe("api service", () => {
             hostParticipantId: "p1",
             currentDrawerId: null,
             participants: [],
+            drawing: [],
+            guessHistory: [],
             availableWords: []
           }
         })
@@ -48,6 +50,8 @@ describe("api service", () => {
             hostParticipantId: "p1",
             currentDrawerId: null,
             participants: [],
+            drawing: [],
+            guessHistory: [],
             availableWords: []
           }
         })
@@ -73,7 +77,18 @@ describe("api service", () => {
             status: "game",
             hostParticipantId: "p1",
             currentDrawerId: "p1",
-            participants: [],
+            participants: [
+              {
+                id: "p1",
+                name: "Alice",
+                joinedAt: "2026-06-05T00:00:00.000Z",
+                score: 0,
+                hasGuessedCorrectly: false,
+                role: "drawer"
+              }
+            ],
+            drawing: [],
+            guessHistory: [],
             availableWords: [],
             currentWord: "rocket"
           }
@@ -104,6 +119,102 @@ describe("api service", () => {
 
     expect(fetch).toHaveBeenCalledWith(
       expect.stringContaining("/rooms/XYZW/leave"),
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({ participantId: "p1" })
+      })
+    );
+  });
+
+  it("submitStroke sends POST to the drawing strokes endpoint", async () => {
+    const mockResponse = {
+      ok: true,
+      status: 200,
+      json: () =>
+        Promise.resolve({
+          room: {
+            code: "XYZW",
+            status: "game",
+            hostParticipantId: "p1",
+            currentDrawerId: "p1",
+            participants: [],
+            drawing: [],
+            guessHistory: [],
+            availableWords: [],
+            currentWord: "rocket"
+          }
+        })
+    };
+    vi.mocked(fetch).mockResolvedValue(mockResponse as unknown as Response);
+
+    await api.submitStroke("XYZW", "p1", [{ x: 1, y: 2 }]);
+
+    expect(fetch).toHaveBeenCalledWith(
+      expect.stringContaining("/rooms/XYZW/drawing/strokes"),
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({ participantId: "p1", points: [{ x: 1, y: 2 }] })
+      })
+    );
+  });
+
+  it("submitGuess sends POST to the guess endpoint", async () => {
+    const mockResponse = {
+      ok: true,
+      status: 200,
+      json: () =>
+        Promise.resolve({
+          room: {
+            code: "XYZW",
+            status: "game",
+            hostParticipantId: "p1",
+            currentDrawerId: "p1",
+            participants: [],
+            drawing: [],
+            guessHistory: [],
+            availableWords: [],
+            currentWord: "rocket"
+          }
+        })
+    };
+    vi.mocked(fetch).mockResolvedValue(mockResponse as unknown as Response);
+
+    await api.submitGuess("XYZW", "p2", "rocket");
+
+    expect(fetch).toHaveBeenCalledWith(
+      expect.stringContaining("/rooms/XYZW/guess"),
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({ participantId: "p2", guess: "rocket" })
+      })
+    );
+  });
+
+  it("clearCanvas sends POST to the drawing clear endpoint", async () => {
+    const mockResponse = {
+      ok: true,
+      status: 200,
+      json: () =>
+        Promise.resolve({
+          room: {
+            code: "XYZW",
+            status: "game",
+            hostParticipantId: "p1",
+            currentDrawerId: "p1",
+            participants: [],
+            drawing: [],
+            guessHistory: [],
+            availableWords: [],
+            currentWord: "rocket"
+          }
+        })
+    };
+    vi.mocked(fetch).mockResolvedValue(mockResponse as unknown as Response);
+
+    await api.clearCanvas("XYZW", "p1");
+
+    expect(fetch).toHaveBeenCalledWith(
+      expect.stringContaining("/rooms/XYZW/drawing/clear"),
       expect.objectContaining({
         method: "POST",
         body: JSON.stringify({ participantId: "p1" })

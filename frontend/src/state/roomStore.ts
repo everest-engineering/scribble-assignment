@@ -7,7 +7,14 @@ import {
   useSyncExternalStore,
   type PropsWithChildren
 } from "react";
-import { api, ApiError, type RoomSessionResponse, type RoomSnapshot, type RoomStatus } from "../services/api";
+import {
+  api,
+  ApiError,
+  type DrawingPoint,
+  type RoomSessionResponse,
+  type RoomSnapshot,
+  type RoomStatus
+} from "../services/api";
 
 export interface RoomState {
   room: RoomSnapshot | null;
@@ -77,6 +84,18 @@ export class RoomStore {
       throw error;
     } finally {
       this.setState({ isLoading: false });
+    }
+  }
+
+  private async withMutation<T>(operation: () => Promise<T>) {
+    this.setState({ error: null });
+
+    try {
+      return await operation();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unexpected request failure";
+      this.setState({ error: message });
+      throw error;
     }
   }
 
@@ -152,6 +171,54 @@ export class RoomStore {
     }
 
     const response = await this.withLoading(() => api.startRoom(code, this.state.participantId!));
+    this.setRoomSnapshot(response.room);
+    return response;
+  }
+
+  async submitStroke(points: DrawingPoint[]) {
+    if (!this.state.room || !this.state.participantId) {
+      throw new Error("Missing participant session");
+    }
+
+    if (points.length === 0) {
+      throw new Error("Drawing stroke requires at least one point");
+    }
+
+    const response = await this.withMutation(() =>
+      api.submitStroke(this.state.room!.code, this.state.participantId!, points)
+    );
+    this.setRoomSnapshot(response.room);
+    return response;
+  }
+
+  async clearCanvas() {
+    if (!this.state.room || !this.state.participantId) {
+      throw new Error("Missing participant session");
+    }
+
+    const response = await this.withMutation(() =>
+      api.clearCanvas(this.state.room!.code, this.state.participantId!)
+    );
+    this.setRoomSnapshot(response.room);
+    return response;
+  }
+
+  async submitGuess(guess: string) {
+    if (!this.state.room || !this.state.participantId) {
+      throw new Error("Missing participant session");
+    }
+
+    const normalizedGuess = guess.trim();
+
+    if (!normalizedGuess) {
+      const error = new Error("Guess cannot be empty");
+      this.setState({ error: error.message });
+      throw error;
+    }
+
+    const response = await this.withMutation(() =>
+      api.submitGuess(this.state.room!.code, this.state.participantId!, normalizedGuess)
+    );
     this.setRoomSnapshot(response.room);
     return response;
   }

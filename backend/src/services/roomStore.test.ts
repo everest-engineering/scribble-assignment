@@ -1,10 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   createRoom,
+  clearCanvas,
   getRoom,
   joinRoom,
   leaveRoom,
   resetRoomStore,
+  submitDrawingStroke,
+  submitGuess,
   startRoom,
   getStarterWordForRoomCode,
   toRoomSnapshot
@@ -25,7 +28,11 @@ describe("roomStore", () => {
     expect(result.room.code).toMatch(/^[A-Z0-9]{4}$/);
     expect(result.room.participants).toHaveLength(1);
     expect(result.room.participants[0].name).toBe("Alice");
+    expect(result.room.participants[0].score).toBe(0);
+    expect(result.room.participants[0].hasGuessedCorrectly).toBe(false);
     expect(result.room.currentDrawerId).toBeNull();
+    expect(result.room.drawing).toEqual([]);
+    expect(result.room.guessHistory).toEqual([]);
     expect(result.room.hostParticipantId).toBe(result.participantId);
     expect(result.participantId).toBeDefined();
   });
@@ -69,6 +76,10 @@ describe("roomStore", () => {
       expect(started.room.status).toBe("game");
       expect(started.room.hostParticipantId).toBe(created.participantId);
       expect(started.room.currentDrawerId).toBe(created.participantId);
+      expect(started.room.drawing).toEqual([]);
+      expect(started.room.guessHistory).toEqual([]);
+      expect(started.room.participants[0].score).toBe(0);
+      expect(started.room.participants[0].hasGuessedCorrectly).toBe(false);
     }
   });
 
@@ -99,6 +110,83 @@ describe("roomStore", () => {
       expect(drawerSnapshot.participants[0].role).toBe("drawer");
       expect(guesserSnapshot).not.toHaveProperty("currentWord");
     }
+  });
+
+  it("records drawer strokes and clears the canvas", () => {
+    const created = createRoom("Alice");
+    const joined = joinRoom(created.room.code, "Bob");
+
+    expect(joined).not.toBeNull();
+    const started = startRoom(created.room.code, created.participantId);
+
+    expect("room" in started).toBe(true);
+    if (!("room" in started)) {
+      return;
+    }
+
+    const strokeResult = submitDrawingStroke(created.room.code, created.participantId, [
+      { x: 10, y: 20 },
+      { x: 30, y: 40 }
+    ]);
+
+    expect("room" in strokeResult).toBe(true);
+    if ("room" in strokeResult) {
+      expect(strokeResult.room.drawing).toHaveLength(1);
+      expect(strokeResult.room.drawing[0].color).toBe("#111827");
+      expect(strokeResult.room.drawing[0].lineWidth).toBe(4);
+    }
+
+    const clearResult = clearCanvas(created.room.code, created.participantId);
+
+    expect("room" in clearResult).toBe(true);
+    if ("room" in clearResult) {
+      expect(clearResult.room.drawing).toEqual([]);
+    }
+  });
+
+  it("records guesses, updates score on correct answers, and blocks repeat correct guesses", () => {
+    const created = createRoom("Alice");
+    const joined = joinRoom(created.room.code, "Bob");
+
+    expect(joined).not.toBeNull();
+    const started = startRoom(created.room.code, created.participantId);
+
+    expect("room" in started).toBe(true);
+    if (!("room" in started)) {
+      return;
+    }
+
+    const incorrect = submitGuess(created.room.code, joined!.participantId, "wrong");
+    expect("room" in incorrect).toBe(true);
+    if ("room" in incorrect) {
+      expect(incorrect.room.guessHistory).toHaveLength(1);
+      expect(incorrect.room.guessHistory[0]).toMatchObject({
+        participantName: "Bob",
+        guess: "wrong",
+        isCorrect: false
+      });
+      expect(incorrect.room.participants.find((participant) => participant.id === joined!.participantId)?.score).toBe(0);
+    }
+
+    const correctWord = getStarterWordForRoomCode(created.room.code);
+    const correct = submitGuess(created.room.code, joined!.participantId, correctWord.toUpperCase());
+
+    expect("room" in correct).toBe(true);
+    if ("room" in correct) {
+      const participant = correct.room.participants.find((entry) => entry.id === joined!.participantId);
+      expect(correct.room.guessHistory).toHaveLength(2);
+      expect(correct.room.guessHistory[1]).toMatchObject({
+        participantName: "Bob",
+        guess: correctWord.toUpperCase(),
+        isCorrect: true
+      });
+      expect(participant?.score).toBe(100);
+      expect(participant?.hasGuessedCorrectly).toBe(true);
+    }
+
+    expect(submitGuess(created.room.code, joined!.participantId, "another guess")).toEqual({
+      error: "already_solved"
+    });
   });
 
   it("deletes the room when the host leaves during the game", () => {
