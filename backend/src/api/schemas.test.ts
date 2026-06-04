@@ -7,6 +7,7 @@ import {
   joinRoomSchema,
   leaveRoomSchema,
   roomCodeParamsSchema,
+  roomSnapshotResponseSchema,
   startRoomSchema
 } from "./schemas.js";
 
@@ -48,5 +49,23 @@ describe("schemas", () => {
       participantId: "p1",
       guess: "Rocket"
     });
+  });
+
+  it("accepts result room snapshots", () => {
+    expect(
+      roomSnapshotResponseSchema.parse({
+        room: {
+          code: "ABCD",
+          status: "result",
+          hostParticipantId: "p1",
+          currentDrawerId: "p1",
+          participants: [],
+          drawing: [],
+          guessHistory: [],
+          availableWords: [],
+          currentWord: "rocket"
+        }
+      })
+    ).toBeDefined();
   });
 });

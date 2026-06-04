@@ -13,6 +13,9 @@ export function GamePage() {
   const roomStore = useRoomStore();
   const { room, participantId } = useRoomState();
   const cleanupArmedRef = useRef(false);
+  const roomStatusRef = useRef(room?.status ?? null);
+
+  roomStatusRef.current = room?.status ?? null;
 
   useEffect(() => {
     if (!room && !participantId) {
@@ -41,7 +44,7 @@ export function GamePage() {
       window.clearTimeout(cleanupTimerId);
       roomStore.stopLobbyPolling();
 
-      if (cleanupArmedRef.current) {
+      if (cleanupArmedRef.current && roomStatusRef.current === "game") {
         void roomStore.leaveRoom();
       }
     };
@@ -55,6 +58,7 @@ export function GamePage() {
   const drawer = room.participants.find((participant) => participant.id === room.currentDrawerId) ?? null;
   const viewerRole = viewer?.role ?? (viewer?.id === room.currentDrawerId ? "drawer" : null);
   const isDrawer = viewerRole === "drawer";
+  const isResult = room.status === "result";
   const viewerHasGuessedCorrectly = Boolean(viewer?.hasGuessedCorrectly);
 
   async function handleExitGame() {
@@ -102,8 +106,8 @@ export function GamePage() {
             </dl>
           </Card>
 
-          <Card title="Secret Word" badge={isDrawer ? "Visible to drawer" : "Hidden"}>
-            {isDrawer ? (
+          <Card title="Secret Word" badge={isResult ? "Revealed to everyone" : isDrawer ? "Visible to drawer" : "Hidden"}>
+            {isDrawer || isResult ? (
               <div className="word-reveal">{room.currentWord ?? "Unavailable"}</div>
             ) : (
               <div className="word-mask">
@@ -112,9 +116,15 @@ export function GamePage() {
             )}
           </Card>
 
-          <Card title="Your Guess">
-            <GuessForm disabled={isDrawer || viewerHasGuessedCorrectly} />
-          </Card>
+          {!isResult ? (
+            <Card title="Your Guess">
+              <GuessForm disabled={isDrawer || viewerHasGuessedCorrectly} />
+            </Card>
+          ) : (
+            <Card title="Round Complete">
+              <p>The round is over. Use the results panel to review the final word, scores, and guesses.</p>
+            </Card>
+          )}
         </aside>
       </div>
 

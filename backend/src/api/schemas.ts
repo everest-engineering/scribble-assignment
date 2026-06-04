@@ -38,7 +38,7 @@ const participantSchema = z.object({
 
 const roomSnapshotSchema = z.object({
   code: roomCodeInputSchema,
-  status: z.enum(["lobby", "game"]),
+  status: z.enum(["lobby", "game", "result"]),
   hostParticipantId: participantIdSchema,
   currentDrawerId: z.string().nullable(),
   participants: z.array(participantSchema),
@@ -65,6 +65,10 @@ export const roomViewerQuerySchema = z.object({
 });
 
 export const startRoomSchema = z.object({
+  participantId: participantIdSchema
+});
+
+export const restartRoomSchema = z.object({
   participantId: participantIdSchema
 });
 

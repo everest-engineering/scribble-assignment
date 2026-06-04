@@ -107,6 +107,37 @@ describe("api service", () => {
     );
   });
 
+  it("restartRoom sends POST to /rooms/:code/restart with participantId in body", async () => {
+    const mockResponse = {
+      ok: true,
+      status: 200,
+      json: () =>
+        Promise.resolve({
+          room: {
+            code: "XYZW",
+            status: "lobby",
+            hostParticipantId: "p1",
+            currentDrawerId: null,
+            participants: [],
+            drawing: [],
+            guessHistory: [],
+            availableWords: []
+          }
+        })
+    };
+    vi.mocked(fetch).mockResolvedValue(mockResponse as unknown as Response);
+
+    await api.restartRoom("XYZW", "p1");
+
+    expect(fetch).toHaveBeenCalledWith(
+      expect.stringContaining("/rooms/XYZW/restart"),
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({ participantId: "p1" })
+      })
+    );
+  });
+
   it("leaveRoom sends POST to /rooms/:code/leave with participantId in body", async () => {
     const mockResponse = {
       ok: true,

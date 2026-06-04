@@ -11,6 +11,7 @@ describe("RoomStore", () => {
     vi.clearAllTimers();
     vi.useRealTimers();
     vi.restoreAllMocks();
+    window.localStorage.clear();
   });
 
   it("stores host and room status when creating a room", async () => {
@@ -35,6 +36,38 @@ describe("RoomStore", () => {
       participantId: "p1",
       hostParticipantId: "p1",
       roomStatus: "lobby"
+    });
+  });
+
+  it("restores a persisted room session from localStorage", () => {
+    window.localStorage.setItem(
+      "scribble.room-session",
+      JSON.stringify({
+        participantId: "p2",
+        room: {
+          code: "ABCD",
+          status: "result",
+          hostParticipantId: "p1",
+          currentDrawerId: "p1",
+          participants: [],
+          drawing: [],
+          guessHistory: [],
+          availableWords: [],
+          currentWord: "rocket"
+        }
+      })
+    );
+
+    const store = new RoomStore();
+
+    expect(store.getSnapshot()).toMatchObject({
+      participantId: "p2",
+      hostParticipantId: "p1",
+      roomStatus: "result",
+      room: expect.objectContaining({
+        code: "ABCD",
+        currentWord: "rocket"
+      })
     });
   });
 
@@ -164,5 +197,63 @@ describe("RoomStore", () => {
 
     expect(store.getSnapshot().room?.guessHistory).toHaveLength(1);
     expect(store.getSnapshot().room?.participants.find((participant) => participant.id === "p2")?.score).toBe(100);
+  });
+
+  it("restarts the active room and updates the snapshot to the lobby", async () => {
+    vi.spyOn(api, "restartRoom").mockResolvedValue({
+      room: {
+        code: "ABCD",
+        status: "lobby",
+        hostParticipantId: "p1",
+        currentDrawerId: null,
+        participants: [
+          {
+            id: "p1",
+            name: "Alice",
+            joinedAt: "2026-06-05T00:00:00.000Z",
+            score: 0,
+            hasGuessedCorrectly: false
+          }
+        ],
+        drawing: [],
+        guessHistory: [],
+        availableWords: []
+      }
+    });
+
+    const store = new RoomStore();
+    store.setRoomSession({
+      participantId: "p1",
+      room: {
+        code: "ABCD",
+        status: "result",
+        hostParticipantId: "p1",
+        currentDrawerId: "p1",
+        participants: [
+          {
+            id: "p1",
+            name: "Alice",
+            joinedAt: "2026-06-05T00:00:00.000Z",
+            score: 100,
+            hasGuessedCorrectly: true,
+            role: "drawer"
+          }
+        ],
+        drawing: [],
+        guessHistory: [],
+        availableWords: [],
+        currentWord: "rocket"
+      }
+    });
+
+    await store.restartRoom("ABCD");
+
+    expect(store.getSnapshot()).toMatchObject({
+      roomStatus: "lobby",
+      room: expect.objectContaining({
+        status: "lobby",
+        currentDrawerId: null
+      })
+    });
   });
 });

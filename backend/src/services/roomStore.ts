@@ -16,6 +16,8 @@ export type GameActionFailureReason =
   | "empty_guess"
   | "already_solved";
 
+export type RestartRoomFailureReason = "not_found" | "forbidden" | "not_in_result";
+
 function now() {
   return new Date().toISOString();
 }
@@ -80,6 +82,14 @@ function assignRoles(room: Room) {
   }));
 
   room.participants = participants;
+}
+
+function resetParticipantsForNextRound(room: Room) {
+  room.participants = room.participants.map(({ role: _role, ...participant }) => ({
+    ...participant,
+    score: 0,
+    hasGuessedCorrectly: false
+  }));
 }
 
 export function listWords() {
@@ -327,8 +337,40 @@ export function submitGuess(code: string, participantId: string, guessText: stri
   if (isCorrect) {
     participant.score += 100;
     participant.hasGuessedCorrectly = true;
+    room.status = "result";
   }
 
+  room.updatedAt = now();
+  rooms.set(room.code, room);
+
+  return { room: cloneRoom(room) };
+}
+
+export function restartRoom(code: string, participantId: string):
+  | { room: Room }
+  | { error: RestartRoomFailureReason } {
+  const room = rooms.get(code);
+
+  if (!room) {
+    return { error: "not_found" };
+  }
+
+  if (room.status !== "result") {
+    return { error: "not_in_result" };
+  }
+
+  const participantResult = findParticipant(room, participantId);
+
+  if (!participantResult || room.hostParticipantId !== participantId) {
+    return { error: "forbidden" };
+  }
+
+  room.status = "lobby";
+  room.currentDrawerId = null;
+  room.currentWord = undefined;
+  room.drawing = [];
+  room.guessHistory = [];
+  resetParticipantsForNextRound(room);
   room.updatedAt = now();
   rooms.set(room.code, room);
 
@@ -392,7 +434,10 @@ export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSn
     availableWords: listWords()
   };
 
-  if (room.currentWord && viewerParticipantId && viewerParticipantId === room.currentDrawerId) {
+  if (
+    room.currentWord &&
+    (room.status === "result" || (viewerParticipantId && viewerParticipantId === room.currentDrawerId))
+  ) {
     snapshot.currentWord = room.currentWord;
   }
 

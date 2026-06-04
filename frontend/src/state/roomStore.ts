@@ -28,20 +28,38 @@ export interface RoomState {
 type Listener = () => void;
 
 const POLLING_INTERVAL_MS = 2000;
+const STORAGE_KEY = "scribble.room-session";
+
+interface StoredRoomSession {
+  participantId: string;
+  room: RoomSnapshot;
+}
+
+function isRoomStatus(value: unknown): value is RoomStatus {
+  return value === "lobby" || value === "game" || value === "result";
+}
+
+function isObjectRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
 
 export class RoomStore {
-  private state: RoomState = {
-    room: null,
-    participantId: null,
-    hostParticipantId: null,
-    roomStatus: null,
-    error: null,
-    isLoading: false
-  };
+  private state: RoomState;
 
   private listeners = new Set<Listener>();
   private pollingIntervalId: number | null = null;
   private beforeUnloadHandler: (() => void) | null = null;
+
+  constructor() {
+    this.state = this.loadStoredSession() ?? {
+      room: null,
+      participantId: null,
+      hostParticipantId: null,
+      roomStatus: null,
+      error: null,
+      isLoading: false
+    };
+  }
 
   subscribe = (listener: Listener) => {
     this.listeners.add(listener);
@@ -60,6 +78,66 @@ export class RoomStore {
     this.listeners.forEach((listener) => listener());
   }
 
+  private loadStoredSession(): RoomState | null {
+    if (typeof window === "undefined") {
+      return null;
+    }
+
+    const storedValue = window.localStorage.getItem(STORAGE_KEY);
+
+    if (!storedValue) {
+      return null;
+    }
+
+    try {
+      const parsed = JSON.parse(storedValue) as unknown;
+
+      if (
+        !isObjectRecord(parsed) ||
+        typeof parsed.participantId !== "string" ||
+        !isObjectRecord(parsed.room) ||
+        typeof parsed.room.code !== "string" ||
+        !isRoomStatus(parsed.room.status) ||
+        typeof parsed.room.hostParticipantId !== "string"
+      ) {
+        throw new Error("Invalid stored room session");
+      }
+
+      const room = parsed.room as unknown as RoomSnapshot;
+      const participantId = parsed.participantId as string;
+
+      return {
+        room,
+        participantId,
+        hostParticipantId: room.hostParticipantId,
+        roomStatus: room.status,
+        error: null,
+        isLoading: false
+      };
+    } catch {
+      window.localStorage.removeItem(STORAGE_KEY);
+      return null;
+    }
+  }
+
+  private persistRoomSession() {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    if (!this.state.room || !this.state.participantId) {
+      window.localStorage.removeItem(STORAGE_KEY);
+      return;
+    }
+
+    const payload: StoredRoomSession = {
+      participantId: this.state.participantId,
+      room: this.state.room
+    };
+
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+  }
+
   private clearRoomSession() {
     this.setState({
       room: null,
@@ -68,6 +146,7 @@ export class RoomStore {
       roomStatus: null,
       error: null
     });
+    this.persistRoomSession();
   }
 
   private async withLoading<T>(operation: () => Promise<T>) {
@@ -142,6 +221,7 @@ export class RoomStore {
       room: response.room,
       error: null
     });
+    this.persistRoomSession();
   }
 
   setRoomSnapshot(room: RoomSnapshot) {
@@ -151,6 +231,7 @@ export class RoomStore {
       roomStatus: room.status,
       error: null
     });
+    this.persistRoomSession();
   }
 
   async createRoom(playerName: string) {
@@ -171,6 +252,16 @@ export class RoomStore {
     }
 
     const response = await this.withLoading(() => api.startRoom(code, this.state.participantId!));
+    this.setRoomSnapshot(response.room);
+    return response;
+  }
+
+  async restartRoom(code: string) {
+    if (!this.state.participantId) {
+      throw new Error("Missing participant session");
+    }
+
+    const response = await this.withLoading(() => api.restartRoom(code, this.state.participantId!));
     this.setRoomSnapshot(response.room);
     return response;
   }

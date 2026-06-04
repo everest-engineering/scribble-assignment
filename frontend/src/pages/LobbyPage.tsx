@@ -36,7 +36,7 @@ export function LobbyPage() {
   }, [activeParticipantId, activeRoom, navigate]);
 
   useEffect(() => {
-    if (activeRoomStatus === "game") {
+    if (activeRoomStatus === "game" || activeRoomStatus === "result") {
       navigate("/game", { replace: true });
     }
   }, [activeRoomStatus, navigate]);

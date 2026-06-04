@@ -7,6 +7,7 @@ import {
   guessSubmissionSchema,
   leaveRoomSchema,
   joinRoomSchema,
+  restartRoomSchema,
   roomSessionResponseSchema,
   roomSnapshotResponseSchema,
   roomCodeParamsSchema,
@@ -19,6 +20,7 @@ import {
   getRoom,
   joinRoom,
   leaveRoom,
+  restartRoom,
   submitDrawingStroke,
   submitGuess,
   startRoom,
@@ -50,6 +52,18 @@ function toGameActionError(error: string, action: "drawing" | "guess") {
   }
 
   return new HttpError(409, "You have already solved the word");
+}
+
+function toRestartError(error: string) {
+  if (error === "not_found") {
+    return new HttpError(404, "Unable to restart room");
+  }
+
+  if (error === "not_in_result") {
+    return new HttpError(409, "Room can only be restarted after the result is shown");
+  }
+
+  return new HttpError(403, "Only the host can restart the room");
 }
 
 export function createRoomsRouter() {
@@ -124,6 +138,22 @@ export function createRoomsRouter() {
         }
 
         throw new HttpError(409, "At least 2 players are required to start");
+      }
+
+      response.json(roomSnapshotResponseSchema.parse({ room: toRoomSnapshot(result.room, participantId) }));
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/:code/restart", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId } = restartRoomSchema.parse(request.body);
+      const result = restartRoom(code, participantId);
+
+      if ("error" in result) {
+        throw toRestartError(result.error);
       }
 
       response.json(roomSnapshotResponseSchema.parse({ room: toRoomSnapshot(result.room, participantId) }));

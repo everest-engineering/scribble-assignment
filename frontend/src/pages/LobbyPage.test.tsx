@@ -107,4 +107,26 @@ describe("LobbyPage", () => {
 
     expect(mocks.roomStore.leaveRoom).toHaveBeenCalledTimes(1);
   });
+
+  it("routes restored result sessions back to the shared game screen", async () => {
+    mocks.roomSession.room.status = "result";
+
+    const container = document.createElement("div");
+    document.body.appendChild(container);
+    const root = createRoot(container);
+
+    await act(async () => {
+      root.render(
+        <StrictMode>
+          <LobbyPage />
+        </StrictMode>
+      );
+    });
+
+    expect(mocks.navigate).toHaveBeenCalledWith("/game", { replace: true });
+
+    await act(async () => {
+      root.unmount();
+    });
+  });
 });

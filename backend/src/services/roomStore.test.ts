@@ -6,6 +6,7 @@ import {
   joinRoom,
   leaveRoom,
   resetRoomStore,
+  restartRoom,
   submitDrawingStroke,
   submitGuess,
   startRoom,
@@ -175,6 +176,7 @@ describe("roomStore", () => {
     if ("room" in correct) {
       const participant = correct.room.participants.find((entry) => entry.id === joined!.participantId);
       expect(correct.room.guessHistory).toHaveLength(2);
+      expect(correct.room.status).toBe("result");
       expect(correct.room.guessHistory[1]).toMatchObject({
         participantName: "Bob",
         guess: correctWord.toUpperCase(),
@@ -182,11 +184,52 @@ describe("roomStore", () => {
       });
       expect(participant?.score).toBe(100);
       expect(participant?.hasGuessedCorrectly).toBe(true);
+
+      const guesserSnapshot = toRoomSnapshot(correct.room, joined!.participantId);
+      expect(guesserSnapshot.currentWord).toBe(correctWord);
     }
 
     expect(submitGuess(created.room.code, joined!.participantId, "another guess")).toEqual({
-      error: "already_solved"
+      error: "not_in_game"
     });
+  });
+
+  it("restarts a finished room back to the lobby with players preserved", () => {
+    const created = createRoom("Alice");
+    const joined = joinRoom(created.room.code, "Bob");
+
+    expect(joined).not.toBeNull();
+    const started = startRoom(created.room.code, created.participantId);
+
+    expect("room" in started).toBe(true);
+    if (!("room" in started)) {
+      return;
+    }
+
+    submitGuess(created.room.code, joined!.participantId, getStarterWordForRoomCode(created.room.code));
+
+    const restart = restartRoom(created.room.code, created.participantId);
+
+    expect("room" in restart).toBe(true);
+    if ("room" in restart) {
+      expect(restart.room.status).toBe("lobby");
+      expect(restart.room.currentDrawerId).toBeNull();
+      expect(restart.room.currentWord).toBeUndefined();
+      expect(restart.room.drawing).toEqual([]);
+      expect(restart.room.guessHistory).toEqual([]);
+      expect(restart.room.participants).toEqual([
+        expect.objectContaining({
+          id: created.participantId,
+          score: 0,
+          hasGuessedCorrectly: false
+        }),
+        expect.objectContaining({
+          id: joined!.participantId,
+          score: 0,
+          hasGuessedCorrectly: false
+        })
+      ]);
+    }
   });
 
   it("deletes the room when the host leaves during the game", () => {

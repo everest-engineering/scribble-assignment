@@ -11,7 +11,8 @@ const mocks = vi.hoisted(() => ({
     stopLobbyPolling: vi.fn(),
     submitGuess: vi.fn(),
     submitStroke: vi.fn(),
-    clearCanvas: vi.fn()
+    clearCanvas: vi.fn(),
+    restartRoom: vi.fn()
   },
   roomState: {
     room: {
@@ -80,6 +81,7 @@ describe("GamePage", () => {
     mocks.roomStore.submitGuess.mockReset();
     mocks.roomStore.submitStroke.mockReset();
     mocks.roomStore.clearCanvas.mockReset();
+    mocks.roomStore.restartRoom.mockReset();
     document.body.innerHTML = "";
   });
 
@@ -167,5 +169,43 @@ describe("GamePage", () => {
     expect(mocks.roomStore.leaveRoom).toHaveBeenCalledTimes(1);
     expect(mocks.roomStore.stopLobbyPolling).toHaveBeenCalled();
     vi.useRealTimers();
+  });
+
+  it("shows the shared result state and restart action for the host", async () => {
+    mocks.roomState.room = {
+      ...mocks.roomState.room,
+      status: "result",
+      currentWord: "rocket"
+    };
+    mocks.roomStore.restartRoom.mockResolvedValue({
+      room: {
+        ...mocks.roomState.room,
+        status: "lobby",
+        currentDrawerId: null,
+        currentWord: undefined
+      }
+    });
+
+    const container = document.createElement("div");
+    document.body.appendChild(container);
+    const root = createRoot(container);
+
+    await act(async () => {
+      root.render(
+        <StrictMode>
+          <GamePage />
+        </StrictMode>
+      );
+    });
+
+    expect(container.textContent).toContain("Round Complete");
+    expect(container.textContent).toContain("Revealed to everyone");
+    expect(container.querySelector(".word-reveal")?.textContent).toContain("rocket");
+    expect(container.textContent).not.toContain("Submit Guess");
+    expect(container.textContent).toContain("Restart / Play Again");
+
+    await act(async () => {
+      root.unmount();
+    });
   });
 });

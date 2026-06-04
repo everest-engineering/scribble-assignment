@@ -10,7 +10,7 @@
 
 **Purpose**: Confirm the feature artifacts are aligned before implementation starts.
 
-- [ ] T001 Confirm feature docs are present and aligned in `specs/004-result-restart-validation/plan.md`, `specs/004-result-restart-validation/spec.md`, `specs/004-result-restart-validation/research.md`, `specs/004-result-restart-validation/data-model.md`, `specs/004-result-restart-validation/contracts/room-result-restart-api.md`, and `specs/004-result-restart-validation/quickstart.md`
+- [X] T001 Confirm feature docs are present and aligned in `specs/004-result-restart-validation/plan.md`, `specs/004-result-restart-validation/spec.md`, `specs/004-result-restart-validation/research.md`, `specs/004-result-restart-validation/data-model.md`, `specs/004-result-restart-validation/contracts/room-result-restart-api.md`, and `specs/004-result-restart-validation/quickstart.md`
 
 ---
 
@@ -20,12 +20,12 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T002 [P] Add `result` room status and restart-aware snapshot fields in `backend/src/models/game.ts`
-- [ ] T003 [P] Add restart request and room-snapshot validation schemas in `backend/src/api/schemas.ts`
-- [ ] T004 [P] Add `result` room status and restart-capable snapshot types in `frontend/src/services/api.ts`
-- [ ] T005 [P] Update room-store polling state to accept `result` snapshots and restore lobby state after restart in `frontend/src/state/roomStore.ts`
-- [ ] T017 [P] Persist and restore the active `roomCode` and `participantId` so a hard refresh or reconnect during result state resumes polling and shows the same final result in `frontend/src/state/roomStore.ts` and `frontend/src/pages/LobbyPage.tsx`
-- [ ] T006 Add shared result/restart transition helpers in `backend/src/services/roomStore.ts`
+- [X] T002 [P] Add `result` room status and restart-aware snapshot fields in `backend/src/models/game.ts`
+- [X] T003 [P] Add restart request and room-snapshot validation schemas in `backend/src/api/schemas.ts`
+- [X] T004 [P] Add `result` room status and restart-capable snapshot types in `frontend/src/services/api.ts`
+- [X] T005 [P] Update room-store polling state to accept `result` snapshots and restore lobby state after restart in `frontend/src/state/roomStore.ts`
+- [X] T017 [P] Persist and restore the active `roomCode` and `participantId` so a hard refresh or reconnect during result state resumes polling and shows the same final result in `frontend/src/state/roomStore.ts` and `frontend/src/pages/LobbyPage.tsx`
+- [X] T006 Add shared result/restart transition helpers in `backend/src/services/roomStore.ts`
 
 **Checkpoint**: Foundation ready - user story implementation can now begin in order
 
@@ -39,9 +39,9 @@
 
 ### Implementation for User Story 1
 
-- [ ] T007 [US1] Expose the revealed secret word to every viewer while `room.status === "result"` in `backend/src/services/roomStore.ts`
-- [ ] T008 [P] [US1] Render the final result panel with the revealed word, ordered guess history, and final scores in `frontend/src/components/ResultPanel.tsx`
-- [ ] T009 [US1] Keep `frontend/src/pages/GamePage.tsx` in read-only result mode so drawing and guess-entry affordances are hidden after the round ends
+- [X] T007 [US1] Expose the revealed secret word to every viewer while `room.status === "result"` in `backend/src/services/roomStore.ts`
+- [X] T008 [P] [US1] Render the final result panel with the revealed word, ordered guess history, and final scores in `frontend/src/components/ResultPanel.tsx`
+- [X] T009 [US1] Keep `frontend/src/pages/GamePage.tsx` in read-only result mode so drawing and guess-entry affordances are hidden after the round ends
 
 **Checkpoint**: User Story 1 should be fully functional and testable independently
 
@@ -55,10 +55,10 @@
 
 ### Implementation for User Story 2
 
-- [ ] T010 [US2] Implement host-only restart handling in `backend/src/services/roomStore.ts` and `backend/src/api/rooms.ts` so restart only succeeds from the result state
-- [ ] T011 [P] [US2] Add `restartRoom` to `frontend/src/services/api.ts`
-- [ ] T012 [P] [US2] Wire the host-only Restart / Play Again button into `frontend/src/components/ResultPanel.tsx` and `frontend/src/pages/GamePage.tsx`
-- [ ] T013 [US2] Update `frontend/src/state/roomStore.ts` so a successful restart returns every connected player to the lobby on the next poll
+- [X] T010 [US2] Implement host-only restart handling in `backend/src/services/roomStore.ts` and `backend/src/api/rooms.ts` so restart only succeeds from the result state
+- [X] T011 [P] [US2] Add `restartRoom` to `frontend/src/services/api.ts`
+- [X] T012 [P] [US2] Wire the host-only Restart / Play Again button into `frontend/src/components/ResultPanel.tsx` and `frontend/src/pages/GamePage.tsx`
+- [X] T013 [US2] Update `frontend/src/state/roomStore.ts` so a successful restart returns every connected player to the lobby on the next poll
 
 **Checkpoint**: User Story 2 should be fully functional and testable independently
 
@@ -72,8 +72,8 @@
 
 ### Implementation for User Story 3
 
-- [ ] T014 [US3] Reset drawing, guess history, current word, current drawer, player scores, and `hasGuessedCorrectly` flags while preserving the participant list in `backend/src/services/roomStore.ts`
-- [ ] T015 [P] [US3] Reset the local result view when the post-restart lobby snapshot arrives so `frontend/src/components/ResultPanel.tsx` unmounts and no previous round result data remains visible in `frontend/src/pages/GamePage.tsx`
+- [X] T014 [US3] Reset drawing, guess history, current word, current drawer, player scores, and `hasGuessedCorrectly` flags while preserving the participant list in `backend/src/services/roomStore.ts`
+- [X] T015 [P] [US3] Reset the local result view when the post-restart lobby snapshot arrives so `frontend/src/components/ResultPanel.tsx` unmounts and no previous round result data remains visible in `frontend/src/pages/GamePage.tsx`
 
 **Checkpoint**: User Story 3 should be fully functional and testable independently
 
