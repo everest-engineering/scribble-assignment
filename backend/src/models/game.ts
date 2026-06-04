@@ -5,12 +5,15 @@ export interface Participant {
   id: string;
   name: string;
   joinedAt: string;
+  role?: ParticipantRole;
 }
 
 export interface Room {
   code: string;
   status: RoomStatus;
   hostParticipantId: string;
+  currentDrawerId: string | null;
+  currentWord?: string;
   participants: Participant[];
   createdAt: string;
   updatedAt: string;
@@ -20,9 +23,10 @@ export interface RoomSnapshot {
   code: string;
   status: RoomStatus;
   hostParticipantId: string;
+  currentDrawerId: string | null;
   participants: Participant[];
   availableWords: string[];
-  roles: ParticipantRole[];
+  currentWord?: string;
 }
 
 export interface RoomSessionResponse {

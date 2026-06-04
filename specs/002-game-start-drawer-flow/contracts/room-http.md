@@ -88,6 +88,63 @@ Response `200`:
 - Includes `currentWord` only when `participantId` matches `currentDrawerId`.
 - Omits `currentWord` entirely for guessers.
 
+Example response after game start for the drawer:
+
+```json
+{
+  "room": {
+    "code": "ABCD",
+    "status": "game",
+    "hostParticipantId": "uuid",
+    "currentDrawerId": "uuid",
+    "participants": [
+      {
+        "id": "uuid",
+        "name": "Alice",
+        "joinedAt": "2026-06-05T00:00:00.000Z",
+        "role": "drawer"
+      },
+      {
+        "id": "uuid",
+        "name": "Bob",
+        "joinedAt": "2026-06-05T00:00:00.000Z",
+        "role": "guesser"
+      }
+    ],
+    "availableWords": ["rocket", "pizza"],
+    "currentWord": "rocket"
+  }
+}
+```
+
+Example response for a guesser omits `currentWord` entirely:
+
+```json
+{
+  "room": {
+    "code": "ABCD",
+    "status": "game",
+    "hostParticipantId": "uuid",
+    "currentDrawerId": "uuid",
+    "participants": [
+      {
+        "id": "uuid",
+        "name": "Alice",
+        "joinedAt": "2026-06-05T00:00:00.000Z",
+        "role": "drawer"
+      },
+      {
+        "id": "uuid",
+        "name": "Bob",
+        "joinedAt": "2026-06-05T00:00:00.000Z",
+        "role": "guesser"
+      }
+    ],
+    "availableWords": ["rocket", "pizza"]
+  }
+}
+```
+
 ### `POST /rooms/:code/start`
 
 Request body:

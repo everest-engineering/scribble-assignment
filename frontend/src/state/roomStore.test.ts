@@ -20,9 +20,9 @@ describe("RoomStore", () => {
         code: "ABCD",
         status: "lobby",
         hostParticipantId: "p1",
+        currentDrawerId: null,
         participants: [],
-        availableWords: [],
-        roles: []
+        availableWords: []
       }
     });
 
@@ -42,9 +42,9 @@ describe("RoomStore", () => {
         code: "ABCD",
         status: "lobby",
         hostParticipantId: "p1",
+        currentDrawerId: null,
         participants: [],
-        availableWords: [],
-        roles: []
+        availableWords: []
       }
     });
 
@@ -55,9 +55,9 @@ describe("RoomStore", () => {
         code: "ABCD",
         status: "lobby",
         hostParticipantId: "p1",
+        currentDrawerId: null,
         participants: [],
-        availableWords: [],
-        roles: []
+        availableWords: []
       }
     });
 
@@ -82,9 +82,9 @@ describe("RoomStore", () => {
         code: "ABCD",
         status: "lobby",
         hostParticipantId: "p1",
+        currentDrawerId: null,
         participants: [],
-        availableWords: [],
-        roles: []
+        availableWords: []
       }
     });
 

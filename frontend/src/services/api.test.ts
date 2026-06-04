@@ -17,7 +17,9 @@ describe("api service", () => {
             code: "ABCD",
             status: "lobby",
             hostParticipantId: "p1",
-            participants: []
+            currentDrawerId: null,
+            participants: [],
+            availableWords: []
           }
         })
     };
@@ -44,7 +46,9 @@ describe("api service", () => {
             code: "XYZW",
             status: "lobby",
             hostParticipantId: "p1",
-            participants: []
+            currentDrawerId: null,
+            participants: [],
+            availableWords: []
           }
         })
     };
@@ -68,7 +72,10 @@ describe("api service", () => {
             code: "XYZW",
             status: "game",
             hostParticipantId: "p1",
-            participants: []
+            currentDrawerId: "p1",
+            participants: [],
+            availableWords: [],
+            currentWord: "rocket"
           }
         })
     };

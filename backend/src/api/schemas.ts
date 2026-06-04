@@ -8,13 +8,14 @@ const roomCodeInputSchema = z
   .pipe(z.string().regex(/^[A-Z0-9]{4}$/, "Invalid room code"));
 
 const participantIdSchema = z.string().trim().min(1, "Participant id is required");
+const playerNameSchema = z.string().trim().min(1, "Player name is required");
 
 export const createRoomSchema = z.object({
-  playerName: z.string().optional()
+  playerName: playerNameSchema
 });
 
 export const joinRoomSchema = z.object({
-  playerName: z.string().optional()
+  playerName: playerNameSchema
 });
 
 export const roomCodeParamsSchema = z.object({

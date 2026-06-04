@@ -18,8 +18,8 @@
 
 **Purpose**: Shared type and fixture alignment for the new room snapshot shape
 
-- [ ] T001 [P] Extend shared room/player types in `backend/src/models/game.ts` and `frontend/src/services/api.ts` to include `role`, `currentDrawerId`, and optional `currentWord`
-- [ ] T002 [P] Refresh shared room snapshot fixtures in `backend/src/services/roomStore.test.ts`, `frontend/src/services/api.test.ts`, `frontend/src/state/roomStore.test.ts`, and `frontend/src/pages/LobbyPage.test.tsx`
+- [X] T001 [P] Extend shared room/player types in `backend/src/models/game.ts` and `frontend/src/services/api.ts` to include `role`, `currentDrawerId`, and optional `currentWord`
+- [X] T002 [P] Refresh shared room snapshot fixtures in `backend/src/services/roomStore.test.ts`, `frontend/src/services/api.test.ts`, `frontend/src/state/roomStore.test.ts`, and `frontend/src/pages/LobbyPage.test.tsx`
 
 ---
 
@@ -29,7 +29,7 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T003 Add the pure room-code hash helper and game-state slots in `backend/src/services/roomStore.ts`
+- [X] T003 Add the pure room-code hash helper and game-state slots in `backend/src/services/roomStore.ts`
 
 **Checkpoint**: Room/game data can now represent a drawer, a current word, and a deterministic word index
 
@@ -43,12 +43,12 @@
 
 ### Tests for User Story 1
 
-- [ ] T004 [US1] Extend `backend/src/services/roomStore.test.ts` with host-drawer assignment, deterministic word selection, and drawer-leave deletion cases
+- [X] T004 [US1] Extend `backend/src/services/roomStore.test.ts` with host-drawer assignment, deterministic word selection, and drawer-leave deletion cases
 
 ### Implementation for User Story 1
 
-- [ ] T005 [US1] Implement host-as-drawer start flow, role assignment, and deterministic word selection in `backend/src/services/roomStore.ts`
-- [ ] T006 [US1] Return viewer-aware room snapshots from `backend/src/api/rooms.ts` so drawer polls include `currentWord` and guesser polls omit it
+- [X] T005 [US1] Implement host-as-drawer start flow, role assignment, and deterministic word selection in `backend/src/services/roomStore.ts`
+- [X] T006 [US1] Return viewer-aware room snapshots from `backend/src/api/rooms.ts` so drawer polls include `currentWord` and guesser polls omit it
 
 **Checkpoint**: User Story 1 should now be fully functional and independently testable
 
@@ -62,11 +62,11 @@
 
 ### Tests for User Story 2
 
-- [ ] T007 [US2] Add `backend/src/api/schemas.test.ts` coverage for whitespace-only rejection and trimmed-name acceptance
+- [X] T007 [US2] Add `backend/src/api/schemas.test.ts` coverage for whitespace-only rejection and trimmed-name acceptance
 
 ### Implementation for User Story 2
 
-- [ ] T008 [US2] Enforce trimmed non-empty player names in `backend/src/api/schemas.ts`
+- [X] T008 [US2] Enforce trimmed non-empty player names in `backend/src/api/schemas.ts`
 
 **Checkpoint**: User Story 2 should now be fully functional and independently testable
 
@@ -80,13 +80,13 @@
 
 ### Tests for User Story 3
 
-- [ ] T009 [US3] Add `frontend/src/pages/GamePage.test.tsx` coverage for drawer identity, own role label, and hidden-word placeholder behavior
+- [X] T009 [US3] Add `frontend/src/pages/GamePage.test.tsx` coverage for drawer identity, own role label, and hidden-word placeholder behavior
 
 ### Implementation for User Story 3
 
-- [ ] T010 [US3] Render the drawer badge and participant role labels in `frontend/src/components/Scoreboard.tsx` and `frontend/src/pages/GamePage.tsx`
-- [ ] T011 [US3] Show the secret word only to the drawer and a hidden-word placeholder to guessers in `frontend/src/pages/GamePage.tsx`
-- [ ] T012 [US3] Add drawer/guesser presentation styles in `frontend/src/styles/app.css`
+- [X] T010 [US3] Render the drawer badge and participant role labels in `frontend/src/components/Scoreboard.tsx` and `frontend/src/pages/GamePage.tsx`
+- [X] T011 [US3] Show the secret word only to the drawer and a hidden-word placeholder to guessers in `frontend/src/pages/GamePage.tsx`
+- [X] T012 [US3] Add drawer/guesser presentation styles in `frontend/src/styles/app.css`
 
 **Checkpoint**: All user stories should now be independently functional
 
@@ -96,8 +96,9 @@
 
 **Purpose**: Final validation and documentation sync
 
-- [ ] T013 [P] Update `specs/002-game-start-drawer-flow/quickstart.md` with the final manual verification wording and room field names
-- [ ] T014 [P] Run the focused validation pass using `backend/src/services/roomStore.test.ts`, `backend/src/api/schemas.test.ts`, and `frontend/src/pages/GamePage.test.tsx`
+- [X] T013 [P] Update `specs/002-game-start-drawer-flow/quickstart.md` with the final manual verification wording and room field names
+- [X] T014 [P] Run the focused validation pass using `backend/src/services/roomStore.test.ts`, `backend/src/api/schemas.test.ts`, and `frontend/src/pages/GamePage.test.tsx`
+- [x] T015 [P] Manually verify the game start flow in two browser tabs, confirming drawer identity, hidden-word omission for guessers, and the next-poll snapshot update
 
 ---
 

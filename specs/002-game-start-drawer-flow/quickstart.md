@@ -35,8 +35,9 @@ cd frontend && npm run dev
 - Create a room in tab A.
 - Join the same room from tab B.
 - Start the game from tab A.
-- Expected in both tabs: the room transitions to `game`, the host is labeled as
-  the drawer, and everyone else is labeled as a guesser.
+- Expected in both tabs: the room transitions to `game`, `currentDrawerId`
+  matches the host participant, the host is labeled as the drawer, and
+  everyone else is labeled as a guesser.
 
 ### 3. Drawer-only secret word
 
@@ -54,4 +55,3 @@ cd frontend && npm run dev
 
 - Data model: [data-model.md](./data-model.md)
 - HTTP contract: [contracts/room-http.md](./contracts/room-http.md)
-

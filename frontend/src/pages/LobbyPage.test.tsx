@@ -10,6 +10,7 @@ const mocks = vi.hoisted(() => {
       code: "ABCD",
       status: "lobby",
       hostParticipantId: "participant-1",
+      currentDrawerId: null,
       participants: [
         {
           id: "participant-1",
@@ -17,8 +18,7 @@ const mocks = vi.hoisted(() => {
           joinedAt: "2026-06-05T00:00:00.000Z"
         }
       ],
-      availableWords: [],
-      roles: []
+      availableWords: []
     }
   };
 

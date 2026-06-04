@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import type { Participant, Room, RoomSnapshot } from "../models/game.js";
-import { STARTER_ROLES, STARTER_WORDS } from "../seed/starterData.js";
+import type { ParticipantRole } from "../models/game.js";
+import { STARTER_WORDS } from "../seed/starterData.js";
 
 const rooms = new Map<string, Room>();
 const usedCodes = new Set<string>();
@@ -30,11 +31,11 @@ function generateUniqueCode() {
   return code;
 }
 
-function displayName(name?: string) {
-  return name || "Player";
+function displayName(name: string) {
+  return name.trim();
 }
 
-function createParticipant(name?: string): Participant {
+function createParticipant(name: string): Participant {
   return {
     id: randomUUID(),
     name: displayName(name),
@@ -50,6 +51,25 @@ function findParticipantIndex(room: Room, participantId: string) {
   return room.participants.findIndex((participant) => participant.id === participantId);
 }
 
+export function getStarterWordForRoomCode(code: string) {
+  let hash = 0;
+
+  for (const character of code) {
+    hash = (hash * 31 + character.charCodeAt(0)) >>> 0;
+  }
+
+  return STARTER_WORDS[hash % STARTER_WORDS.length];
+}
+
+function assignRoles(room: Room) {
+  const participants = room.participants.map((participant) => ({
+    ...participant,
+    role: (participant.id === room.currentDrawerId ? "drawer" : "guesser") as ParticipantRole
+  }));
+
+  room.participants = participants;
+}
+
 export function listWords() {
   return [...STARTER_WORDS];
 }
@@ -59,12 +79,13 @@ export function resetRoomStore() {
   usedCodes.clear();
 }
 
-export function createRoom(playerName?: string) {
+export function createRoom(playerName: string) {
   const participant = createParticipant(playerName);
   const room: Room = {
     code: generateUniqueCode(),
     status: "lobby",
     hostParticipantId: participant.id,
+    currentDrawerId: null,
     participants: [participant],
     createdAt: now(),
     updatedAt: now()
@@ -79,7 +100,7 @@ export function createRoom(playerName?: string) {
   };
 }
 
-export function joinRoom(code: string, playerName?: string) {
+export function joinRoom(code: string, playerName: string) {
   const room = rooms.get(code);
 
   if (!room || room.status !== "lobby") {
@@ -121,6 +142,10 @@ export function startRoom(code: string, participantId: string):
     return { error: "not_found" };
   }
 
+  if (room.status !== "lobby") {
+    return { error: "forbidden" };
+  }
+
   if (room.hostParticipantId !== participantId || findParticipantIndex(room, participantId) === -1) {
     return { error: "forbidden" };
   }
@@ -129,6 +154,9 @@ export function startRoom(code: string, participantId: string):
     return { error: "too_few_players" };
   }
 
+  room.currentDrawerId = room.hostParticipantId;
+  room.currentWord = getStarterWordForRoomCode(room.code);
+  assignRoles(room);
   room.status = "game";
   room.updatedAt = now();
   rooms.set(room.code, room);
@@ -152,6 +180,13 @@ export function leaveRoom(code: string, participantId: string):
   }
 
   const isHost = room.hostParticipantId === participantId;
+  const isDrawer = room.currentDrawerId === participantId;
+
+  if (room.status === "game" && (isHost || isDrawer)) {
+    rooms.delete(code);
+    return { room: null, deleted: true };
+  }
+
   room.participants.splice(participantIndex, 1);
 
   if (room.status === "lobby" && isHost) {
@@ -171,14 +206,18 @@ export function leaveRoom(code: string, participantId: string):
 }
 
 export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSnapshot {
-  void viewerParticipantId;
-
-  return {
+  const snapshot: RoomSnapshot = {
     code: room.code,
     status: room.status,
     hostParticipantId: room.hostParticipantId,
+    currentDrawerId: room.currentDrawerId,
     participants: room.participants.map((participant) => ({ ...participant })),
-    availableWords: listWords(),
-    roles: [...STARTER_ROLES]
+    availableWords: listWords()
   };
+
+  if (room.currentWord && viewerParticipantId && viewerParticipantId === room.currentDrawerId) {
+    snapshot.currentWord = room.currentWord;
+  }
+
+  return snapshot;
 }
