@@ -5,19 +5,25 @@ import { useRoomStore } from "../state/roomStore";
 
 export function CreateRoomPage() {
   const [playerName, setPlayerName] = useState("");
-  const [error, setError] = useState<string | null>(null);
+  const [localError, setLocalError] = useState<string | null>(null);
   const navigate = useNavigate();
   const roomStore = useRoomStore();
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    const trimmed = playerName.trim();
+
+    if (!trimmed) {
+      setLocalError("Name cannot be empty");
+      return;
+    }
 
     try {
-      setError(null);
-      await roomStore.createRoom(playerName);
+      setLocalError(null);
+      await roomStore.createRoom(trimmed);
       navigate("/lobby");
     } catch (caughtError) {
-      setError(caughtError instanceof Error ? caughtError.message : "Unable to create room");
+      setLocalError(caughtError instanceof Error ? caughtError.message : "Unable to create room");
     }
   }
 
@@ -38,7 +44,7 @@ export function CreateRoomPage() {
             placeholder="Sketch captain"
           />
         </label>
-        {error ? <p className="form__error">{error}</p> : null}
+        {localError ? <p className="form__error">{localError}</p> : null}
         <div className="button-row">
           <button className="button button--primary" type="submit">
             Create and Continue
