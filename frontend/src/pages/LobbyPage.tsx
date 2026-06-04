@@ -24,11 +24,20 @@ export function LobbyPage() {
       return;
     }
 
+    if (room.gameStarted) {
+      navigate("/game", { replace: true });
+      return;
+    }
+
     let intervalId: number;
     const refreshRoom = async () => {
       try {
         setRefreshError(null);
-        await roomStore.fetchRoom();
+        const fetchedRoom = await roomStore.fetchRoom();
+
+        if (fetchedRoom?.gameStarted) {
+          navigate("/game", { replace: true });
+        }
       } catch (caughtError) {
         setRefreshError(caughtError instanceof Error ? caughtError.message : "Unable to refresh room");
       }
@@ -51,12 +60,18 @@ export function LobbyPage() {
     }
   }
 
-  function handleStartGame() {
+  async function handleStartGame() {
     if (!isHost || !minimumPlayersReached) {
       return;
     }
 
-    navigate("/game");
+    try {
+      setRefreshError(null);
+      await roomStore.startRoom();
+      navigate("/game", { replace: true });
+    } catch (caughtError) {
+      setRefreshError(caughtError instanceof Error ? caughtError.message : "Unable to start game");
+    }
   }
 
   if (!room) {
