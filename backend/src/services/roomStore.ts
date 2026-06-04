@@ -45,9 +45,8 @@ function cloneRoom(room: Room) {
   return structuredClone(room);
 }
 
-function pickRandomWord(): string {
-  const index = Math.floor(Math.random() * STARTER_WORDS.length);
-  return STARTER_WORDS[index];
+function pickDeterministicWord(): string {
+  return STARTER_WORDS[0];
 }
 
 export function createRoom(playerName?: string) {
@@ -121,7 +120,7 @@ export function startGame(code: string, hostId: string) {
 
   const drawerIndex = 0;
   room.drawerId = room.participants[drawerIndex].id;
-  room.secretWord = pickRandomWord();
+  room.secretWord = pickDeterministicWord();
   room.guesses = [];
   room.drawCommands = [];
   room.scores = Object.fromEntries(room.participants.map((p) => [p.id, 0]));
