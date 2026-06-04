@@ -29,19 +29,15 @@ function generateUniqueCode() {
   return code;
 }
 
-function displayName(name?: string) {
-  return name || "Player";
-}
-
-function createParticipant(name?: string): Participant {
+function createParticipant(name: string): Participant {
   return {
     id: randomUUID(),
-    name: displayName(name),
+    name: name.trim(),
     joinedAt: now()
   };
 }
 
-function cloneRoom(room: Room) {
+function cloneRoom(room: Room): Room {
   return structuredClone(room);
 }
 
@@ -49,12 +45,20 @@ export function listWords() {
   return [...STARTER_WORDS];
 }
 
-export function createRoom(playerName?: string) {
+export function createRoom(playerName: string) {
   const participant = createParticipant(playerName);
   const room: Room = {
     code: generateUniqueCode(),
     status: "lobby",
+    hostId: participant.id,
     participants: [participant],
+    drawerId: null,
+    secretWord: null,
+    canvasData: "[]",
+    guesses: [],
+    scores: {
+      [participant.id]: 0
+    },
     createdAt: now(),
     updatedAt: now()
   };
@@ -67,7 +71,7 @@ export function createRoom(playerName?: string) {
   };
 }
 
-export function joinRoom(code: string, playerName?: string) {
+export function joinRoom(code: string, playerName: string) {
   const room = rooms.get(code);
 
   if (!room) {
@@ -76,6 +80,7 @@ export function joinRoom(code: string, playerName?: string) {
 
   const participant = createParticipant(playerName);
   room.participants.push(participant);
+  room.scores[participant.id] = 0;
   room.updatedAt = now();
   rooms.set(room.code, room);
 
@@ -97,13 +102,26 @@ export function saveRoom(room: Room) {
 }
 
 export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSnapshot {
-  void viewerParticipantId;
+  const viewerRole = (room.status !== "lobby" && viewerParticipantId)
+    ? (viewerParticipantId === room.drawerId ? "drawer" : "guesser")
+    : null;
+
+  const secretWord = (room.status === "playing" && viewerRole !== "drawer")
+    ? null
+    : room.secretWord;
 
   return {
     code: room.code,
     status: room.status,
+    hostId: room.hostId,
     participants: room.participants.map((participant) => ({ ...participant })),
     availableWords: listWords(),
-    roles: [...STARTER_ROLES]
+    roles: [...STARTER_ROLES],
+    drawerId: room.drawerId,
+    secretWord,
+    canvasData: room.canvasData,
+    guesses: room.guesses.map((guess) => ({ ...guess })),
+    scores: { ...room.scores },
+    viewerRole
   };
 }

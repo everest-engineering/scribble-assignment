@@ -16,4 +16,25 @@ describe("roomStore", () => {
 
     expect(result).toBeNull();
   });
+
+  it("createRoom assigns hostId, trims name, and sets initial score to 0", () => {
+    const result = createRoom("  Alice  ");
+    expect(result.room.hostId).toBe(result.participantId);
+    expect(result.room.participants[0].name).toBe("Alice");
+    expect(result.room.scores[result.participantId]).toBe(0);
+  });
+
+  it("joinRoom adds player, trims name, sets score to 0, and keeps hostId", () => {
+    const creatorResult = createRoom("Alice");
+    const code = creatorResult.room.code;
+
+    const joinResult = joinRoom(code, "  Bob  ");
+    expect(joinResult).not.toBeNull();
+    if (joinResult) {
+      expect(joinResult.room.participants).toHaveLength(2);
+      expect(joinResult.room.participants[1].name).toBe("Bob");
+      expect(joinResult.room.scores[joinResult.participantId]).toBe(0);
+      expect(joinResult.room.hostId).toBe(creatorResult.participantId);
+    }
+  });
 });
