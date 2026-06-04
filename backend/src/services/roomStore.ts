@@ -124,6 +124,9 @@ export function startGame(code: string, participantId: string) {
   }
 
   room.status = "playing";
+  room.drawerId = room.hostId;
+  room.secretWord = STARTER_WORDS[0];
+  room.round = 1;
   room.updatedAt = now();
   rooms.set(room.code, room);
 
@@ -131,17 +134,20 @@ export function startGame(code: string, participantId: string) {
 }
 
 export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSnapshot {
-  void viewerParticipantId;
-
   const scores: Record<string, number> = {};
   for (const p of room.participants) {
     scores[p.id] = p.score ?? 0;
   }
 
+  const isDrawer = viewerParticipantId !== undefined && viewerParticipantId === room.drawerId;
+
   return {
     code: room.code,
     status: room.status,
     hostId: room.hostId,
+    drawerId: room.drawerId,
+    secretWord: isDrawer ? room.secretWord : undefined,
+    round: room.round ?? 1,
     participants: room.participants.map((p) => ({ ...p })),
     scores,
     availableWords: listWords(),

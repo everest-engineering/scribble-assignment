@@ -12,6 +12,9 @@ export interface Room {
   code: string;
   status: RoomStatus;
   hostId: string;
+  drawerId?: string;
+  secretWord?: string;
+  round: number;
   participants: Participant[];
   createdAt: string;
   updatedAt: string;
@@ -21,6 +24,9 @@ export interface RoomSnapshot {
   code: string;
   status: RoomStatus;
   hostId: string;
+  drawerId?: string;
+  secretWord?: string;
+  round: number;
   participants: Participant[];
   scores: Record<string, number>;
   availableWords: string[];
