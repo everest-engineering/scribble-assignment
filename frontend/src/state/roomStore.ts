@@ -7,7 +7,7 @@ import {
   useSyncExternalStore,
   type PropsWithChildren
 } from "react";
-import { api, type RoomSessionResponse, type RoomSnapshot } from "../services/api";
+import { api, type DrawCommand, type RoomSessionResponse, type RoomSnapshot } from "../services/api";
 
 export interface RoomState {
   room: RoomSnapshot | null;
@@ -97,6 +97,58 @@ class RoomStore {
     const response = await api.fetchRoom(this.state.room.code, this.state.participantId ?? undefined);
     this.setRoomSnapshot(response.room);
     return response.room;
+  }
+
+  async startGame() {
+    if (!this.state.room || !this.state.participantId) {
+      return null;
+    }
+
+    const response = await this.withLoading(() => api.startGame(this.state.room!.code, this.state.participantId!));
+    this.setRoomSnapshot(response.room);
+    return response.room;
+  }
+
+  async submitGuess(guess: string) {
+    if (!this.state.room || !this.state.participantId) {
+      return null;
+    }
+
+    const response = await api.submitGuess(this.state.room.code, this.state.participantId, guess);
+    this.setRoomSnapshot(response.room);
+    return response;
+  }
+
+  async draw(commands: DrawCommand[]) {
+    if (!this.state.room) {
+      return;
+    }
+
+    const response = await api.draw(this.state.room.code, commands);
+    this.setRoomSnapshot(response.room);
+  }
+
+  async clearCanvas() {
+    if (!this.state.room) {
+      return;
+    }
+
+    const response = await api.clearCanvas(this.state.room.code);
+    this.setRoomSnapshot(response.room);
+  }
+
+  async restartGame() {
+    if (!this.state.room || !this.state.participantId) {
+      return null;
+    }
+
+    const response = await this.withLoading(() => api.restartGame(this.state.room!.code, this.state.participantId!));
+    this.setRoomSnapshot(response.room);
+    return response.room;
+  }
+
+  isHost(): boolean {
+    return !!(this.state.room && this.state.participantId && this.state.room.hostId === this.state.participantId);
   }
 }
 

@@ -2,13 +2,18 @@ import { useState } from "react";
 
 interface GuessFormProps {
   disabled?: boolean;
+  onSubmit?: (guess: string) => void;
 }
 
-export function GuessForm({ disabled = false }: GuessFormProps) {
+export function GuessForm({ disabled = false, onSubmit }: GuessFormProps) {
   const [guessText, setGuessText] = useState("");
 
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    const trimmed = guessText.trim();
+    if (!trimmed) return;
+    onSubmit?.(trimmed);
+    setGuessText("");
   }
 
   return (
