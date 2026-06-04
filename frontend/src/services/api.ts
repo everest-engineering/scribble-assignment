@@ -19,7 +19,7 @@ export interface Participant {
 
 export interface RoomSnapshot {
   code: string;
-  status: "lobby" | "active";
+  status: "lobby" | "active" | "results";
   hostId: string;
   participants: Participant[];
   availableWords: string[];
@@ -106,6 +106,22 @@ export const api = {
       {
         method: "POST",
         body: JSON.stringify({ guessText }),
+      },
+    );
+  },
+  endRound(code: string, participantId: string) {
+    return request<{ room: RoomSnapshot }>(
+      `/rooms/${encodeURIComponent(code)}/end?participantId=${encodeURIComponent(participantId)}`,
+      {
+        method: "POST",
+      },
+    );
+  },
+  restartGame(code: string, participantId: string) {
+    return request<{ room: RoomSnapshot }>(
+      `/rooms/${encodeURIComponent(code)}/restart?participantId=${encodeURIComponent(participantId)}`,
+      {
+        method: "POST",
       },
     );
   },

@@ -15,7 +15,9 @@ import {
   startGame,
   submitGuess,
   toRoomSnapshot,
-  updateCanvas
+  updateCanvas,
+  endRound,
+  restartGame
 } from "../services/roomStore.js";
 
 export function createRoomsRouter() {
@@ -174,6 +176,72 @@ export function createRoomsRouter() {
           }
           if (err.message === "Cannot submit guess: game is not active" || err.message === "Guess cannot be empty") {
             throw new HttpError(400, err.message);
+          }
+        }
+        throw err;
+      }
+
+      if (!resultRoom) {
+        throw new HttpError(404, "Room not found");
+      }
+
+      response.json({
+        room: toRoomSnapshot(resultRoom, participantId)
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/:code/end", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId } = roomViewerQuerySchema.parse(request.query);
+
+      if (!participantId) {
+        throw new HttpError(400, "participantId is required");
+      }
+
+      let resultRoom;
+      try {
+        resultRoom = endRound(code.toUpperCase(), participantId);
+      } catch (err) {
+        if (err instanceof Error) {
+          if (err.message === "Only the host can end the round") {
+            throw new HttpError(403, err.message);
+          }
+        }
+        throw err;
+      }
+
+      if (!resultRoom) {
+        throw new HttpError(404, "Room not found");
+      }
+
+      response.json({
+        room: toRoomSnapshot(resultRoom, participantId)
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/:code/restart", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId } = roomViewerQuerySchema.parse(request.query);
+
+      if (!participantId) {
+        throw new HttpError(400, "participantId is required");
+      }
+
+      let resultRoom;
+      try {
+        resultRoom = restartGame(code.toUpperCase(), participantId);
+      } catch (err) {
+        if (err instanceof Error) {
+          if (err.message === "Only the host can restart the game") {
+            throw new HttpError(403, err.message);
           }
         }
         throw err;

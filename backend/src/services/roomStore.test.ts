@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createRoom, joinRoom, startGame, toRoomSnapshot, updateCanvas, submitGuess } from "./roomStore.js";
+import { createRoom, joinRoom, startGame, toRoomSnapshot, updateCanvas, submitGuess, endRound, restartGame } from "./roomStore.js";
 
 describe("roomStore", () => {
   it("createRoom returns a room with a 4-character uppercase code and assigns hostId", () => {
@@ -135,6 +135,7 @@ describe("roomStore", () => {
       const creator = createRoom("Alice");
       const code = creator.room.code;
       const guest = joinRoom(code, "Bob");
+      joinRoom(code, "Charlie"); // Add second guesser so game remains active
       startGame(code, creator.participantId);
 
       submitGuess(code, guest!.participantId, "rocket");
@@ -142,6 +143,78 @@ describe("roomStore", () => {
       
       const guestParticipant = updated!.participants.find(p => p.id === guest!.participantId);
       expect(guestParticipant?.score).toBe(100); // remains 100, not 200
+    });
+
+    it("automatically transitions room status to results when all guessers guess correctly", () => {
+      const creator = createRoom("Alice");
+      const code = creator.room.code;
+      const guest1 = joinRoom(code, "Bob");
+      const guest2 = joinRoom(code, "Charlie");
+      startGame(code, creator.participantId);
+
+      // guest 1 guesses correctly, game should still be active
+      let updated = submitGuess(code, guest1!.participantId, "rocket");
+      expect(updated!.status).toBe("active");
+
+      // guest 2 guesses correctly, game should transition to results
+      updated = submitGuess(code, guest2!.participantId, "rocket");
+      expect(updated!.status).toBe("results");
+    });
+  });
+
+  describe("endRound", () => {
+    it("allows host to end round and transitions status to results", () => {
+      const creator = createRoom("Alice");
+      const code = creator.room.code;
+      joinRoom(code, "Bob");
+      startGame(code, creator.participantId);
+
+      const updated = endRound(code, creator.participantId);
+      expect(updated).toBeDefined();
+      expect(updated!.status).toBe("results");
+    });
+
+    it("throws an error if non-host tries to end the round", () => {
+      const creator = createRoom("Alice");
+      const code = creator.room.code;
+      const guest = joinRoom(code, "Bob");
+      startGame(code, creator.participantId);
+
+      expect(() => endRound(code, guest!.participantId)).toThrow("Only the host can end the round");
+    });
+  });
+
+  describe("restartGame", () => {
+    it("allows host to restart game, transitioning back to lobby and resetting game state", () => {
+      const creator = createRoom("Alice");
+      const code = creator.room.code;
+      const guest = joinRoom(code, "Bob");
+      startGame(code, creator.participantId);
+      submitGuess(code, guest!.participantId, "rocket");
+
+      const updated = restartGame(code, creator.participantId);
+      expect(updated).toBeDefined();
+      expect(updated!.status).toBe("lobby");
+      expect(updated!.currentWord).toBeUndefined();
+      expect(updated!.drawerId).toBeUndefined();
+      expect(updated!.drawingData).toBeUndefined();
+      expect(updated!.guesses).toHaveLength(0);
+
+      const hostParticipant = updated!.participants.find(p => p.id === creator.participantId);
+      const guestParticipant = updated!.participants.find(p => p.id === guest!.participantId);
+      expect(hostParticipant?.score).toBe(0);
+      expect(guestParticipant?.score).toBe(0);
+      expect(hostParticipant?.hasGuessedCorrectly).toBe(false);
+      expect(guestParticipant?.hasGuessedCorrectly).toBe(false);
+    });
+
+    it("throws an error if non-host tries to restart the game", () => {
+      const creator = createRoom("Alice");
+      const code = creator.room.code;
+      const guest = joinRoom(code, "Bob");
+      startGame(code, creator.participantId);
+
+      expect(() => restartGame(code, guest!.participantId)).toThrow("Only the host can restart the game");
     });
   });
 });

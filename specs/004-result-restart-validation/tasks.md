@@ -20,13 +20,13 @@
 
 ## Phase 1: Setup (Shared Infrastructure)
 
-- [ ] T001 Verify result API endpoints configuration in `backend/src/api/router.ts`
+- [x] T001 Verify result API endpoints configuration in `backend/src/api/router.ts`
 
 ---
 
 ## Phase 2: Foundational (Blocking Prerequisites)
 
-- [ ] T002 Update room types to support `"results"` status in `backend/src/models/game.ts`
+- [x] T002 Update room types to support `"results"` status in `backend/src/models/game.ts`
 
 ---
 
@@ -38,10 +38,10 @@
 
 ### Implementation for User Story 1
 
-- [ ] T003 [US1] Create endpoint to end round and transition state to results in `backend/src/api/rooms.ts`
-- [ ] T004 [US1] Expose unmasked word in results state in `toRoomSnapshot` in `backend/src/services/roomStore.ts`
-- [ ] T005 [P] [US1] Create game results page in `frontend/src/pages/ResultsPage.tsx`
-- [ ] T006 [US1] Support redirection on status transition to results in `frontend/src/pages/GamePage.tsx`
+- [x] T003 [US1] Create endpoint to end round and transition state to results in `backend/src/api/rooms.ts`
+- [x] T004 [US1] Expose unmasked word in results state in `toRoomSnapshot` in `backend/src/services/roomStore.ts`
+- [x] T005 [P] [US1] Create game results page in `frontend/src/pages/ResultsPage.tsx`
+- [x] T006 [US1] Support redirection on status transition to results in `frontend/src/pages/GamePage.tsx`
 
 ---
 
@@ -53,13 +53,13 @@
 
 ### Implementation for User Story 2
 
-- [ ] T007 [US2] Create restart game route endpoint in `backend/src/api/rooms.ts`
-- [ ] T008 [US2] Implement restart and room clean state logic in `backend/src/services/roomStore.ts`
-- [ ] T009 [P] [US2] Add restart button for host in results view in `frontend/src/pages/ResultsPage.tsx`
-- [ ] T010 [US2] Setup lobby polling redirection in `frontend/src/pages/ResultsPage.tsx`
+- [x] T007 [US2] Create restart game route endpoint in `backend/src/api/rooms.ts`
+- [x] T008 [US2] Implement restart and room clean state logic in `backend/src/services/roomStore.ts`
+- [x] T009 [P] [US2] Add restart button for host in results view in `frontend/src/pages/ResultsPage.tsx`
+- [x] T010 [US2] Setup lobby polling redirection in `frontend/src/pages/ResultsPage.tsx`
 
 ---
 
 ## Phase 5: Polish & Cross-Cutting Concerns
 
-- [ ] T011 Run quickstart.md validation scenario checks.
+- [x] T011 Run quickstart.md validation scenario checks.

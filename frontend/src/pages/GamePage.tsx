@@ -32,6 +32,12 @@ export function GamePage() {
     return () => clearInterval(intervalId);
   }, [room, roomStore]);
 
+  useEffect(() => {
+    if (room?.status === "results") {
+      navigate("/results");
+    }
+  }, [room?.status, navigate]);
+
   if (!room) {
     return null;
   }
@@ -39,6 +45,8 @@ export function GamePage() {
   const viewer = room.participants.find((participant) => participant.id === participantId) ?? null;
   const drawer = room.participants.find((p) => p.id === room.drawerId) ?? null;
   const isDrawer = room.drawerId === participantId;
+
+  const isHost = room.hostId === participantId;
 
   return (
     <section className="panel game-page">
@@ -92,6 +100,11 @@ export function GamePage() {
       </div>
 
       <div className="button-row">
+        {isHost && (
+          <button className="button button--danger" onClick={() => roomStore.endRound()}>
+            End Round
+          </button>
+        )}
         <button className="button button--secondary" onClick={() => navigate("/lobby")}>
           Exit Game
         </button>

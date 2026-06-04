@@ -1,5 +1,5 @@
 export type ParticipantRole = "drawer" | "guesser";
-export type RoomStatus = "lobby" | "active";
+export type RoomStatus = "lobby" | "active" | "results";
 
 export interface GuessLog {
   id: string;
@@ -25,6 +25,7 @@ export interface Room {
   participants: Participant[];
   drawerId?: string;
   currentWord?: string;
+  previousWord?: string;
   drawingData?: string;
   guesses: GuessLog[];
   createdAt: string;
@@ -40,6 +41,7 @@ export interface RoomSnapshot {
   roles: ParticipantRole[];
   drawerId?: string;
   wordTemplate?: string;
+  previousWord?: string;
   drawingData?: string;
   guesses: GuessLog[];
 }

@@ -121,7 +121,12 @@ export function startGame(code: string, hostParticipantId: string) {
   }
   room.status = "active";
   room.drawerId = room.hostId;
-  room.currentWord = STARTER_WORDS[0];
+  if (room.previousWord) {
+    const available = STARTER_WORDS.filter((w) => w !== room.previousWord);
+    room.currentWord = available[Math.floor(Math.random() * available.length)];
+  } else {
+    room.currentWord = STARTER_WORDS[0];
+  }
   
   // Set roles on participants
   room.participants.forEach((p) => {
@@ -135,7 +140,7 @@ export function startGame(code: string, hostParticipantId: string) {
 
 export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSnapshot {
   const participants = room.participants.map((p) => {
-    const role = room.status === "active" ? (p.id === room.drawerId ? "drawer" as const : "guesser" as const) : undefined;
+    const role = (room.status === "active" || room.status === "results") ? (p.id === room.drawerId ? "drawer" as const : "guesser" as const) : undefined;
     return { ...p, role };
   });
 
@@ -146,6 +151,8 @@ export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSn
     } else {
       wordTemplate = room.currentWord.split("").map((c) => (c === " " ? " " : "_")).join("");
     }
+  } else if (room.status === "results" && room.currentWord) {
+    wordTemplate = room.currentWord;
   }
 
   return {
@@ -157,6 +164,7 @@ export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSn
     roles: [...STARTER_ROLES],
     drawerId: room.drawerId,
     wordTemplate,
+    previousWord: room.previousWord,
     drawingData: room.drawingData,
     guesses: room.guesses || []
   };
@@ -218,6 +226,52 @@ export function submitGuess(code: string, participantId: string, guessText: stri
   };
 
   room.guesses.push(guessLog);
+
+  // Check if all guessers have guessed correctly
+  const guessers = room.participants.filter((p) => p.id !== room.drawerId);
+  const allCorrect = guessers.length > 0 && guessers.every((g) => g.hasGuessedCorrectly);
+  if (allCorrect) {
+    room.status = "results";
+  }
+
+  room.updatedAt = now();
+  rooms.set(room.code, room);
+  return cloneRoom(room);
+}
+
+export function endRound(code: string, hostParticipantId: string) {
+  const room = rooms.get(code);
+  if (!room) {
+    return null;
+  }
+  if (room.hostId !== hostParticipantId) {
+    throw new Error("Only the host can end the round");
+  }
+  room.status = "results";
+  room.updatedAt = now();
+  rooms.set(room.code, room);
+  return cloneRoom(room);
+}
+
+export function restartGame(code: string, hostParticipantId: string) {
+  const room = rooms.get(code);
+  if (!room) {
+    return null;
+  }
+  if (room.hostId !== hostParticipantId) {
+    throw new Error("Only the host can restart the game");
+  }
+  room.status = "lobby";
+  room.drawerId = undefined;
+  room.previousWord = room.currentWord;
+  room.currentWord = undefined;
+  room.drawingData = undefined;
+  room.guesses = [];
+  room.participants.forEach((p) => {
+    p.score = 0;
+    p.hasGuessedCorrectly = false;
+    p.role = undefined;
+  });
   room.updatedAt = now();
   rooms.set(room.code, room);
   return cloneRoom(room);
