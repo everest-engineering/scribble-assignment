@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createRoom, getRoom, joinRoom, startGame, toRoomSnapshot } from "./roomStore.js";
+import { createRoom, getRoom, joinRoom, saveDrawing, startGame, submitGuess, toRoomSnapshot } from "./roomStore.js";
 
 describe("roomStore", () => {
   it("createRoom returns a room with a 4-character uppercase code", () => {
@@ -86,5 +86,82 @@ describe("roomStore", () => {
 
     expect(drawerSnap.word).toBe(gameRoom!.word);
     expect(guesserSnap.word).toBeNull();
+  });
+
+  it("saveDrawing allows only drawer to save", () => {
+    const result = createRoom("Alice");
+    joinRoom(result.room.code, "Bob");
+    const hostId = result.participantId;
+    const joinResult = joinRoom(result.room.code, "Charlie");
+    startGame(result.room.code, hostId);
+
+    const drawerSave = saveDrawing(result.room.code, hostId, "data:image/png;base64,abc");
+    const guesserSave = saveDrawing(result.room.code, joinResult!.participantId, "data:image/png;base64,xyz");
+
+    expect(drawerSave).not.toBeNull();
+    expect(drawerSave!.drawingData).toBe("data:image/png;base64,abc");
+    expect(guesserSave).toBeNull();
+  });
+
+  it("submitGuess rejects empty guesses", () => {
+    const result = createRoom("Alice");
+    joinRoom(result.room.code, "Bob");
+    startGame(result.room.code, result.participantId);
+    const joinResult = joinRoom(result.room.code, "Charlie");
+
+    const emptyGuess = submitGuess(result.room.code, joinResult!.participantId, "  ");
+
+    expect(emptyGuess).toBeNull();
+  });
+
+  it("submitGuess rejects guesses from drawer", () => {
+    const result = createRoom("Alice");
+    joinRoom(result.room.code, "Bob");
+    startGame(result.room.code, result.participantId);
+
+    const drawerGuess = submitGuess(result.room.code, result.participantId, "test");
+
+    expect(drawerGuess).toBeNull();
+  });
+
+  it("submitGuess scores 100 for correct guess and ends round", () => {
+    const result = createRoom("Alice");
+    joinRoom(result.room.code, "Bob");
+    const gameRoom = startGame(result.room.code, result.participantId);
+    const joinResult = joinRoom(result.room.code, "Charlie");
+    const word = gameRoom!.word!;
+
+    const guessResult = submitGuess(result.room.code, joinResult!.participantId, word);
+
+    expect(guessResult).not.toBeNull();
+    expect(guessResult!.status).toBe("finished");
+    expect(guessResult!.guesses[0].correct).toBe(true);
+    const guesser = guessResult!.participants.find((p) => p.id === joinResult!.participantId);
+    expect(guesser!.score).toBe(100);
+  });
+
+  it("submitGuess is case-insensitive", () => {
+    const result = createRoom("Alice");
+    joinRoom(result.room.code, "Bob");
+    const gameRoom = startGame(result.room.code, result.participantId);
+    const joinResult = joinRoom(result.room.code, "Charlie");
+    const word = gameRoom!.word!;
+
+    const guessResult = submitGuess(result.room.code, joinResult!.participantId, word.toUpperCase());
+
+    expect(guessResult!.guesses[0].correct).toBe(true);
+  });
+
+  it("submitGuess scores 0 for incorrect guess", () => {
+    const result = createRoom("Alice");
+    joinRoom(result.room.code, "Bob");
+    startGame(result.room.code, result.participantId);
+    const joinResult = joinRoom(result.room.code, "Charlie");
+
+    const guessResult = submitGuess(result.room.code, joinResult!.participantId, "wronganswer");
+
+    expect(guessResult!.guesses[0].correct).toBe(false);
+    const guesser = guessResult!.participants.find((p) => p.id === joinResult!.participantId);
+    expect(guesser!.score).toBe(0);
   });
 });

@@ -22,6 +22,16 @@ export const startGameParamsSchema = z.object({
   participantId: z.string()
 });
 
+export const saveDrawingSchema = z.object({
+  participantId: z.string(),
+  drawingData: z.string()
+});
+
+export const submitGuessSchema = z.object({
+  participantId: z.string(),
+  text: z.string().trim().min(1, "Guess cannot be empty")
+});
+
 export class HttpError extends Error {
   statusCode: number;
 

@@ -1,5 +1,13 @@
 export type ParticipantRole = "drawer" | "guesser";
-export type RoomStatus = "lobby" | "playing";
+export type RoomStatus = "lobby" | "playing" | "finished";
+
+export interface Guess {
+  participantId: string;
+  participantName: string;
+  text: string;
+  correct: boolean;
+  timestamp: string;
+}
 
 export interface Participant {
   id: string;
@@ -7,6 +15,7 @@ export interface Participant {
   joinedAt: string;
   isHost: boolean;
   isDrawer: boolean;
+  score: number;
 }
 
 export interface RoomSnapshot {
@@ -17,6 +26,8 @@ export interface RoomSnapshot {
   roles: ParticipantRole[];
   canStart: boolean;
   word: string | null;
+  drawingData: string | null;
+  guesses: Guess[];
 }
 
 export interface RoomSessionResponse {
@@ -67,6 +78,18 @@ export const api = {
     return request<{ room: RoomSnapshot }>(`/rooms/${encodeURIComponent(code)}/start`, {
       method: "POST",
       body: JSON.stringify({ participantId })
+    });
+  },
+  saveDrawing(code: string, participantId: string, drawingData: string) {
+    return request<{ room: RoomSnapshot }>(`/rooms/${encodeURIComponent(code)}/drawing`, {
+      method: "POST",
+      body: JSON.stringify({ participantId, drawingData })
+    });
+  },
+  submitGuess(code: string, participantId: string, text: string) {
+    return request<{ room: RoomSnapshot }>(`/rooms/${encodeURIComponent(code)}/guess`, {
+      method: "POST",
+      body: JSON.stringify({ participantId, text })
     });
   }
 };
