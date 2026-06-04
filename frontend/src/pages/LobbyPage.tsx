@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card } from "../components/Card";
 import { PageHeader } from "../components/PageHeader";
@@ -8,14 +8,39 @@ import { useRoomState, useRoomStore } from "../state/roomStore";
 export function LobbyPage() {
   const navigate = useNavigate();
   const roomStore = useRoomStore();
-  const { room, error, isLoading } = useRoomState();
+  const { room, participantId, error, isLoading } = useRoomState();
   const [refreshError, setRefreshError] = useState<string | null>(null);
+
+  const isHost = useMemo(
+    () => !!room?.participants.some((participant) => participant.id === participantId && (participant as { isHost?: boolean }).isHost),
+    [room, participantId]
+  );
+
+  const minimumPlayersReached = room ? room.participants.length >= 2 : false;
 
   useEffect(() => {
     if (!room) {
       navigate("/", { replace: true });
+      return;
     }
-  }, [navigate, room]);
+
+    let intervalId: number;
+    const refreshRoom = async () => {
+      try {
+        setRefreshError(null);
+        await roomStore.fetchRoom();
+      } catch (caughtError) {
+        setRefreshError(caughtError instanceof Error ? caughtError.message : "Unable to refresh room");
+      }
+    };
+
+    refreshRoom();
+    intervalId = window.setInterval(refreshRoom, 2000);
+
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, [navigate, room, roomStore]);
 
   async function handleRefresh() {
     try {
@@ -24,6 +49,14 @@ export function LobbyPage() {
     } catch (caughtError) {
       setRefreshError(caughtError instanceof Error ? caughtError.message : "Unable to refresh room");
     }
+  }
+
+  function handleStartGame() {
+    if (!isHost || !minimumPlayersReached) {
+      return;
+    }
+
+    navigate("/game");
   }
 
   if (!room) {
@@ -50,7 +83,10 @@ export function LobbyPage() {
               {room.participants.map((participant) => (
                 <li key={participant.id}>
                   <span>{participant.name}</span>
-                  <span className="player-list__meta">joined</span>
+                  <span className="player-list__meta">
+                    {participant.id === participantId && "Host"}
+                    {participant.id !== participantId && "joined"}
+                  </span>
                 </li>
               ))}
             </ul>
@@ -69,9 +105,15 @@ export function LobbyPage() {
         <button className="button button--secondary" disabled={isLoading} onClick={handleRefresh}>
           {isLoading ? "Refreshing..." : "Refresh Room"}
         </button>
-        <button className="button button--primary" onClick={() => navigate("/game")}>
-          Start Game
-        </button>
+        {isHost ? (
+          <button
+            className="button button--primary"
+            disabled={!minimumPlayersReached}
+            onClick={handleStartGame}
+          >
+            Start Game
+          </button>
+        ) : null}
       </div>
     </section>
   );
