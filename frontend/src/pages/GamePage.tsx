@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
+import { Canvas } from "../components/Canvas";
 import { Card } from "../components/Card";
 import { GuessForm } from "../components/GuessForm";
 import { ResultPanel } from "../components/ResultPanel";
 import { RoomCodeBadge } from "../components/RoomCodeBadge";
 import { Scoreboard } from "../components/Scoreboard";
+import type { Stroke } from "../services/api";
 import { useRoomState, useRoomStore } from "../state/roomStore";
 
 export function GamePage() {
@@ -51,6 +53,27 @@ export function GamePage() {
 
   const viewer = room.participants.find((participant) => participant.id === participantId) ?? null;
   const isDrawer = participantId === room.drawerId;
+  const isResult = room.status === "result";
+
+  async function handleDraw(stroke: Stroke) {
+    try {
+      await roomStore.drawStroke(stroke);
+    } catch {
+      // drawing errors non-fatal
+    }
+  }
+
+  async function handleClear() {
+    try {
+      await roomStore.clearCanvas();
+    } catch {
+      // clear errors non-fatal
+    }
+  }
+
+  async function handleGuess(text: string) {
+    await roomStore.submitGuess(text);
+  }
 
   return (
     <section className="panel game-page">
@@ -64,21 +87,19 @@ export function GamePage() {
 
       <div className="game-page__layout">
         <aside className="game-page__sidebar game-page__sidebar--left">
-          <Scoreboard />
-          <ResultPanel />
+          <Scoreboard participants={room.participants} scores={room.scores} />
+          <ResultPanel guesses={room.guesses} secretWord={isResult ? room.secretWord : undefined} status={room.status} />
         </aside>
 
         <div className="game-page__main">
           <Card title="Canvas">
-            <div className="canvas-placeholder" style={{ minHeight: '500px', backgroundColor: '#ffffff', border: '1px solid #e5e7eb' }}>
-              {isDrawer ? (
-                <p style={{ padding: '20px', textAlign: 'center' }}>
-                  Your word: <strong>{room.secretWord}</strong>
-                </p>
-              ) : (
-                <p style={{ padding: '20px', textAlign: 'center' }}>Waiting for drawer to draw...</p>
-              )}
-            </div>
+            <Canvas
+              strokes={room.strokes}
+              isDrawer={isDrawer}
+              secretWord={room.secretWord}
+              onDraw={handleDraw}
+              onClear={handleClear}
+            />
           </Card>
         </div>
 
@@ -96,9 +117,11 @@ export function GamePage() {
             </dl>
           </Card>
 
-          <Card title="Your Guess">
-            <GuessForm />
-          </Card>
+          {!isDrawer && !isResult ? (
+            <Card title="Your Guess">
+              <GuessForm onSubmit={handleGuess} />
+            </Card>
+          ) : null}
         </aside>
       </div>
 
