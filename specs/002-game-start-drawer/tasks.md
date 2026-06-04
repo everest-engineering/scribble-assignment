@@ -96,7 +96,7 @@ description: "Task list for Game Start & Drawer Flow — Scenario 2"
 
 - [x] T012 [P] Run `npm run build` in `backend/` and `frontend/` to confirm zero TypeScript errors post-implementation
 - [x] T013 [P] Review all changed files against the AI self-review checklist (constitution Section 3): type safety, scope, spec alignment, polling hygiene, error handling
-- [ ] T014 [P] Run full quickstart.md validation — all 5 tests with two browser tabs open simultaneously
+- [x] T014 [P] Run full quickstart.md validation — all 5 tests with two browser tabs open simultaneously
 
 ---
 
