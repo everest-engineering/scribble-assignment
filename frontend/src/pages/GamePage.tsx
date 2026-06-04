@@ -5,11 +5,12 @@ import { GuessForm } from "../components/GuessForm";
 import { ResultPanel } from "../components/ResultPanel";
 import { RoomCodeBadge } from "../components/RoomCodeBadge";
 import { Scoreboard } from "../components/Scoreboard";
-import { useRoomState } from "../state/roomStore";
+import { useRoomState, useRoomStore } from "../state/roomStore";
 
 export function GamePage() {
   const navigate = useNavigate();
-  const { room, participantId } = useRoomState();
+  const roomStore = useRoomStore();
+  const { room, participantId, pollError } = useRoomState();
 
   useEffect(() => {
     if (!room) {
@@ -17,11 +18,25 @@ export function GamePage() {
     }
   }, [navigate, room]);
 
+  useEffect(() => {
+    if (!room) return;
+    roomStore.startPolling(2000);
+    return () => {
+      roomStore.stopPolling();
+    };
+  }, [roomStore, room?.code]);
+
   if (!room) {
     return null;
   }
 
+  if (room.drawerId === null) {
+    return <p>Loading game...</p>;
+  }
+
   const viewer = room.participants.find((participant) => participant.id === participantId) ?? null;
+  const isDrawer = room.drawerId === participantId;
+  const drawerName = room.participants.find((p) => p.id === room.drawerId)?.name ?? "Unknown drawer";
 
   return (
     <section className="panel game-page">
@@ -48,6 +63,14 @@ export function GamePage() {
         </div>
 
         <aside className="game-page__sidebar game-page__sidebar--right">
+          <Card title="Drawer">
+            <p>{isDrawer ? "You are the drawer" : `Drawing: ${drawerName}`}</p>
+          </Card>
+
+          <Card title="Secret Word">
+            <p>{room.currentWord !== null ? room.currentWord : "Guess the word!"}</p>
+          </Card>
+
           <Card title="Player Info">
             <dl className="detail-list">
               <div>
@@ -60,6 +83,8 @@ export function GamePage() {
               </div>
             </dl>
           </Card>
+
+          {pollError ? <p className="form__error">{pollError}</p> : null}
 
           <Card title="Your Guess">
             <GuessForm />

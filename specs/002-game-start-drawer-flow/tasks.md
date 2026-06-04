@@ -21,13 +21,13 @@ stories depend on this data being present.
 
 **⚠️ CRITICAL**: All phases depend on this phase being complete first.
 
-- [ ] T001 Add `drawerId: string | null` field to `Room` interface in `backend/src/models/game.ts`
-- [ ] T002 Add `currentWord: string | null` field to `Room` interface in `backend/src/models/game.ts`
-- [ ] T003 Add `drawerId: string | null` field to `RoomSnapshot` interface in `backend/src/models/game.ts`
-- [ ] T004 Add `currentWord: string | null` field to `RoomSnapshot` interface in `backend/src/models/game.ts`
-- [ ] T005 Initialise `drawerId: null` and `currentWord: null` in `createRoom()` in `backend/src/services/roomStore.ts`
-- [ ] T006 Add `selectWord(code: string): string` helper to `backend/src/services/roomStore.ts`: `STARTER_WORDS[Array.from(code).reduce((sum, ch) => sum + ch.charCodeAt(0), 0) % STARTER_WORDS.length]` — `STARTER_WORDS` is already imported; this function MUST be a pure derivation of the `code` string only and MUST NOT use `Math.random()` or any non-deterministic source (constitution Principle IV, FR-002)
-- [ ] T007 Replace `void viewerParticipantId` in `toRoomSnapshot()` in `backend/src/services/roomStore.ts` with viewer-gated `currentWord` (actual word when `viewerParticipantId === room.drawerId` — this single condition is sufficient because `undefined === <string>` is always `false` when `drawerId` is set; no separate `!== undefined` guard needed) and always-forwarded `drawerId: room.drawerId`; confirm the return object explicitly includes both `drawerId` and `currentWord` fields for all three call sites (`POST /rooms`, `POST /rooms/:code/join`, `GET /rooms/:code`) so FR-014 (never omitted) is satisfied
+- [x] T001 Add `drawerId: string | null` field to `Room` interface in `backend/src/models/game.ts`
+- [x] T002 Add `currentWord: string | null` field to `Room` interface in `backend/src/models/game.ts`
+- [x] T003 Add `drawerId: string | null` field to `RoomSnapshot` interface in `backend/src/models/game.ts`
+- [x] T004 Add `currentWord: string | null` field to `RoomSnapshot` interface in `backend/src/models/game.ts`
+- [x] T005 Initialise `drawerId: null` and `currentWord: null` in `createRoom()` in `backend/src/services/roomStore.ts`
+- [x] T006 Add `selectWord(code: string): string` helper to `backend/src/services/roomStore.ts`: `STARTER_WORDS[Array.from(code).reduce((sum, ch) => sum + ch.charCodeAt(0), 0) % STARTER_WORDS.length]` — `STARTER_WORDS` is already imported; this function MUST be a pure derivation of the `code` string only and MUST NOT use `Math.random()` or any non-deterministic source (constitution Principle IV, FR-002)
+- [x] T007 Replace `void viewerParticipantId` in `toRoomSnapshot()` in `backend/src/services/roomStore.ts` with viewer-gated `currentWord` (actual word when `viewerParticipantId === room.drawerId` — this single condition is sufficient because `undefined === <string>` is always `false` when `drawerId` is set; no separate `!== undefined` guard needed) and always-forwarded `drawerId: room.drawerId`; confirm the return object explicitly includes both `drawerId` and `currentWord` fields for all three call sites (`POST /rooms`, `POST /rooms/:code/join`, `GET /rooms/:code`) so FR-014 (never omitted) is satisfied
 
 ---
 
@@ -41,8 +41,8 @@ the start-game response exposes the actual word to the drawer and `null` to all 
 `GET /rooms/:code?participantId=<joinerId>`; confirm `currentWord` is `null`. Call again with
 the same code + no `participantId`; confirm `currentWord` is `null`.
 
-- [ ] T008 [US1] Extend `POST /:code/start` handler in `backend/src/api/rooms.ts` to set `room.drawerId = room.hostId` and `room.currentWord = selectWord(room.code)` before the `saveRoom()` call — import `selectWord` from `roomStore.js`
-- [ ] T009 [P] [US1] Add `drawerId: string | null` and `currentWord: string | null` to `RoomSnapshot` interface in `frontend/src/services/api.ts` so TypeScript validates usage throughout `GamePage`
+- [x] T008 [US1] Extend `POST /:code/start` handler in `backend/src/api/rooms.ts` to set `room.drawerId = room.hostId` and `room.currentWord = selectWord(room.code)` before the `saveRoom()` call — import `selectWord` from `roomStore.js`
+- [x] T009 [P] [US1] Add `drawerId: string | null` and `currentWord: string | null` to `RoomSnapshot` interface in `frontend/src/services/api.ts` so TypeScript validates usage throughout `GamePage`
 
 ---
 
@@ -55,9 +55,9 @@ participants see "Guess the word!". The word is never transmitted over the wire 
 the actual word. In the non-drawer tab, confirm the word panel shows "Guess the word!". Inspect
 network traffic on the non-drawer tab — confirm `currentWord: null` in all GET responses.
 
-- [ ] T010 [US2] In `frontend/src/pages/GamePage.tsx`, verify (do not rewrite) the existing redirect guard: confirm the `useEffect` that calls `navigate` on `!room` uses `{ replace: true }` per FR-010; if it already does, this task is a no-op — commit a comment confirming the check was performed; if `replace: true` is missing, add it
-- [ ] T011 [US2] In `frontend/src/pages/GamePage.tsx`, add loading guard: if `room.drawerId === null`, render `<p>Loading game...</p>` and return early (FR-011)
-- [ ] T012 [US2] In `frontend/src/pages/GamePage.tsx`, add a dedicated word panel: add a `<Card title="Secret Word">` (or equivalent scoped element) inside the right sidebar or main area — do NOT replace the page `<h1>` title; inside the card render `room.currentWord` when non-null (drawer view) or the string `"Guess the word!"` when null (non-drawer view); the page title remains unchanged (FR-005)
+- [x] T010 [US2] In `frontend/src/pages/GamePage.tsx`, verify (do not rewrite) the existing redirect guard: confirm the `useEffect` that calls `navigate` on `!room` uses `{ replace: true }` per FR-010; if it already does, this task is a no-op — commit a comment confirming the check was performed; if `replace: true` is missing, add it
+- [x] T011 [US2] In `frontend/src/pages/GamePage.tsx`, add loading guard: if `room.drawerId === null`, render `<p>Loading game...</p>` and return early (FR-011)
+- [x] T012 [US2] In `frontend/src/pages/GamePage.tsx`, add a dedicated word panel: add a `<Card title="Secret Word">` (or equivalent scoped element) inside the right sidebar or main area — do NOT replace the page `<h1>` title; inside the card render `room.currentWord` when non-null (drawer view) or the string `"Guess the word!"` when null (non-drawer view); the page title remains unchanged (FR-005)
 
 ---
 
@@ -70,9 +70,9 @@ network traffic on the non-drawer tab — confirm `currentWord: null` in all GET
 name. Confirm the drawer tab shows "You are the drawer" and the non-drawer tab shows
 "Drawing: [name]".
 
-- [ ] T013 [US3] In `frontend/src/pages/GamePage.tsx`, compute `drawerName`: resolve `room.participants.find(p => p.id === room.drawerId)?.name ?? "Unknown drawer"` (FR-012)
-- [ ] T014 [US3] In `frontend/src/pages/GamePage.tsx`, compute `isDrawer = room.drawerId === participantId`
-- [ ] T015 [US3] In `frontend/src/pages/GamePage.tsx`, add drawer identity card (inside an existing or new `<Card>` area): when `isDrawer` show label `"You are the drawer"` (FR-007); when not `isDrawer` show `"Drawing: [drawerName]"` (FR-006)
+- [x] T013 [US3] In `frontend/src/pages/GamePage.tsx`, compute `drawerName`: resolve `room.participants.find(p => p.id === room.drawerId)?.name ?? "Unknown drawer"` (FR-012)
+- [x] T014 [US3] In `frontend/src/pages/GamePage.tsx`, compute `isDrawer = room.drawerId === participantId`
+- [x] T015 [US3] In `frontend/src/pages/GamePage.tsx`, add drawer identity card (inside an existing or new `<Card>` area): when `isDrawer` show label `"You are the drawer"` (FR-007); when not `isDrawer` show `"Drawing: [drawerName]"` (FR-006)
 
 ---
 
@@ -86,9 +86,9 @@ manual action. Navigate away from one tab; confirm no further network requests f
 Simulate a network failure (DevTools offline); confirm the inline error message appears and
 polling resumes when connectivity is restored.
 
-- [ ] T016 [US4] In `frontend/src/pages/GamePage.tsx`, import `useRoomStore` alongside the existing `useRoomState` import from `../state/roomStore`
-- [ ] T017 [US4] In `frontend/src/pages/GamePage.tsx`, add polling `useEffect`: call `roomStore.startPolling(2000)` on mount; return cleanup calling `roomStore.stopPolling()`; key the effect on `room?.code` so it restarts if the room changes (FR-008)
-- [ ] T018 [US4] In `frontend/src/pages/GamePage.tsx`, destructure `pollError` from `useRoomState()` and render it inline below the drawer/word panel when non-null, using the same visual pattern as `LobbyPage` Status card (FR-013); polling MUST continue on error (already guaranteed by `RoomStore.startPolling` implementation)
+- [x] T016 [US4] In `frontend/src/pages/GamePage.tsx`, import `useRoomStore` alongside the existing `useRoomState` import from `../state/roomStore`
+- [x] T017 [US4] In `frontend/src/pages/GamePage.tsx`, add polling `useEffect`: call `roomStore.startPolling(2000)` on mount; return cleanup calling `roomStore.stopPolling()`; key the effect on `room?.code` so it restarts if the room changes (FR-008)
+- [x] T018 [US4] In `frontend/src/pages/GamePage.tsx`, destructure `pollError` from `useRoomState()` and render it inline below the drawer/word panel when non-null, using the same visual pattern as `LobbyPage` Status card (FR-013); polling MUST continue on error (already guaranteed by `RoomStore.startPolling` implementation)
 
 ---
 
@@ -96,10 +96,10 @@ polling resumes when connectivity is restored.
 
 **Purpose**: Type safety verification, build validation, and manual acceptance test.
 
-- [ ] T019 [P] Verify no `any` types introduced across all modified files: `backend/src/models/game.ts`, `backend/src/services/roomStore.ts`, `backend/src/api/rooms.ts`, `frontend/src/services/api.ts`, `frontend/src/pages/GamePage.tsx`
-- [ ] T020 [P] Verify `room.drawerId` and `room.currentWord` are immutable after `POST /:code/start` completes: confirm `joinRoom()`, `saveRoom()`, and `toRoomSnapshot()` in `backend/src/services/roomStore.ts` do not overwrite either field; confirm the `POST /:code/start` handler in `backend/src/api/rooms.ts` is the sole write site for both fields; no code path may reassign them once set (spec Assumptions + FR-001)
-- [ ] T021 [P] Run `npm run build` in `backend/` and confirm zero TypeScript errors
-- [ ] T022 [P] Run `npm run build` in `frontend/` and confirm zero TypeScript errors
+- [x] T019 [P] Verify no `any` types introduced across all modified files: `backend/src/models/game.ts`, `backend/src/services/roomStore.ts`, `backend/src/api/rooms.ts`, `frontend/src/services/api.ts`, `frontend/src/pages/GamePage.tsx`
+- [x] T020 [P] Verify `room.drawerId` and `room.currentWord` are immutable after `POST /:code/start` completes: confirm `joinRoom()`, `saveRoom()`, and `toRoomSnapshot()` in `backend/src/services/roomStore.ts` do not overwrite either field; confirm the `POST /:code/start` handler in `backend/src/api/rooms.ts` is the sole write site for both fields; no code path may reassign them once set (spec Assumptions + FR-001)
+- [x] T021 [P] Run `npm run build` in `backend/` and confirm zero TypeScript errors
+- [x] T022 [P] Run `npm run build` in `frontend/` and confirm zero TypeScript errors
 - [ ] T023 Manual two-tab acceptance test per plan.md Testing Strategy: create room (Tab A), join (Tab B), host clicks Start Game, verify Tab A shows actual word + "You are the drawer", verify Tab B shows "Guess the word!" + "Drawing: [name]", inspect Tab B network to confirm `currentWord: null`, navigate away from both tabs and confirm no further requests
 
 ---
