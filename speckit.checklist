@@ -1,0 +1,38 @@
+# Manual Validation Checklist - Scribble Lab
+
+Follow these steps with **two browser tabs** open side-by-side to verify the multiplayer experience.
+
+## Phase 1: Room Setup & Lobby (Scenario 1)
+- [ ] **Create Room (Tab A)**: Enter a name and create a room. Verify you see the 4-char code and are labeled as "(Host)".
+- [ ] **Join Validation**: Try joining with an invalid code (e.g., "123") or empty name. Verify specific error messages appear.
+- [ ] **Join Room (Tab B)**: Join the room from Tab A using the correct code.
+- [ ] **Polling Sync**: Verify Tab A automatically shows the second player without a refresh.
+- [ ] **Host Restriction**: Verify only Tab A (Host) sees the "Start Game" button.
+- [ ] **Minimum Players**: Verify "Start Game" is disabled until at least 2 players are present.
+
+## Phase 2: Game Start & Roles (Scenario 2)
+- [ ] **Start Game**: Click "Start Game" in Tab A.
+- [ ] **Auto-Redirect**: Verify Tab B is automatically redirected to the game screen via polling.
+- [ ] **Role Assignment**: Verify Tab A says "You are the Drawer" and Tab B says "You are a Guesser".
+- [ ] **Security**: Verify Tab A sees the secret word (e.g., "Draw: pizza") and Tab B sees "Guess the Word!".
+
+## Phase 3: Interactive Gameplay (Scenario 3)
+- [ ] **Drawing Precision**: In Tab A, draw a vertical line. Verify it appears exactly under your cursor (no offset).
+- [ ] **Sync Canvas**: Verify Tab B sees the drawing within ~2 seconds.
+- [ ] **Guess Submission**: In Tab B, submit an incorrect guess. Verify it appears in the "Guess History" for both tabs.
+- [ ] **Scoring**: In Tab B, submit the correct word. Verify Tab B's score increases by 100 on the scoreboard.
+- [ ] **Drawer Restriction**: Verify Tab A (Drawer) cannot submit guesses.
+- [ ] **Clear Canvas**: In Tab A, click "Clear Canvas". Verify the canvas resets for both players.
+
+## Phase 4: Results & Turn Rotation (Scenarios 4 & 5)
+- [ ] **End Round**: In Tab A (Host), click "End Round".
+- [ ] **Result View**: Verify both tabs see the "Final Results" with the correct word and scores.
+- [ ] **Next Round**: In Tab A, click "Next Round".
+- [ ] **Turn Rotation**: Verify Tab B is now the Drawer and Tab A is the Guesser.
+- [ ] **Randomization**: Verify the new word is different (if the word list permits) or at least randomized.
+- [ ] **Score Persistence**: Verify the scores from the previous round are still visible on the scoreboard.
+
+## Phase 5: Full Reset
+- [ ] **End Round**: End the second round.
+- [ ] **Back to Lobby**: In Tab A, click "Back to Lobby".
+- [ ] **State Reset**: Verify both players are back in the lobby and all scores are reset to 0.

@@ -54,7 +54,12 @@ export function createRoom(playerName?: string) {
   const room: Room = {
     code: generateUniqueCode(),
     status: "lobby",
+    hostId: participant.id,
     participants: [participant],
+    drawerIndex: 0,
+    canvasData: "",
+    guesses: [],
+    scores: { [participant.id]: 0 },
     createdAt: now(),
     updatedAt: now()
   };
@@ -76,6 +81,7 @@ export function joinRoom(code: string, playerName?: string) {
 
   const participant = createParticipant(playerName);
   room.participants.push(participant);
+  room.scores[participant.id] = 0;
   room.updatedAt = now();
   rooms.set(room.code, room);
 
@@ -96,14 +102,151 @@ export function saveRoom(room: Room) {
   return getRoom(room.code);
 }
 
+export function startGame(code: string, participantId: string) {
+  const room = rooms.get(code);
+
+  if (!room) {
+    return null;
+  }
+
+  if (room.hostId !== participantId) {
+    throw new Error("Only the host can start the game");
+  }
+
+  if (room.participants.length < 2) {
+    throw new Error("At least 2 players are required to start");
+  }
+
+  room.status = "playing";
+  room.drawerIndex = 0;
+  room.drawerId = room.participants[room.drawerIndex].id;
+  room.secretWord = STARTER_WORDS[Math.floor(Math.random() * STARTER_WORDS.length)];
+  room.updatedAt = now();
+
+  rooms.set(room.code, room);
+
+  return cloneRoom(room);
+}
+
+export function nextRound(code: string, participantId: string) {
+  const room = rooms.get(code);
+
+  if (!room) return null;
+  if (room.hostId !== participantId) {
+    throw new Error("Only the host can start the next round");
+  }
+
+  room.status = "playing";
+  room.drawerIndex = (room.drawerIndex + 1) % room.participants.length;
+  room.drawerId = room.participants[room.drawerIndex].id;
+  room.secretWord = STARTER_WORDS[Math.floor(Math.random() * STARTER_WORDS.length)];
+  room.canvasData = "";
+  room.guesses = [];
+  room.updatedAt = now();
+
+  rooms.set(room.code, room);
+
+  return cloneRoom(room);
+}
+
+export function updateCanvas(code: string, participantId: string, data: string) {
+  const room = rooms.get(code);
+
+  if (!room) return null;
+  if (room.drawerId !== participantId) {
+    throw new Error("Only the drawer can update the canvas");
+  }
+
+  room.canvasData = data;
+  room.updatedAt = now();
+  rooms.set(room.code, room);
+
+  return cloneRoom(room);
+}
+
+export function submitGuess(code: string, participantId: string, text: string) {
+  const room = rooms.get(code);
+
+  if (!room) return null;
+  if (room.drawerId === participantId) {
+    throw new Error("Drawers cannot submit guesses");
+  }
+
+  const participant = room.participants.find((p) => p.id === participantId);
+  if (!participant) throw new Error("Participant not found");
+
+  const isCorrect = text.trim().toLowerCase() === room.secretWord?.toLowerCase();
+
+  room.guesses.push({
+    playerId: participantId,
+    playerName: participant.name,
+    text: text.trim(),
+    isCorrect,
+    timestamp: now()
+  });
+
+  if (isCorrect) {
+    room.scores[participantId] = (room.scores[participantId] || 0) + 100;
+  }
+
+  room.updatedAt = now();
+  rooms.set(room.code, room);
+
+  return cloneRoom(room);
+}
+
+export function endRound(code: string, participantId: string) {
+  const room = rooms.get(code);
+
+  if (!room) return null;
+  if (room.hostId !== participantId) {
+    throw new Error("Only the host can end the round");
+  }
+
+  room.status = "result";
+  room.updatedAt = now();
+  rooms.set(room.code, room);
+
+  return cloneRoom(room);
+}
+
+export function restartGame(code: string, participantId: string) {
+  const room = rooms.get(code);
+
+  if (!room) return null;
+  if (room.hostId !== participantId) {
+    throw new Error("Only the host can restart the game");
+  }
+
+  room.status = "lobby";
+  room.drawerIndex = 0;
+  room.drawerId = undefined;
+  room.secretWord = undefined;
+  room.canvasData = "";
+  room.guesses = [];
+  for (const id in room.scores) {
+    room.scores[id] = 0;
+  }
+  room.updatedAt = now();
+  rooms.set(room.code, room);
+
+  return cloneRoom(room);
+}
+
 export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSnapshot {
-  void viewerParticipantId;
+  const isDrawer = room.drawerId === viewerParticipantId;
 
   return {
     code: room.code,
     status: room.status,
+    hostId: room.hostId,
     participants: room.participants.map((participant) => ({ ...participant })),
     availableWords: listWords(),
-    roles: [...STARTER_ROLES]
+    roles: [...STARTER_ROLES],
+    secretWord: isDrawer ? room.secretWord : undefined,
+    isDrawer,
+    canvasData: room.canvasData,
+    guesses: room.guesses.map((g) => ({ ...g })),
+    scores: { ...room.scores }
   };
 }

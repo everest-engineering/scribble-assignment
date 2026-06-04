@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useRoomStore } from "../state/roomStore";
 
 interface GuessFormProps {
   disabled?: boolean;
@@ -6,9 +7,18 @@ interface GuessFormProps {
 
 export function GuessForm({ disabled = false }: GuessFormProps) {
   const [guessText, setGuessText] = useState("");
+  const roomStore = useRoomStore();
 
-  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (!guessText.trim()) return;
+
+    try {
+      await roomStore.submitGuess(guessText);
+      setGuessText("");
+    } catch (e) {
+      console.error("Submit guess failed", e);
+    }
   }
 
   return (
@@ -23,7 +33,7 @@ export function GuessForm({ disabled = false }: GuessFormProps) {
         />
       </label>
       <div className="button-row button-row--compact">
-        <button className="button button--primary" type="submit" disabled={disabled}>
+        <button className="button button--primary" type="submit" disabled={disabled || !guessText.trim()}>
           Submit Guess
         </button>
       </div>
