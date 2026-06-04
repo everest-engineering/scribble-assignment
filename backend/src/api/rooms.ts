@@ -4,9 +4,11 @@ import {
   HttpError,
   joinRoomSchema,
   roomCodeParamsSchema,
-  roomViewerQuerySchema
+  roomViewerQuerySchema,
+  guessSchema
 } from "./schemas.js";
-import { createRoom, getRoom, joinRoom, toRoomSnapshot } from "../services/roomStore.js";
+import { createRoom, getRoom, joinRoom, startRoomGame, submitGuess, toRoomSnapshot } from "../services/roomStore.js";
+import { restartRoom } from "../services/roomStore.js";
 
 export function createRoomsRouter() {
   const router = Router();
@@ -39,6 +41,72 @@ export function createRoomsRouter() {
         participantId: result.participantId,
         room: toRoomSnapshot(result.room, result.participantId)
       });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/:code/start", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId } = roomViewerQuerySchema.parse(request.query);
+
+      if (!participantId) {
+        throw new HttpError(400, "participantId is required to start the game");
+      }
+
+      const room = startRoomGame(code.toUpperCase(), participantId);
+
+      if (!room) {
+        throw new HttpError(404, "Unable to start room");
+      }
+
+      response.json({
+        room: toRoomSnapshot(room, participantId)
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/:code/guesses", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId } = roomViewerQuerySchema.parse(request.query);
+      const { text } = guessSchema.parse(request.body);
+
+      if (!participantId) {
+        throw new HttpError(400, "participantId is required to submit a guess");
+      }
+
+      const room = submitGuess(code.toUpperCase(), participantId, text);
+
+      if (!room) {
+        throw new HttpError(404, "Unable to submit guess");
+      }
+
+      response.json({ room: toRoomSnapshot(room, participantId) });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/:code/restart", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId } = roomViewerQuerySchema.parse(request.query);
+
+      if (!participantId) {
+        throw new HttpError(400, "participantId is required to restart the room");
+      }
+
+      const room = restartRoom(code.toUpperCase(), participantId);
+
+      if (!room) {
+        throw new HttpError(404, "Unable to restart room");
+      }
+
+      response.json({ room: toRoomSnapshot(room, participantId) });
     } catch (error) {
       next(error);
     }
