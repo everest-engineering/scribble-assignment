@@ -6,19 +6,31 @@ import { useRoomStore } from "../state/roomStore";
 export function JoinRoomPage() {
   const [playerName, setPlayerName] = useState("");
   const [roomCode, setRoomCode] = useState("");
-  const [error, setError] = useState<string | null>(null);
+  const [localError, setLocalError] = useState<string | null>(null);
   const navigate = useNavigate();
   const roomStore = useRoomStore();
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    const trimmedName = playerName.trim();
+    const trimmedCode = roomCode.trim();
+
+    if (!trimmedName) {
+      setLocalError("Name cannot be empty");
+      return;
+    }
+
+    if (!trimmedCode || trimmedCode.length < 4) {
+      setLocalError("Please enter a valid room code");
+      return;
+    }
 
     try {
-      setError(null);
-      await roomStore.joinRoom(roomCode.toUpperCase(), playerName);
+      setLocalError(null);
+      await roomStore.joinRoom(trimmedCode.toUpperCase(), trimmedName);
       navigate("/lobby");
     } catch (caughtError) {
-      setError(caughtError instanceof Error ? caughtError.message : "Unable to join room");
+      setLocalError(caughtError instanceof Error ? caughtError.message : "Unable to join room");
     }
   }
 
@@ -49,7 +61,7 @@ export function JoinRoomPage() {
             placeholder="ABCD"
           />
         </label>
-        {error ? <p className="form__error">{error}</p> : null}
+        {localError ? <p className="form__error">{localError}</p> : null}
         <div className="button-row">
           <button className="button button--primary" type="submit">
             Join Lobby

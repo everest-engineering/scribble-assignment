@@ -77,6 +77,10 @@ class RoomStore {
     });
   }
 
+  clearError() {
+    this.setState({ error: null });
+  }
+
   async createRoom(playerName: string) {
     const response = await this.withLoading(() => api.createRoom(playerName));
     this.setRoomSession(response);
@@ -85,6 +89,57 @@ class RoomStore {
 
   async joinRoom(code: string, playerName: string) {
     const response = await this.withLoading(() => api.joinRoom(code, playerName));
+    this.setRoomSession(response);
+    return response;
+  }
+
+  async startGame() {
+    if (!this.state.room || !this.state.participantId) {
+      return null;
+    }
+    const response = await this.withLoading(() =>
+      api.startGame(this.state.room!.code, this.state.participantId!)
+    );
+    this.setRoomSession(response);
+    return response;
+  }
+
+  async submitGuess(text: string) {
+    if (!this.state.room || !this.state.participantId) {
+      return null;
+    }
+    const response = await this.withLoading(() =>
+      api.submitGuess(this.state.room!.code, this.state.participantId!, text)
+    );
+    this.setRoomSession(response);
+    return response;
+  }
+
+  async restartGame() {
+    if (!this.state.room || !this.state.participantId) {
+      return null;
+    }
+    const response = await this.withLoading(() =>
+      api.restartGame(this.state.room!.code, this.state.participantId!)
+    );
+    this.setRoomSession(response);
+    return response;
+  }
+
+  async submitDrawStroke(stroke: { x: number; y: number }[]) {
+    if (!this.state.room || !this.state.participantId) {
+      return null;
+    }
+    const response = await api.submitDrawStroke(this.state.room.code, this.state.participantId, stroke);
+    this.setRoomSession(response);
+    return response;
+  }
+
+  async clearDrawing() {
+    if (!this.state.room || !this.state.participantId) {
+      return null;
+    }
+    const response = await api.clearDrawing(this.state.room.code, this.state.participantId);
     this.setRoomSession(response);
     return response;
   }

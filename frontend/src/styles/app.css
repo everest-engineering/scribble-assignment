@@ -566,3 +566,97 @@ input {
     justify-content: stretch;
   }
 }
+
+.canvas-container {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.drawing-canvas {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #ffffff;
+  touch-action: none;
+}
+
+.host-badge {
+  color: var(--brand);
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.role-badge {
+  color: var(--accent);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.secret-word {
+  font-size: 1.5rem !important;
+  font-weight: 700 !important;
+  color: var(--brand) !important;
+  letter-spacing: 0.05em;
+}
+
+.scoreboard-list {
+  display: grid;
+  gap: 8px;
+}
+
+.scoreboard-list > .placeholder-row {
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-strong);
+}
+
+.guess-history {
+  display: grid;
+  gap: 8px;
+  padding: 0;
+  margin: 8px 0 0;
+  list-style: none;
+}
+
+.guess-history li {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 0.9rem;
+}
+
+.guess-correct {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.guess-incorrect {
+  background: var(--surface-muted);
+  color: var(--ink-soft);
+}
+
+.guess-player {
+  font-weight: 600;
+  min-width: 60px;
+}
+
+.guess-text {
+  flex: 1;
+}
+
+.guess-result {
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+
+.result-word {
+  font-size: 1.25rem;
+  color: var(--ink);
+  padding: 12px;
+  background: #fef3c7;
+  border-radius: 8px;
+  text-align: center;
+}
