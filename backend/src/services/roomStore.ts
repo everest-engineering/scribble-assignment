@@ -30,7 +30,7 @@ function generateUniqueCode() {
 }
 
 function displayName(name?: string) {
-  return name || "Player";
+  return name?.trim() || "Player";
 }
 
 function createParticipant(name?: string): Participant {
