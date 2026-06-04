@@ -7,7 +7,7 @@ import {
   useSyncExternalStore,
   type PropsWithChildren
 } from "react";
-import { api, type RoomSessionResponse, type RoomSnapshot } from "../services/api";
+import { api, type RoomSessionResponse, type RoomSnapshot, type DrawingStroke } from "../services/api";
 
 export interface RoomState {
   room: RoomSnapshot | null;
@@ -27,6 +27,7 @@ class RoomStore {
   };
 
   private listeners = new Set<Listener>();
+  private isFetching = false;
 
   subscribe = (listener: Listener) => {
     this.listeners.add(listener);
@@ -94,7 +95,70 @@ class RoomStore {
       return null;
     }
 
-    const response = await api.fetchRoom(this.state.room.code, this.state.participantId ?? undefined);
+    // Guard: skip if a fetch is already in flight (T020 — prevents request stacking)
+    if (this.isFetching) {
+      return null;
+    }
+
+    this.isFetching = true;
+
+    try {
+      const response = await api.fetchRoom(
+        this.state.room.code,
+        this.state.participantId ?? undefined
+      );
+      this.setRoomSnapshot(response.room);
+      return response.room;
+    } finally {
+      this.isFetching = false;
+    }
+  }
+
+  async startGame() {
+    if (!this.state.room || !this.state.participantId) {
+      return;
+    }
+
+    const response = await this.withLoading(() =>
+      api.startGame(this.state.room!.code, this.state.participantId!)
+    );
+    this.setRoomSnapshot(response.room);
+    return response.room;
+  }
+
+  async submitDrawing(drawing: DrawingStroke[]) {
+    if (!this.state.room || !this.state.participantId) {
+      return;
+    }
+    const response = await api.submitDrawing(
+      this.state.room.code,
+      this.state.participantId,
+      drawing
+    );
+    this.setRoomSnapshot(response.room);
+    return response.room;
+  }
+
+  async submitGuess(guess: string) {
+    if (!this.state.room || !this.state.participantId) {
+      return;
+    }
+    const response = await api.submitGuess(
+      this.state.room.code,
+      this.state.participantId,
+      guess
+    );
+    this.setRoomSnapshot(response.room);
+    return response.room;
+  }
+
+  async restartGame() {
+    if (!this.state.room || !this.state.participantId) {
+      return;
+    }
+    const response = await this.withLoading(() =>
+      api.restartGame(this.state.room!.code, this.state.participantId!)
+    );
     this.setRoomSnapshot(response.room);
     return response.room;
   }

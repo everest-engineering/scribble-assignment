@@ -1,0 +1,186 @@
+# Feature Specification: Scenario 1 — Room Setup & Lobby
+
+**Created**: 2026-06-04
+
+**Status**: Draft — Iteration 1
+
+**Input**: "Given a player wants to host or join a drawing game, When they create or join a room via a unique code, Then the creator is automatically the host; invalid/empty codes are rejected with clear feedback; rooms are fully isolated; the lobby refreshes via polling (~2s); and only the host can start the game once at least 2 players are present."
+
+---
+
+## User Scenarios & Testing
+
+### User Story 1 — Create Room and Become Host (Priority: P1)
+
+A player visits the app, enters their name, and creates a new room. They are automatically designated as the host and land in the Lobby screen. The room code is displayed prominently so they can share it.
+
+**Why this priority**: Without room creation and host assignment, no other scenario can proceed. It is the entry point for every game session.
+
+**Independent Test**: Open one browser tab, create a room with a valid name, and confirm the Lobby screen shows the room code and identifies the current player as the host.
+
+**Acceptance Scenarios**:
+
+1. **Given** a player provides a non-empty, non-whitespace name and submits the Create Room form, **When** `POST /rooms` is called, **Then** the API returns `201` with a `participantId` and a room snapshot where the first participant is the host; the frontend stores the `participantId` and navigates to `/lobby`.
+2. **Given** a player submits the Create Room form with an empty or whitespace-only name, **When** the form is submitted, **Then** the API returns `400` and the frontend displays a clear inline error message; no room is created.
+3. **Given** a room is created, **When** any subsequent player joins or fetches the room, **Then** the first participant (by `joinedAt`) is treated as the host for all permission checks.
+
+---
+
+### User Story 2 — Join Room by Code (Priority: P1)
+
+A second player visits the app, enters their name and a room code shared by the host, and joins the room. They land in the same Lobby screen and see the existing participants.
+
+**Why this priority**: Multiplayer gameplay requires at least two players. Join is the second most critical entry path.
+
+**Independent Test**: Open two browser tabs — one creates a room, the other joins using the code — and confirm both tabs show the same two participants after a lobby refresh.
+
+**Acceptance Scenarios**:
+
+1. **Given** a player provides a valid name and an existing room code, **When** `POST /rooms/:code/join` is called, **Then** the API returns `200` with a new `participantId` and an updated room snapshot; the frontend navigates to `/lobby`.
+2. **Given** a player submits the Join Room form with an empty or whitespace-only name, **When** the form is submitted, **Then** the API returns `400` and the frontend displays a clear inline error message; the player is not added to the room.
+3. **Given** a player submits the Join Room form with an empty or whitespace-only room code, **When** the form is submitted, **Then** the frontend displays a clear inline validation error before the API is called; no request is sent.
+4. **Given** a player enters a room code that does not match any active room, **When** `POST /rooms/:code/join` is called, **Then** the API returns `404` and the frontend displays "Room not found" or equivalent feedback.
+5. **Given** two rooms exist with different codes, **When** players join different rooms, **Then** each room's participant list is fully isolated — a player in Room A cannot see participants in Room B.
+
+---
+
+### User Story 3 — Automatic Lobby Polling (Priority: P2)
+
+Once in the Lobby, a player's participant list refreshes automatically every ~2 seconds without any manual interaction. When a new player joins, all existing players see the updated list within approximately 2 seconds.
+
+**Why this priority**: Polling enables the lobby to feel live. Without it, players would need to manually refresh to see new joiners and would miss the game-start transition.
+
+**Independent Test**: Open two tabs. Tab 1 creates the room and waits. Tab 2 joins. Within ~2 seconds, Tab 1's participant list updates automatically without any button click.
+
+**Acceptance Scenarios**:
+
+1. **Given** a player is on the Lobby screen, **When** 2 seconds have elapsed since the last fetch, **Then** `GET /rooms/:code` is called automatically with the player's `participantId`.
+2. **Given** the poll succeeds, **When** the response is received, **Then** the participant list is updated in the UI without a full page reload; the next poll is scheduled for ~2 seconds later.
+3. **Given** the poll request fails (network error or `404`), **When** the error is received, **Then** a non-blocking error indicator is shown (e.g., a status note); polling continues on the next interval.
+4. **Given** the player navigates away from the Lobby screen, **When** the component unmounts, **Then** the polling interval is cleared and no further requests are made.
+
+---
+
+### User Story 4 — Host-Only Start with Minimum 2 Players (Priority: P2)
+
+The "Start Game" button is only enabled for the host and only when at least 2 players are in the lobby. Non-host players see the button disabled or hidden. Attempting to start with fewer than 2 players is rejected with clear feedback.
+
+**Why this priority**: Enforcing host-only start and the player minimum prevents broken game states and is required before any gameplay scenario can begin.
+
+**Independent Test**: In Tab 1 (host), confirm the Start Game button is disabled until Tab 2 joins. In Tab 2 (non-host), confirm the button is absent or permanently disabled.
+
+**Acceptance Scenarios**:
+
+1. **Given** the host is in the lobby with only 1 participant (themselves), **When** the Lobby screen renders, **Then** the Start Game button is visible but disabled with a tooltip or label such as "Need at least 2 players".
+2. **Given** the host is in the lobby and at least 2 participants are present, **When** the lobby state is polled and updated, **Then** the Start Game button becomes enabled for the host only.
+3. **Given** a non-host player is in the lobby, **When** the Lobby screen renders, **Then** the Start Game button is either hidden or permanently disabled for that player, regardless of participant count.
+4. **Given** the host clicks Start Game with at least 2 players present, **When** `POST /rooms/:code/start` is called, **Then** the backend transitions the room status from `"lobby"` to `"game"` and returns the updated snapshot; the frontend navigates to `/game`.
+5. **Given** the lobby poll detects `status === "game"`, **When** any non-host player's lobby poll returns this status, **Then** that player is automatically navigated to `/game` without needing to click anything.
+
+---
+
+### User Story 5 — Game Start & Drawer Flow (Priority: P1)
+
+Once the game is started by the host, the game transitions into the first round. The host (drawer) is assigned the `"drawer"` role and shown the secret word deterministically selected from the starter list. All other players are guessers; they do not see the secret word and can type guesses.
+
+**Why this priority**: Correctly assigning the drawer role and isolating the secret word is the base of the drawing/guessing game loop.
+
+**Independent Test**: Open two tabs. Start the game. Tab 1 (Host/Drawer) sees "Your word to draw: Castle" and has the guess input disabled. Tab 2 (Guesser) sees "Alice is drawing..." and has the guess input active (with no secret word displayed).
+
+---
+
+### User Story 6 — Gameplay Interaction (Priority: P1)
+
+A round is active. Alice (drawer) draws on her canvas or clears it, and Bob (guesser) sees Alice's drawing update on his canvas within ~2 seconds. Bob submits a guess; incorrect guesses appear in the guess history with score 0, and correct guesses add 100 to Bob's score and transition the room to `"results"` status.
+
+**Why this priority**: The drawing and guessing loop is the core gameplay mechanic of Scribble.
+
+**Independent Test**: Open two tabs. Start the game. Tab 1 (Host/Drawer) draws a line. Within 2 seconds, Tab 2 (Guesser) sees the line. Tab 2 submits an incorrect guess "dog" -> both tabs show "Bob: dog" in the activity panel. Tab 2 submits "castle" (correct) -> both tabs transition to Results, Bob's score becomes 100.
+
+---
+
+## Edge Cases
+
+- What happens when the room code is valid in format but has mixed case? → Codes are normalized to uppercase on both the backend (`code.toUpperCase()`) and frontend input before any API call.
+- What happens when a player navigates directly to `/lobby` without a session? → The frontend detects `room === null` in the store and redirects to `/` immediately.
+- What happens when the same player tries to join the same room twice? → Each call to `POST /rooms/:code/join` creates a new participant entry. Duplicate-join prevention is out of scope for this scenario.
+- What happens when the room code alphabet produces a collision? → `generateUniqueCode()` in `roomStore.ts` already handles this with a retry loop.
+- What happens when a player navigates directly to `/game` without a session? → The frontend detects `room === null` and redirects to `/` immediately.
+- What happens when a player refreshes the page during the game? → The page reloads, hooks run, first fetch on mount restores room state, and polling resumes without breaking the flow.
+- What happens if guessers submit guess text containing extra spaces or mixed casing? → The backend trims whitespace and compares case-insensitively, so "  caStLe " matches "castle".
+- What happens if the drawer disconnects or leaves during drawing? → The canvas state remains on the server until the game is restarted or cleared.
+
+---
+
+## Requirements
+
+### Functional Requirements
+
+- **FR-101**: The backend MUST store the ID of the first participant as `hostId` on the `Room` object when a room is created via `POST /rooms`.
+- **FR-102**: `POST /rooms` and `POST /rooms/:code/join` MUST reject player names that are empty or resolve to empty after trimming, returning `400` with a descriptive error message.
+- **FR-103**: Room codes MUST be case-insensitively matched; all stored and returned codes MUST be uppercase.
+- **FR-104**: The Lobby frontend MUST fetch `GET /rooms/:code` once immediately on mount, then repeat at approximately 2-second intervals while the component is mounted.
+- **FR-105**: The polling interval MUST be cleared when the Lobby component unmounts.
+- **FR-106**: The Start Game button MUST only be interactive for the participant whose `participantId` matches the room's `hostId`.
+- **FR-107**: The Start Game button MUST be disabled when `room.participants.length < 2`, regardless of host status.
+- **FR-108**: `POST /rooms/:code/start` MUST transition `room.status` from `"lobby"` to `"game"` and return a 403 if called by a non-host.
+- **FR-109**: When a lobby poll returns `status === "game"`, the frontend MUST navigate all players (host and non-host) to `/game`.
+- **FR-110**: Rooms MUST be fully isolated — `GET /rooms/:code` returns only participants belonging to that room's code.
+- **FR-111**: `POST /rooms/:code/start` MUST return `400` with `{ message: "Game already started" }` if `room.status` is not `"lobby"` at the time of the call, preventing double-start race conditions.
+- **FR-112**: Background lobby polls MUST NOT trigger a visible loading state in the UI. Only the initial mount fetch may show a loading indicator.
+- **FR-201**: When the game starts, the backend MUST assign the `"drawer"` role to the host player and `"guesser"` to all other players in `roles`.
+- **FR-202**: At game start, the backend MUST deterministically select a secret word from `STARTER_WORDS` using the formula `STARTER_WORDS[room.participants.length % STARTER_WORDS.length]` and store it on the room.
+- **FR-203**: The backend `toRoomSnapshot()` function MUST only include the secret word in `availableWords` (as `[secretWord]`) if the requesting participant is the host (drawer). For guessers, `availableWords` MUST be `[]`.
+- **FR-204**: The GamePage component MUST fetch `GET /rooms/:code` once immediately on mount, then poll at approximately 2-second intervals.
+- **FR-205**: The GamePage component MUST identify the drawer by name to all players (e.g. "Alice is drawing..." for guessers).
+- **FR-206**: The GamePage component MUST display the secret word only to the drawer (host).
+- **FR-207**: The GuessForm component MUST be disabled for the drawer (host) and enabled for guessers.
+- **FR-208**: The polling interval on GamePage MUST be cleared when the component unmounts.
+- **FR-301**: The `Participant` model MUST include a `score` field (integer) initialized to `0`.
+- **FR-302**: The `Room` model MUST support storing drawing strokes as `DrawingStroke[]` and guess history as `GuessEntry[]`.
+- **FR-303**: The backend MUST expose a `POST /rooms/:code/drawing` endpoint to overwrite the room's drawing strokes. Only the host (drawer) can modify the drawing.
+- **FR-304**: The backend MUST expose a `POST /rooms/:code/guesses` endpoint to receive a guess. Only non-host guessers can submit a guess.
+- **FR-305**: Guesses submitted to `POST /rooms/:code/guesses` MUST be trimmed and rejected if empty (400).
+- **FR-306**: Validated guesses MUST be compared case-insensitively with `room.secretWord`. Correct guesses award 100 points to the participant and transition `room.status` to `"results"`.
+- **FR-307**: Every guess (correct or incorrect) MUST append a `GuessEntry` to `room.guesses`.
+- **FR-308**: The GamePage component MUST render an interactive canvas for the drawer and redraw polled canvas strokes for guessers.
+
+### Key Entities
+
+- **Room**: `code` (string), `status` (`"lobby" | "game" | "results"`), `hostId` (string), `participants` (array), `secretWord` (string — optional), `drawing` (DrawingStroke[]), `guesses` (GuessEntry[]), `createdAt`, `updatedAt`.
+- **Participant**: `id` (UUID), `name` (string), `score` (number), `joinedAt` (ISO timestamp).
+- **DrawingStroke**: `points` (array of `{ x: number, y: number }`).
+- **GuessEntry**: `playerName` (string), `guess` (string), `isCorrect` (boolean), `timestamp` (string).
+
+---
+
+## Success Criteria
+
+- **SC-101**: A player can create a room, receive a room code, and land on the Lobby screen within one form submission.
+- **SC-102**: A second player can join using the room code and appear in the first player's Lobby participant list within ~2 seconds (automatic poll).
+- **SC-103**: The Start Game button is enabled exclusively for the host and only when ≥2 players are present.
+- **SC-104**: Entering an invalid room code or empty name produces a visible, specific error message — no silent failures.
+- **SC-105**: Two simultaneously active rooms maintain completely separate participant lists.
+- **SC-106**: Clicking Start Game navigates all lobby participants to the game screen.
+- **SC-201**: Start Game triggers assignment of drawer role to host, and guesser roles to others.
+- **SC-202**: Secret word is deterministically selected and only returned to the host (drawer) in the RoomSnapshot.
+- **SC-203**: Guess input is disabled for the drawer, and enabled for guessers with clear instructions showing who is drawing.
+- **SC-301**: The drawer's freehand mouse/touch strokes are stored on the backend and polled by guessers every ~2 seconds.
+- **SC-302**: Clearing the canvas removes all strokes locally and on the server, showing a blank canvas to all players on the next poll.
+- **SC-303**: Guessers submit guesses which are compared case-insensitively, appearing in the synced Activity feed.
+- **SC-304**: A correct guess transitions the game state to `"results"`, updates the guesser's score by 100, and displays a correct guess message to everyone.
+
+---
+
+## Assumptions
+
+- The host is permanently the first participant; no host transfer occurs if they leave or refresh.
+- Player names are trimmed before storage; the original un-trimmed input is not retained.
+- The polling cadence of ~2 seconds is a target; minor jitter (±200ms) from `setInterval` is acceptable.
+- The `POST /rooms/:code/start` endpoint will be new — it does not exist in the starter.
+- `RoomStatus` will be extended from `"lobby"` to `"lobby" | "game" | "results"` in `backend/src/models/game.ts`.
+- Duplicate-join (same player joining twice) produces a separate participant entry; deduplication is out of scope.
+- The secret word index is computed modulo `STARTER_WORDS.length` to avoid out-of-bounds access.
+- Canvas coordinates are scaled relative to a fixed canvas aspect ratio (e.g. 800x500) to ensure uniform drawing rendering across different viewport sizes.
+- Round ends immediately on the first correct guess; score is updated by exactly 100.
+- Drawer does not receive any points for a correct guess; only guessers receive points.

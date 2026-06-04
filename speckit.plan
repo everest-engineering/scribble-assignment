@@ -1,0 +1,248 @@
+# Implementation Plan: Scenario 1 — Room Setup & Lobby
+
+**Branch**: `scribble-lab` | **Date**: 2026-06-04 | **Spec**: `speckit.specify`
+
+---
+
+## Summary
+
+Add host tracking to the room model, tighten input validation, implement automatic lobby polling on the frontend, and add a host-only `POST /rooms/:code/start` endpoint that transitions the room from `"lobby"` to `"game"` and triggers navigation for all participants.
+
+All changes are brownfield — existing routes and components are extended, not replaced.
+
+---
+
+## Technical Context
+
+**Language/Version**: TypeScript (Node 18+, React 18)
+
+**Primary Dependencies**: Express (backend), React + React Router v6 (frontend), Zod (validation), Vite (dev server)
+
+**Storage**: In-memory `Map<string, Room>` — no persistence
+
+**Testing**: Vitest (both `backend/vitest.config.ts` and `frontend/vitest.config.ts`)
+
+**Target Platform**: Local dev — backend `localhost:3001`, frontend `localhost:5173`
+
+**Project Type**: Fullstack web app — REST API + React SPA
+
+---
+
+## Findings from Discovery
+
+| # | Gap | Location |
+|---|-----|----------|
+| 1 | `Room` model has no `hostId` field | `backend/src/models/game.ts` |
+| 2 | `RoomStatus` is `"lobby"` only — no `"game"` or `"results"` | `backend/src/models/game.ts` |
+| 3 | Name schemas use `.optional()` — empty/whitespace names accepted | `backend/src/api/schemas.ts` |
+| 4 | No `POST /rooms/:code/start` endpoint | `backend/src/api/rooms.ts` |
+| 5 | `toRoomSnapshot` ignores `viewerParticipantId` — can't expose `hostId` | `backend/src/services/roomStore.ts` |
+| 6 | Lobby uses a manual refresh button — no polling interval | `frontend/src/pages/LobbyPage.tsx` |
+| 7 | Start Game button is always enabled, shown to all players | `frontend/src/pages/LobbyPage.tsx` |
+| 8 | API base URL defaults to `http://localhost:3001/bug` | `frontend/src/services/api.ts` L22 |
+| 9 | Frontend `RoomSnapshot` type has no `hostId` | `frontend/src/services/api.ts` |
+
+---
+
+## State Model Changes
+
+### Backend — `Room` (extended)
+
+```
+Room {
+  code:         string          // 4-char uppercase
+  status:       "lobby" | "game" | "results"   // ← extended
+  hostId:       string          // ← NEW: participantId of creator
+  participants: Participant[]
+  createdAt:    string
+  updatedAt:    string
+}
+```
+
+### Backend — `RoomSnapshot` (extended)
+
+```
+RoomSnapshot {
+  code:         string
+  status:       "lobby" | "game" | "results"   // ← extended
+  hostId:       string          // ← NEW: exposed to clients
+  participants: Participant[]
+  availableWords: string[]
+  roles:        ParticipantRole[]
+}
+```
+
+### Frontend — `RoomSnapshot` (mirrored)
+
+```
+RoomSnapshot {
+  code:     string
+  status:   "lobby" | "game" | "results"   // ← extended
+  hostId:   string                          // ← NEW
+  participants: Participant[]
+  availableWords: string[]
+  roles:    ParticipantRole[]
+}
+```
+
+---
+
+## Data Flow
+
+### Create Room
+```
+CreateRoomPage → roomStore.createRoom(name)
+  → POST /rooms { playerName: trimmed name }
+  → backend validates (non-empty after trim)
+  → createRoom() sets room.hostId = participant.id
+  → toRoomSnapshot() includes hostId
+  → 201 { participantId, room: RoomSnapshot }
+  → store.setRoomSession() → navigate("/lobby")
+```
+
+### Join Room
+```
+JoinRoomPage → roomStore.joinRoom(code, name)
+  → POST /rooms/:code/join { playerName: trimmed name }
+  → backend validates name + code existence
+  → 200 { participantId, room: RoomSnapshot }
+  → store.setRoomSession() → navigate("/lobby")
+```
+
+### Lobby Poll (new)
+```
+LobbyPage mounts
+  → setInterval(fetchRoom, 2000)
+  → GET /rooms/:code?participantId=xxx
+  → store.setRoomSnapshot(room)
+  → if room.status === "game" → navigate("/game")
+LobbyPage unmounts → clearInterval
+```
+
+### Start Game (new)
+```
+Host clicks "Start Game"
+  → POST /rooms/:code/start { participantId }
+  → backend checks participantId === room.hostId
+  → backend checks participants.length >= 2
+  → room.status = "game"
+  → 200 { room: RoomSnapshot }
+  → store.setRoomSnapshot() → navigate("/game")
+Non-host players: lobby poll detects status "game" → navigate("/game")
+```
+
+---
+
+## Implementation Sequence
+
+Changes must be applied in this order to avoid breaking the running app at any step:
+
+1. Fix API base URL bug (frontend `api.ts`) [done]
+2. Extend models and statuses (backend `game.ts`) [done]
+3. Mirror snapshot update (frontend `api.ts`) [done]
+4. Tighten Zod name validation schemas (backend `schemas.ts`) [done]
+5. Add `hostId` to `createRoom()` (backend `roomStore.ts`) [done]
+6. Update `toRoomSnapshot()` (backend `roomStore.ts`) [done]
+7. Add `POST /rooms/:code/start` route handler (backend `rooms.ts`) [done]
+8. Replace manual Lobby refresh with polling (frontend `LobbyPage.tsx`) [done]
+9. Add host-only Start Game button logic (frontend `LobbyPage.tsx`) [done]
+10. Add auto-navigate to `/game` (frontend `LobbyPage.tsx`) [done]
+11. Add `startGame()` method to `RoomStore` (frontend `roomStore.ts`) [done]
+12. Add `api.startGame()` method (frontend `api.ts`) [done]
+13. Implement active GamePage polling and role rendering (frontend `GamePage.tsx`) [done]
+14. Add scores to `Participant`, drawing/guesses to `Room` (backend `game.ts`)
+15. Initialize score, drawing, and guesses (backend `roomStore.ts`)
+16. Add schemas for drawings and guesses (backend `schemas.ts`)
+17. Add routes `POST /drawing` and `POST /guesses` (backend `rooms.ts`)
+18. Add API client and Store support for drawings/guesses (frontend `api.ts`, `roomStore.ts`)
+19. Create `<DrawingCanvas>` component (frontend `DrawingCanvas.tsx` [NEW])
+20. Wire `<DrawingCanvas>` and state variables into `GamePage.tsx`
+21. Update Scoreboard, ResultPanel, and GuessForm components to display dynamic data
+
+---
+
+## File-Level Plan
+
+### Backend
+
+#### [MODIFY] `backend/src/models/game.ts`
+- Add `score: number` to `Participant` interface.
+- Add `DrawingStroke` and `GuessEntry` interfaces.
+- Add `drawing: DrawingStroke[]` and `guesses: GuessEntry[]` to `Room` and `RoomSnapshot` interfaces.
+
+#### [MODIFY] `backend/src/api/schemas.ts`
+- Add `submitDrawingSchema` for `POST /rooms/:code/drawing`: `{ participantId: z.string(), drawing: z.array(z.any()) }`.
+- Add `submitGuessSchema` for `POST /rooms/:code/guesses`: `{ participantId: z.string(), guess: z.string().min(1) }`.
+
+#### [MODIFY] `backend/src/services/roomStore.ts`
+- Initialize participant score to `0`.
+- Initialize `room.drawing = []` and `room.guesses = []` on room creation.
+- Map `drawing: room.drawing || []` and `guesses: room.guesses || []` in `toRoomSnapshot`.
+
+#### [MODIFY] `backend/src/api/rooms.ts`
+- Add `POST /:code/drawing` handler:
+  - Overwrites `room.drawing` with the posted strokes.
+- Add `POST /:code/guesses` handler:
+  - Validates and trims guess. Matches case-insensitively with `secretWord`.
+  - Appends `GuessEntry` to `guesses`. If correct, awards 100 points and sets status to `"results"`.
+
+---
+
+### Frontend
+
+#### [MODIFY] `frontend/src/services/api.ts`
+- Mirror backend interface changes: `score` on `Participant`, `drawing` and `guesses` on `RoomSnapshot`.
+- Add `api.submitDrawing()` and `api.submitGuess()` client methods.
+
+#### [MODIFY] `frontend/src/state/roomStore.ts`
+- Add `submitDrawing(drawing)` and `submitGuess(guess)` actions to `RoomStore`.
+
+#### [NEW] `frontend/src/components/DrawingCanvas.tsx`
+- Create component supporting freehand canvas sketching (scaled internally to 800x500).
+- If drawer, attach mouse listeners to draw on canvas and send strokes via `roomStore.submitDrawing` on mouse up / clear.
+- If guesser, redraw lines on canvas from polled `room.drawing` array.
+
+#### [MODIFY] `frontend/src/pages/GamePage.tsx`
+- Embed `<DrawingCanvas />` inside canvas container.
+- Pass `room.guesses` to `<ResultPanel />` and `room.participants` to `<Scoreboard />`.
+
+#### [MODIFY] `frontend/src/components/GuessForm.tsx`
+- Wire submission to call `roomStore.submitGuess()`. Clear guess text on success.
+
+#### [MODIFY] `frontend/src/components/Scoreboard.tsx`
+- Map participants, sort them by score descending, and display in the scoreboard list.
+
+#### [MODIFY] `frontend/src/components/ResultPanel.tsx`
+- Map guess history and display list in scrollable container, highlighting correct guesses.
+
+---
+
+## Testing Strategy
+
+### Automated
+- `backend/src/services/roomStore.test.ts`:
+  - Add test: correct guess updates score by 100, sets status to `"results"`, and records correct guess.
+  - Add test: incorrect guess keeps score unchanged and records incorrect guess.
+  - Add test: `submitDrawing` updates strokes.
+
+### Manual (2-tab verification)
+1. Tab 1: Create room as Alice (host).
+2. Tab 2: Join room as Bob.
+3. Tab 1: Start game.
+4. Tab 1 (Alice): Draw line on canvas -> verify Bob sees it automatically.
+5. Tab 1 (Alice): Click clear canvas -> verify Bob's canvas becomes empty.
+6. Tab 2 (Bob): Type incorrect guess "guitar" -> verify both guess lists display Bob's guess as incorrect (grey text) and scores stay 0.
+7. Tab 2 (Bob): Type correct guess "castle" -> verify both screens transition to Results, Bob's score is updated to 100, and correct guess is logged.
+
+---
+
+## Risks & Mitigations
+
+| Risk | Mitigation |
+|------|-----------|
+| Polling interval leaks if component re-mounts rapidly | Use `useRef` to hold interval ID; clear in cleanup |
+| `setInterval` drift over time causes requests to stack | Clear previous interval before setting a new one; guard against concurrent fetches |
+| Non-host accidentally calls `/start` if UI bug exists | Backend enforces `hostId` check — 403 returned regardless of UI state |
+| Base URL fix breaks existing local dev setup | Fix is a 1-char change removing `/bug`; no env var needed for default local dev |
+| Secret word exposed in JS bundle or page source | Snapshot filtering ensures the secret word is only sent over the network to the drawer's client |
+| Large drawing payload slows down polling requests | Limit coordinates resolution; clear canvas clears strokes; payload is very small (few KBs max) |
