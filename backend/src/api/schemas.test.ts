@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createRoomSchema, roomCodeParamsSchema } from "./schemas.js";
+import { createRoomSchema, roomCodeParamsSchema, submitGuessSchema } from "./schemas.js";
 
 describe("schemas", () => {
   it("createRoomSchema accepts a valid body with playerName", () => {
@@ -8,7 +8,24 @@ describe("schemas", () => {
     expect(result.playerName).toBe("Alice");
   });
 
+  it("createRoomSchema rejects empty playerName", () => {
+    expect(() => createRoomSchema.parse({ playerName: "" })).toThrow();
+  });
+
+  it("createRoomSchema rejects whitespace-only playerName", () => {
+    expect(() => createRoomSchema.parse({ playerName: "   " })).toThrow();
+  });
+
   it("roomCodeParamsSchema rejects missing code", () => {
     expect(() => roomCodeParamsSchema.parse({})).toThrow();
+  });
+
+  it("submitGuessSchema rejects empty guess text", () => {
+    expect(() => submitGuessSchema.parse({ participantId: "p1", text: "" })).toThrow();
+  });
+
+  it("submitGuessSchema trims whitespace from guess text", () => {
+    const result = submitGuessSchema.parse({ participantId: "p1", text: "  rocket  " });
+    expect(result.text).toBe("rocket");
   });
 });
