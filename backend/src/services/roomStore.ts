@@ -30,16 +30,21 @@ function generateUniqueCode() {
   return code;
 }
 
-function displayName(name?: string) {
-  return name || "Player";
-}
-
-function createParticipant(name?: string): Participant {
+function createParticipant(name: string): Participant {
   return {
     id: randomUUID(),
-    name: displayName(name),
+    name,
     joinedAt: now()
   };
+}
+
+function selectWord(code: string): string {
+  let index = 0;
+  for (let i = 0; i < code.length; i++) {
+    index += code.charCodeAt(i);
+  }
+  const words = listWords();
+  return words[index % words.length];
 }
 
 function cloneRoom(room: Room) {
@@ -50,12 +55,15 @@ export function listWords() {
   return [...STARTER_WORDS];
 }
 
-export function createRoom(playerName?: string) {
+export function createRoom(playerName: string) {
   const participant = createParticipant(playerName);
   const room: Room = {
     code: generateUniqueCode(),
     status: "lobby",
     hostId: participant.id,
+    drawerId: "",
+    secretWord: "",
+    round: 0,
     participants: [participant],
     createdAt: now(),
     updatedAt: now()
@@ -69,7 +77,7 @@ export function createRoom(playerName?: string) {
   };
 }
 
-export function joinRoom(code: string, playerName?: string) {
+export function joinRoom(code: string, playerName: string) {
   const room = rooms.get(code);
 
   if (!room) {
@@ -102,6 +110,9 @@ export function startGame(code: string, participantId: string) {
     throw new HttpError(400, "At least 2 players are required to start");
   }
 
+  room.drawerId = room.hostId;
+  room.secretWord = selectWord(room.code);
+  room.round = 1;
   room.status = "playing";
   room.updatedAt = now();
   rooms.set(room.code, room);
@@ -123,12 +134,15 @@ export function saveRoom(room: Room) {
 }
 
 export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSnapshot {
-  void viewerParticipantId;
+  const isDrawer = viewerParticipantId === room.drawerId;
 
   return {
     code: room.code,
     status: room.status,
     hostId: room.hostId,
+    drawerId: room.drawerId,
+    secretWord: isDrawer ? room.secretWord : undefined,
+    round: room.round,
     participants: room.participants.map((participant) => ({ ...participant })),
     availableWords: listWords(),
     roles: [...STARTER_ROLES]
