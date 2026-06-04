@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createRoom, getRoom, joinRoom, startGame, submitGuess, toRoomSnapshot } from "./roomStore.js";
+import { createRoom, getRoom, joinRoom, restartGame, startGame, submitGuess, toRoomSnapshot } from "./roomStore.js";
 
 describe("roomStore", () => {
 
@@ -184,16 +184,19 @@ describe("roomStore", () => {
     );
   });
 
-  it("submitGuess does not double-score on duplicate correct", () => {
+  it("submitGuess transitions to result and prevents further guesses on duplicate correct", () => {
     const created = createRoom("Alice");
     joinRoom(created.room.code, "Bob");
     const game = startGame(created.room.code, created.participantId);
     const bobId = game.room.participants[1].id;
 
-    submitGuess(created.room.code, bobId, game.room.secretWord);
-    const result = submitGuess(created.room.code, bobId, game.room.secretWord);
+    const first = submitGuess(created.room.code, bobId, game.room.secretWord);
+    expect(first.room.scores[bobId]).toBe(100);
+    expect(first.room.status).toBe("result");
 
-    expect(result.room.scores[bobId]).toBe(100);
+    expect(() => submitGuess(created.room.code, bobId, game.room.secretWord)).toThrow(
+      "Game is not in progress"
+    );
   });
 
   it("submitGuess throws for unknown room", () => {
@@ -218,5 +221,83 @@ describe("roomStore", () => {
 
     expect(result.room.guesses).toHaveLength(1);
     expect(result.room.scores[bobId]).toBe(0);
+  });
+
+  it("submitGuess transitions to result on correct guess", () => {
+    const created = createRoom("Alice");
+    joinRoom(created.room.code, "Bob");
+    const game = startGame(created.room.code, created.participantId);
+    const bobId = game.room.participants[1].id;
+
+    const result = submitGuess(created.room.code, bobId, game.room.secretWord);
+
+    expect(result.room.status).toBe("result");
+  });
+
+  it("toRoomSnapshot includes correctWord in result state for all viewers", () => {
+    const created = createRoom("Alice");
+    joinRoom(created.room.code, "Bob");
+    const game = startGame(created.room.code, created.participantId);
+    const bobId = game.room.participants[1].id;
+
+    const afterGuess = submitGuess(created.room.code, bobId, game.room.secretWord);
+    const snapshotForDrawer = toRoomSnapshot(afterGuess.room, created.participantId);
+    const snapshotForGuesser = toRoomSnapshot(afterGuess.room, bobId);
+
+    expect(snapshotForDrawer.correctWord).toBe(game.room.secretWord);
+    expect(snapshotForGuesser.correctWord).toBe(game.room.secretWord);
+  });
+
+  it("toRoomSnapshot does not include correctWord in playing state", () => {
+    const created = createRoom("Alice");
+    joinRoom(created.room.code, "Bob");
+    const game = startGame(created.room.code, created.participantId);
+
+    const snapshot = toRoomSnapshot(game.room, created.participantId);
+
+    expect(snapshot.correctWord).toBeUndefined();
+  });
+
+  it("restartGame resets round state and preserves participants", () => {
+    const created = createRoom("Alice");
+    joinRoom(created.room.code, "Bob");
+    const game = startGame(created.room.code, created.participantId);
+    const bobId = game.room.participants[1].id;
+    submitGuess(created.room.code, bobId, game.room.secretWord);
+
+    const result = restartGame(created.room.code, created.participantId);
+
+    expect(result.room.status).toBe("lobby");
+    expect(result.room.drawerId).toBe("");
+    expect(result.room.secretWord).toBe("");
+    expect(result.room.round).toBe(0);
+    expect(result.room.guesses).toHaveLength(0);
+    expect(result.room.scores).toEqual({});
+    expect(result.room.participants).toHaveLength(2);
+  });
+
+  it("restartGame throws for non-host", () => {
+    const created = createRoom("Alice");
+    const joiner = joinRoom(created.room.code, "Bob");
+    const game = startGame(created.room.code, created.participantId);
+    const bobId = game.room.participants[1].id;
+    submitGuess(created.room.code, bobId, game.room.secretWord);
+
+    expect(() => restartGame(created.room.code, joiner!.participantId)).toThrow(
+      "Only the host can restart the game"
+    );
+  });
+
+  it("restartGame throws for unknown room", () => {
+    expect(() => restartGame("ZZZZ", "some-id")).toThrow("Room not found");
+  });
+
+  it("restartGame works with only one participant", () => {
+    const created = createRoom("Alice");
+
+    const result = restartGame(created.room.code, created.participantId);
+
+    expect(result.room.status).toBe("lobby");
+    expect(result.room.participants).toHaveLength(1);
   });
 });
