@@ -21,13 +21,13 @@
 
 **⚠️ CRITICAL**: All phases depend on this phase being complete first.
 
-- [ ] T001 Add `score: number` field to `Participant` interface in `backend/src/models/game.ts` (initialised to `0`)
-- [ ] T002 Add `strokes: Stroke[]` field to `Room` interface in `backend/src/models/game.ts`
-- [ ] T003 Add `guesses: GuessRecord[]` field to `Room` interface in `backend/src/models/game.ts`
-- [ ] T004 Add `Stroke` discriminated union types (`DrawStroke`, `ClearStroke`) and `GuessRecord` type in `backend/src/models/game.ts`; `GuessRecord` includes internal `participantId` for cap enforcement
-- [ ] T005 Add `SnapshotGuessRecord` type (strip `participantId`) in `backend/src/models/game.ts`
-- [ ] T006 Extend `RoomSnapshot` with `strokes: Stroke[]` and `guesses: SnapshotGuessRecord[]` in `backend/src/models/game.ts`
-- [ ] T007 Add `score: 0` to `createParticipant()` in `backend/src/services/roomStore.ts`; add `strokes: []` and `guesses: []` to `createRoom()`; update `toRoomSnapshot()` to forward `strokes` and `guesses` (strip `participantId` via map)
+- [x] T001 Add `score: number` field to `Participant` interface in `backend/src/models/game.ts` (initialised to `0`)
+- [x] T002 Add `strokes: Stroke[]` field to `Room` interface in `backend/src/models/game.ts`
+- [x] T003 Add `guesses: GuessRecord[]` field to `Room` interface in `backend/src/models/game.ts`
+- [x] T004 Add `Stroke` discriminated union types (`DrawStroke`, `ClearStroke`) and `GuessRecord` type in `backend/src/models/game.ts`; `GuessRecord` includes internal `participantId` for cap enforcement
+- [x] T005 Add `SnapshotGuessRecord` type (strip `participantId`) in `backend/src/models/game.ts`
+- [x] T006 Extend `RoomSnapshot` with `strokes: Stroke[]` and `guesses: SnapshotGuessRecord[]` in `backend/src/models/game.ts`
+- [x] T007 Add `score: 0` to `createParticipant()` in `backend/src/services/roomStore.ts`; add `strokes: []` and `guesses: []` to `createRoom()`; update `toRoomSnapshot()` to forward `strokes` and `guesses` (strip `participantId` via map)
 
 ---
 
@@ -36,9 +36,9 @@
 **Purpose**: Add `POST /rooms/:code/strokes` and `POST /rooms/:code/guess` with Zod
 validation and all business rule gates.
 
-- [ ] T008 Add `strokeSchema` (z.discriminatedUnion with `"draw"` and `"clear"` variants) and `guessSchema` (participantId + guess string) to `backend/src/api/schemas.ts`
-- [ ] T009 Add `POST /rooms/:code/strokes` handler in `backend/src/api/rooms.ts`: Zod parse → check room exists (404) → check `status === "playing"` (400) → check `participantId === drawerId` (403) → if `type === "draw"`, push stroke to `room.strokes`; if `type === "clear"`, reset `room.strokes` to `[]` (FR-002) → `saveRoom()` → return `toRoomSnapshot()`
-- [ ] T010 Add `POST /rooms/:code/guess` handler in `backend/src/api/rooms.ts`: Zod parse → trim guess → check not empty/whitespace (400) → check room exists (404) → check `status === "playing"` and `currentWord !== null` (400) → check `participantId !== drawerId` (403) → find participant (404) → check no existing correct guess by this `participantId` via `room.guesses.some()` (400) → case-insensitive compare → update participant `score` (+100 if correct) → append to `room.guesses` → `saveRoom()` → return `{ correct, score }`
+- [x] T008 Add `strokeSchema` (z.discriminatedUnion with `"draw"` and `"clear"` variants) and `guessSchema` (participantId + guess string) to `backend/src/api/schemas.ts`
+- [x] T009 Add `POST /rooms/:code/strokes` handler in `backend/src/api/rooms.ts`: Zod parse → check room exists (404) → check `status === "playing"` (400) → check `participantId === drawerId` (403) → if `type === "draw"`, push stroke to `room.strokes`; if `type === "clear"`, reset `room.strokes` to `[]` (FR-002) → `saveRoom()` → return `toRoomSnapshot()`
+- [x] T010 Add `POST /rooms/:code/guess` handler in `backend/src/api/rooms.ts`: Zod parse → trim guess → check not empty/whitespace (400) → check room exists (404) → check `status === "playing"` and `currentWord !== null` (400) → check `participantId !== drawerId` (403) → find participant (404) → check no existing correct guess by this `participantId` via `room.guesses.some()` (400) → case-insensitive compare → update participant `score` (+100 if correct) → append to `room.guesses` → `saveRoom()` → return `{ correct, score }`
 
 ---
 
@@ -47,10 +47,10 @@ validation and all business rule gates.
 **Purpose**: Extend `Participant`, `RoomSnapshot` on the frontend and add `submitStroke` /
 `submitGuess` API methods.
 
-- [ ] T011 Add `DrawStroke`, `ClearStroke`, `Stroke`, `SnapshotGuessRecord` types and extend `Participant` with `score: number` in `frontend/src/services/api.ts`
-- [ ] T012 Extend `RoomSnapshot` with `strokes: Stroke[]` and `guesses: SnapshotGuessRecord[]` in `frontend/src/services/api.ts`
-- [ ] T013 Add `api.submitStroke(code, participantId, strokeData)` method in `frontend/src/services/api.ts`: `POST /rooms/:code/strokes` with body `{ ...strokeData, participantId }` where `strokeData: Stroke` (the `Stroke` type from T011/T012 has no `participantId` field — it is injected by the API method)
-- [ ] T014 Add `api.submitGuess(code, participantId, guess)` method in `frontend/src/services/api.ts`: `POST /rooms/:code/guess`, returns `{ correct: boolean; score: number }`
+- [x] T011 Add `DrawStroke`, `ClearStroke`, `Stroke`, `SnapshotGuessRecord` types and extend `Participant` with `score: number` in `frontend/src/services/api.ts`
+- [x] T012 Extend `RoomSnapshot` with `strokes: Stroke[]` and `guesses: SnapshotGuessRecord[]` in `frontend/src/services/api.ts`
+- [x] T013 Add `api.submitStroke(code, participantId, strokeData)` method in `frontend/src/services/api.ts`: `POST /rooms/:code/strokes` with body `{ ...strokeData, participantId }` where `strokeData: Stroke` (the `Stroke` type from T011/T012 has no `participantId` field — it is injected by the API method)
+- [x] T014 Add `api.submitGuess(code, participantId, guess)` method in `frontend/src/services/api.ts`: `POST /rooms/:code/guess`, returns `{ correct: boolean; score: number }`
 
 ---
 
@@ -61,9 +61,9 @@ validation and all business rule gates.
 **Independent Test**: Render `GuessForm` with a mock `onSubmit`; type a guess and click
 Submit; confirm `onSubmit` is called with the trimmed guess string.
 
-- [ ] T015 [US2] Add `onSubmit: (guess: string) => void` prop to `GuessFormProps` interface in `frontend/src/components/GuessForm.tsx`
-- [ ] T016 [US2] In `frontend/src/components/GuessForm.tsx`, inside `handleSubmit` call `onSubmit(guessText.trim())` and clear the input (set state to `""`); the parent is responsible for server communication
-- [ ] T017 [US2] Extend `GuessFormProps` in `frontend/src/components/GuessForm.tsx` with optional props `error?: string` and `lastResult?: "correct" | "incorrect"`; inside the component render these inline below the input/button when provided — `GuessForm` is display-only for feedback; the parent (`GamePage`) drives the actual submit logic and passes these props
+- [x] T015 [US2] Add `onSubmit: (guess: string) => void` prop to `GuessFormProps` interface in `frontend/src/components/GuessForm.tsx`
+- [x] T016 [US2] In `frontend/src/components/GuessForm.tsx`, inside `handleSubmit` call `onSubmit(guessText.trim())` and clear the input (set state to `""`); the parent is responsible for server communication
+- [x] T017 [US2] Extend `GuessFormProps` in `frontend/src/components/GuessForm.tsx` with optional props `error?: string` and `lastResult?: "correct" | "incorrect"`; inside the component render these inline below the input/button when provided — `GuessForm` is display-only for feedback; the parent (`GamePage`) drives the actual submit logic and passes these props
 
 ---
 
@@ -75,11 +75,11 @@ players see the canvas state via polling full redraw.
 **Independent Test**: Tab A (drawer) draws a line on canvas; Tab B (guesser) polls and the
 same line appears within ~2s. Tab A clicks Clear; Tab B canvas goes blank within ~2s.
 
-- [ ] T018 [US1] In `frontend/src/pages/GamePage.tsx`, replace the `<div className="canvas-placeholder">` with `<canvas ref={canvasRef} width={500} height={500}>` inside the existing `<Card title="Canvas">`
-- [ ] T019 [US1] Add a `useRef<HTMLCanvasElement>(null)` for the canvas and a `useEffect` keyed on `room.strokes`: if `canvasRef.current` exists, get 2D context, call `clearRect(0, 0, width, height)`, then iterate `room.strokes` and replay each `"draw"` stroke with `beginPath`/`moveTo`/`lineTo`/`stroke`; skip `"clear"` entries since `clearRect` already handled it (FR-004a)
-- [ ] T020 [US1] For the drawer (`isDrawer`) only: add mouse event handlers (`onMouseDown`, `onMouseMove`, `onMouseUp`) on the `<canvas>` element that track a local `isDrawing` flag and accumulate the current stroke; on `mouseUp` call `api.submitStroke(code, participantId, { type:"draw", x0, y0, x1, y1, color: "#000000", lineWidth: 3 })` (participantId is separate from the `Stroke` payload per T013 fix), then call `roomStore.fetchRoom()` to refresh local state
-- [ ] T021 [US1] Add a "Clear Canvas" button below the canvas, visible only when `isDrawer`; on click call `api.submitStroke(code, participantId, { type:"clear" })`, then `roomStore.fetchRoom()` (FR-002)
-- [ ] T022 [US1] For non-drawers (`!isDrawer`): set `style={{ pointerEvents: "none" }}` on the `<canvas>` element so the canvas is read-only (FR-003a); they still see strokes replayed from `room.strokes`
+- [x] T018 [US1] In `frontend/src/pages/GamePage.tsx`, replace the `<div className="canvas-placeholder">` with `<canvas ref={canvasRef} width={500} height={500}>` inside the existing `<Card title="Canvas">`
+- [x] T019 [US1] Add a `useRef<HTMLCanvasElement>(null)` for the canvas and a `useEffect` keyed on `room.strokes`: if `canvasRef.current` exists, get 2D context, call `clearRect(0, 0, width, height)`, then iterate `room.strokes` and replay each `"draw"` stroke with `beginPath`/`moveTo`/`lineTo`/`stroke`; skip `"clear"` entries since `clearRect` already handled it (FR-004a)
+- [x] T020 [US1] For the drawer (`isDrawer`) only: add mouse event handlers (`onMouseDown`, `onMouseMove`, `onMouseUp`) on the `<canvas>` element that track a local `isDrawing` flag and accumulate the current stroke; on `mouseUp` call `api.submitStroke(code, participantId, { type:"draw", x0, y0, x1, y1, color: "#000000", lineWidth: 3 })` (participantId is separate from the `Stroke` payload per T013 fix), then call `roomStore.fetchRoom()` to refresh local state
+- [x] T021 [US1] Add a "Clear Canvas" button below the canvas, visible only when `isDrawer`; on click call `api.submitStroke(code, participantId, { type:"clear" })`, then `roomStore.fetchRoom()` (FR-002)
+- [x] T022 [US1] For non-drawers (`!isDrawer`): set `style={{ pointerEvents: "none" }}` on the `<canvas>` element so the canvas is read-only (FR-003a); they still see strokes replayed from `room.strokes`
 
 ---
 
@@ -90,9 +90,9 @@ same line appears within ~2s. Tab A clicks Clear; Tab B canvas goes blank within
 **Independent Test**: Tab B submits correct guess → sees "Correct!" inline and score 100.
 Tab B submits whitespace → sees error inline. Tab A (drawer) confirms no guess form visible.
 
-- [ ] T023 [US2] In `frontend/src/pages/GamePage.tsx`, conditionally render `<GuessForm>` only when `!isDrawer` inside the "Your Guess" `<Card>`; when `isDrawer` show a message such as `"You are drawing — guess form is hidden"` (FR-008a)
-- [ ] T024 [US2] In `frontend/src/pages/GamePage.tsx`, pass `onSubmit` to `<GuessForm>` that calls `api.submitGuess(room.code, participantId, guess)`; on success set `lastResult` state to `"correct"` or `"incorrect"` and pass it as the `lastResult` prop to `<GuessForm>`; on error set `guessError` state and pass it as the `error` prop — all feedback rendering lives inside `GuessForm` (T017), not in `GamePage`
-- [ ] T025 [US2] In `frontend/src/pages/GamePage.tsx`, catch submit errors from `api.submitGuess` (e.g., 400/403) and pass `error` prop to `<GuessForm>` so the user sees the error message inline without crashing the UI
+- [x] T023 [US2] In `frontend/src/pages/GamePage.tsx`, conditionally render `<GuessForm>` only when `!isDrawer` inside the "Your Guess" `<Card>`; when `isDrawer` show a message such as `"You are drawing — guess form is hidden"` (FR-008a)
+- [x] T024 [US2] In `frontend/src/pages/GamePage.tsx`, pass `onSubmit` to `<GuessForm>` that calls `api.submitGuess(room.code, participantId, guess)`; on success set `lastResult` state to `"correct"` or `"incorrect"` and pass it as the `lastResult` prop to `<GuessForm>`; on error set `guessError` state and pass it as the `error` prop — all feedback rendering lives inside `GuessForm` (T017), not in `GamePage`
+- [x] T025 [US2] In `frontend/src/pages/GamePage.tsx`, catch submit errors from `api.submitGuess` (e.g., 400/403) and pass `error` prop to `<GuessForm>` so the user sees the error message inline without crashing the UI
 
 ---
 
@@ -103,7 +103,7 @@ Tab B submits whitespace → sees error inline. Tab A (drawer) confirms no guess
 **Independent Test**: Submit correct and incorrect guesses from Tab B. Tab A (drawer) and
 Tab B both show identical history in correct order.
 
-- [ ] T026 [US3] In `frontend/src/pages/GamePage.tsx`, add a `<Card title="Guess History">` area that renders `room.guesses.map((g, i) => ...)` showing `participantName`, `text`, and a correct/incorrect indicator (e.g., checkmark or red X) for each entry; render below the Secret Word card or in the left sidebar
+- [x] T026 [US3] In `frontend/src/pages/GamePage.tsx`, add a `<Card title="Guess History">` area that renders `room.guesses.map((g, i) => ...)` showing `participantName`, `text`, and a correct/incorrect indicator (e.g., checkmark or red X) for each entry; render below the Secret Word card or in the left sidebar
 
 ---
 
@@ -113,8 +113,8 @@ Tab B both show identical history in correct order.
 
 **Independent Test**: After a correct guess, confirm `Scoreboard` shows the updated score.
 
-- [ ] T027 [US4] Wire `Scoreboard` component in `frontend/src/components/Scoreboard.tsx` to accept `participants` prop: sort by `score` descending and render each participant's name + score; replace placeholder content; `GamePage` already renders `<Scoreboard />` — pass `participants={room.participants}`
-- [ ] T028 [US4] Wire `ResultPanel` component in `frontend/src/components/ResultPanel.tsx` to accept `guesses` prop: render the last N recent guesses (e.g., last 5) or leave as-is if the dedicated "Guess History" card in T026 is preferred; if repurposing, show a summary like "X guesses so far, Y correct"
+- [x] T027 [US4] Wire `Scoreboard` component in `frontend/src/components/Scoreboard.tsx` to accept `participants` prop: sort by `score` descending and render each participant's name + score; replace placeholder content; `GamePage` already renders `<Scoreboard />` — pass `participants={room.participants}`
+- [x] T028 [US4] Wire `ResultPanel` component in `frontend/src/components/ResultPanel.tsx` to accept `guesses` prop: render the last N recent guesses (e.g., last 5) or leave as-is if the dedicated "Guess History" card in T026 is preferred; if repurposing, show a summary like "X guesses so far, Y correct"
 
 ---
 
@@ -122,10 +122,10 @@ Tab B both show identical history in correct order.
 
 **Purpose**: Type safety verification, build validation, manual acceptance test.
 
-- [ ] T029 [P] Verify no `any` types introduced across all modified files: `backend/src/models/game.ts`, `backend/src/services/roomStore.ts`, `backend/src/api/schemas.ts`, `backend/src/api/rooms.ts`, `frontend/src/services/api.ts`, `frontend/src/components/GuessForm.tsx`, `frontend/src/components/Scoreboard.tsx`, `frontend/src/components/ResultPanel.tsx`, `frontend/src/pages/GamePage.tsx`
-- [ ] T030 [P] Verify `room.strokes` and `room.guesses` are never mutated outside `POST /:code/strokes` and `POST /:code/guess` handlers — confirm `saveRoom()` and `toRoomSnapshot()` do not overwrite or reorder them
-- [ ] T031 [P] Run `npm run build` in `backend/` and confirm zero TypeScript errors
-- [ ] T032 [P] Run `npm run build` in `frontend/` and confirm zero TypeScript errors
+- [x] T029 [P] Verify no `any` types introduced across all modified files: `backend/src/models/game.ts`, `backend/src/services/roomStore.ts`, `backend/src/api/schemas.ts`, `backend/src/api/rooms.ts`, `frontend/src/services/api.ts`, `frontend/src/components/GuessForm.tsx`, `frontend/src/components/Scoreboard.tsx`, `frontend/src/components/ResultPanel.tsx`, `frontend/src/pages/GamePage.tsx`
+- [x] T030 [P] Verify `room.strokes` and `room.guesses` are never mutated outside `POST /:code/strokes` and `POST /:code/guess` handlers — confirm `saveRoom()` and `toRoomSnapshot()` do not overwrite or reorder them
+- [x] T031 [P] Run `npm run build` in `backend/` and confirm zero TypeScript errors
+- [x] T032 [P] Run `npm run build` in `frontend/` and confirm zero TypeScript errors
 - [ ] T033 Manual two-tab acceptance test per plan.md Testing Strategy: create room (Tab A), join (Tab B), host clicks Start Game, drawer draws line → Tab B sees it, drawer clears → Tab B canvas blanks, Tab B submits correct guess → score 100 + "Correct!", Tab B submits empty → 400 error shown, Tab B submits again with same word → 400 cap error, verify guess history identical on both tabs, verify scoreboard shows updated scores
 
 ---

@@ -5,6 +5,36 @@ export interface Participant {
   id: string;
   name: string;
   joinedAt: string;
+  score: number;
+}
+
+export interface DrawStroke {
+  type: "draw";
+  x0: number;
+  y0: number;
+  x1: number;
+  y1: number;
+  color: string;
+  lineWidth: number;
+}
+
+export interface ClearStroke {
+  type: "clear";
+}
+
+export type Stroke = DrawStroke | ClearStroke;
+
+export interface GuessRecord {
+  participantId: string;
+  participantName: string;
+  text: string;
+  correct: boolean;
+}
+
+export interface SnapshotGuessRecord {
+  participantName: string;
+  text: string;
+  correct: boolean;
 }
 
 export interface Room {
@@ -12,6 +42,8 @@ export interface Room {
   hostId: string;
   drawerId: string | null;
   currentWord: string | null;
+  strokes: Stroke[];
+  guesses: GuessRecord[];
   status: RoomStatus;
   participants: Participant[];
   createdAt: string;
@@ -23,6 +55,8 @@ export interface RoomSnapshot {
   hostId: string;
   drawerId: string | null;
   currentWord: string | null;
+  strokes: Stroke[];
+  guesses: SnapshotGuessRecord[];
   status: RoomStatus;
   participants: Participant[];
   availableWords: string[];

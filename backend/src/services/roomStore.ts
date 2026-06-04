@@ -37,7 +37,8 @@ function createParticipant(name?: string): Participant {
   return {
     id: randomUUID(),
     name: displayName(name),
-    joinedAt: now()
+    joinedAt: now(),
+    score: 0
   };
 }
 
@@ -61,6 +62,8 @@ export function createRoom(playerName?: string) {
     hostId: participant.id,
     drawerId: null,
     currentWord: null,
+    strokes: [],
+    guesses: [],
     status: "lobby",
     participants: [participant],
     createdAt: now(),
@@ -114,6 +117,10 @@ export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSn
     currentWord: viewerParticipantId === room.drawerId && room.drawerId !== null
       ? room.currentWord
       : null,
+    strokes: room.strokes.map((stroke) => ({ ...stroke })),
+    guesses: room.guesses.map(({ participantName, text, correct }) => ({
+      participantName, text, correct
+    })),
     status: room.status,
     participants: room.participants.map((participant) => ({ ...participant })),
     availableWords: listWords(),
