@@ -664,6 +664,25 @@ input {
   color: var(--ink-soft);
 }
 
+.correct-word-display {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 32px;
+  border: 2px solid #a7f3d0;
+  border-radius: 12px;
+  background: #ecfdf5;
+}
+
+.correct-word {
+  color: #065f46;
+  font-size: 2rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+}
+
 @media (max-width: 720px) {
   .app-shell {
     padding: 24px 16px;
