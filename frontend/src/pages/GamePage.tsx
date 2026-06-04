@@ -69,8 +69,37 @@ export function GamePage() {
             </dl>
           </Card>
 
+          <Card title="Scores">
+            <ul>
+              {Object.entries(room.scores ?? {}).map(([id, score]) => {
+                const p = room.participants.find((pr) => pr.id === id);
+                return (
+                  <li key={id}>
+                    {p?.name ?? id}: {String(score)}
+                  </li>
+                );
+              })}
+            </ul>
+          </Card>
+
+          <Card title="Recent Guesses">
+            <ul className="guess-list">
+              {((room.guesses ?? []) as { participantId: string; text: string; timestamp: string; correct: boolean }[])
+                .slice()
+                .reverse()
+                .map((g, idx) => {
+                  const p = room.participants.find((pr) => pr.id === g.participantId);
+                  return (
+                    <li key={`${g.participantId}-${idx}`}>
+                      <strong>{p?.name ?? g.participantId}</strong>: {g.text} {g.correct ? "(correct)" : ""}
+                    </li>
+                  );
+                })}
+            </ul>
+          </Card>
+
           <Card title="Your Guess">
-            <GuessForm />
+            <GuessForm disabled={isCurrentDrawer} />
           </Card>
         </aside>
       </div>

@@ -15,6 +15,8 @@ export interface RoomSnapshot {
   gameStarted: boolean;
   currentDrawer: string | null;
   secretWord?: string | null;
+  guesses?: { participantId: string; text: string; timestamp: string; correct: boolean }[];
+  scores?: Record<string, number>;
 }
 
 export interface RoomSessionResponse {
@@ -67,4 +69,13 @@ export const api = {
       method: "POST"
     });
   }
+  ,
+  submitGuess(code: string, participantId: string, text: string) {
+    const query = `?participantId=${encodeURIComponent(participantId)}`;
+    return request<{ room: RoomSnapshot }>(`/rooms/${encodeURIComponent(code)}/guesses${query}`, {
+      method: "POST",
+      body: JSON.stringify({ text })
+    });
+  }
 };
+ 
