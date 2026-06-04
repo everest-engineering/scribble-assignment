@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createRoom, joinRoom, startGame, toRoomSnapshot } from "./roomStore.js";
+import { createRoom, joinRoom, startGame, submitDraw, submitGuess, toRoomSnapshot } from "./roomStore.js";
 
 describe("roomStore", () => {
   it("createRoom returns a room with a 4-character uppercase code", () => {
@@ -77,6 +77,64 @@ describe("roomStore", () => {
         const guesserSnapshot = toRoomSnapshot(room, joinResult.participantId);
         expect(guesserSnapshot.viewerRole).toBe("guesser");
         expect(guesserSnapshot.secretWord).toBeNull();
+      }
+    }
+  });
+
+  it("submitDraw saves canvasData", () => {
+    const creatorResult = createRoom("Alice");
+    const code = creatorResult.room.code;
+    const canvasData = '[{"color":"red","width":5,"points":[{"x":10,"y":20}]}]';
+
+    const room = submitDraw(code, canvasData);
+    expect(room).not.toBeNull();
+    if (room) {
+      expect(room.canvasData).toBe(canvasData);
+    }
+  });
+
+  it("submitGuess logs incorrect guess and does not award score", () => {
+    const creatorResult = createRoom("Alice");
+    const code = creatorResult.room.code;
+    const joinResult = joinRoom(code, "Bob");
+    expect(joinResult).not.toBeNull();
+
+    if (joinResult) {
+      startGame(code);
+      const room = submitGuess(code, joinResult.participantId, "wrongguess");
+      expect(room).not.toBeNull();
+      if (room) {
+        expect(room.guesses).toHaveLength(1);
+        expect(room.guesses[0].text).toBe("wrongguess");
+        expect(room.guesses[0].isCorrect).toBe(false);
+        expect(room.scores[joinResult.participantId]).toBe(0);
+        expect(room.status).toBe("playing");
+      }
+    }
+  });
+
+  it("submitGuess handles correct guess case-insensitively, awards score, and transitions status to result", () => {
+    const creatorResult = createRoom("Alice");
+    const code = creatorResult.room.code;
+    const joinResult = joinRoom(code, "Bob");
+    expect(joinResult).not.toBeNull();
+
+    if (joinResult) {
+      const playingRoom = startGame(code);
+      expect(playingRoom).not.toBeNull();
+      if (playingRoom) {
+        const secret = playingRoom.secretWord || "";
+        const guessText = `  ${secret.toUpperCase()}  `;
+
+        const room = submitGuess(code, joinResult.participantId, guessText);
+        expect(room).not.toBeNull();
+        if (room) {
+          expect(room.guesses).toHaveLength(1);
+          expect(room.guesses[0].text).toBe(secret.toUpperCase());
+          expect(room.guesses[0].isCorrect).toBe(true);
+          expect(room.scores[joinResult.participantId]).toBe(100);
+          expect(room.status).toBe("result");
+        }
       }
     }
   });

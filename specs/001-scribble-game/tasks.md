@@ -66,13 +66,13 @@
 **Independent Test**: Draw on host screen, verify synced to guest, submit correct guess and verify round ends with 100 points scored.
 
 ### Implementation for User Story 3
-- [ ] T019 [US3] Implement submitDraw logic in backend/src/services/roomStore.ts and mount POST /rooms/:code/draw route in backend/src/api/rooms.ts
-- [ ] T020 [US3] Implement submitGuess logic with scoring (correct guess ends round) in backend/src/services/roomStore.ts and mount POST /rooms/:code/guess route in backend/src/api/rooms.ts
-- [ ] T021 [US3] Add test cases for draw and guess logic in backend/src/services/roomStore.test.ts
-- [ ] T022 [US3] Add submitDraw and submitGuess methods to frontend/src/services/api.ts and frontend/src/state/roomStore.ts
-- [ ] T023 [US3] Build interactive painting canvas component and clear button in frontend/src/pages/GamePage.tsx
-- [ ] T024 [US3] Add automatic 2s polling in frontend/src/pages/GamePage.tsx to sync canvas and guesses
-- [ ] T025 [US3] Connect Scoreboard.tsx and ResultPanel.tsx to display scores and guess logs in frontend/src/pages/GamePage.tsx
+- [x] T019 [US3] Implement submitDraw logic in backend/src/services/roomStore.ts and mount POST /rooms/:code/draw route in backend/src/api/rooms.ts
+- [x] T020 [US3] Implement submitGuess logic with scoring (correct guess ends round) in backend/src/services/roomStore.ts and mount POST /rooms/:code/guess route in backend/src/api/rooms.ts
+- [x] T021 [US3] Add test cases for draw and guess logic in backend/src/services/roomStore.test.ts
+- [x] T022 [US3] Add submitDraw and submitGuess methods to frontend/src/services/api.ts and frontend/src/state/roomStore.ts
+- [x] T023 [US3] Build interactive painting canvas component and clear button in frontend/src/pages/GamePage.tsx
+- [x] T024 [US3] Add automatic 2s polling in frontend/src/pages/GamePage.tsx to sync canvas and guesses
+- [x] T025 [US3] Connect Scoreboard.tsx and ResultPanel.tsx to display scores and guess logs in frontend/src/pages/GamePage.tsx
 
 **Checkpoint**: All core drawing, guessing, and scoring interactions are complete.
 

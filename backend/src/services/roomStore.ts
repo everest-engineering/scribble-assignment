@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import type { Participant, Room, RoomSnapshot } from "../models/game.js";
+import type { Participant, Room, RoomSnapshot, Guess } from "../models/game.js";
 import { STARTER_ROLES, STARTER_WORDS } from "../seed/starterData.js";
 
 const rooms = new Map<string, Room>();
@@ -114,6 +114,64 @@ export function startGame(code: string) {
   room.secretWord = getDeterministicWord(room.code);
   room.canvasData = "[]";
   room.guesses = [];
+  room.updatedAt = now();
+  rooms.set(room.code, room);
+
+  return cloneRoom(room);
+}
+
+export function submitDraw(code: string, canvasData: string) {
+  const room = rooms.get(code);
+
+  if (!room) {
+    return null;
+  }
+
+  room.canvasData = canvasData;
+  room.updatedAt = now();
+  rooms.set(room.code, room);
+
+  return cloneRoom(room);
+}
+
+export function submitGuess(code: string, participantId: string, text: string) {
+  const room = rooms.get(code);
+
+  if (!room) {
+    return null;
+  }
+
+  if (room.status !== "playing") {
+    throw new Error("Cannot submit guess when game is not playing");
+  }
+
+  const participant = room.participants.find((p) => p.id === participantId);
+  if (!participant) {
+    throw new Error("Participant not found in room");
+  }
+
+  const cleanText = text.trim();
+  if (cleanText.length === 0) {
+    throw new Error("Guess text cannot be empty");
+  }
+
+  const isCorrect = cleanText.toLowerCase() === (room.secretWord || "").toLowerCase();
+
+  const guess: Guess = {
+    participantId,
+    participantName: participant.name,
+    text: cleanText,
+    isCorrect,
+    timestamp: now()
+  };
+
+  room.guesses.push(guess);
+
+  if (isCorrect) {
+    room.status = "result";
+    room.scores[participantId] = (room.scores[participantId] || 0) + 100;
+  }
+
   room.updatedAt = now();
   rooms.set(room.code, room);
 
