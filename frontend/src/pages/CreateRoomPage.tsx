@@ -14,8 +14,8 @@ export function CreateRoomPage() {
 
     try {
       setError(null);
-      await roomStore.createRoom(playerName);
-      navigate("/lobby");
+      const response = await roomStore.createRoom(playerName);
+      navigate("/lobby", { replace: true, state: response });
     } catch (caughtError) {
       setError(caughtError instanceof Error ? caughtError.message : "Unable to create room");
     }

@@ -1,4 +1,10 @@
-# Copilot Agent Instructions
+# Agent Instructions
+
+## Agent Behavioral guidelines to reduce common LLM coding mistakes
+- Don't assume. Don't hide confusion. Surface tradeoffs.
+- Minimum code that solves the problem. Nothing speculative.
+- Touch only what you must. Clean up only your own mess.
+- Define success criteria. Loop until verified.
 
 ## Project Context
 You are working on a monolithic repository for a multiplayer drawing game ("Scribble") containing an Express backend and a React frontend. Both environments strictly use TypeScript and ES Modules.
@@ -37,6 +43,16 @@ You are working on a monolithic repository for a multiplayer drawing game ("Scri
 -   **No Authentication**: Do not add authentication, sessions, JWT, or OAuth.
 
 ## Agent Persona
--   Give concise, direct answers.
+-   Be extremely concise. Sacrifice grammar for the sake of concision.
 -   Do not output large blocks of code if a small change suffices.
 -   When creating or editing files, ensure consistency with the existing directory structure detailed above.
+
+## Git commit rules
+- Keep commits granular and meaningful
+- start with "feat:", "fix:", "docs:", "style:", "refactor:", "test:", "chore:"
+
+<!-- SPECKIT START -->
+For additional context about technologies to be used, project structure,
+shell commands, and other important information, read
+`/Users/raju/Develop/Everest/scribble-assignment/specs/004-result-restart-validation/plan.md`
+<!-- SPECKIT END -->

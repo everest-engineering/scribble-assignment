@@ -15,8 +15,8 @@ export function JoinRoomPage() {
 
     try {
       setError(null);
-      await roomStore.joinRoom(roomCode.toUpperCase(), playerName);
-      navigate("/lobby");
+      const response = await roomStore.joinRoom(roomCode.toUpperCase(), playerName);
+      navigate("/lobby", { replace: true, state: response });
     } catch (caughtError) {
       setError(caughtError instanceof Error ? caughtError.message : "Unable to join room");
     }
