@@ -4,7 +4,7 @@
 
 **Created**: 2026-06-04
 
-**Status**: Draft
+**Status**: Clarified
 
 **Input**: User description: "Gameplay Interaction — Brownfield enhancement of the Scribble starter. Scenario: Given a round is active with a drawer assigned and all scores starting at 0, When the drawer submits canvas strokes (clear action) and guessers submit text guesses, Then the canvas state (list of strokes) is stored on the backend and returned in the room snapshot so all players see the same drawing via polling; guesses are trimmed server-side, case-insensitively compared against currentWord, empty/whitespace-only guesses are rejected with an error; a correct guess awards 100 points to the guesser (incorrect guesses add 0); the guess history (guesser name + guess text + correct flag) is stored on the backend and synced to all players via the existing polling mechanism; scores per participant are stored on the backend and reflected in the room snapshot."
 
@@ -131,6 +131,19 @@ player and confirm `score: 200`.
   `correct: true` and both scores increase; no de-duplication is required in this scenario.
 - What if `room.strokes` grows very large? No cap is enforced in this scenario — stroke
   volume limits are a Scenario 4 / polish concern.
+- Can non-drawer participants draw on the canvas? No — the canvas is rendered in read-only
+  (view-only) mode for non-drawers. The server enforces 403 for non-drawer stroke submissions
+  as the authoritative guard; the frontend read-only state is a UX convenience.
+- How does the frontend render strokes after each poll? Full redraw — the canvas element is
+  cleared and all strokes are replayed from index 0 on every poll cycle. No incremental
+  diffing or last-index tracking is performed client-side.
+- When does the drawer submit a stroke to the backend? On mouse-up / touch-end — one
+  `POST /rooms/:code/strokes` per completed drag gesture. No per-pixel streaming.
+- Can a guesser score more than once on the same word? No — each player is capped at one
+  correct guess per round. Once a player has a correct guess recorded, subsequent correct
+  guess attempts from the same player MUST be rejected with 400.
+- Is the guess form visible to the drawer? No — the guess input form is hidden for the
+  drawer. Only non-drawer participants see the `GuessForm` component.
 - What if a guesser's `participantId` is not found in `room.participants`? The server MUST
   respond with 404 and reject the guess.
 - What if `currentWord` is `null` (room not fully started)? Guess submission MUST be
@@ -147,15 +160,26 @@ player and confirm `score: 200`.
   `room.drawerId` or the server responds with 403.
 - **FR-002**: A stroke with `{ type: "clear" }` MUST reset `room.strokes` to an empty array.
 - **FR-003**: Stroke submission MUST be rejected with 400 if `room.status !== "playing"`.
+- **FR-003a**: The frontend canvas MUST be rendered in read-only / view-only mode for
+  non-drawer participants; only the drawer can initiate drawing gestures (FR-001 remains
+  the authoritative server-side guard).
 - **FR-004**: `RoomSnapshot` MUST include `strokes: Stroke[]` forwarded to all viewers
   without viewer-gating (all players see the same canvas state).
+- **FR-004a**: The frontend canvas MUST perform a full redraw on every poll cycle: clear
+  the canvas element and replay all strokes from index 0. No incremental diffing.
 - **FR-005**: `POST /rooms/:code/guess` MUST accept `{ participantId, guess }`, trim the
   guess server-side, and reject empty/whitespace-only guesses with 400.
+- **FR-005a**: A guesser who has already submitted a correct guess in the current round
+  MUST be rejected with 400 on any further guess attempt; one correct guess per player
+  per round is the cap.
 - **FR-006**: The trimmed guess MUST be compared case-insensitively against `room.currentWord`.
 - **FR-007**: A correct guess MUST add 100 to the guessing participant's `score`; an
   incorrect guess MUST leave the score unchanged.
 - **FR-008**: The drawer (`room.drawerId`) MUST NOT be allowed to submit guesses; attempts
   MUST be rejected with 403.
+- **FR-008a**: The frontend MUST hide the `GuessForm` component when the current participant
+  is the drawer (`participantId === room.drawerId`); only non-drawer participants see the
+  guess input.
 - **FR-009**: Guess submission MUST be rejected with 400 if `room.status !== "playing"` or
   `room.currentWord === null`.
 - **FR-010**: Every accepted guess (correct or incorrect) MUST be appended to `room.guesses`
@@ -206,8 +230,10 @@ player and confirm `score: 200`.
   needed to replay the drawing.
 - Scores are initialised to 0 when a participant joins or creates a room (not at game start),
   so the `score` field is always present in the snapshot from lobby onwards.
-- A participant can submit multiple correct guesses in a single round and accumulates points
-  for each (no "first correct guess wins" cap — that is a Scenario 4 concern).
+- Each player is capped at one correct guess per round. The backend tracks which participants
+  have already guessed correctly (via the `guesses` list) and rejects a second correct
+  attempt from the same player with 400. Incorrect guesses after a correct one are also
+  rejected with 400 to prevent guess-spam once the word is known.
 - The drawer cannot guess; this is enforced server-side regardless of the client UI state.
 - `room.strokes` and `room.guesses` are both returned to all viewers without viewer-gating —
   the stroke list is not a secret; neither is the guess history.
@@ -215,6 +241,9 @@ player and confirm `score: 200`.
 - No new top-level npm dependencies are introduced.
 - The `GamePage` canvas is currently a placeholder (`"Waiting for drawer..."`); this scenario
   wires up the stroke submission and rendering on the frontend. Guess input (`GuessForm`) is
-  already a placeholder component in `GamePage` — this scenario activates it.
+  already a placeholder component in `GamePage` — this scenario activates it for non-drawers
+  only; the drawer sees canvas controls instead.
+- Strokes are submitted one at a time on mouse-up / touch-end (one drag = one POST). The
+  frontend does not batch or stream strokes continuously.
 - Round-end / game-finished transition (e.g., status → `"finished"`) is Scenario 4 and is
   out of scope here.

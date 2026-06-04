@@ -20,6 +20,14 @@
 - [x] Acceptance scenarios cover happy path and edge cases
 - [x] Edge cases section populated
 
+## Clarifications Resolved (post /speckit.clarify)
+
+- [x] Canvas interaction for non-drawers: read-only frontend; server authoritative 403 (FR-003a)
+- [x] Stroke rendering strategy: full redraw on every poll cycle (FR-004a)
+- [x] Stroke submission trigger: mouse-up / touch-end, one POST per drag gesture
+- [x] Correct guess cap: one per player per round; subsequent attempts return 400 (FR-005a)
+- [x] Guess form visibility: hidden for drawer; non-drawers only (FR-008a)
+
 ## Constitution Alignment
 
 - [x] No WebSockets or real-time push (Principle III — strokes synced via polling)
