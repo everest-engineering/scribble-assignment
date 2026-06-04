@@ -10,7 +10,7 @@ import {
   roomViewerQuerySchema,
   startGameSchema
 } from "./schemas.js";
-import { addStroke, clearStrokes, createRoom, getRoom, joinRoom, startGame, submitGuess, toRoomSnapshot } from "../services/roomStore.js";
+import { addStroke, clearStrokes, createRoom, getRoom, joinRoom, restartGame, startGame, submitGuess, toRoomSnapshot } from "../services/roomStore.js";
 
 export function createRoomsRouter() {
   const router = Router();
@@ -118,6 +118,20 @@ export function createRoomsRouter() {
       response.json({
         guess: result.guess,
         room: toRoomSnapshot(result.room, participantId)
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/:code/restart", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId } = startGameSchema.parse(request.body);
+      const room = restartGame(code.toUpperCase(), participantId);
+
+      response.json({
+        room: toRoomSnapshot(room, participantId)
       });
     } catch (error) {
       next(error);

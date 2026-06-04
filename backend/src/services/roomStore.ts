@@ -227,6 +227,34 @@ export function submitGuess(code: string, participantId: string, text: string) {
   return { guess, room: cloneRoom(room) };
 }
 
+export function restartGame(code: string, participantId: string) {
+  const room = rooms.get(code);
+
+  if (!room) {
+    throw Object.assign(new Error("Room not found"), { statusCode: 404 });
+  }
+
+  if (room.hostId !== participantId) {
+    throw Object.assign(new Error("Only the host can restart the game"), { statusCode: 403 });
+  }
+
+  room.status = "lobby";
+  room.drawerId = undefined;
+  room.secretWord = undefined;
+  room.round = 1;
+  room.strokes = [];
+  room.guesses = [];
+  room.updatedAt = now();
+
+  for (const p of room.participants) {
+    p.score = 0;
+  }
+
+  rooms.set(room.code, room);
+
+  return cloneRoom(room);
+}
+
 export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSnapshot {
   const scores: Record<string, number> = {};
   for (const p of room.participants) {
@@ -234,13 +262,14 @@ export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSn
   }
 
   const isDrawer = viewerParticipantId !== undefined && viewerParticipantId === room.drawerId;
+  const revealWord = isDrawer || room.status === "result";
 
   return {
     code: room.code,
     status: room.status,
     hostId: room.hostId,
     drawerId: room.drawerId,
-    secretWord: isDrawer ? room.secretWord : undefined,
+    secretWord: revealWord ? room.secretWord : undefined,
     round: room.round ?? 1,
     participants: room.participants.map((p) => ({ ...p })),
     scores,
