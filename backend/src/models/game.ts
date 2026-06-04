@@ -7,15 +7,40 @@ export interface Participant {
   joinedAt: string;
 }
 
+export interface DrawingPoint {
+  x: number;
+  y: number;
+}
+
+export interface GuessEntry {
+  participantId: string;
+  participantName: string;
+  guess: string;
+  isCorrect: boolean;
+  createdAt: string;
+}
+
+export interface ParticipantScore {
+  participantId: string;
+  score: number;
+}
+
 export interface Room {
   code: string;
   status: RoomStatus;
+
   participants: Participant[];
 
   hostId: string;
 
   drawerId?: string;
   secretWord?: string;
+
+  drawing: DrawingPoint[];
+
+  guesses: GuessEntry[];
+
+  scores: ParticipantScore[];
 
   createdAt: string;
   updatedAt: string;
@@ -24,6 +49,7 @@ export interface Room {
 export interface RoomSnapshot {
   code: string;
   status: RoomStatus;
+
   participants: Participant[];
 
   hostId: string;
@@ -33,6 +59,12 @@ export interface RoomSnapshot {
   roles: ParticipantRole[];
 
   secretWord?: string;
+
+  drawing: DrawingPoint[];
+
+  guesses: GuessEntry[];
+
+  scores: ParticipantScore[];
 }
 
 export interface RoomSessionResponse {
