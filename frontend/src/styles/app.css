@@ -543,6 +543,20 @@ input {
   font-weight: 500;
 }
 
+.host-badge {
+  color: var(--brand);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.waiting-message {
+  color: var(--ink-soft);
+  font-size: 0.95rem;
+  font-style: italic;
+}
+
 @media (max-width: 720px) {
   .app-shell {
     padding: 24px 16px;
