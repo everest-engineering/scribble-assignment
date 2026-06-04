@@ -37,9 +37,10 @@ canvas area and guess form (guesser view). Alice's tab shows the canvas for draw
    **Then** Alice is identified as the drawer on both tabs, with a visible "Drawer" label next
    to her name.
 2. **Given** a game has started, **When** Alice (drawer) views the game screen, **Then** she
-   sees the drawing canvas in interactive mode.
+   sees the canvas area labelled as the drawing space (styled placeholder — drawing interaction
+   is added in Scenario 3).
 3. **Given** a game has started, **When** Bob (guesser) views the game screen, **Then** he sees
-   the canvas in read-only / placeholder mode and can see the guess input form.
+   the canvas placeholder and can see the enabled guess input form.
 4. **Given** a game has started, **When** any player views the scoreboard or player list,
    **Then** the drawer is visually distinguished from guessers (e.g., labelled "Drawer").
 
@@ -83,9 +84,9 @@ and the guess form.
 **Why this priority**: UI role differentiation is the user-facing expression of the drawer/guesser
 distinction. Without it, the game screen is confusing even if the underlying data is correct.
 
-**Independent Test**: On Alice's (drawer) tab: canvas is interactive, no guess form is visible
-(or it is disabled). On Bob's (guesser) tab: canvas is not interactive, guess form is enabled.
-Both tabs show the room code and the drawer's name.
+**Independent Test**: On Alice's (drawer) tab: canvas placeholder is labelled for drawing,
+guess input is absent or disabled. On Bob's (guesser) tab: canvas placeholder is visible,
+guess input is enabled. Both tabs show the room code and the drawer's name.
 
 **Acceptance Scenarios**:
 
@@ -125,11 +126,13 @@ Both tabs show the room code and the drawer's name.
   The `viewerParticipantId` parameter MUST be used to filter word visibility server-side.
 - **FR-007**: The game screen MUST display a visual "Drawer" label identifying the assigned
   drawer to all players.
-- **FR-008**: The game screen for the drawer MUST show the secret word prominently (e.g.,
-  "Your word: rocket").
+- **FR-008**: The game screen for the drawer MUST show the secret word as a banner directly
+  above the canvas area, reading "Your word: [word]" (e.g., "Your word: rocket").
+  The banner MUST NOT be visible to guessers.
 - **FR-009**: The game screen for guessers MUST show no secret word.
-- **FR-010**: The canvas area MUST be presented as interactive to the drawer and as passive
-  (non-interactive placeholder) to guessers.
+- **FR-010**: The canvas area MUST be a styled placeholder for both roles in this scenario.
+  It MUST be labelled as the drawing space for the drawer and as a passive view for guessers.
+  Actual drawing interaction is out of scope for Scenario 2 and is added in Scenario 3.
 - **FR-011**: The guess input form MUST be disabled or hidden for the drawer and enabled for
   guessers.
 
@@ -155,8 +158,18 @@ Both tabs show the room code and the drawer's name.
   verifiable by visual inspection and network response review.
 - **SC-004**: Starting the game with the same two players always assigns the same drawer and
   the same secret word, confirming deterministic behaviour.
-- **SC-005**: The game screen canvas is interactive for the drawer and non-interactive for
-  guessers, distinguishable without further instruction.
+- **SC-005**: The game screen canvas placeholder is visually distinct for drawer vs guesser
+  (labelled differently), distinguishable without further instruction. Actual drawing
+  interaction is validated in Scenario 3.
+
+---
+
+## Clarifications
+
+### Session 2026-06-04
+
+- Q: Should the drawer's canvas be interactive in Scenario 2, or a styled placeholder only? → A: Styled placeholder only — actual drawing interaction is added in Scenario 3.
+- Q: Where should the secret word be displayed on the drawer's game screen? → A: As a banner above the canvas reading "Your word: rocket".
 
 ---
 

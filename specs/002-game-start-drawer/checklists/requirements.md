@@ -36,4 +36,6 @@
   role-differentiated game screen (P2).
 - 11 functional requirements (FR-001 – FR-011).
 - Key dependency: builds on Scenario 1 host identity and game start transition.
-- Ready for `/speckit-clarify` or `/speckit-plan`.
+- Clarification session 2026-06-04: 2 questions answered — canvas is styled placeholder only
+  in S2 (FR-010, SC-005 updated); secret word shown as banner above canvas (FR-008 updated).
+- Ready for `/speckit-plan`.
