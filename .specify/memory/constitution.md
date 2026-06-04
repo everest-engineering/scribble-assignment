@@ -1,50 +1,69 @@
-# [PROJECT_NAME] Constitution
-<!-- Example: Spec Constitution, TaskFlow Constitution, etc. -->
+<!--
+SYNC IMPACT REPORT:
+- Version change: none -> 1.0.0 (Initial Ratification)
+- List of modified principles:
+  - [PRINCIPLE_1_NAME] -> I. TypeScript-First and Strict Type Safety
+  - [PRINCIPLE_2_NAME] -> II. Standard Relative and Absolute ES Module Imports
+  - [PRINCIPLE_3_NAME] -> III. In-Memory Ephemeral Data Only (NON-NEGOTIABLE)
+  - [PRINCIPLE_4_NAME] -> IV. HTTP Polling Sync Only (NON-NEGOTIABLE)
+  - [PRINCIPLE_5_NAME] -> V. Fail Fast and Graceful Error Handling
+- Added sections:
+  - Frontend Implementation Constraints
+  - Development & Implementation Workflow
+- Templates requiring updates:
+  - plan-template.md (✅ updated)
+  - spec-template.md (✅ updated)
+  - tasks-template.md (✅ updated)
+- Follow-up TODOs: None
+-->
+
+# Scribble Game Constitution
 
 ## Core Principles
 
-### [PRINCIPLE_1_NAME]
-<!-- Example: I. Library-First -->
-[PRINCIPLE_1_DESCRIPTION]
-<!-- Example: Every feature starts as a standalone library; Libraries must be self-contained, independently testable, documented; Clear purpose required - no organizational-only libraries -->
+### I. TypeScript-First and Strict Type Safety
+Every piece of new code and refactors MUST be fully typed in both the frontend and backend.
+Avoid `any` at all costs; use `unknown` if a type is truly dynamic. All data models, requests,
+and responses must use precise interfaces.
 
-### [PRINCIPLE_2_NAME]
-<!-- Example: II. CLI Interface -->
-[PRINCIPLE_2_DESCRIPTION]
-<!-- Example: Every library exposes functionality via CLI; Text in/out protocol: stdin/args → stdout, errors → stderr; Support JSON + human-readable formats -->
+### II. Standard Relative and Absolute ES Module Imports
+Both environments strictly use TypeScript and ES Modules. Use standard relative and absolute
+ES module imports. In the backend, file extensions are omitted or handled via `.js` standard.
 
-### [PRINCIPLE_3_NAME]
-<!-- Example: III. Test-First (NON-NEGOTIABLE) -->
-[PRINCIPLE_3_DESCRIPTION]
-<!-- Example: TDD mandatory: Tests written → User approved → Tests fail → Then implement; Red-Green-Refactor cycle strictly enforced -->
+### III. In-Memory Ephemeral Data Only (NON-NEGOTIABLE)
+The project strictly forbids the use of databases (SQL, NoSQL, SQLite, etc.). All game data
+is stored in-memory only (using variables and Maps). Restarting the backend clears all rooms.
 
-### [PRINCIPLE_4_NAME]
-<!-- Example: IV. Integration Testing -->
-[PRINCIPLE_4_DESCRIPTION]
-<!-- Example: Focus areas requiring integration tests: New library contract tests, Contract changes, Inter-service communication, Shared schemas -->
+### IV. HTTP Polling Sync Only (NON-NEGOTIABLE)
+Do not use WebSockets, Socket.io, or any real-time push protocol. All synchronization and
+communication between frontend and backend must use HTTP polling.
 
-### [PRINCIPLE_5_NAME]
-<!-- Example: V. Observability, VI. Versioning & Breaking Changes, VII. Simplicity -->
-[PRINCIPLE_5_DESCRIPTION]
-<!-- Example: Text I/O ensures debuggability; Structured logging required; Or: MAJOR.MINOR.BUILD format; Or: Start simple, YAGNI principles -->
+### V. Fail Fast and Graceful Error Handling
+Use Zod for all request payload and response validations. Fail fast and gracefully. On the
+backend, use centralized error handlers. On the frontend, ensure the UI does not crash on
+API exceptions.
 
-## [SECTION_2_NAME]
-<!-- Example: Additional Constraints, Security Requirements, Performance Standards, etc. -->
+## Frontend Implementation Constraints
+- React 18 functional components and strict hooks (e.g., `useState`, `useEffect`) must be used.
+- Component routing must utilize `react-router-dom` v6 paradigms.
+- Complex state must reside in `src/state` following the established patterns in `roomStore.ts`.
+- Styling must use vanilla CSS residing in `app.css` or CSS modules. No TailwindCSS or external UI
+  libraries are allowed.
+- Authentication, sessions, JWT, or OAuth are strictly forbidden.
 
-[SECTION_2_CONTENT]
-<!-- Example: Technology stack requirements, compliance standards, deployment policies, etc. -->
-
-## [SECTION_3_NAME]
-<!-- Example: Development Workflow, Review Process, Quality Gates, etc. -->
-
-[SECTION_3_CONTENT]
-<!-- Example: Code review requirements, testing gates, deployment approval process, etc. -->
+## Development & Implementation Workflow
+- Follow a phased approach for feature execution: Discovery, Specify, Clarify, Plan, Tasks,
+  Implement, and Validate.
+- Complete work incrementally, keeping commits granular and meaningful.
+- Do not implement any out-of-scope features (e.g., drawer rotation, custom word packs, room
+  passwords).
+- Ensure both frontend and backend build successfully before handing off changes:
+  - Backend: `npm run build`
+  - Frontend: `npm run build`
 
 ## Governance
-<!-- Example: Constitution supersedes all other practices; Amendments require documentation, approval, migration plan -->
+- The constitution is the source of truth for engineering practices and game constraints.
+- Amendments to this constitution require a semantic version bump and verification of dependency template alignment.
+- Every implementation plan and spec iteration must be verified against this constitution to ensure compliance.
 
-[GOVERNANCE_RULES]
-<!-- Example: All PRs/reviews must verify compliance; Complexity must be justified; Use [GUIDANCE_FILE] for runtime development guidance -->
-
-**Version**: [CONSTITUTION_VERSION] | **Ratified**: [RATIFICATION_DATE] | **Last Amended**: [LAST_AMENDED_DATE]
-<!-- Example: Version: 2.1.1 | Ratified: 2025-06-13 | Last Amended: 2025-07-16 -->
+**Version**: 1.0.0 | **Ratified**: 2026-06-04 | **Last Amended**: 2026-06-04
