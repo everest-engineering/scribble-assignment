@@ -1,12 +1,20 @@
 import { Router } from "express";
 import {
   createRoomSchema,
+  guessSchema,
   HttpError,
   joinRoomSchema,
   roomCodeParamsSchema,
   roomViewerQuerySchema
 } from "./schemas.js";
-import { createRoom, getRoom, joinRoom, toRoomSnapshot } from "../services/roomStore.js";
+
+import {
+  createRoom,
+  getRoom,
+  joinRoom,
+  submitGuess,
+  toRoomSnapshot
+} from "../services/roomStore.js";
 
 export function createRoomsRouter() {
   const router = Router();
@@ -14,6 +22,7 @@ export function createRoomsRouter() {
   router.post("/", (request, response, next) => {
     try {
       const { playerName } = createRoomSchema.parse(request.body);
+
       const result = createRoom(playerName);
 
       response.status(201).json({
@@ -29,6 +38,7 @@ export function createRoomsRouter() {
     try {
       const { code } = roomCodeParamsSchema.parse(request.params);
       const { playerName } = joinRoomSchema.parse(request.body);
+
       const result = joinRoom(code.toUpperCase(), playerName);
 
       if (!result) {
@@ -44,10 +54,36 @@ export function createRoomsRouter() {
     }
   });
 
+  router.post("/:code/guess", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+
+      const { participantId, guess } = guessSchema.parse(request.body);
+
+      const room = submitGuess(
+        code.toUpperCase(),
+        participantId,
+        guess
+      );
+
+      if (!room) {
+        throw new HttpError(404, "Unable to submit guess");
+      }
+
+      response.json({
+        room: toRoomSnapshot(room, participantId)
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
+
   router.get("/:code", (request, response, next) => {
     try {
       const { code } = roomCodeParamsSchema.parse(request.params);
-      const { participantId } = roomViewerQuerySchema.parse(request.query);
+      const { participantId } =
+        roomViewerQuerySchema.parse(request.query);
+
       const room = getRoom(code.toUpperCase());
 
       if (!room) {

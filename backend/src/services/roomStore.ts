@@ -67,18 +67,13 @@ export function createRoom(playerName?: string) {
   const room: Room = {
     code: generateUniqueCode(),
     status: "lobby",
-
     participants: [participant],
-
     hostId: participant.id,
-
     drawerId: participant.id,
     secretWord: STARTER_WORDS[0],
-
     drawing: [],
     guesses: [],
     scores,
-
     createdAt: now(),
     updatedAt: now()
   };
@@ -126,6 +121,56 @@ export function saveRoom(room: Room) {
   room.updatedAt = now();
   rooms.set(room.code, cloneRoom(room));
   return getRoom(room.code);
+}
+
+export function submitGuess(
+  code: string,
+  participantId: string,
+  guess: string
+) {
+  const room = rooms.get(code);
+
+  if (!room) {
+    return null;
+  }
+
+  const participant = room.participants.find(
+    (player) => player.id === participantId
+  );
+
+  if (!participant) {
+    return null;
+  }
+
+  const normalizedGuess = guess.trim();
+
+  const isCorrect =
+    normalizedGuess.toLowerCase() ===
+    (room.secretWord ?? "").toLowerCase();
+
+  room.guesses.push({
+    participantId,
+    participantName: participant.name,
+    guess: normalizedGuess,
+    isCorrect,
+    createdAt: now()
+  });
+
+  if (isCorrect) {
+    const score = room.scores.find(
+      (entry) => entry.participantId === participantId
+    );
+
+    if (score) {
+      score.score += 100;
+    }
+  }
+
+  room.updatedAt = now();
+
+  rooms.set(room.code, room);
+
+  return cloneRoom(room);
 }
 
 export function toRoomSnapshot(
