@@ -43,16 +43,36 @@ The Scribble drawing game is a multiplayer, web-based drawing and guessing appli
 
 ## Project Structure
 
-### Documentation (this feature)
+### Documentation (feature + scenarios)
 
 ```text
-specs/001-scribble-game/
-├── plan.md              # This file
-├── research.md          # Phase 0 output
-├── data-model.md        # Phase 1 output
-├── quickstart.md        # Phase 1 output
-├── contracts/           # Phase 1 output
-└── tasks.md             # Phase 2 output
+specs/
+├── 001-scribble-game/           # Feature umbrella (shared design)
+│   ├── plan.md                  # This file
+│   ├── spec.md                  # Index + cross-cutting requirements
+│   ├── research.md
+│   ├── quickstart.md
+│   ├── tasks.md                 # Setup, foundational, polish
+│   ├── checklists/
+│   └── contracts/
+│       ├── api.md
+│       └── data-model.md
+├── 001-room-setup-lobby/        # Scenario P1
+│   ├── spec.md
+│   ├── plan.md
+│   └── tasks.md
+├── 002-game-start-drawer/       # Scenario P2
+│   ├── spec.md
+│   ├── plan.md
+│   └── tasks.md
+├── 003-gameplay-interaction/    # Scenario P3
+│   ├── spec.md
+│   ├── plan.md
+│   └── tasks.md
+└── 004-result-restart/          # Scenario P4
+    ├── spec.md
+    ├── plan.md
+    └── tasks.md
 ```
 
 ### Source Code
