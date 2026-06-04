@@ -566,3 +566,21 @@ input {
     justify-content: stretch;
   }
 }
+
+.card--compact {
+  padding: 16px 20px !important;
+  gap: 12px !important;
+}
+
+.card--compact .card__body {
+  gap: 8px !important;
+}
+
+.card--compact .form {
+  gap: 10px !important;
+}
+
+.card--compact .form__field {
+  gap: 4px !important;
+}
+

@@ -14,6 +14,10 @@ export function CreateRoomPage() {
 
     try {
       setError(null);
+      if (!playerName.trim()) {
+        setError("Username cannot be empty or only whitespace.");
+        return;
+      }
       await roomStore.createRoom(playerName);
       navigate("/lobby");
     } catch (caughtError) {

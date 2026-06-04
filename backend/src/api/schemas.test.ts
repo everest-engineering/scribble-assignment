@@ -11,4 +11,9 @@ describe("schemas", () => {
   it("roomCodeParamsSchema rejects missing code", () => {
     expect(() => roomCodeParamsSchema.parse({})).toThrow();
   });
+
+  it("createRoomSchema rejects empty/whitespace playerName", () => {
+    expect(() => createRoomSchema.parse({ playerName: "" })).toThrow("Username cannot be empty or only whitespace.");
+    expect(() => createRoomSchema.parse({ playerName: "   " })).toThrow("Username cannot be empty or only whitespace.");
+  });
 });
