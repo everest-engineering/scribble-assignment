@@ -54,6 +54,7 @@ export function createRoom(playerName?: string) {
   const room: Room = {
     code: generateUniqueCode(),
     status: "lobby",
+    hostId: participant.id,
     participants: [participant],
     createdAt: now(),
     updatedAt: now()
@@ -72,6 +73,14 @@ export function joinRoom(code: string, playerName?: string) {
 
   if (!room) {
     return null;
+  }
+
+  const nameToCheck = displayName(playerName).trim().toLowerCase();
+  const nameExists = room.participants.some(
+    (p) => p.name.trim().toLowerCase() === nameToCheck
+  );
+  if (nameExists) {
+    throw new Error("Player name already taken in this room");
   }
 
   const participant = createParticipant(playerName);
@@ -96,12 +105,30 @@ export function saveRoom(room: Room) {
   return getRoom(room.code);
 }
 
+export function startGame(code: string, hostParticipantId: string) {
+  const room = rooms.get(code);
+  if (!room) {
+    return null;
+  }
+  if (room.hostId !== hostParticipantId) {
+    throw new Error("Only the host can start the game");
+  }
+  if (room.participants.length < 2) {
+    throw new Error("Cannot start game: at least 2 players are required");
+  }
+  room.status = "active";
+  room.updatedAt = now();
+  rooms.set(room.code, room);
+  return cloneRoom(room);
+}
+
 export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSnapshot {
   void viewerParticipantId;
 
   return {
     code: room.code,
     status: room.status,
+    hostId: room.hostId,
     participants: room.participants.map((participant) => ({ ...participant })),
     availableWords: listWords(),
     roles: [...STARTER_ROLES]

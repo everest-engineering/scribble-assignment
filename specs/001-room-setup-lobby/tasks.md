@@ -16,8 +16,8 @@
 
 **Purpose**: Project initialization and basic structure
 
-- [ ] T001 Update backend models and types to include `hostId` in `backend/src/models/game.ts`
-- [ ] T002 [P] Update frontend models and types to include `hostId` in `frontend/src/services/api.ts`
+- [x] T001 Update backend models and types to include `hostId` in `backend/src/models/game.ts`
+- [x] T002 [P] Update frontend models and types to include `hostId` in `frontend/src/services/api.ts`
 
 ---
 
@@ -25,8 +25,8 @@
 
 **Purpose**: Core infrastructure that MUST be complete before ANY user story can be implemented
 
-- [ ] T003 Update backend room service functions `createRoom`, `joinRoom`, `toRoomSnapshot` to support host identity tracking and duplicate name validation in `backend/src/services/roomStore.ts`
-- [ ] T004 Setup schema validations for checking room codes and joins in `backend/src/api/schemas.ts`
+- [x] T003 Update backend room service functions `createRoom`, `joinRoom`, `toRoomSnapshot` to support host identity tracking and duplicate name validation in `backend/src/services/roomStore.ts`
+- [x] T004 Setup schema validations for checking room codes and joins in `backend/src/api/schemas.ts`
 
 ---
 
@@ -38,9 +38,9 @@
 
 ### Implementation for User Story 1
 
-- [ ] T005 [P] [US1] Add unit test verifying host assignment during room creation in `backend/src/services/roomStore.test.ts`
-- [ ] T006 [US1] Update room creation route handler to return host details and snapshots in `backend/src/api/rooms.ts`
-- [ ] T007 [US1] Update room creation page components to handle submission and store user details in `frontend/src/pages/CreateRoomPage.tsx`
+- [x] T005 [P] [US1] Add unit test verifying host assignment during room creation in `backend/src/services/roomStore.test.ts`
+- [x] T006 [US1] Update room creation route handler to return host details and snapshots in `backend/src/api/rooms.ts`
+- [x] T007 [US1] Update room creation page components to handle submission and store user details in `frontend/src/pages/CreateRoomPage.tsx`
 
 ---
 
@@ -52,10 +52,10 @@
 
 ### Implementation for User Story 2
 
-- [ ] T008 [P] [US2] Add unit test checking duplicate name validation and invalid code rejection in `backend/src/api/schemas.test.ts`
-- [ ] T009 [US2] Update room join route handler to handle error scenarios and return correct participant details in `backend/src/api/rooms.ts`
-- [ ] T010 [US2] Implement lobby page automatic polling at a 2-second interval in `frontend/src/pages/LobbyPage.tsx`
-- [ ] T011 [US2] Update join room form to submit codes and render errors in `frontend/src/pages/JoinRoomPage.tsx`
+- [x] T008 [P] [US2] Add unit test checking duplicate name validation and invalid code rejection in `backend/src/api/schemas.test.ts`
+- [x] T009 [US2] Update room join route handler to handle error scenarios and return correct participant details in `backend/src/api/rooms.ts`
+- [x] T010 [US2] Implement lobby page automatic polling at a 2-second interval in `frontend/src/pages/LobbyPage.tsx`
+- [x] T011 [US2] Update join room form to submit codes and render errors in `frontend/src/pages/JoinRoomPage.tsx`
 
 ---
 
@@ -67,9 +67,9 @@
 
 ### Implementation for User Story 3
 
-- [ ] T012 [P] [US3] Add unit test verifying start game restrictions (host validation and min players check) in `backend/src/services/roomStore.test.ts`
-- [ ] T013 [US3] Implement start game POST endpoint with host validation and min player checks in `backend/src/api/rooms.ts`
-- [ ] T014 [US3] Render Start Game button only for host, enabled only when participants >= 2, and handle redirection upon status changes in `frontend/src/pages/LobbyPage.tsx`
+- [x] T012 [P] [US3] Add unit test verifying start game restrictions (host validation and min players check) in `backend/src/services/roomStore.test.ts`
+- [x] T013 [US3] Implement start game POST endpoint with host validation and min player checks in `backend/src/api/rooms.ts`
+- [x] T014 [US3] Render Start Game button only for host, enabled only when participants >= 2, and handle redirection upon status changes in `frontend/src/pages/LobbyPage.tsx`
 
 ---
 
@@ -77,9 +77,9 @@
 
 **Purpose**: Improvements that affect multiple user stories
 
-- [ ] T015 Run validation scenarios defined in `specs/001-room-setup-lobby/quickstart.md`
-- [ ] T016 Run vitest unit/integration suites across both backend and frontend to verify zero regressions
-- [ ] T017 Validate backend (`npm run build`) and frontend (`npm run build`) builds run successfully
+- [x] T015 Run validation scenarios defined in `specs/001-room-setup-lobby/quickstart.md`
+- [x] T016 Run vitest unit/integration suites across both backend and frontend to verify zero regressions
+- [x] T017 Validate backend (`npm run build`) and frontend (`npm run build`) builds run successfully
 
 ---
 
