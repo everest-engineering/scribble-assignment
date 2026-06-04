@@ -89,7 +89,7 @@
 - [x] T029 [US4] Add restartRoom store action in frontend/src/state/roomStore.ts
 - [x] T030 [US4] Add redirect to LobbyPage when room status transitions to lobby in frontend/src/pages/GamePage.tsx
 - [x] T031 [US4] Render result panel with scores, revealed word, and host-restricted restart button in frontend/src/pages/GamePage.tsx
-- [ ] T032 [US4] Run full backend/frontend test suites and execute end-to-end happy path validation in browser
+- [x] T032 [US4] Run full backend/frontend test suites and execute end-to-end happy path validation in browser
 
 **Checkpoint**: Full round lifecycle is completed and verified.
 
@@ -97,8 +97,8 @@
 
 ## Phase 7: Polish & Cross-Cutting Concerns
 **Purpose**: Final project cleanup and compilation checks
-- [ ] T033 Run build validation in backend/ and frontend/
-- [ ] T034 Update project documentation and compile a reflection report in reflection.md
+- [x] T033 Run build validation in backend/ and frontend/
+- [x] T034 Update project documentation and compile a reflection report in reflection.md
 
 ---
 

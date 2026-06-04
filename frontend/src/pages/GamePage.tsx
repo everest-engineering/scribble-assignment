@@ -228,31 +228,31 @@ export function GamePage() {
                       left: 0,
                       width: "100%",
                       height: "100%",
-                      backgroundColor: "rgba(31, 41, 55, 0.95)",
+                      backgroundColor: "rgba(17, 24, 39, 0.95)",
                       display: "flex",
                       flexDirection: "column",
                       alignItems: "center",
                       justifyContent: "center",
                       color: "#ffffff",
-                      padding: "32px",
+                      padding: "16px",
                       zIndex: 10,
                       textAlign: "center"
                     }}
                   >
-                    <span style={{ fontSize: "1.25rem", fontWeight: 600, color: "var(--accent)", textTransform: "uppercase", letterSpacing: "0.1em" }}>
+                    <span style={{ fontSize: "1rem", fontWeight: 600, color: "var(--accent)", textTransform: "uppercase", letterSpacing: "0.15em" }}>
                       Round Ended
                     </span>
-                    <h2 style={{ fontSize: "2.25rem", margin: "12px 0 24px", fontWeight: 800 }}>
+                    <h2 style={{ fontSize: "1.75rem", margin: "6px 0 16px", fontWeight: 800 }}>
                       Word was: <span style={{ color: "#10b981" }}>{room.secretWord}</span>
                     </h2>
 
-                    <div style={{ width: "100%", maxWidth: "360px", background: "rgba(255, 255, 255, 0.1)", borderRadius: "12px", padding: "20px", marginBottom: "24px" }}>
-                      <h3 style={{ margin: "0 0 12px", fontSize: "1.1rem", fontWeight: 600, borderBottom: "1px dashed rgba(255,255,255,0.2)", paddingBottom: "8px" }}>
+                    <div style={{ width: "100%", maxWidth: "340px", background: "rgba(255, 255, 255, 0.08)", borderRadius: "10px", padding: "12px 16px", marginBottom: "16px" }}>
+                      <h3 style={{ margin: "0 0 8px", fontSize: "0.95rem", fontWeight: 600, borderBottom: "1px dashed rgba(255,255,255,0.15)", paddingBottom: "4px" }}>
                         Final Scores
                       </h3>
-                      <div style={{ display: "grid", gap: "8px" }}>
+                      <div style={{ display: "grid", gap: "6px", maxHeight: "100px", overflowY: "auto" }}>
                         {room.participants.map((p) => (
-                          <div key={p.id} style={{ display: "flex", justifyContent: "space-between", fontSize: "1rem" }}>
+                          <div key={p.id} style={{ display: "flex", justifyContent: "space-between", fontSize: "0.9rem" }}>
                             <span>{p.name} {p.id === room.hostId && "👑"}</span>
                             <strong style={{ color: "var(--accent)" }}>{room.scores[p.id] ?? 0} pts</strong>
                           </div>
@@ -261,11 +261,11 @@ export function GamePage() {
                     </div>
 
                     {isHost ? (
-                      <button className="button button--primary" onClick={handleRestart} style={{ minWidth: "180px" }}>
+                      <button className="button button--primary" onClick={handleRestart} style={{ minHeight: "40px", height: "40px", minWidth: "160px", padding: "0 20px" }}>
                         Restart Game
                       </button>
                     ) : (
-                      <p style={{ color: "#9ca3af", fontSize: "0.95rem" }}>Waiting for the host to restart the game...</p>
+                      <p style={{ color: "#9ca3af", fontSize: "0.875rem" }}>Waiting for the host to restart the game...</p>
                     )}
                   </div>
                 )}
