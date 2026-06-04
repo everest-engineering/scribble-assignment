@@ -15,6 +15,13 @@ export interface GuessEntry {
   timestamp: string;
 }
 
+export interface DrawPoint {
+  x: number;
+  y: number;
+}
+
+export type DrawStroke = DrawPoint[];
+
 export interface Room {
   code: string;
   status: RoomStatus;
@@ -24,6 +31,7 @@ export interface Room {
   secretWord: string | null;
   guesses: GuessEntry[];
   scores: Record<string, number>;
+  drawStrokes: DrawStroke[];
   createdAt: string;
   updatedAt: string;
 }
@@ -37,6 +45,7 @@ export interface RoomSnapshot {
   secretWord: string | null;
   guesses: GuessEntry[];
   scores: Record<string, number>;
+  drawStrokes: DrawStroke[];
   availableWords: string[];
   roles: ParticipantRole[];
   viewerRole: ParticipantRole | null;

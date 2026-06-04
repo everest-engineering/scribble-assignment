@@ -19,6 +19,15 @@ export const submitGuessSchema = z.object({
   text: z.string().trim().min(1, "Guess cannot be empty")
 });
 
+export const submitDrawSchema = z.object({
+  participantId: z.string(),
+  stroke: z.array(z.object({ x: z.number(), y: z.number() }))
+});
+
+export const clearDrawSchema = z.object({
+  participantId: z.string()
+});
+
 export const restartGameSchema = z.object({
   participantId: z.string()
 });

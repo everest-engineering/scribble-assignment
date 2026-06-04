@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import type { GuessEntry, Participant, Room, RoomSnapshot } from "../models/game.js";
+import type { DrawPoint, GuessEntry, Participant, Room, RoomSnapshot } from "../models/game.js";
 import type { ParticipantRole } from "../models/game.js";
 import { STARTER_ROLES, STARTER_WORDS } from "../seed/starterData.js";
 
@@ -67,6 +67,7 @@ export function createRoom(playerName: string) {
     secretWord: null,
     guesses: [],
     scores: {},
+    drawStrokes: [],
     createdAt: now(),
     updatedAt: now()
   };
@@ -216,8 +217,59 @@ export function restartGame(code: string, participantId: string): StoreError | S
   room.secretWord = null;
   room.guesses = [];
   room.scores = {};
+  room.drawStrokes = [];
   room.updatedAt = now();
 
+  rooms.set(room.code, room);
+
+  return {
+    room: cloneRoom(room),
+    participantId
+  };
+}
+
+export function submitDrawStroke(code: string, participantId: string, stroke: DrawPoint[]): StoreError | StoreSuccess {
+  const room = rooms.get(code);
+
+  if (!room) {
+    return { error: "Room not found", status: 404 };
+  }
+
+  if (room.status !== "playing") {
+    return { error: "Round is not active", status: 400 };
+  }
+
+  if (room.drawerId !== participantId) {
+    return { error: "Only the drawer can draw", status: 403 };
+  }
+
+  room.drawStrokes.push(stroke);
+  room.updatedAt = now();
+  rooms.set(room.code, room);
+
+  return {
+    room: cloneRoom(room),
+    participantId
+  };
+}
+
+export function clearDrawing(code: string, participantId: string): StoreError | StoreSuccess {
+  const room = rooms.get(code);
+
+  if (!room) {
+    return { error: "Room not found", status: 404 };
+  }
+
+  if (room.status !== "playing") {
+    return { error: "Round is not active", status: 400 };
+  }
+
+  if (room.drawerId !== participantId) {
+    return { error: "Only the drawer can clear the canvas", status: 403 };
+  }
+
+  room.drawStrokes = [];
+  room.updatedAt = now();
   rooms.set(room.code, room);
 
   return {
@@ -239,6 +291,7 @@ export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSn
     secretWord: isDrawer ? room.secretWord : null,
     guesses: room.guesses.map((g) => ({ ...g })),
     scores: { ...room.scores },
+    drawStrokes: room.drawStrokes.map((s) => s.map((p) => ({ ...p }))),
     availableWords: listWords(),
     roles: [...STARTER_ROLES],
     viewerRole

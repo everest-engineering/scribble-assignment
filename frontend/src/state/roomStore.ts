@@ -126,6 +126,24 @@ class RoomStore {
     return response;
   }
 
+  async submitDrawStroke(stroke: { x: number; y: number }[]) {
+    if (!this.state.room || !this.state.participantId) {
+      return null;
+    }
+    const response = await api.submitDrawStroke(this.state.room.code, this.state.participantId, stroke);
+    this.setRoomSession(response);
+    return response;
+  }
+
+  async clearDrawing() {
+    if (!this.state.room || !this.state.participantId) {
+      return null;
+    }
+    const response = await api.clearDrawing(this.state.room.code, this.state.participantId);
+    this.setRoomSession(response);
+    return response;
+  }
+
   async fetchRoom() {
     if (!this.state.room) {
       return null;

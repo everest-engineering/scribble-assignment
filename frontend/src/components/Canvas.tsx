@@ -1,25 +1,55 @@
 import { useEffect, useRef, useCallback } from "react";
+import { useRoomStore, useRoomState } from "../state/roomStore";
+import type { DrawStroke } from "../services/api";
 
-interface CanvasProps {
-  disabled?: boolean;
-  onDraw?: () => void;
-}
-
-export function Canvas({ disabled = false, onDraw }: CanvasProps) {
+export function Canvas() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const isDrawingRef = useRef(false);
+  const currentStrokeRef = useRef<{ x: number; y: number }[]>([]);
+  const roomStore = useRoomStore();
+  const { room } = useRoomState();
 
-  const getCanvasContext = useCallback(() => {
+  const isDrawer = room?.drawerId === roomStore.getSnapshot().participantId;
+  const isPlaying = room?.status === "playing";
+  const enabled = isDrawer && isPlaying;
+
+  const renderAllStrokes = useCallback(() => {
     const canvas = canvasRef.current;
-    if (!canvas) return null;
+    if (!canvas) return;
     const ctx = canvas.getContext("2d");
-    if (!ctx) return null;
-    ctx.lineWidth = 3;
-    ctx.lineCap = "round";
-    ctx.lineJoin = "round";
-    ctx.strokeStyle = "#1f2937";
-    return ctx;
+    if (!ctx) return;
+    const strokes = room?.drawStrokes ?? [];
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    for (const stroke of strokes) {
+      if (stroke.length === 0) continue;
+      ctx.beginPath();
+      ctx.moveTo(stroke[0].x, stroke[0].y);
+      for (let i = 1; i < stroke.length; i++) {
+        ctx.lineTo(stroke[i].x, stroke[i].y);
+      }
+      ctx.stroke();
+    }
+  }, [room?.drawStrokes]);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const parent = canvas.parentElement;
+    if (!parent) return;
+    canvas.width = parent.clientWidth;
+    canvas.height = 500;
+    const ctx = canvas.getContext("2d");
+    if (ctx) {
+      ctx.lineWidth = 3;
+      ctx.lineCap = "round";
+      ctx.lineJoin = "round";
+      ctx.strokeStyle = "#1f2937";
+    }
   }, []);
+
+  useEffect(() => {
+    renderAllStrokes();
+  }, [renderAllStrokes]);
 
   function getCanvasPoint(e: React.MouseEvent<HTMLCanvasElement>) {
     const canvas = canvasRef.current;
@@ -32,66 +62,64 @@ export function Canvas({ disabled = false, onDraw }: CanvasProps) {
   }
 
   function handleMouseDown(e: React.MouseEvent<HTMLCanvasElement>) {
-    if (disabled) return;
+    if (!enabled) return;
     isDrawingRef.current = true;
-    const ctx = getCanvasContext();
-    if (!ctx) return;
     const point = getCanvasPoint(e);
+    currentStrokeRef.current = [point];
+    const ctx = canvasRef.current?.getContext("2d");
+    if (!ctx) return;
     ctx.beginPath();
     ctx.moveTo(point.x, point.y);
   }
 
   function handleMouseMove(e: React.MouseEvent<HTMLCanvasElement>) {
-    if (!isDrawingRef.current || disabled) return;
-    const ctx = getCanvasContext();
+    if (!isDrawingRef.current || !enabled) return;
+    const ctx = canvasRef.current?.getContext("2d");
     if (!ctx) return;
     const point = getCanvasPoint(e);
+    currentStrokeRef.current.push(point);
     ctx.lineTo(point.x, point.y);
     ctx.stroke();
   }
 
-  function handleMouseUp() {
+  async function handleMouseUp() {
+    if (!isDrawingRef.current) return;
     isDrawingRef.current = false;
-    if (onDraw) onDraw();
+    const stroke = currentStrokeRef.current;
+    currentStrokeRef.current = [];
+    if (stroke.length > 0) {
+      await roomStore.submitDrawStroke(stroke);
+    }
   }
 
   function handleMouseLeave() {
     if (isDrawingRef.current) {
       isDrawingRef.current = false;
-      if (onDraw) onDraw();
+      const stroke = currentStrokeRef.current;
+      currentStrokeRef.current = [];
+      if (stroke.length > 0) {
+        roomStore.submitDrawStroke(stroke);
+      }
     }
   }
 
-  function handleClear() {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    if (onDraw) onDraw();
+  async function handleClear() {
+    if (!enabled) return;
+    await roomStore.clearDrawing();
   }
-
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const parent = canvas.parentElement;
-    if (!parent) return;
-    canvas.width = parent.clientWidth;
-    canvas.height = 500;
-  }, []);
 
   return (
     <div className="canvas-container">
       <canvas
         ref={canvasRef}
         className="drawing-canvas"
-        style={{ width: "100%", height: "500px", cursor: disabled ? "default" : "crosshair" }}
+        style={{ width: "100%", height: "500px", cursor: enabled ? "crosshair" : "default" }}
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseLeave}
       />
-      {!disabled && (
+      {enabled && (
         <div className="button-row" style={{ marginTop: "8px" }}>
           <button className="button button--secondary" type="button" onClick={handleClear}>
             Clear Canvas

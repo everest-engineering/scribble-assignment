@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createRoom, joinRoom, startGame, submitGuess, restartGame, getRoom, toRoomSnapshot } from "./roomStore.js";
+import { clearDrawing, createRoom, getRoom, joinRoom, restartGame, startGame, submitDrawStroke, submitGuess, toRoomSnapshot } from "./roomStore.js";
 
 describe("roomStore", () => {
   it("createRoom returns a room with a 4-character uppercase code", () => {
@@ -142,6 +142,77 @@ describe("roomStore", () => {
     if ("error" in result) {
       expect(result.status).toBe(403);
     }
+  });
+
+  it("submitDrawStroke appends a stroke to the room", () => {
+    const host = createRoom("Alice");
+    joinRoom(host.room.code, "Bob");
+    startGame(host.room.code, host.participantId);
+
+    const stroke = [{ x: 10, y: 20 }, { x: 30, y: 40 }];
+    const result = submitDrawStroke(host.room.code, host.participantId, stroke);
+
+    expect("error" in result).toBe(false);
+    if (!("error" in result)) {
+      expect(result.room.drawStrokes).toHaveLength(1);
+      expect(result.room.drawStrokes[0]).toEqual(stroke);
+    }
+  });
+
+  it("submitDrawStroke rejects non-drawer", () => {
+    const host = createRoom("Alice");
+    joinRoom(host.room.code, "Bob");
+    startGame(host.room.code, host.participantId);
+
+    const room = getRoom(host.room.code)!;
+    const bobId = room.participants.find((p) => p.name === "Bob")!.id;
+    const result = submitDrawStroke(host.room.code, bobId, [{ x: 0, y: 0 }]);
+
+    expect("error" in result).toBe(true);
+    if ("error" in result) {
+      expect(result.status).toBe(403);
+    }
+  });
+
+  it("clearDrawing clears all strokes", () => {
+    const host = createRoom("Alice");
+    joinRoom(host.room.code, "Bob");
+    startGame(host.room.code, host.participantId);
+
+    submitDrawStroke(host.room.code, host.participantId, [{ x: 10, y: 20 }]);
+    const result = clearDrawing(host.room.code, host.participantId);
+
+    expect("error" in result).toBe(false);
+    if (!("error" in result)) {
+      expect(result.room.drawStrokes).toHaveLength(0);
+    }
+  });
+
+  it("restartGame clears drawStrokes", () => {
+    const host = createRoom("Alice");
+    joinRoom(host.room.code, "Bob");
+    startGame(host.room.code, host.participantId);
+
+    submitDrawStroke(host.room.code, host.participantId, [{ x: 10, y: 20 }]);
+    const result = restartGame(host.room.code, host.participantId);
+
+    expect("error" in result).toBe(false);
+    if (!("error" in result)) {
+      expect(result.room.drawStrokes).toHaveLength(0);
+    }
+  });
+
+  it("toRoomSnapshot includes drawStrokes in snapshot", () => {
+    const host = createRoom("Alice");
+    joinRoom(host.room.code, "Bob");
+    startGame(host.room.code, host.participantId);
+
+    submitDrawStroke(host.room.code, host.participantId, [{ x: 1, y: 2 }]);
+    const room = getRoom(host.room.code)!;
+    const snapshot = toRoomSnapshot(room, host.participantId);
+
+    expect(snapshot.drawStrokes).toHaveLength(1);
+    expect(snapshot.drawStrokes[0][0]).toEqual({ x: 1, y: 2 });
   });
 
   it("toRoomSnapshot shows secretWord for drawer only", () => {

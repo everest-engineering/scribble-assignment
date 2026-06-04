@@ -88,7 +88,7 @@ export function GamePage() {
 
         <div className="game-page__main">
           <Card title="Canvas">
-            <Canvas disabled={!isDrawer || !isPlaying} />
+            <Canvas />
           </Card>
         </div>
 
