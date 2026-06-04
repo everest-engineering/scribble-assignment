@@ -7,7 +7,7 @@ import {
   useSyncExternalStore,
   type PropsWithChildren
 } from "react";
-import { api, type RoomSessionResponse, type RoomSnapshot } from "../services/api";
+import { api, type RoomSessionResponse, type RoomSnapshot, type Stroke } from "../services/api";
 
 export interface RoomState {
   room: RoomSnapshot | null;
@@ -18,7 +18,7 @@ export interface RoomState {
 
 type Listener = () => void;
 
-class RoomStore {
+export class RoomStore {
   private state: RoomState = {
     room: null,
     participantId: null,
@@ -98,9 +98,37 @@ class RoomStore {
     this.setRoomSnapshot(response.room);
     return response.room;
   }
+
+  async startGame(code: string, participantId: string) {
+    const response = await this.withLoading(() => api.startGame(code, participantId));
+    this.setRoomSnapshot(response.room);
+    return response.room;
+  }
+
+  async addStroke(code: string, participantId: string, stroke: Stroke) {
+    await api.addStroke(code, participantId, stroke);
+    await this.fetchRoom();
+  }
+
+  async clearCanvas(code: string, participantId: string) {
+    await api.clearCanvas(code, participantId);
+    await this.fetchRoom();
+  }
+
+  async submitGuess(code: string, participantId: string, text: string) {
+    const result = await api.submitGuess(code, participantId, text);
+    await this.fetchRoom();
+    return result;
+  }
+
+  async restartGame(code: string, participantId: string) {
+    const response = await api.restartGame(code, participantId);
+    this.setRoomSnapshot(response.room);
+    return response.room;
+  }
 }
 
-const RoomStoreContext = createContext<RoomStore | null>(null);
+export const RoomStoreContext = createContext<RoomStore | null>(null);
 
 export function RoomStoreProvider({ children }: PropsWithChildren) {
   const storeRef = useRef<RoomStore | null>(null);

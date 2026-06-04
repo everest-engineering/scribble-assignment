@@ -40,3 +40,11 @@ You are working on a monolithic repository for a multiplayer drawing game ("Scri
 -   Give concise, direct answers.
 -   Do not output large blocks of code if a small change suffices.
 -   When creating or editing files, ensure consistency with the existing directory structure detailed above.
+
+<!-- SPECKIT START -->
+For additional context about technologies to be used, project structure,
+shell commands, and other important information, read the current plan:
+`specs/005-scoring-hosting/plan.md`
+See also `specs/005-scoring-hosting/data-model.md` for entity definitions and
+`specs/005-scoring-hosting/contracts/api.md` for API contracts.
+<!-- SPECKIT END -->

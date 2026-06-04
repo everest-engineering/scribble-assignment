@@ -1,12 +1,16 @@
 import { Router } from "express";
 import {
+  canvasClearSchema,
+  canvasStrokeSchema,
   createRoomSchema,
+  guessSubmissionSchema,
   HttpError,
   joinRoomSchema,
   roomCodeParamsSchema,
-  roomViewerQuerySchema
+  roomViewerQuerySchema,
+  startRoomSchema
 } from "./schemas.js";
-import { createRoom, getRoom, joinRoom, toRoomSnapshot } from "../services/roomStore.js";
+import { addStroke, clearCanvas, createRoom, getRoom, joinRoom, restartGame, startRoom, submitGuess, toRoomSnapshot } from "../services/roomStore.js";
 
 export function createRoomsRouter() {
   const router = Router();
@@ -32,7 +36,7 @@ export function createRoomsRouter() {
       const result = joinRoom(code.toUpperCase(), playerName);
 
       if (!result) {
-        throw new HttpError(404, "Unable to join room");
+        throw new HttpError(404, `Room ${code.toUpperCase()} not found`);
       }
 
       response.json({
@@ -51,12 +55,72 @@ export function createRoomsRouter() {
       const room = getRoom(code.toUpperCase());
 
       if (!room) {
-        throw new HttpError(404, "Unable to load room");
+        throw new HttpError(404, `Room ${code.toUpperCase()} not found`);
       }
 
       response.json({
         room: toRoomSnapshot(room, participantId)
       });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/:code/start", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId } = startRoomSchema.parse(request.body);
+      const room = startRoom(code.toUpperCase(), participantId);
+
+      response.json({ room });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/:code/canvas", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId, stroke } = canvasStrokeSchema.parse(request.body);
+      const strokes = addStroke(code.toUpperCase(), participantId, stroke);
+
+      response.json({ round: { strokes } });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/:code/canvas/clear", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId } = canvasClearSchema.parse(request.body);
+      const strokes = clearCanvas(code.toUpperCase(), participantId);
+
+      response.json({ round: { strokes } });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/:code/guess", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId, text } = guessSubmissionSchema.parse(request.body);
+      const result = submitGuess(code.toUpperCase(), participantId, text);
+
+      response.json(result);
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/:code/restart", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId } = startRoomSchema.parse(request.body);
+      const room = restartGame(code.toUpperCase(), participantId);
+
+      response.json({ room });
     } catch (error) {
       next(error);
     }
