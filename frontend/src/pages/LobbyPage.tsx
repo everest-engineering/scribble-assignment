@@ -17,6 +17,21 @@ export function LobbyPage() {
     }
   }, [navigate, room]);
 
+  useEffect(() => {
+    if (!room) {
+      return;
+    }
+
+    const intervalId = window.setInterval(() => {
+      void roomStore.fetchRoom().catch(() => {
+        // polling errors handled by store
+      });
+    }, 2000);
+
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, [room, roomStore]);
   async function handleRefresh() {
     try {
       setRefreshError(null);
