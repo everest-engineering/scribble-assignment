@@ -122,7 +122,7 @@ description: "Task list for Room Setup & Lobby — Scenario 1"
 
 ### Validation for User Story 5
 
-- [ ] T019 [US5] Verify multi-room isolation using quickstart.md Test 9 — open three browser tabs, create two separate rooms, join one room from a third tab, confirm the other room's participant list is unaffected
+- [x] T019 [US5] Verify multi-room isolation using quickstart.md Test 9 — open three browser tabs, create two separate rooms, join one room from a third tab, confirm the other room's participant list is unaffected
 
 **Checkpoint**: Room B is unaffected by join events and start events in Room A.
 
@@ -132,7 +132,7 @@ description: "Task list for Room Setup & Lobby — Scenario 1"
 
 **Purpose**: Final validation and quality checks across all user stories.
 
-- [ ] T020 [P] Run full quickstart.md validation — all 9 tests with two browser tabs open simultaneously
+- [x] T020 [P] Run full quickstart.md validation — all 9 tests with two browser tabs open simultaneously
 - [x] T021 [P] Run `npm run build` in `backend/` and `frontend/` to confirm zero TypeScript errors post-implementation
 - [x] T022 [P] Review all changed files against the AI self-review checklist (constitution Section 3): type safety, scope, spec alignment, polling hygiene, error handling
 
