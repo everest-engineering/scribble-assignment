@@ -82,7 +82,7 @@ drawer name without any manual action.
 1. **Given** the game is `playing`, **When** any player views the game screen, **Then** the
    screen displays the drawer's name (resolved from `room.drawerId` against `room.participants`).
 2. **Given** the current player is the drawer, **When** they view the game screen, **Then**
-   their own name is highlighted or labelled "You are the drawer".
+   their own name is labelled "You are the drawer".
 3. **Given** the current player is not the drawer, **When** they view the game screen, **Then**
    the drawer's name is shown with a label such as "Drawing: [name]".
 
