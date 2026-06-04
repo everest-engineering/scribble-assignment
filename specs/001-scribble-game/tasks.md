@@ -13,13 +13,13 @@
 
 ## Phase 1: Setup (Shared Infrastructure)
 **Purpose**: Project initialization and basic structure
-- [ ] T001 Initialize Specify integration and active plan references in AGENTS.md
+- [x] T001 Initialize Specify integration and active plan references in AGENTS.md
 
 ---
 
 ## Phase 2: Foundational (Blocking Prerequisites)
 **Purpose**: Core infrastructure that MUST be complete before ANY user story can be implemented
-- [ ] T002 [P] Fix VITE_API_URL default value in frontend/src/services/api.ts
+- [x] T002 [P] Fix VITE_API_URL default value in frontend/src/services/api.ts
 - [ ] T003 [P] Add hostId, drawerId, secretWord, canvasData, guesses, and scores to Room and RoomSnapshot interfaces in backend/src/models/game.ts
 - [ ] T004 [P] Sync RoomSnapshot and Guess interfaces in frontend/src/services/api.ts with backend models
 
