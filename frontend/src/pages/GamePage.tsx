@@ -1,21 +1,39 @@
-import { useEffect } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card } from "../components/Card";
+import { DrawingCanvas } from "../components/Canvas";
 import { GuessForm } from "../components/GuessForm";
-import { ResultPanel } from "../components/ResultPanel";
+import { GuessHistory } from "../components/GuessHistory";
 import { RoomCodeBadge } from "../components/RoomCodeBadge";
 import { Scoreboard } from "../components/Scoreboard";
-import { useRoomState } from "../state/roomStore";
+import { useRoomState, useRoomStore } from "../state/roomStore";
 
 export function GamePage() {
   const navigate = useNavigate();
+  const roomStore = useRoomStore();
   const { room, participantId } = useRoomState();
+  const [refreshError, setRefreshError] = useState<string | null>(null);
+  const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const doPoll = useCallback(() => {
+    roomStore.fetchRoom().catch((caughtError) => {
+      setRefreshError(caughtError instanceof Error ? caughtError.message : "Unable to refresh game");
+    });
+  }, [roomStore]);
 
   useEffect(() => {
     if (!room) {
       navigate("/", { replace: true });
+      return;
     }
-  }, [navigate, room]);
+
+    pollingRef.current = setInterval(doPoll, 2000);
+    return () => {
+      if (pollingRef.current) {
+        clearInterval(pollingRef.current);
+      }
+    };
+  }, [navigate, room, doPoll]);
 
   if (!room) {
     return null;
@@ -24,6 +42,11 @@ export function GamePage() {
   const viewer = room.participants.find((participant) => participant.id === participantId) ?? null;
   const drawer = room.participants.find((participant) => participant.id === room.drawerId) ?? null;
   const isDrawer = participantId === room.drawerId;
+
+  async function handleGuess(text: string) {
+    await roomStore.submitGuess(text);
+    doPoll();
+  }
 
   return (
     <section className="panel game-page">
@@ -37,10 +60,12 @@ export function GamePage() {
         <RoomCodeBadge code={room.code} />
       </div>
 
+      {refreshError ? <p className="form__error">{refreshError}</p> : null}
+
       <div className="game-page__layout">
         <aside className="game-page__sidebar game-page__sidebar--left">
-          <Scoreboard />
-          <ResultPanel />
+          <Scoreboard participants={room.participants} scores={room.scores} drawerId={room.drawerId} />
+          <GuessHistory guesses={room.guesses} />
         </aside>
 
         <div className="game-page__main">
@@ -52,9 +77,13 @@ export function GamePage() {
             </Card>
           ) : null}
           <Card title="Canvas">
-            <div className="canvas-placeholder" style={{ minHeight: '500px', backgroundColor: '#ffffff', border: '1px solid #e5e7eb' }}>
-              {isDrawer ? "Draw your word on the canvas!" : `Waiting for ${drawer?.name ?? "the drawer"} to draw...`}
-            </div>
+            {isDrawer ? (
+              <DrawingCanvas />
+            ) : (
+              <div className="canvas-placeholder" style={{ minHeight: "500px", backgroundColor: "#ffffff", border: "1px solid #e5e7eb" }}>
+                Waiting for {drawer?.name ?? "the drawer"} to draw...
+              </div>
+            )}
           </Card>
         </div>
 
@@ -80,7 +109,7 @@ export function GamePage() {
 
           {!isDrawer ? (
             <Card title="Your Guess">
-              <GuessForm />
+              <GuessForm onSubmit={handleGuess} />
             </Card>
           ) : null}
         </aside>
