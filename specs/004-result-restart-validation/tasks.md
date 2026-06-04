@@ -83,7 +83,7 @@
 
 **Purpose**: Improvements that affect multiple user stories
 
-- [ ] T016 [P] Verify the end-to-end result/restart flow against `specs/004-result-restart-validation/quickstart.md`
+- [X] T016 [P] Verify the end-to-end result/restart flow against `specs/004-result-restart-validation/quickstart.md`
 
 ---
 
