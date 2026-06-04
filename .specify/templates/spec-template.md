@@ -129,3 +129,9 @@
 - [Assumption about scope boundaries, e.g., "Mobile support is out of scope for v1"]
 - [Assumption about data/environment, e.g., "Existing authentication system will be reused"]
 - [Dependency on existing system/service, e.g., "Requires access to the existing user profile API"]
+
+> **Out-of-scope reminder (Constitution VI)**: WebSockets, databases, auth,
+> deployment, Docker, new state/routing libs, multiple rounds, drawer rotation,
+> timers, bonuses, custom word packs, spectator mode, room moderation, room
+> passwords, and starter rewrites are permanently excluded. Do not include them
+> here or in any downstream plan or task list.

@@ -250,3 +250,8 @@ With multiple developers:
 - Commit after each task or logical group
 - Stop at any checkpoint to validate story independently
 - Avoid: vague tasks, same file conflicts, cross-story dependencies that break independence
+- **Out-of-scope guard (Constitution VI)**: Before adding any task, confirm it
+  does NOT involve WebSockets, databases, auth, deployment, Docker, new
+  state/routing libs, multiple rounds, drawer rotation, timers, bonuses,
+  custom word packs, spectator mode, room moderation, room passwords, or
+  starter rewrites. Tasks that touch any of these MUST be removed.

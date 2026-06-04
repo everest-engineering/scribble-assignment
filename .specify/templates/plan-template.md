@@ -50,6 +50,11 @@
 - Spec-first delivery: update spec, plan, and tasks before implementation.
 - Verify locally: test the affected flow, including multi-tab browser checks
   for polling-driven state.
+- Out-of-scope check (Principle VI): confirm the plan does NOT include
+  WebSockets, databases, auth, deployment, Docker, new state/routing libs,
+  multiple rounds, drawer rotation, timers, bonuses, custom word packs,
+  spectator mode, room moderation, room passwords, or starter rewrites.
+  Any match MUST be removed before proceeding.
 
 ## Project Structure
 
