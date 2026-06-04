@@ -20,8 +20,8 @@
 ## Phase 2: Foundational (Blocking Prerequisites)
 **Purpose**: Core infrastructure that MUST be complete before ANY user story can be implemented
 - [x] T002 [P] Fix VITE_API_URL default value in frontend/src/services/api.ts
-- [ ] T003 [P] Add hostId, drawerId, secretWord, canvasData, guesses, and scores to Room and RoomSnapshot interfaces in backend/src/models/game.ts
-- [ ] T004 [P] Sync RoomSnapshot and Guess interfaces in frontend/src/services/api.ts with backend models
+- [x] T003 [P] Add hostId, drawerId, secretWord, canvasData, guesses, and scores to Room and RoomSnapshot interfaces in backend/src/models/game.ts
+- [x] T004 [P] Sync RoomSnapshot and Guess interfaces in frontend/src/services/api.ts with backend models
 
 **Checkpoint**: Foundation ready - user story implementation can now begin in parallel
 
