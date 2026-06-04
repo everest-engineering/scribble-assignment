@@ -13,6 +13,7 @@ export interface RoomState {
   room: RoomSnapshot | null;
   participantId: string | null;
   error: string | null;
+  pollError: string | null;
   isLoading: boolean;
 }
 
@@ -23,8 +24,11 @@ class RoomStore {
     room: null,
     participantId: null,
     error: null,
+    pollError: null,
     isLoading: false
   };
+
+  private pollTimerId: ReturnType<typeof setInterval> | null = null;
 
   private listeners = new Set<Listener>();
 
@@ -95,6 +99,33 @@ class RoomStore {
     }
 
     const response = await api.fetchRoom(this.state.room.code, this.state.participantId ?? undefined);
+    this.setRoomSnapshot(response.room);
+    return response.room;
+  }
+
+  startPolling(intervalMs: number): void {
+    this.stopPolling();
+    this.pollTimerId = setInterval(() => {
+      this.fetchRoom().catch((error: unknown) => {
+        const message = error instanceof Error ? error.message : "Unable to refresh room";
+        this.setState({ pollError: message });
+      });
+    }, intervalMs);
+  }
+
+  stopPolling(): void {
+    if (this.pollTimerId !== null) {
+      clearInterval(this.pollTimerId);
+      this.pollTimerId = null;
+    }
+  }
+
+  async startGame(): Promise<RoomSnapshot> {
+    const { room, participantId } = this.state;
+    if (!room || !participantId) {
+      throw new Error("No active room session");
+    }
+    const response = await this.withLoading(() => api.startGame(room.code, participantId));
     this.setRoomSnapshot(response.room);
     return response.room;
   }

@@ -16,12 +16,12 @@
 
 **Purpose**: Extend the data model and store service. All user stories depend on this.
 
-- [ ] T001 Extend `RoomStatus` union from `"lobby"` to `"lobby" | "playing" | "finished"` in `backend/src/models/game.ts`
-- [ ] T002 Add `hostId: string` field to `Room` interface in `backend/src/models/game.ts`
-- [ ] T003 Add `hostId: string` field to `RoomSnapshot` interface in `backend/src/models/game.ts`
-- [ ] T004 Set `hostId = participant.id` (first participant) in `createRoom()` in `backend/src/services/roomStore.ts`
-- [ ] T005 Forward `hostId` from `Room` to `RoomSnapshot` in `toRoomSnapshot()` in `backend/src/services/roomStore.ts`
-- [ ] T006 Keep `displayName()` in `backend/src/services/roomStore.ts` as a passive fallback (existing `name || "Player"` behaviour); Zod schemas (T007/T008) are the sole validation gate — do not add a throw here to avoid double-failure paths with mismatched error shapes (FR-002)
+- [x] T001 Extend `RoomStatus` union from `"lobby"` to `"lobby" | "playing" | "finished"` in `backend/src/models/game.ts`
+- [x] T002 Add `hostId: string` field to `Room` interface in `backend/src/models/game.ts`
+- [x] T003 Add `hostId: string` field to `RoomSnapshot` interface in `backend/src/models/game.ts`
+- [x] T004 Set `hostId = participant.id` (first participant) in `createRoom()` in `backend/src/services/roomStore.ts`
+- [x] T005 Forward `hostId` from `Room` to `RoomSnapshot` in `toRoomSnapshot()` in `backend/src/services/roomStore.ts`
+- [x] T006 Keep `displayName()` in `backend/src/services/roomStore.ts` as a passive fallback (existing `name || "Player"` behaviour); Zod schemas (T007/T008) are the sole validation gate — do not add a throw here to avoid double-failure paths with mismatched error shapes (FR-002)
 
 ---
 
@@ -29,10 +29,10 @@
 
 **Purpose**: Tighten validation and add the Start Game endpoint. Depends on Phase 1.
 
-- [ ] T007 Update `createRoomSchema` in `backend/src/api/schemas.ts` to require `playerName` as a trimmed non-empty string (`z.string().trim().min(1)`)
-- [ ] T008 Update `joinRoomSchema` in `backend/src/api/schemas.ts` to require `playerName` as a trimmed non-empty string (`z.string().trim().min(1)`)
-- [ ] T009 Add `startGameSchema` to `backend/src/api/schemas.ts`: `z.object({ participantId: z.string().uuid() })`
-- [ ] T010 Add `POST /:code/start` route handler in `backend/src/api/rooms.ts` that: normalises `:code` to uppercase via `code.toUpperCase()` (FR-003, matching existing `join` pattern in rooms.ts:32), validates `participantId === room.hostId` (403 if not), validates `participants.length >= 2` (400 if not), sets `room.status = "playing"` via `saveRoom()`, returns `{ room: toRoomSnapshot(room, participantId) }`
+- [x] T007 Update `createRoomSchema` in `backend/src/api/schemas.ts` to require `playerName` as a trimmed non-empty string (`z.string().trim().min(1)`)
+- [x] T008 Update `joinRoomSchema` in `backend/src/api/schemas.ts` to require `playerName` as a trimmed non-empty string (`z.string().trim().min(1)`)
+- [x] T009 Add `startGameSchema` to `backend/src/api/schemas.ts`: `z.object({ participantId: z.string().uuid() })`
+- [x] T010 Add `POST /:code/start` route handler in `backend/src/api/rooms.ts` that: normalises `:code` to uppercase via `code.toUpperCase()` (FR-003, matching existing `join` pattern in rooms.ts:32), validates `participantId === room.hostId` (403 if not), validates `participants.length >= 2` (400 if not), sets `room.status = "playing"` via `saveRoom()`, returns `{ room: toRoomSnapshot(room, participantId) }`
 
 ---
 
@@ -42,9 +42,9 @@
 
 **Independent test**: Create a room with a valid name → lobby shows host; create with empty name → error, no navigation.
 
-- [ ] T011 [US1] Update `frontend/src/services/api.ts`: extend `RoomSnapshot` type to add `hostId: string` and expand `status` union to `"lobby" | "playing" | "finished"`
-- [ ] T012 [P] [US1] Add client-side name validation in `frontend/src/pages/CreateRoomPage.tsx`: trim `playerName` before submit; if empty after trim, set error state and abort fetch
-- [ ] T013 [P] [US1] Add `api.startGame(code: string, participantId: string)` method to `frontend/src/services/api.ts` calling `POST /rooms/:code/start`
+- [x] T011 [US1] Update `frontend/src/services/api.ts`: extend `RoomSnapshot` type to add `hostId: string` and expand `status` union to `"lobby" | "playing" | "finished"`
+- [x] T012 [P] [US1] Add client-side name validation in `frontend/src/pages/CreateRoomPage.tsx`: trim `playerName` before submit; if empty after trim, set error state and abort fetch
+- [x] T013 [P] [US1] Add `api.startGame(code: string, participantId: string)` method to `frontend/src/services/api.ts` calling `POST /rooms/:code/start`
 
 ---
 
@@ -54,8 +54,8 @@
 
 **Independent test**: Join with valid code + name → lobby; join with invalid code → error on Join screen; join with empty name → error; join with lowercase code → normalised and succeeds.
 
-- [ ] T014 [US2] Add client-side name validation in `frontend/src/pages/JoinRoomPage.tsx`: trim `playerName` before submit; if empty after trim, set error state and abort fetch
-- [ ] T015 [P] [US2] Add client-side code validation in `frontend/src/pages/JoinRoomPage.tsx`: if `roomCode.trim()` is empty, set error state and abort fetch (no network call)
+- [x] T014 [US2] Add client-side name validation in `frontend/src/pages/JoinRoomPage.tsx`: trim `playerName` before submit; if empty after trim, set error state and abort fetch
+- [x] T015 [P] [US2] Add client-side code validation in `frontend/src/pages/JoinRoomPage.tsx`: if `roomCode.trim()` is empty, set error state and abort fetch (no network call)
 
 ---
 
@@ -65,12 +65,12 @@
 
 **Independent test**: Open lobby in two tabs; join from a third; first two tabs update within 2s without manual action. Navigate away; confirm no further requests.
 
-- [ ] T016 [US3] Add `pollError: string | null` field to `RoomState` interface in `frontend/src/state/roomStore.ts`
-- [ ] T017 [US3] Add private `pollTimerId: ReturnType<typeof setInterval> | null` field to `RoomStore` class in `frontend/src/state/roomStore.ts`
-- [ ] T018 [US3] Add `startPolling(intervalMs: number): void` method to `RoomStore` in `frontend/src/state/roomStore.ts`: sets `setInterval` calling `fetchRoom()` silently; on fetch error sets `pollError` in state without stopping the interval
-- [ ] T019 [US3] Add `stopPolling(): void` method to `RoomStore` in `frontend/src/state/roomStore.ts`: calls `clearInterval(this.pollTimerId)` and resets `pollTimerId` to `null`
-- [ ] T020 [US3] Replace manual refresh `useEffect` in `frontend/src/pages/LobbyPage.tsx` with a polling `useEffect`: call `roomStore.startPolling(2000)` on mount; return cleanup calling `roomStore.stopPolling()`
-- [ ] T021 [US3] Display `pollError` inline in `frontend/src/pages/LobbyPage.tsx` Status card when non-null (non-blocking; does not replace existing status message)
+- [x] T016 [US3] Add `pollError: string | null` field to `RoomState` interface in `frontend/src/state/roomStore.ts`
+- [x] T017 [US3] Add private `pollTimerId: ReturnType<typeof setInterval> | null` field to `RoomStore` class in `frontend/src/state/roomStore.ts`
+- [x] T018 [US3] Add `startPolling(intervalMs: number): void` method to `RoomStore` in `frontend/src/state/roomStore.ts`: sets `setInterval` calling `fetchRoom()` silently; on fetch error sets `pollError` in state without stopping the interval
+- [x] T019 [US3] Add `stopPolling(): void` method to `RoomStore` in `frontend/src/state/roomStore.ts`: calls `clearInterval(this.pollTimerId)` and resets `pollTimerId` to `null`
+- [x] T020 [US3] Replace manual refresh `useEffect` in `frontend/src/pages/LobbyPage.tsx` with a polling `useEffect`: call `roomStore.startPolling(2000)` on mount; return cleanup calling `roomStore.stopPolling()`
+- [x] T021 [US3] Display `pollError` inline in `frontend/src/pages/LobbyPage.tsx` Status card when non-null (non-blocking; does not replace existing status message)
 
 ---
 
@@ -80,11 +80,11 @@
 
 **Independent test**: With 2 players, only host's button is enabled; host clicks → host navigates immediately; second tab navigates on next poll. With 1 player, host button disabled. Non-host sees "Only the host can start".
 
-- [ ] T022 [US4] Add `startGame(): Promise<RoomSnapshot>` method to `RoomStore` in `frontend/src/state/roomStore.ts`: calls `api.startGame(room.code, participantId)`, updates room snapshot via `setRoomSnapshot`
-- [ ] T023 [US4] Compute `isHost` and `canStart` in `frontend/src/pages/LobbyPage.tsx`: `isHost = room.hostId === participantId`; `canStart = isHost && room.participants.length >= 2`
-- [ ] T024 [US4] Replace the existing unconditional Start Game button in `frontend/src/pages/LobbyPage.tsx` with a button that: is `disabled` when `!canStart`; shows label `"Only the host can start"` when `!isHost` (FR-013); shows `"Need at least 2 players"` when `isHost && participants.length < 2` (FR-009 — implementation extension not contradicting any FR); calls `handleStartGame()` when enabled
-- [ ] T025 [US4] Add `handleStartGame()` async handler in `frontend/src/pages/LobbyPage.tsx`: calls `roomStore.startGame()`; on success calls `navigate("/game")`; on error sets local error state
-- [ ] T026 [US4] In `frontend/src/pages/LobbyPage.tsx` polling `useEffect` (T020), add a `useEffect` (or inline check after `roomStore.startPolling` snapshot update) that watches `room.status`: when `room.status === "playing"` and `!isHost`, call `navigate("/game")` — this check runs in `LobbyPage` where `isHost` is available, NOT inside `RoomStore.startPolling` which has no access to `participantId` (FR-012)
+- [x] T022 [US4] Add `startGame(): Promise<RoomSnapshot>` method to `RoomStore` in `frontend/src/state/roomStore.ts`: calls `api.startGame(room.code, participantId)`, updates room snapshot via `setRoomSnapshot`
+- [x] T023 [US4] Compute `isHost` and `canStart` in `frontend/src/pages/LobbyPage.tsx`: `isHost = room.hostId === participantId`; `canStart = isHost && room.participants.length >= 2`
+- [x] T024 [US4] Replace the existing unconditional Start Game button in `frontend/src/pages/LobbyPage.tsx` with a button that: is `disabled` when `!canStart`; shows label `"Only the host can start"` when `!isHost` (FR-013); shows `"Need at least 2 players"` when `isHost && participants.length < 2` (FR-009 — implementation extension not contradicting any FR); calls `handleStartGame()` when enabled
+- [x] T025 [US4] Add `handleStartGame()` async handler in `frontend/src/pages/LobbyPage.tsx`: calls `roomStore.startGame()`; on success calls `navigate("/game")`; on error sets local error state
+- [x] T026 [US4] In `frontend/src/pages/LobbyPage.tsx` polling `useEffect` (T020), add a `useEffect` (or inline check after `roomStore.startPolling` snapshot update) that watches `room.status`: when `room.status === "playing"` and `!isHost`, call `navigate("/game")` — this check runs in `LobbyPage` where `isHost` is available, NOT inside `RoomStore.startPolling` which has no access to `participantId` (FR-012)
 
 ---
 
@@ -92,10 +92,10 @@
 
 **Purpose**: Cleanup, type safety verification, and manual validation pass.
 
-- [ ] T027 [P] Verify no `any` types introduced across all modified files: `backend/src/models/game.ts`, `backend/src/services/roomStore.ts`, `backend/src/api/schemas.ts`, `backend/src/api/rooms.ts`, `frontend/src/services/api.ts`, `frontend/src/state/roomStore.ts`, `frontend/src/pages/LobbyPage.tsx`, `frontend/src/pages/CreateRoomPage.tsx`, `frontend/src/pages/JoinRoomPage.tsx`
-- [ ] T031 [P] Verify no code path mutates `room.hostId` after `createRoom()` in `backend/src/services/roomStore.ts`: confirm `joinRoom()`, `saveRoom()`, and `toRoomSnapshot()` never overwrite `hostId`; confirm `POST /:code/start` handler does not alter `hostId` (FR-015)
-- [ ] T028 [P] Run `cd backend && npm run build` and confirm zero TypeScript errors
-- [ ] T029 [P] Run `cd frontend && npm run build` and confirm zero TypeScript errors
+- [x] T027 [P] Verify no `any` types introduced across all modified files: `backend/src/models/game.ts`, `backend/src/services/roomStore.ts`, `backend/src/api/schemas.ts`, `backend/src/api/rooms.ts`, `frontend/src/services/api.ts`, `frontend/src/state/roomStore.ts`, `frontend/src/pages/LobbyPage.tsx`, `frontend/src/pages/CreateRoomPage.tsx`, `frontend/src/pages/JoinRoomPage.tsx`
+- [x] T031 [P] Verify no code path mutates `room.hostId` after `createRoom()` in `backend/src/services/roomStore.ts`: confirm `joinRoom()`, `saveRoom()`, and `toRoomSnapshot()` never overwrite `hostId`; confirm `POST /:code/start` handler does not alter `hostId` (FR-015)
+- [x] T028 [P] Run `cd backend && npm run build` and confirm zero TypeScript errors
+- [x] T029 [P] Run `cd frontend && npm run build` and confirm zero TypeScript errors
 - [ ] T030 Manual two-tab acceptance test per plan.md Testing Strategy: create room (Tab A), join (Tab B), verify polling, verify Start Game gates, verify navigation for both host and non-host
 
 ---
