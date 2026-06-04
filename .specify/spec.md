@@ -63,6 +63,11 @@
 - **FR-017**: Game end MUST display the correct word, final scores, and guess history.
 - **FR-018**: Host MAY restart the game — returns to lobby, preserves players, clears round.
 
+## AI Usage Rules
++- AI-assisted code generation is permitted but all output MUST be human-reviewed.
++- AI MUST NOT be instructed to violate hard constraints (WebSockets, databases, auth).
++- AI-generated code must adhere to the same quality standards as human-written code.
+
 ## Success Criteria
 - **SC-001**: Two browser tabs can join the same room.
 - **SC-002**: Host can start the game.

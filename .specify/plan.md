@@ -12,6 +12,11 @@ Implement 4 scenarios for a multiplayer drawing game: room setup and lobby, game
 - **Testing**: Vitest
 - **Constraints**: No WebSockets (HTTP polling), no databases, no auth
 
+## AI Usage Rules
++- AI-assisted code generation is permitted but all output MUST be human-reviewed.
++- AI MUST NOT be instructed to violate hard constraints (WebSockets, databases, auth).
++- AI-generated code must adhere to the same quality standards as human-written code.
+
 ## Implementation Order
 1. Fix existing bugs (hostId, snapshot, API URL, schema validation)
 2. Scenario 1: auto-polling, start-game endpoint, host/player gating

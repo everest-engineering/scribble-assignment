@@ -37,6 +37,18 @@ pages, state, and API services. Components MUST be functional with hooks.
 - **Frontend**: React 18, React Router 6, Vite, TypeScript
 - **Testing**: Vitest (backend + frontend)
 
+### VI. AI-Assisted Development Discipline
++ AI tools (coding assistants, code generators) MAY be used to accelerate
++ development, subject to the following constraints:
++ - Every AI-generated code change MUST be reviewed by a human for correctness,
++   security, and alignment with the constitution before committing.
++ - AI MUST NOT be instructed to bypass, remove, or ignore any of the hard
++   constraints in Section II (no WebSockets, no databases, no auth).
++ - AI-generated code MUST follow the same type-safety, error-handling, and
++   architectural standards as human-written code.
++ - The human developer retains full responsibility for all code committed,
++   regardless of its origin.
+
 ## Governance
 This constitution supersedes ad-hoc practices. Amendments require:
 1. A documented proposal.

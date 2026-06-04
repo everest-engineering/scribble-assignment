@@ -2,6 +2,16 @@ import { randomUUID } from "node:crypto";
 import type { CanvasStroke, Guess, Participant, Room, RoomSnapshot } from "../models/game.js";
 import { STARTER_ROLES, STARTER_WORDS } from "../seed/starterData.js";
 
+function deterministicHash(str: string): number {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash;
+  }
+  return Math.abs(hash);
+}
+
 const rooms = new Map<string, Room>();
 
 function now() {
@@ -115,9 +125,10 @@ export function startGame(code: string, participantId: string) {
     throwError(400, "At least 2 players are required to start");
   }
 
-  const drawerIndex = Math.floor(Math.random() * room!.participants.length);
+  const hash = deterministicHash(room!.code);
+  const drawerIndex = hash % room!.participants.length;
   const drawerId = room!.participants[drawerIndex].id;
-  const wordIndex = Math.floor(Math.random() * STARTER_WORDS.length);
+  const wordIndex = Math.floor(hash / room!.participants.length) % STARTER_WORDS.length;
   const secretWord = STARTER_WORDS[wordIndex];
 
   room!.status = "playing";
