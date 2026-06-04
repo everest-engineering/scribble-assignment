@@ -4,11 +4,12 @@ interface CardProps extends PropsWithChildren {
   title: string;
   badge?: string;
   footer?: ReactNode;
+  className?: string;
 }
 
-export function Card({ title, badge, footer, children }: CardProps) {
+export function Card({ title, badge, footer, children, className = "" }: CardProps) {
   return (
-    <article className="card">
+    <article className={`card ${className}`}>
       <header className="card__header">
         {badge ? <span className="card__badge">{badge}</span> : null}
         <h2>{title}</h2>

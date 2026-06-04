@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import type { Participant, Room, RoomSnapshot } from "../models/game.js";
+import type { Participant, Room, RoomSnapshot, GuessLog } from "../models/game.js";
 import { STARTER_ROLES, STARTER_WORDS } from "../seed/starterData.js";
 
 const rooms = new Map<string, Room>();
@@ -36,8 +36,10 @@ function displayName(name?: string) {
 function createParticipant(name?: string): Participant {
   return {
     id: randomUUID(),
-    name: displayName(name),
-    joinedAt: now()
+    name: displayName(name).trim(),
+    joinedAt: now(),
+    score: 0,
+    hasGuessedCorrectly: false
   };
 }
 
@@ -56,6 +58,7 @@ export function createRoom(playerName?: string) {
     status: "lobby",
     hostId: participant.id,
     participants: [participant],
+    guesses: [],
     createdAt: now(),
     updatedAt: now()
   };
@@ -153,6 +156,69 @@ export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSn
     availableWords: listWords(),
     roles: [...STARTER_ROLES],
     drawerId: room.drawerId,
-    wordTemplate
+    wordTemplate,
+    drawingData: room.drawingData,
+    guesses: room.guesses || []
   };
+}
+
+export function updateCanvas(code: string, drawerId: string, drawingData: string) {
+  const room = rooms.get(code);
+  if (!room) {
+    return null;
+  }
+  if (room.status !== "active") {
+    throw new Error("Cannot draw: game is not active");
+  }
+  if (room.drawerId !== drawerId) {
+    throw new Error("Only the active drawer can draw on the canvas");
+  }
+  room.drawingData = drawingData;
+  room.updatedAt = now();
+  rooms.set(room.code, room);
+  return cloneRoom(room);
+}
+
+export function submitGuess(code: string, participantId: string, guessText: string) {
+  const room = rooms.get(code);
+  if (!room) {
+    return null;
+  }
+  if (room.status !== "active") {
+    throw new Error("Cannot submit guess: game is not active");
+  }
+
+  const participant = room.participants.find((p) => p.id === participantId);
+  if (!participant) {
+    throw new Error("Participant not found in room");
+  }
+
+  if (room.drawerId === participantId) {
+    throw new Error("Drawer cannot submit guesses");
+  }
+
+  const trimmedGuess = guessText.trim();
+  if (!trimmedGuess) {
+    throw new Error("Guess cannot be empty");
+  }
+
+  const isCorrect = trimmedGuess.toLowerCase() === room.currentWord?.toLowerCase();
+  
+  if (isCorrect && !participant.hasGuessedCorrectly) {
+    participant.score += 100;
+    participant.hasGuessedCorrectly = true;
+  }
+
+  const guessLog: GuessLog = {
+    id: randomUUID(),
+    playerName: participant.name,
+    text: trimmedGuess,
+    isCorrect,
+    timestamp: now()
+  };
+
+  room.guesses.push(guessLog);
+  room.updatedAt = now();
+  rooms.set(room.code, room);
+  return cloneRoom(room);
 }

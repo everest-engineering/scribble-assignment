@@ -110,6 +110,40 @@ class RoomStore {
     this.setRoomSnapshot(response.room);
     return response.room;
   }
+
+  async updateCanvas(drawingData: string) {
+    if (!this.state.room || !this.state.participantId) {
+      return null;
+    }
+
+    // Use withLoading or not. Actually, since drawing is continuous, we don't want withLoading to trigger loading spinner for each stroke!
+    // So we call api.updateCanvas directly and update snapshot.
+    try {
+      const response = await api.updateCanvas(
+        this.state.room.code,
+        this.state.participantId,
+        drawingData
+      );
+      this.setRoomSnapshot(response.room);
+      return response.room;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Canvas sync failed";
+      this.setState({ error: message });
+      throw error;
+    }
+  }
+
+  async submitGuess(guessText: string) {
+    if (!this.state.room || !this.state.participantId) {
+      return null;
+    }
+
+    const response = await this.withLoading(() =>
+      api.submitGuess(this.state.room!.code, this.state.participantId!, guessText)
+    );
+    this.setRoomSnapshot(response.room);
+    return response.room;
+  }
 }
 
 const RoomStoreContext = createContext<RoomStore | null>(null);

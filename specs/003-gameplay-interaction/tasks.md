@@ -20,13 +20,13 @@
 
 ## Phase 1: Setup (Shared Infrastructure)
 
-- [ ] T001 Verify API routes for gameplay in `backend/src/api/router.ts`
+- [x] T001 Verify API routes for gameplay in `backend/src/api/router.ts`
 
 ---
 
 ## Phase 2: Foundational (Blocking Prerequisites)
 
-- [ ] T002 Update `Room` models to contain drawings and guesses in `backend/src/models/game.ts`
+- [x] T002 Update `Room` models to contain drawings and guesses in `backend/src/models/game.ts`
 
 ---
 
@@ -38,10 +38,10 @@
 
 ### Implementation for User Story 1
 
-- [ ] T003 [US1] Create canvas updates endpoint in `backend/src/api/rooms.ts`
-- [ ] T004 [US1] Implement canvas data storage and retrieval in `backend/src/services/roomStore.ts`
-- [ ] T005 [P] [US1] Build React Canvas component to capture mouse strokes in `frontend/src/components/DrawingCanvas.tsx`
-- [ ] T006 [US1] Setup polling sync to request canvas updates in `frontend/src/pages/GamePage.tsx`
+- [x] T003 [US1] Create canvas updates endpoint in `backend/src/api/rooms.ts`
+- [x] T004 [US1] Implement canvas data storage and retrieval in `backend/src/services/roomStore.ts`
+- [x] T005 [P] [US1] Build React Canvas component to capture mouse strokes in `frontend/src/components/DrawingCanvas.tsx`
+- [x] T006 [US1] Setup polling sync to request canvas updates in `frontend/src/pages/GamePage.tsx`
 
 ---
 
@@ -53,10 +53,10 @@
 
 ### Implementation for User Story 2
 
-- [ ] T007 [US2] Create guess submission endpoint and input schemas in `backend/src/api/rooms.ts`
-- [ ] T008 [US2] Implement guess matching, logging, and storage in `backend/src/services/roomStore.ts`
-- [ ] T009 [P] [US2] Build Guess input and log components in `frontend/src/components/GuessBox.tsx`
-- [ ] T010 [US2] Integrate guess history list updates in `frontend/src/pages/GamePage.tsx`
+- [x] T007 [US2] Create guess submission endpoint and input schemas in `backend/src/api/rooms.ts`
+- [x] T008 [US2] Implement guess matching, logging, and storage in `backend/src/services/roomStore.ts`
+- [x] T009 [P] [US2] Build Guess input and log components in `frontend/src/components/GuessBox.tsx`
+- [x] T010 [US2] Integrate guess history list updates in `frontend/src/pages/GamePage.tsx`
 
 ---
 
@@ -68,12 +68,12 @@
 
 ### Implementation for User Story 3
 
-- [ ] T011 [US3] Implement score tracking logic in `backend/src/services/roomStore.ts`
-- [ ] T012 [US3] Send score updates in room state snapshot from `backend/src/api/rooms.ts`
-- [ ] T013 [P] [US3] Render updated scores in player scoreboard list in `frontend/src/components/ScoreBoard.tsx`
+- [x] T011 [US3] Implement score tracking logic in `backend/src/services/roomStore.ts`
+- [x] T012 [US3] Send score updates in room state snapshot from `backend/src/api/rooms.ts`
+- [x] T013 [P] [US3] Render updated scores in player scoreboard list in `frontend/src/components/ScoreBoard.tsx`
 
 ---
 
 ## Phase 6: Polish & Cross-Cutting Concerns
 
-- [ ] T014 Run quickstart.md validation scenario checks.
+- [x] T014 Run quickstart.md validation scenario checks.

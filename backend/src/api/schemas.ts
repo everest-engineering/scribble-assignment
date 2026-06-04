@@ -30,3 +30,14 @@ export class HttpError extends Error {
     this.statusCode = statusCode;
   }
 }
+
+export const updateCanvasSchema = z.object({
+  drawingData: z.string()
+});
+
+export const submitGuessSchema = z.object({
+  guessText: z
+    .string({ required_error: "Guess cannot be empty." })
+    .trim()
+    .min(1, "Guess cannot be empty.")
+});

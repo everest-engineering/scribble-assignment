@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createRoom, joinRoom, startGame, toRoomSnapshot } from "./roomStore.js";
+import { createRoom, joinRoom, startGame, toRoomSnapshot, updateCanvas, submitGuess } from "./roomStore.js";
 
 describe("roomStore", () => {
   it("createRoom returns a room with a 4-character uppercase code and assigns hostId", () => {
@@ -64,6 +64,84 @@ describe("roomStore", () => {
       expect(hostSnapshot.drawerId).toBe(creator.participantId);
       expect(hostSnapshot.wordTemplate).toBe("rocket");
       expect(guestSnapshot.wordTemplate).toBe("______");
+    });
+  });
+
+  describe("updateCanvas", () => {
+    it("allows drawer to update canvas data", () => {
+      const creator = createRoom("Alice");
+      const code = creator.room.code;
+      joinRoom(code, "Bob");
+      startGame(code, creator.participantId);
+
+      const updated = updateCanvas(code, creator.participantId, "stroke-data");
+      expect(updated).toBeDefined();
+      expect(updated!.drawingData).toBe("stroke-data");
+    });
+
+    it("throws an error if non-drawer tries to update canvas data", () => {
+      const creator = createRoom("Alice");
+      const code = creator.room.code;
+      const guest = joinRoom(code, "Bob");
+      startGame(code, creator.participantId);
+
+      expect(() => updateCanvas(code, guest!.participantId, "stroke-data")).toThrow("Only the active drawer can draw on the canvas");
+    });
+  });
+
+  describe("submitGuess", () => {
+    it("throws an error if drawer tries to guess", () => {
+      const creator = createRoom("Alice");
+      const code = creator.room.code;
+      joinRoom(code, "Bob");
+      startGame(code, creator.participantId);
+
+      expect(() => submitGuess(code, creator.participantId, "rocket")).toThrow("Drawer cannot submit guesses");
+    });
+
+    it("handles correct guesses case-insensitively and trims input", () => {
+      const creator = createRoom("Alice");
+      const code = creator.room.code;
+      const guest = joinRoom(code, "Bob");
+      startGame(code, creator.participantId);
+
+      const updated = submitGuess(code, guest!.participantId, "  RoCkEt  ");
+      expect(updated).toBeDefined();
+      
+      const guestParticipant = updated!.participants.find(p => p.id === guest!.participantId);
+      expect(guestParticipant?.score).toBe(100);
+      expect(guestParticipant?.hasGuessedCorrectly).toBe(true);
+      expect(updated!.guesses[0].isCorrect).toBe(true);
+      expect(updated!.guesses[0].text).toBe("RoCkEt");
+    });
+
+    it("handles incorrect guesses and logs them", () => {
+      const creator = createRoom("Alice");
+      const code = creator.room.code;
+      const guest = joinRoom(code, "Bob");
+      startGame(code, creator.participantId);
+
+      const updated = submitGuess(code, guest!.participantId, "pizza");
+      expect(updated).toBeDefined();
+
+      const guestParticipant = updated!.participants.find(p => p.id === guest!.participantId);
+      expect(guestParticipant?.score).toBe(0);
+      expect(guestParticipant?.hasGuessedCorrectly).toBe(false);
+      expect(updated!.guesses[0].isCorrect).toBe(false);
+      expect(updated!.guesses[0].text).toBe("pizza");
+    });
+
+    it("prevents scoring multiple times in the same round", () => {
+      const creator = createRoom("Alice");
+      const code = creator.room.code;
+      const guest = joinRoom(code, "Bob");
+      startGame(code, creator.participantId);
+
+      submitGuess(code, guest!.participantId, "rocket");
+      const updated = submitGuess(code, guest!.participantId, "rocket");
+      
+      const guestParticipant = updated!.participants.find(p => p.id === guest!.participantId);
+      expect(guestParticipant?.score).toBe(100); // remains 100, not 200
     });
   });
 });

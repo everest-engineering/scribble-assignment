@@ -1,10 +1,10 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card } from "../components/Card";
-import { GuessForm } from "../components/GuessForm";
-import { ResultPanel } from "../components/ResultPanel";
 import { RoomCodeBadge } from "../components/RoomCodeBadge";
 import { Scoreboard } from "../components/Scoreboard";
+import { DrawingCanvas } from "../components/DrawingCanvas";
+import { GuessBox } from "../components/GuessBox";
 import { useRoomState, useRoomStore } from "../state/roomStore";
 
 export function GamePage() {
@@ -55,15 +55,9 @@ export function GamePage() {
       </div>
 
       <div className="game-page__layout">
-        <div className="game-page__main">
-          <Card title="Canvas">
-            <div className="canvas-placeholder" style={{ minHeight: '300px', backgroundColor: '#ffffff', border: '1px solid #e5e7eb', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              {isDrawer ? "Draw here! (Canvas feature coming soon)" : "Waiting for drawer to sketch..."}
-            </div>
-          </Card>
-        </div>
-
-        <aside className="game-page__sidebar game-page__sidebar--right">
+        <aside className="game-page__sidebar game-page__sidebar--left">
+          <Scoreboard />
+          
           <Card title="Player Info">
             <dl className="detail-list">
               <div>
@@ -80,10 +74,20 @@ export function GamePage() {
               </div>
             </dl>
           </Card>
+        </aside>
 
-          <Card title="Your Guess">
-            <GuessForm />
+        <div className="game-page__main">
+          <Card title="Canvas">
+            <DrawingCanvas
+              isDrawer={isDrawer}
+              drawingData={room.drawingData}
+              onChange={(data) => roomStore.updateCanvas(data)}
+            />
           </Card>
+        </div>
+
+        <aside className="game-page__sidebar game-page__sidebar--right">
+          <GuessBox isDrawer={isDrawer} />
         </aside>
       </div>
 

@@ -1,10 +1,20 @@
 export type ParticipantRole = "drawer" | "guesser";
 
+export interface GuessLog {
+  id: string;
+  playerName: string;
+  text: string;
+  isCorrect: boolean;
+  timestamp: string;
+}
+
 export interface Participant {
   id: string;
   name: string;
   joinedAt: string;
   role?: ParticipantRole;
+  score: number;
+  hasGuessedCorrectly: boolean;
 }
 
 export interface RoomSnapshot {
@@ -16,6 +26,8 @@ export interface RoomSnapshot {
   roles: ParticipantRole[];
   drawerId?: string;
   wordTemplate?: string;
+  drawingData?: string;
+  guesses: GuessLog[];
 }
 
 export interface RoomSessionResponse {
@@ -76,6 +88,24 @@ export const api = {
       `/rooms/${encodeURIComponent(code)}/start?participantId=${encodeURIComponent(participantId)}`,
       {
         method: "POST",
+      },
+    );
+  },
+  updateCanvas(code: string, participantId: string, drawingData: string) {
+    return request<{ room: RoomSnapshot }>(
+      `/rooms/${encodeURIComponent(code)}/canvas?participantId=${encodeURIComponent(participantId)}`,
+      {
+        method: "POST",
+        body: JSON.stringify({ drawingData }),
+      },
+    );
+  },
+  submitGuess(code: string, participantId: string, guessText: string) {
+    return request<{ room: RoomSnapshot }>(
+      `/rooms/${encodeURIComponent(code)}/guesses?participantId=${encodeURIComponent(participantId)}`,
+      {
+        method: "POST",
+        body: JSON.stringify({ guessText }),
       },
     );
   },
