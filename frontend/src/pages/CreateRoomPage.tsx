@@ -12,13 +12,24 @@ export function CreateRoomPage() {
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
+    const trimmed = playerName.trim();
+    if (!trimmed) {
+      setError("Player name is required");
+      return;
+    }
+
     try {
       setError(null);
-      await roomStore.createRoom(playerName);
+      await roomStore.createRoom(trimmed);
       navigate("/lobby");
     } catch (caughtError) {
       setError(caughtError instanceof Error ? caughtError.message : "Unable to create room");
     }
+  }
+
+  function handleNameChange(event: React.ChangeEvent<HTMLInputElement>) {
+    setPlayerName(event.target.value);
+    if (error) setError(null);
   }
 
   return (
@@ -34,7 +45,7 @@ export function CreateRoomPage() {
           <input
             className="form__input"
             value={playerName}
-            onChange={(event) => setPlayerName(event.target.value)}
+            onChange={handleNameChange}
             placeholder="Sketch captain"
           />
         </label>

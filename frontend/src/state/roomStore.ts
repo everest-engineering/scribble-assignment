@@ -27,6 +27,7 @@ class RoomStore {
   };
 
   private listeners = new Set<Listener>();
+  private pollTimer: ReturnType<typeof setInterval> | null = null;
 
   subscribe = (listener: Listener) => {
     this.listeners.add(listener);
@@ -77,6 +78,20 @@ class RoomStore {
     });
   }
 
+  startPolling(intervalMs = 2000) {
+    this.stopPolling();
+    this.pollTimer = setInterval(() => {
+      this.fetchRoom().catch(() => {});
+    }, intervalMs);
+  }
+
+  stopPolling() {
+    if (this.pollTimer !== null) {
+      clearInterval(this.pollTimer);
+      this.pollTimer = null;
+    }
+  }
+
   async createRoom(playerName: string) {
     const response = await this.withLoading(() => api.createRoom(playerName));
     this.setRoomSession(response);
@@ -98,6 +113,62 @@ class RoomStore {
     this.setRoomSnapshot(response.room);
     return response.room;
   }
+
+  async startGame() {
+    if (!this.state.room || !this.state.participantId) {
+      throw new Error("No room or participant");
+    }
+
+    const response = await this.withLoading(() =>
+      api.startGame(this.state.room!.code, this.state.participantId!)
+    );
+    this.setRoomSnapshot(response.room);
+    return response.room;
+  }
+
+  async submitGuess(text: string) {
+    if (!this.state.room || !this.state.participantId) {
+      throw new Error("No room or participant");
+    }
+
+    const response = await this.withLoading(() =>
+      api.submitGuess(this.state.room!.code, this.state.participantId!, text)
+    );
+    this.setRoomSnapshot(response.room);
+    return response.room;
+  }
+
+  async updateCanvas(canvasData: string) {
+    if (!this.state.room || !this.state.participantId) {
+      throw new Error("No room or participant");
+    }
+
+    const response = await api.updateCanvas(this.state.room.code, this.state.participantId, canvasData);
+    this.setRoomSnapshot(response.room);
+    return response.room;
+  }
+
+  async clearCanvas() {
+    if (!this.state.room || !this.state.participantId) {
+      throw new Error("No room or participant");
+    }
+
+    const response = await api.clearCanvas(this.state.room.code, this.state.participantId);
+    this.setRoomSnapshot(response.room);
+    return response.room;
+  }
+
+  async restartGame() {
+    if (!this.state.room || !this.state.participantId) {
+      throw new Error("No room or participant");
+    }
+
+    const response = await this.withLoading(() =>
+      api.restartGame(this.state.room!.code, this.state.participantId!)
+    );
+    this.setRoomSnapshot(response.room);
+    return response.room;
+  }
 }
 
 const RoomStoreContext = createContext<RoomStore | null>(null);
@@ -109,7 +180,11 @@ export function RoomStoreProvider({ children }: PropsWithChildren) {
     storeRef.current = new RoomStore();
   }
 
-  useEffect(() => undefined, []);
+  useEffect(() => {
+    return () => {
+      storeRef.current?.stopPolling();
+    };
+  }, []);
 
   return createElement(RoomStoreContext.Provider, { value: storeRef.current }, children);
 }
@@ -127,4 +202,15 @@ export function useRoomStore() {
 export function useRoomState() {
   const store = useRoomStore();
   return useSyncExternalStore(store.subscribe, store.getSnapshot, store.getSnapshot);
+}
+
+export function usePolling(enabled: boolean) {
+  const store = useRoomStore();
+
+  useEffect(() => {
+    if (enabled) {
+      store.startPolling(2000);
+      return () => store.stopPolling();
+    }
+  }, [store, enabled]);
 }
