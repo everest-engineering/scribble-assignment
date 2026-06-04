@@ -2,13 +2,27 @@ import { useState } from "react";
 
 interface GuessFormProps {
   disabled?: boolean;
+  onSubmitGuess?: (guess: string) => void | Promise<void>;
 }
 
-export function GuessForm({ disabled = false }: GuessFormProps) {
+export function GuessForm({ disabled = false, onSubmitGuess }: GuessFormProps) {
   const [guessText, setGuessText] = useState("");
 
-  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+
+    const trimmed = guessText.trim();
+
+    if (!trimmed || !onSubmitGuess) {
+      return;
+    }
+
+    try {
+      await onSubmitGuess(trimmed);
+      setGuessText("");
+    } catch {
+      // error handled by store
+    }
   }
 
   return (
