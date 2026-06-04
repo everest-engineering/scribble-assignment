@@ -20,6 +20,14 @@
 - [x] Acceptance scenarios cover happy path and edge cases
 - [x] Edge cases section populated
 
+## Clarifications Resolved (post /speckit.clarify)
+
+- [x] Redirect target on no-session: `/` (FR-010)
+- [x] Null `drawerId` guard: "Loading game..." state (FR-011)
+- [x] Drawer name fallback: "Unknown drawer" (FR-012)
+- [x] Poll error placement: below drawer/word panel (FR-013)
+- [x] `currentWord` always present as `null`, never omitted (FR-014)
+
 ## Constitution Alignment
 
 - [x] No WebSockets or real-time push (Principle III)

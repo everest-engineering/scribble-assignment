@@ -4,7 +4,7 @@
 
 **Created**: 2026-06-04
 
-**Status**: Draft
+**Status**: Clarified
 
 **Input**: User description: "Game Start & Drawer Flow — Brownfield enhancement of the Scribble starter. Scenario: Given a game is starting, When the first round begins, Then the host is assigned the drawer role; the secret word is deterministically selected from the starter seed list using the room code (sum of char codes modulo 5) so it varies by room but is reproducible; the secret word is stored on the backend and exposed ONLY to the drawer in the room snapshot via the existing viewerParticipantId mechanism; all other participants see a masked/absent word field; the game screen clearly identifies the drawer to all players."
 
@@ -124,8 +124,19 @@ both tabs show the correct drawer name and word visibility state without manual 
 - What if the room code produces the same word index for different rooms? This is expected
   behaviour — different room codes may coincidentally map to the same word; this is not a bug.
 - What if `room.status` is not `"playing"` when the game screen loads (e.g., user navigates
-  directly to `/game`)? The frontend MUST redirect to `/` if no active room session exists in
-  state.
+  directly to `/game`)? The frontend MUST redirect to `/` (home screen) if no active room
+  session exists in frontend state — consistent with the lobby redirect pattern.
+- What if `drawerId` is non-null but the game screen renders before the first poll completes?
+  The component MUST render a "Loading game..." state until `drawerId` is confirmed non-null
+  from the snapshot; it MUST NOT attempt to resolve a drawer name from a null `drawerId`.
+- What label is shown when the drawer participant cannot be resolved from `room.participants`?
+  The UI MUST display "Unknown drawer" as the fallback label; it MUST NOT crash or render
+  an empty element.
+- Where are game screen poll errors displayed? Inline below the drawer/word panel, using the
+  same `pollError` state pattern established in Scenario 1 (lobby Status card).
+- Is `currentWord` ever omitted from `RoomSnapshot`? No — `currentWord` is always present
+  in the snapshot shape; it carries `null` when the room is in lobby state or the viewer is
+  not the drawer. The field is never absent.
 
 ## Requirements *(mandatory)*
 
@@ -150,7 +161,18 @@ both tabs show the correct drawer name and word visibility state without manual 
 - **FR-009**: Poll errors on the game screen MUST be shown inline and MUST NOT stop the
   polling interval.
 - **FR-010**: If a player lands on the game screen with no active room session in frontend
-  state, the frontend MUST redirect them to the home screen (`/`).
+  state, the frontend MUST redirect them to `/` (home screen) — same pattern as the lobby
+  redirect guard.
+- **FR-011**: The game screen MUST render a "Loading game..." state when `room.drawerId` is
+  `null` at render time; it MUST NOT attempt drawer name resolution until `drawerId` is
+  non-null.
+- **FR-012**: When `room.drawerId` cannot be matched to any participant in
+  `room.participants`, the drawer name MUST fall back to "Unknown drawer".
+- **FR-013**: Game screen poll errors MUST be displayed inline below the drawer/word panel
+  using the same `pollError` state pattern as the lobby; the interval MUST continue.
+- **FR-014**: `RoomSnapshot.currentWord` and `RoomSnapshot.drawerId` MUST always be present
+  in the response shape; they carry `null` when unset (lobby state or non-drawer viewer)
+  and are never omitted.
 
 ### Key Entities
 
@@ -186,13 +208,18 @@ both tabs show the correct drawer name and word visibility state without manual 
 - The `viewerParticipantId` parameter already exists in the starter's `GET /rooms/:code`
   query and in `toRoomSnapshot`'s signature but is currently ignored (`void viewerParticipantId`);
   this scenario activates it.
-- The `RoomSnapshot` field `currentWord` is always present in the response shape but carries
-  `null` for non-drawers; it is never omitted from the response to avoid frontend undefined checks.
+- Both `currentWord` and `drawerId` fields are always present in `RoomSnapshot` (never
+  omitted); they carry `null` when unset. This avoids optional-chaining on the field itself
+  and allows simple `room.currentWord ?? "Guess the word!"` patterns on the frontend.
 - The game screen (`GamePage.tsx`) is currently a placeholder; this scenario wires up the
   drawer identity display and word reveal panel only — canvas, guess input, and scoring are
   Scenario 3.
 - In-memory session loss on page refresh is expected and out of scope; no recovery mechanism
   is required.
+- The game screen redirect guard (FR-010) uses `replace: true` navigation to prevent the
+  browser back button from returning to an invalid game screen.
+- The "Loading game..." guard (FR-011) is a transient state only; once the first successful
+  poll returns with a non-null `drawerId`, the full game screen renders.
 - Poll errors on the game screen are non-fatal; the existing `pollError` pattern from
   Scenario 1's `RoomStore` is reused.
 - No new top-level npm dependencies are introduced.
