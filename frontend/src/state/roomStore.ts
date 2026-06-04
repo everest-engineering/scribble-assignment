@@ -7,7 +7,7 @@ import {
   useSyncExternalStore,
   type PropsWithChildren
 } from "react";
-import { api, type RoomSessionResponse, type RoomSnapshot } from "../services/api";
+import { api, type RoomSessionResponse, type RoomSnapshot, type CanvasStroke } from "../services/api";
 
 export interface RoomState {
   room: RoomSnapshot | null;
@@ -18,7 +18,7 @@ export interface RoomState {
 
 type Listener = () => void;
 
-class RoomStore {
+export class RoomStore {
   private state: RoomState = {
     room: null,
     participantId: null,
@@ -97,6 +97,80 @@ class RoomStore {
     const response = await api.fetchRoom(this.state.room.code, this.state.participantId ?? undefined);
     this.setRoomSnapshot(response.room);
     return response.room;
+  }
+
+  async startGame() {
+    if (!this.state.room || !this.state.participantId) {
+      return null;
+    }
+
+    const response = await this.withLoading(() =>
+      api.startGame(this.state.room!.code, this.state.participantId!)
+    );
+    this.setRoomSnapshot(response.room);
+    return response.room;
+  }
+
+  async submitGuess(text: string) {
+    if (!this.state.room || !this.state.participantId) {
+      return null;
+    }
+
+    const response = await this.withLoading(() =>
+      api.submitGuess(this.state.room!.code, this.state.participantId!, text)
+    );
+    this.setRoomSnapshot(response.room);
+    return response.room;
+  }
+
+  async addStroke(stroke: CanvasStroke) {
+    if (!this.state.room || !this.state.participantId) {
+      return null;
+    }
+
+    const response = await api.addStroke(this.state.room.code, this.state.participantId, stroke);
+    this.setRoomSnapshot(response.room);
+    return response.room;
+  }
+
+  async clearDrawing() {
+    if (!this.state.room || !this.state.participantId) {
+      return null;
+    }
+
+    const response = await this.withLoading(() =>
+      api.clearDrawing(this.state.room!.code, this.state.participantId!)
+    );
+    this.setRoomSnapshot(response.room);
+    return response.room;
+  }
+
+  async endRound() {
+    if (!this.state.room || !this.state.participantId) {
+      return null;
+    }
+
+    const response = await this.withLoading(() =>
+      api.endRound(this.state.room!.code, this.state.participantId!)
+    );
+    this.setRoomSnapshot(response.room);
+    return response.room;
+  }
+
+  async restartGame() {
+    if (!this.state.room || !this.state.participantId) {
+      return null;
+    }
+
+    const response = await this.withLoading(() =>
+      api.restartGame(this.state.room!.code, this.state.participantId!)
+    );
+    this.setRoomSnapshot(response.room);
+    return response.room;
+  }
+
+  clearError() {
+    this.setState({ error: null });
   }
 }
 
