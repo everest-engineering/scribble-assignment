@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createRoom, getRoom, joinRoom, startGame } from "./roomStore.js";
+import { createRoom, getRoom, joinRoom, startGame, toRoomSnapshot } from "./roomStore.js";
 
 describe("roomStore", () => {
 
@@ -59,5 +59,68 @@ describe("roomStore", () => {
 
     expect(room).not.toBeNull();
     expect(room!.hostId).toBe(created.participantId);
+  });
+
+  it("startGame assigns host as drawer", () => {
+    const created = createRoom("Alice");
+    joinRoom(created.room.code, "Bob");
+    const result = startGame(created.room.code, created.participantId);
+
+    expect(result.room.drawerId).toBe(created.participantId);
+  });
+
+  it("startGame sets round to 1", () => {
+    const created = createRoom("Alice");
+    joinRoom(created.room.code, "Bob");
+    const result = startGame(created.room.code, created.participantId);
+
+    expect(result.room.round).toBe(1);
+  });
+
+  it("startGame selects a word from the starter list", () => {
+    const created = createRoom("Alice");
+    joinRoom(created.room.code, "Bob");
+    const result = startGame(created.room.code, created.participantId);
+
+    expect(["rocket", "pizza", "castle", "guitar", "sunflower"]).toContain(result.room.secretWord);
+  });
+
+  it("startGame selects the same word for the same room code", () => {
+    const created = createRoom("Alice");
+    joinRoom(created.room.code, "Bob");
+    const first = startGame(created.room.code, created.participantId);
+
+    const snapshot1 = toRoomSnapshot(first.room, created.participantId);
+    const snapshot2 = toRoomSnapshot(first.room, created.participantId);
+
+    expect(snapshot1.secretWord).toBe(snapshot2.secretWord);
+  });
+
+  it("toRoomSnapshot shows secret word to the drawer", () => {
+    const created = createRoom("Alice");
+    joinRoom(created.room.code, "Bob");
+    const result = startGame(created.room.code, created.participantId);
+    const snapshot = toRoomSnapshot(result.room, created.participantId);
+
+    expect(snapshot.secretWord).toBeDefined();
+    expect(snapshot.secretWord).toBe(result.room.secretWord);
+  });
+
+  it("toRoomSnapshot hides secret word from non-drawer", () => {
+    const created = createRoom("Alice");
+    const joiner = joinRoom(created.room.code, "Bob");
+    const result = startGame(created.room.code, created.participantId);
+    const snapshot = toRoomSnapshot(result.room, joiner!.participantId);
+
+    expect(snapshot.secretWord).toBeUndefined();
+  });
+
+  it("toRoomSnapshot hides secret word when no viewer", () => {
+    const created = createRoom("Alice");
+    joinRoom(created.room.code, "Bob");
+    const result = startGame(created.room.code, created.participantId);
+    const snapshot = toRoomSnapshot(result.room);
+
+    expect(snapshot.secretWord).toBeUndefined();
   });
 });
