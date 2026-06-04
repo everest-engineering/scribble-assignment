@@ -1,0 +1,63 @@
+# Plan
+
+## State Model
+
+### Backend
+```
+RoomStatus: "lobby" | "playing" | "finished"
+
+Participant:
+  id, name, joinedAt, isHost, score, isDrawer
+
+Room:
+  code, status, participants[], createdAt, updatedAt,
+  word (secret, current round word),
+  drawingData (canvas state),
+  guesses[] { participantId, name, text, correct }
+```
+
+### Frontend (`RoomSnapshot`)
+```
+RoomSnapshot:
+  code, status, participants[],
+  word (only visible if viewer is drawer),
+  drawingData,
+  guesses[],
+  viewerRole: "drawer" | "guesser"
+```
+
+## Data Flow
+- All sync via HTTP polling (GET /rooms/:code every ~2s).
+- Canvas drawn → POST /rooms/:code/drawing (save stroke data).
+- Guess submitted → POST /rooms/:code/guess.
+- Start game → POST /rooms/:code/start (host only).
+- Restart → POST /rooms/:code/restart (host only).
+
+## File-Level Plan
+
+### Backend
+| File | Change |
+|------|--------|
+| `models/game.ts` | Add `isHost`, `score`, `isDrawer` to Participant. Add `drawingData`, `guesses`, `word` to Room. Extend `RoomStatus`. |
+| `api/schemas.ts` | Add schemas for drawing, guess, start, restart endpoints. Validate name (trim, reject empty). |
+| `api/rooms.ts` | Add routes: start, restart, save drawing, submit guess. |
+| `services/roomStore.ts` | Add game logic: startGame, submitGuess, saveDrawing, restartGame. Filter word per-viewer in `toRoomSnapshot`. |
+| `seed/starterData.ts` | Keep as-is. |
+
+### Frontend
+| File | Change |
+|------|--------|
+| `api.ts` | Add API methods: startGame, submitGuess, saveDrawing, restartGame. Extend `RoomSnapshot` type. |
+| `roomStore.ts` | Add store methods for new actions. Add auto-poll interval. |
+| `LobbyPage.tsx` | Auto-poll on mount. Host-only start button. Show room code. |
+| `GamePage.tsx` | Split view for drawer vs guesser. Wire canvas, guess form, scoreboard. |
+| `GuessForm.tsx` | Working submit that calls API. |
+| `Scoreboard.tsx` | Display live scores from snapshot. |
+| `ResultPanel.tsx` | Show word, final scores, guess history. |
+| New: `Canvas.tsx` | Drawing canvas component. |
+
+## Implementation Sequence
+1. Group 1: Host tracking, name validation, auto-poll, start precondition
+2. Group 2: Game state machine, drawer assignment, word selection, per-viewer word visibility
+3. Group 3: Canvas drawing, guess submission, scoring, guess history sync
+4. Group 4: Result state, restart flow

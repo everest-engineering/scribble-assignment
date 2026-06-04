@@ -1,11 +1,13 @@
 import { z } from "zod";
 
+export const playerNameSchema = z.string().trim().min(1, "Name cannot be empty");
+
 export const createRoomSchema = z.object({
-  playerName: z.string().optional()
+  playerName: playerNameSchema
 });
 
 export const joinRoomSchema = z.object({
-  playerName: z.string().optional()
+  playerName: playerNameSchema
 });
 
 export const roomCodeParamsSchema = z.object({
@@ -14,6 +16,20 @@ export const roomCodeParamsSchema = z.object({
 
 export const roomViewerQuerySchema = z.object({
   participantId: z.string().optional()
+});
+
+export const startGameParamsSchema = z.object({
+  participantId: z.string()
+});
+
+export const saveDrawingSchema = z.object({
+  participantId: z.string(),
+  drawingData: z.string()
+});
+
+export const submitGuessSchema = z.object({
+  participantId: z.string(),
+  text: z.string().trim().min(1, "Guess cannot be empty")
 });
 
 export class HttpError extends Error {

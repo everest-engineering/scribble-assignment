@@ -1,0 +1,60 @@
+# Specification
+
+## Feature Group 1 — Room Setup & Lobby
+
+### Acceptance Criteria
+1. Room creator is marked as host. Only host can start the game.
+2. Joining with an invalid/empty code shows a clear error message.
+3. Rooms are fully isolated (players in room A cannot see room B).
+4. Lobby auto-polls every ~2 seconds.
+5. Start Game button is visible, enabled only when host + 2+ players present.
+
+### Edge Cases
+- Player name empty/whitespace-only: trimmed, rejected with message.
+- Room code case-insensitive.
+- Duplicate participant names allowed (no uniqueness requirement).
+
+---
+
+## Feature Group 2 — Game Start & Drawer Flow
+
+### Acceptance Criteria
+1. Host clicking Start Game transitions room from lobby to playing.
+2. First participant in the room becomes the drawer.
+3. Secret word is deterministically selected from `STARTER_WORDS`.
+4. Only the drawer sees the secret word. Guessers see "Waiting for drawer...".
+
+### Edge Cases
+- No second player: Start Game disabled.
+- Empty/whitespace names rejected at join/create time (group 1 carryover).
+
+---
+
+## Feature Group 3 — Gameplay Interaction
+
+### Acceptance Criteria
+1. Drawer can draw on a canvas and clear it.
+2. Drawing state is saved server-side and synced via polling.
+3. Guessers submit guesses; empty/whitespace rejected.
+4. Guess comparison: trimmed, case-insensitive.
+5. Correct guess = +100 points. Incorrect = +0.
+6. Guess history is synced to all players via polling.
+
+### Edge Cases
+- Drawer cannot submit guesses.
+- Multiple correct guessers all score 100.
+- Canvas state reset on new game.
+
+---
+
+## Feature Group 4 — Result, Restart & Final Validation
+
+### Acceptance Criteria
+1. When a correct guess is made, round ends and all players see result.
+2. Result shows: secret word, final scores, full guess history.
+3. Host can click Restart to return everyone to lobby.
+4. Restart preserves player list, clears round state (drawing, guesses, scores).
+
+### Edge Cases
+- Restart works with same players (no duplicate re-join needed).
+- Restart button visible only to host.

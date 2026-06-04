@@ -1,0 +1,44 @@
+# Tasks
+
+## Group 1 — Room Setup & Lobby
+1. Add `isHost` flag to Participant model (backend)
+2. Mark room creator as host in `createRoom` (backend)
+3. Validate player name: trim, reject empty/whitespace (backend schemas + frontend forms)
+4. Add start game route `POST /rooms/:code/start` (backend)
+5. Add host-only check and 2-player minimum to start logic (backend)
+6. Expose `canStart` flag in room snapshot (backend)
+7. Add auto-poll ~2s in LobbyPage (frontend)
+8. Wire Start Game button: host-only, disabled until 2+ players (frontend)
+9. Show clear error on invalid join code (frontend)
+
+## Group 2 — Game Start & Drawer Flow
+1. Add `"playing"` status to Room model (backend)
+2. Assign first participant as drawer on game start (backend)
+3. Deterministically select word from STARTER_WORDS (backend)
+4. Filter `word` field per-viewer in `toRoomSnapshot` (backend)
+5. Display word to drawer, placeholder to guessers (frontend GamePage)
+
+## Group 3 — Gameplay Interaction
+1. Add `drawingData` field to Room (backend)
+2. Add `POST /rooms/:code/drawing` route (backend)
+3. Build Canvas component with draw + clear (frontend)
+4. Sync drawing via polling (frontend)
+5. Add `guesses[]` and `scores` to Room model (backend)
+6. Add `POST /rooms/:code/guess` route with validation (backend)
+7. Implement case-insensitive comparison and +100 scoring (backend)
+8. Wire GuessForm to submit guesses (frontend)
+9. Display guess history in ResultPanel (frontend)
+10. Display live scores in Scoreboard (frontend)
+
+## Group 4 — Result, Restart & Final Validation
+1. Mark room `"finished"` on correct guess (backend)
+2. Return full result data (word, scores, guesses) in snapshot (backend)
+3. Show result view to all players (frontend)
+4. Add `POST /rooms/:code/restart` route (backend)
+5. Restart: reset round state, preserve players, return to lobby (backend)
+6. Wire Restart button (host-only) in result view (frontend)
+
+## Dependencies
+- Group 1 must be complete before Group 2.
+- Group 2 must be complete before Group 3.
+- Group 3 must be complete before Group 4.
