@@ -90,6 +90,36 @@ export function joinRoom(code: string, playerName: string) {
   };
 }
 
+function getDeterministicWord(code: string): string {
+  let sum = 0;
+  for (let i = 0; i < code.length; i++) {
+    sum += code.charCodeAt(i);
+  }
+  return STARTER_WORDS[sum % STARTER_WORDS.length];
+}
+
+export function startGame(code: string) {
+  const room = rooms.get(code);
+
+  if (!room) {
+    return null;
+  }
+
+  if (room.participants.length < 2) {
+    throw new Error("Cannot start game with fewer than 2 players");
+  }
+
+  room.status = "playing";
+  room.drawerId = room.hostId;
+  room.secretWord = getDeterministicWord(room.code);
+  room.canvasData = "[]";
+  room.guesses = [];
+  room.updatedAt = now();
+  rooms.set(room.code, room);
+
+  return cloneRoom(room);
+}
+
 export function getRoom(code: string) {
   const room = rooms.get(code);
   return room ? cloneRoom(room) : null;

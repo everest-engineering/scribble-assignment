@@ -50,12 +50,12 @@
 **Independent Test**: Click start in host tab, verify redirect to `/game` in both tabs, display secret word only to drawer.
 
 ### Implementation for User Story 2
-- [ ] T013 [US2] Implement startGame logic (assign drawer, select word deterministically) in backend/src/services/roomStore.ts
-- [ ] T014 [US2] Mount POST /rooms/:code/start route in backend/src/api/rooms.ts
-- [ ] T015 [US2] Add test cases for startGame validation and word masking in backend/src/services/roomStore.test.ts
-- [ ] T016 [US2] Add startGame method to frontend/src/services/api.ts and frontend/src/state/roomStore.ts
-- [ ] T017 [US2] Add automatic redirect to GamePage when room status changes to playing in frontend/src/pages/LobbyPage.tsx
-- [ ] T018 [US2] Display drawer role, name, and secret word (drawer-only) in frontend/src/pages/GamePage.tsx
+- [x] T013 [US2] Implement startGame logic (assign drawer, select word deterministically) in backend/src/services/roomStore.ts
+- [x] T014 [US2] Mount POST /rooms/:code/start route in backend/src/api/rooms.ts
+- [x] T015 [US2] Add test cases for startGame validation and word masking in backend/src/services/roomStore.test.ts
+- [x] T016 [US2] Add startGame method to frontend/src/services/api.ts and frontend/src/state/roomStore.ts
+- [x] T017 [US2] Add automatic redirect to GamePage when room status changes to playing in frontend/src/pages/LobbyPage.tsx
+- [x] T018 [US2] Display drawer role, name, and secret word (drawer-only) in frontend/src/pages/GamePage.tsx
 
 **Checkpoint**: User Stories 1 and 2 work independently.
 

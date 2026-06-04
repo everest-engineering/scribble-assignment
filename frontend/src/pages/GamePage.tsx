@@ -22,6 +22,7 @@ export function GamePage() {
   }
 
   const viewer = room.participants.find((participant) => participant.id === participantId) ?? null;
+  const drawer = room.participants.find((participant) => participant.id === room.drawerId) ?? null;
 
   return (
     <section className="panel game-page">
@@ -42,7 +43,7 @@ export function GamePage() {
         <div className="game-page__main">
           <Card title="Canvas">
             <div className="canvas-placeholder" style={{ minHeight: '500px', backgroundColor: '#ffffff', border: '1px solid #e5e7eb' }}>
-              Waiting for drawer...
+              {room.viewerRole === "drawer" ? "Draw on the canvas!" : `Waiting for ${drawer?.name ?? "drawer"} to paint...`}
             </div>
           </Card>
         </div>
@@ -55,15 +56,31 @@ export function GamePage() {
                 <dd>{viewer?.name ?? "Unknown player"}</dd>
               </div>
               <div>
-                <dt>Status</dt>
-                <dd>Playing</dd>
+                <dt>Your Role</dt>
+                <dd style={{ fontWeight: "bold" }}>
+                  {room.viewerRole === "drawer" ? "✍️ Drawer" : "🔍 Guesser"}
+                </dd>
               </div>
+              <div>
+                <dt>Drawing Player</dt>
+                <dd>{drawer?.name ?? "Unknown"}</dd>
+              </div>
+              {room.viewerRole === "drawer" && room.secretWord && (
+                <div>
+                  <dt>Secret Word</dt>
+                  <dd style={{ fontSize: "1.25rem", fontWeight: "bold", color: "var(--accent)" }}>
+                    {room.secretWord}
+                  </dd>
+                </div>
+              )}
             </dl>
           </Card>
 
-          <Card title="Your Guess">
-            <GuessForm />
-          </Card>
+          {room.viewerRole === "guesser" && (
+            <Card title="Your Guess">
+              <GuessForm />
+            </Card>
+          )}
         </aside>
       </div>
 
