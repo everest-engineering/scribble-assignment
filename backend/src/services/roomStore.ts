@@ -114,21 +114,28 @@ export function startRoom(code: string, participantId: string) {
   }
 
   room.status = "playing";
+  room.drawerId = room.hostId;
+  room.secretWord = STARTER_WORDS[0];
   room.updatedAt = now();
   rooms.set(room.code, room);
 
-  return { room: toRoomSnapshot(cloneRoom(room)) };
+  return { room: toRoomSnapshot(cloneRoom(room), participantId) };
 }
 
 export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSnapshot {
-  void viewerParticipantId;
-
-  return {
+  const snapshot: RoomSnapshot = {
     code: room.code,
     status: room.status,
     participants: room.participants.map((participant) => ({ ...participant })),
     hostId: room.hostId,
+    drawerId: room.drawerId,
     availableWords: listWords(),
     roles: [...STARTER_ROLES]
   };
+
+  if (room.drawerId && viewerParticipantId === room.drawerId) {
+    snapshot.secretWord = room.secretWord;
+  }
+
+  return snapshot;
 }

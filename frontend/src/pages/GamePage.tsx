@@ -21,7 +21,7 @@ export function GamePage() {
     return null;
   }
 
-  const viewer = room.participants.find((participant) => participant.id === participantId) ?? null;
+  const isDrawer = room.drawerId !== undefined && room.drawerId === participantId;
 
   return (
     <section className="panel game-page">
@@ -40,9 +40,32 @@ export function GamePage() {
         </aside>
 
         <div className="game-page__main">
+          {isDrawer && room.secretWord ? (
+            <div
+              className="word-banner"
+              style={{
+                backgroundColor: "#fef9c3",
+                border: "1px solid #fde047",
+                borderRadius: "6px",
+                padding: "8px 16px",
+                marginBottom: "8px",
+                fontWeight: 600,
+                fontSize: "1rem",
+                color: "#713f12"
+              }}
+            >
+              Your word: {room.secretWord}
+            </div>
+          ) : null}
+
           <Card title="Canvas">
-            <div className="canvas-placeholder" style={{ minHeight: '500px', backgroundColor: '#ffffff', border: '1px solid #e5e7eb' }}>
-              Waiting for drawer...
+            <div
+              className="canvas-placeholder"
+              style={{ minHeight: "500px", backgroundColor: "#ffffff", border: "1px solid #e5e7eb" }}
+            >
+              {isDrawer
+                ? "Draw here — drawing interaction enabled in next step"
+                : "Waiting for drawer..."}
             </div>
           </Card>
         </div>
@@ -52,18 +75,40 @@ export function GamePage() {
             <dl className="detail-list">
               <div>
                 <dt>Name</dt>
-                <dd>{viewer?.name ?? "Unknown player"}</dd>
+                <dd>
+                  {room.participants.find((p) => p.id === participantId)?.name ?? "Unknown player"}
+                  {isDrawer ? " (Drawer)" : ""}
+                </dd>
               </div>
               <div>
-                <dt>Status</dt>
-                <dd>Playing</dd>
+                <dt>Role</dt>
+                <dd>{isDrawer ? "Drawer" : "Guesser"}</dd>
               </div>
             </dl>
           </Card>
 
-          <Card title="Your Guess">
-            <GuessForm />
+          <Card title="Players">
+            <ul className="player-list">
+              {room.participants.map((p) => (
+                <li key={p.id}>
+                  <span>{p.name}</span>
+                  <span className="player-list__meta">
+                    {p.id === room.drawerId ? "Drawer" : "Guesser"}
+                  </span>
+                </li>
+              ))}
+            </ul>
           </Card>
+
+          {!isDrawer ? (
+            <Card title="Your Guess">
+              <GuessForm />
+            </Card>
+          ) : (
+            <Card title="Your Guess">
+              <GuessForm disabled={true} />
+            </Card>
+          )}
         </aside>
       </div>
 

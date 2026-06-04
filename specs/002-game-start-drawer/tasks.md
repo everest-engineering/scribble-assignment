@@ -26,7 +26,7 @@ description: "Task list for Game Start & Drawer Flow — Scenario 2"
 
 **Purpose**: Confirm baseline builds clean before any changes.
 
-- [ ] T001 Verify baseline — run `npm run build` in `backend/` and `frontend/`; confirm zero errors before starting
+- [x] T001 Verify baseline — run `npm run build` in `backend/` and `frontend/`; confirm zero errors before starting
 
 ---
 
@@ -36,9 +36,9 @@ description: "Task list for Game Start & Drawer Flow — Scenario 2"
 
 **⚠️ CRITICAL**: No user story implementation can start until T002–T004 pass.
 
-- [ ] T002 Add `drawerId?: string` and `secretWord?: string` to `Room` and `RoomSnapshot` interfaces in `backend/src/models/game.ts`
-- [ ] T003 Add `drawerId?: string` and `secretWord?: string` to `RoomSnapshot` interface in `frontend/src/services/api.ts`
-- [ ] T004 Verify TypeScript builds pass in both `backend/` and `frontend/` after T002–T003 (`npm run build` in each directory)
+- [x] T002 Add `drawerId?: string` and `secretWord?: string` to `Room` and `RoomSnapshot` interfaces in `backend/src/models/game.ts`
+- [x] T003 Add `drawerId?: string` and `secretWord?: string` to `RoomSnapshot` interface in `frontend/src/services/api.ts`
+- [x] T004 Verify TypeScript builds pass in both `backend/` and `frontend/` after T002–T003 (`npm run build` in each directory)
 
 **Checkpoint**: Both builds pass with new optional fields — user story work can begin.
 
@@ -52,8 +52,8 @@ description: "Task list for Game Start & Drawer Flow — Scenario 2"
 
 ### Implementation for User Story 1
 
-- [ ] T005 [US1] Set `room.drawerId = room.hostId` inside `startRoom()` in `backend/src/services/roomStore.ts` and include `drawerId: room.drawerId` in the `toRoomSnapshot()` return value (depends on T002)
-- [ ] T006 [P] [US1] Derive `isDrawer = room.drawerId === participantId` in `frontend/src/pages/GamePage.tsx` and add a "Drawer" label next to the participant whose `id === room.drawerId` in the player info section (depends on T003)
+- [x] T005 [US1] Set `room.drawerId = room.hostId` inside `startRoom()` in `backend/src/services/roomStore.ts` and include `drawerId: room.drawerId` in the `toRoomSnapshot()` return value (depends on T002)
+- [x] T006 [P] [US1] Derive `isDrawer = room.drawerId === participantId` in `frontend/src/pages/GamePage.tsx` and add a "Drawer" label next to the participant whose `id === room.drawerId` in the player info section (depends on T003)
 
 **Checkpoint**: `POST /rooms/:code/start` response includes `drawerId`. Both tabs show Alice's "Drawer" label on the game screen.
 
@@ -67,9 +67,9 @@ description: "Task list for Game Start & Drawer Flow — Scenario 2"
 
 ### Implementation for User Story 2
 
-- [ ] T007 [US2] Set `room.secretWord = STARTER_WORDS[0]` inside `startRoom()` in `backend/src/services/roomStore.ts` (depends on T005)
-- [ ] T008 [US2] Implement `viewerParticipantId` filtering in `toRoomSnapshot()` in `backend/src/services/roomStore.ts` — include `secretWord` in the snapshot only when `viewerParticipantId === room.drawerId`; remove the `void viewerParticipantId` placeholder (depends on T007)
-- [ ] T009 [US2] Add word banner in `frontend/src/pages/GamePage.tsx` — above the canvas, render `"Your word: ${room.secretWord}"` only when `isDrawer && room.secretWord` (depends on T006)
+- [x] T007 [US2] Set `room.secretWord = STARTER_WORDS[0]` inside `startRoom()` in `backend/src/services/roomStore.ts` (depends on T005)
+- [x] T008 [US2] Implement `viewerParticipantId` filtering in `toRoomSnapshot()` in `backend/src/services/roomStore.ts` — include `secretWord` in the snapshot only when `viewerParticipantId === room.drawerId`; remove the `void viewerParticipantId` placeholder (depends on T007)
+- [x] T009 [US2] Add word banner in `frontend/src/pages/GamePage.tsx` — above the canvas, render `"Your word: ${room.secretWord}"` only when `isDrawer && room.secretWord` (depends on T006)
 
 **Checkpoint**: Drawer sees "Your word: rocket" banner. Guesser's network response has no `secretWord` field. Same word appears on every game start (deterministic).
 
@@ -83,8 +83,8 @@ description: "Task list for Game Start & Drawer Flow — Scenario 2"
 
 ### Implementation for User Story 3
 
-- [ ] T010 [US3] Update canvas placeholder text in `frontend/src/pages/GamePage.tsx` — drawer sees "Draw here — drawing enabled in next step", guesser sees "Waiting for drawer…" (depends on T006)
-- [ ] T011 [US3] Pass `disabled={isDrawer}` to `<GuessForm />` in `frontend/src/pages/GamePage.tsx` so the drawer cannot submit guesses (depends on T010)
+- [x] T010 [US3] Update canvas placeholder text in `frontend/src/pages/GamePage.tsx` — drawer sees "Draw here — drawing enabled in next step", guesser sees "Waiting for drawer…" (depends on T006)
+- [x] T011 [US3] Pass `disabled={isDrawer}` to `<GuessForm />` in `frontend/src/pages/GamePage.tsx` so the drawer cannot submit guesses (depends on T010)
 
 **Checkpoint**: Role-differentiated canvas and guess form on both tabs. Drawer's guess input is disabled; guesser's is active.
 
@@ -94,8 +94,8 @@ description: "Task list for Game Start & Drawer Flow — Scenario 2"
 
 **Purpose**: Final quality checks across all user stories.
 
-- [ ] T012 [P] Run `npm run build` in `backend/` and `frontend/` to confirm zero TypeScript errors post-implementation
-- [ ] T013 [P] Review all changed files against the AI self-review checklist (constitution Section 3): type safety, scope, spec alignment, polling hygiene, error handling
+- [x] T012 [P] Run `npm run build` in `backend/` and `frontend/` to confirm zero TypeScript errors post-implementation
+- [x] T013 [P] Review all changed files against the AI self-review checklist (constitution Section 3): type safety, scope, spec alignment, polling hygiene, error handling
 - [ ] T014 [P] Run full quickstart.md validation — all 5 tests with two browser tabs open simultaneously
 
 ---

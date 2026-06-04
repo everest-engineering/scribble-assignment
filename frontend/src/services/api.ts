@@ -12,6 +12,8 @@ export interface RoomSnapshot {
   status: RoomStatus;
   participants: Participant[];
   hostId: string;
+  drawerId?: string;
+  secretWord?: string;
   availableWords: string[];
   roles: ParticipantRole[];
 }
