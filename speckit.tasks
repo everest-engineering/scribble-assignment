@@ -1,0 +1,16 @@
+# Tasks: Scribble Multiplayer Drawing Game
+
+**Input**: `/specs/001-scribble-game/` (umbrella) + per-scenario task files
+
+**Prerequisites**: plan.md, spec.md, research.md, contracts/
+
+## Scenario Task Lists
+
+| Scenario | Path |
+|----------|------|
+| P1 — Room Setup & Lobby | `specs/001-room-setup-lobby/tasks.md` |
+| P2 — Game Start & Drawer | `specs/002-game-start-drawer/tasks.md` |
+| P3 — Gameplay Interaction | `specs/003-gameplay-interaction/tasks.md` |
+| P4 — Result & Restart | `specs/004-result-restart/tasks.md` |
+
+Shared phases (Setup, Foundational, Polish): `specs/001-scribble-game/tasks.md`
