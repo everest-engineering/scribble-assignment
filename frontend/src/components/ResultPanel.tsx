@@ -1,11 +1,17 @@
 import { Card } from "./Card";
+import type { SnapshotGuessRecord } from "../services/api";
 
-export function ResultPanel() {
+interface ResultPanelProps {
+  guesses: SnapshotGuessRecord[];
+}
+
+export function ResultPanel({ guesses }: ResultPanelProps) {
+  const correctCount = guesses.filter((g) => g.correct).length;
   return (
     <Card title="Activity">
-      <div className="placeholder-block" style={{ backgroundColor: '#f9fafb' }}>
-        <p style={{ fontSize: '0.875rem', color: '#6b7280' }}>Game activity and guesses will appear here.</p>
-      </div>
+      <p style={{ fontSize: "0.875rem", color: "#6b7280" }}>
+        {guesses.length} guess{guesses.length === 1 ? "" : "es"} so far, {correctCount} correct
+      </p>
     </Card>
   );
 }

@@ -37,7 +37,8 @@ function createParticipant(name?: string): Participant {
   return {
     id: randomUUID(),
     name: displayName(name),
-    joinedAt: now()
+    joinedAt: now(),
+    score: 0
   };
 }
 
@@ -49,10 +50,20 @@ export function listWords() {
   return [...STARTER_WORDS];
 }
 
+function selectWord(code: string): string {
+  const index = Array.from(code).reduce((sum, ch) => sum + ch.charCodeAt(0), 0) % STARTER_WORDS.length;
+  return STARTER_WORDS[index];
+}
+
 export function createRoom(playerName?: string) {
   const participant = createParticipant(playerName);
   const room: Room = {
     code: generateUniqueCode(),
+    hostId: participant.id,
+    drawerId: null,
+    currentWord: null,
+    strokes: [],
+    guesses: [],
     status: "lobby",
     participants: [participant],
     createdAt: now(),
@@ -96,11 +107,40 @@ export function saveRoom(room: Room) {
   return getRoom(room.code);
 }
 
-export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSnapshot {
-  void viewerParticipantId;
+export { selectWord };
 
+export function restartRoom(code: string) {
+  const room = rooms.get(code);
+  if (!room) {
+    return null;
+  }
+  room.status = "lobby";
+  room.drawerId = null;
+  room.currentWord = null;
+  room.strokes = [];
+  room.guesses = [];
+  for (const participant of room.participants) {
+    participant.score = 0;
+  }
+  room.updatedAt = now();
+  rooms.set(room.code, room);
+  return getRoom(room.code);
+}
+
+export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSnapshot {
   return {
     code: room.code,
+    hostId: room.hostId,
+    drawerId: room.drawerId,
+    currentWord:
+      room.status === "finished" ||
+      (viewerParticipantId === room.drawerId && room.drawerId !== null)
+        ? room.currentWord
+        : null,
+    strokes: room.strokes.map((stroke) => ({ ...stroke })),
+    guesses: room.guesses.map(({ participantName, text, correct }) => ({
+      participantName, text, correct
+    })),
     status: room.status,
     participants: room.participants.map((participant) => ({ ...participant })),
     availableWords: listWords(),
