@@ -14,6 +14,8 @@
 
 - Q: Should each player see their own role label, or only the drawer's identity? → A: Each player sees their own role label (e.g., "You are the Drawer" / "You are a Guesser") plus the drawer's name is shown to everyone.
 - Q: What happens if the drawer leaves mid-game? → A: The game ends immediately and the room is deleted (consistent with host-leaves-lobby behavior; no drawer rotation per Constitution VI).
+- Q: Should word selection always pick the first word, or use room-state-based indexing? → A: Use a predictable index derived from room state (e.g., hash of room code modulo list length) so different rooms get different words.
+- Q: Should the guesser's polling response omit the word field entirely or include it as null? → A: Omit the `currentWord` field entirely from the guesser's response (field does not exist in the JSON).
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -30,7 +32,7 @@ A host has created a room and at least one other player has joined. The host cli
 1. **Given** a room in "lobby" status with 2+ participants, **When** the host sends a start-game request, **Then** the room status changes to "game," the host is assigned the "drawer" role, and all others are assigned the "guesser" role.
 2. **Given** the game has just started, **When** the drawer polls for room state, **Then** the response includes the secret word.
 3. **Given** the game has just started, **When** a guesser polls for room state, **Then** the response does NOT include the secret word.
-4. **Given** a room in "lobby" status with 2+ participants, **When** the host starts the game, **Then** the secret word is deterministically selected from the starter word list (first word in the list for the first game started by this room).
+4. **Given** a room in "lobby" status with 2+ participants, **When** the host starts the game, **Then** the secret word is deterministically selected from the starter word list using a predictable index derived from the room state (e.g., hash of room code modulo list length), so different rooms may get different words.
 
 ---
 
@@ -83,9 +85,9 @@ Once the game starts, all participants can clearly see who the drawer is. The dr
 - **FR-002**: System MUST reject room creation and room join requests where the trimmed player name is empty, returning a descriptive error message (e.g., "Player name cannot be empty").
 - **FR-003**: System MUST assign the host (room creator, first participant by join order) the "drawer" role when the game starts.
 - **FR-004**: System MUST assign all non-host participants the "guesser" role when the game starts.
-- **FR-005**: System MUST deterministically select a secret word from the starter word list when the game starts. The word is chosen based on a fixed index (first word in the list).
+- **FR-005**: System MUST deterministically select a secret word from the starter word list when the game starts. The word is chosen using a predictable index derived from room state (e.g., hash of room code modulo list length) so that different rooms get different words while remaining fully deterministic and testable.
 - **FR-006**: System MUST include the secret word in the room state response ONLY when the requesting participant is the drawer.
-- **FR-007**: System MUST exclude the secret word from the room state response when the requesting participant is a guesser.
+- **FR-007**: System MUST completely omit the secret word field from the room state response when the requesting participant is a guesser (the field must not exist in the JSON payload, not sent as `null`).
 - **FR-008**: The game UI MUST clearly indicate which participant is the drawer to all players.
 - **FR-009**: The game UI MUST display the secret word only to the drawer.
 - **FR-010**: The game UI MUST show a placeholder or hidden-word indicator (e.g., "_ _ _ _ _ _") to guessers instead of the actual word.
@@ -115,7 +117,7 @@ Once the game starts, all participants can clearly see who the drawer is. The dr
 - Only the host can start the game (existing behavior in `startRoom`).
 - The game has a single round only — no round rotation, drawer rotation, or timer mechanics (per constitution VI).
 - The existing polling mechanism from feature 001 is used for game state synchronization; no new transport is needed.
-- Word selection uses a fixed deterministic strategy (first word in the list) since there are no multiple rounds.
+- Word selection uses a deterministic index derived from room state (e.g., room code hash modulo list length). The same room code always produces the same word.
 - The "drawer" and "guesser" roles already exist as types in the codebase (`ParticipantRole`).
 
 > **Out-of-scope reminder (Constitution VI)**: WebSockets, databases, auth,

@@ -31,6 +31,6 @@
 
 ## Notes
 
-- All 16/16 items pass after clarification session (2026-06-05).
-- 2 clarifications integrated: guesser self-role labels, drawer mid-game departure behavior.
+- All 16/16 items pass after clarification sessions (2026-06-05).
+- 4 clarifications integrated across 2 sessions: guesser self-role labels, drawer mid-game departure, room-state-based word indexing, field omission for guesser payloads.
 - No [NEEDS CLARIFICATION] markers remain.
