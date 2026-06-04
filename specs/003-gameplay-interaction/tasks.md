@@ -121,7 +121,7 @@ US4 complete.
 
 **Purpose**: Final cross-cutting validation against all acceptance scenarios.
 
-- [ ] T017 Manual two-tab validation per `specs/003-gameplay-interaction/spec.md`: (1) US1 — Alice draws freehand, "Clear Canvas" wipes it, Bob sees "Watch the drawer!"; (2) US2 — Bob submits " ROCKET " → 100 pts, "pizza" → 0 pts, empty → error retained; (3) US3 — Bob's guess appears on Alice's tab within 3 s without page interaction; (4) US4 — Scoreboard shows 100 for Bob and 0 for Alice after correct guess
+- [x] T017 Manual two-tab validation per `specs/003-gameplay-interaction/spec.md`: (1) US1 — Alice draws freehand, "Clear Canvas" wipes it, Bob sees "Watch the drawer!"; (2) US2 — Bob submits " ROCKET " → 100 pts, "pizza" → 0 pts, empty → error retained; (3) US3 — Bob's guess appears on Alice's tab within 3 s without page interaction; (4) US4 — Scoreboard shows 100 for Bob and 0 for Alice after correct guess
 
 ---
 
