@@ -29,15 +29,12 @@ function generateUniqueCode() {
   return code;
 }
 
-function displayName(name?: string) {
-  return name || "Player";
-}
-
-function createParticipant(name?: string): Participant {
+function createParticipant(name: string, isHost: boolean): Participant {
   return {
     id: randomUUID(),
-    name: displayName(name),
-    joinedAt: now()
+    name,
+    joinedAt: now(),
+    isHost
   };
 }
 
@@ -49,8 +46,8 @@ export function listWords() {
   return [...STARTER_WORDS];
 }
 
-export function createRoom(playerName?: string) {
-  const participant = createParticipant(playerName);
+export function createRoom(playerName: string) {
+  const participant = createParticipant(playerName, true);
   const room: Room = {
     code: generateUniqueCode(),
     status: "lobby",
@@ -67,14 +64,14 @@ export function createRoom(playerName?: string) {
   };
 }
 
-export function joinRoom(code: string, playerName?: string) {
+export function joinRoom(code: string, playerName: string) {
   const room = rooms.get(code);
 
   if (!room) {
     return null;
   }
 
-  const participant = createParticipant(playerName);
+  const participant = createParticipant(playerName, false);
   room.participants.push(participant);
   room.updatedAt = now();
   rooms.set(room.code, room);
@@ -83,6 +80,30 @@ export function joinRoom(code: string, playerName?: string) {
     room: cloneRoom(room),
     participantId: participant.id
   };
+}
+
+export function startGame(code: string, participantId: string) {
+  const room = rooms.get(code);
+
+  if (!room) {
+    return null;
+  }
+
+  const participant = room.participants.find((p) => p.id === participantId);
+
+  if (!participant || !participant.isHost) {
+    return null;
+  }
+
+  if (room.participants.length < 2) {
+    return null;
+  }
+
+  room.status = "playing";
+  room.updatedAt = now();
+  rooms.set(room.code, room);
+
+  return cloneRoom(room);
 }
 
 export function getRoom(code: string) {
@@ -104,6 +125,7 @@ export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSn
     status: room.status,
     participants: room.participants.map((participant) => ({ ...participant })),
     availableWords: listWords(),
-    roles: [...STARTER_ROLES]
+    roles: [...STARTER_ROLES],
+    canStart: room.status === "lobby" && room.participants.length >= 2
   };
 }
