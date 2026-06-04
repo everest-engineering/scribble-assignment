@@ -162,6 +162,16 @@ export function GamePage() {
     }
   };
 
+  const isHost = room.hostId === participantId;
+
+  const handleRestart = async () => {
+    try {
+      await roomStore.restartRoom();
+    } catch (err) {
+      console.error("Failed to restart room", err);
+    }
+  };
+
   const viewer = room.participants.find((participant) => participant.id === participantId) ?? null;
   const drawer = room.participants.find((participant) => participant.id === room.drawerId) ?? null;
 
@@ -209,6 +219,56 @@ export function GamePage() {
                     backgroundColor: "#ffffff"
                   }}
                 />
+
+                {room.status === "result" && (
+                  <div
+                    style={{
+                      position: "absolute",
+                      top: 0,
+                      left: 0,
+                      width: "100%",
+                      height: "100%",
+                      backgroundColor: "rgba(31, 41, 55, 0.95)",
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      color: "#ffffff",
+                      padding: "32px",
+                      zIndex: 10,
+                      textAlign: "center"
+                    }}
+                  >
+                    <span style={{ fontSize: "1.25rem", fontWeight: 600, color: "var(--accent)", textTransform: "uppercase", letterSpacing: "0.1em" }}>
+                      Round Ended
+                    </span>
+                    <h2 style={{ fontSize: "2.25rem", margin: "12px 0 24px", fontWeight: 800 }}>
+                      Word was: <span style={{ color: "#10b981" }}>{room.secretWord}</span>
+                    </h2>
+
+                    <div style={{ width: "100%", maxWidth: "360px", background: "rgba(255, 255, 255, 0.1)", borderRadius: "12px", padding: "20px", marginBottom: "24px" }}>
+                      <h3 style={{ margin: "0 0 12px", fontSize: "1.1rem", fontWeight: 600, borderBottom: "1px dashed rgba(255,255,255,0.2)", paddingBottom: "8px" }}>
+                        Final Scores
+                      </h3>
+                      <div style={{ display: "grid", gap: "8px" }}>
+                        {room.participants.map((p) => (
+                          <div key={p.id} style={{ display: "flex", justifyContent: "space-between", fontSize: "1rem" }}>
+                            <span>{p.name} {p.id === room.hostId && "👑"}</span>
+                            <strong style={{ color: "var(--accent)" }}>{room.scores[p.id] ?? 0} pts</strong>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {isHost ? (
+                      <button className="button button--primary" onClick={handleRestart} style={{ minWidth: "180px" }}>
+                        Restart Game
+                      </button>
+                    ) : (
+                      <p style={{ color: "#9ca3af", fontSize: "0.95rem" }}>Waiting for the host to restart the game...</p>
+                    )}
+                  </div>
+                )}
               </div>
 
               {room.viewerRole === "drawer" && (

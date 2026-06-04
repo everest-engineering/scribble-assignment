@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createRoom, joinRoom, startGame, submitDraw, submitGuess, toRoomSnapshot } from "./roomStore.js";
+import { createRoom, joinRoom, restartRoom, startGame, submitDraw, submitGuess, toRoomSnapshot } from "./roomStore.js";
 
 describe("roomStore", () => {
   it("createRoom returns a room with a 4-character uppercase code", () => {
@@ -134,6 +134,35 @@ describe("roomStore", () => {
           expect(room.guesses[0].isCorrect).toBe(true);
           expect(room.scores[joinResult.participantId]).toBe(100);
           expect(room.status).toBe("result");
+        }
+      }
+    }
+  });
+
+  it("restartRoom resets game state, resets player scores to 0, and clears guesses/canvas", () => {
+    const creatorResult = createRoom("Alice");
+    const code = creatorResult.room.code;
+    const joinResult = joinRoom(code, "Bob");
+    expect(joinResult).not.toBeNull();
+
+    if (joinResult) {
+      const playingRoom = startGame(code);
+      expect(playingRoom).not.toBeNull();
+      if (playingRoom) {
+        submitDraw(code, "[]");
+        submitGuess(code, joinResult.participantId, playingRoom.secretWord || "");
+
+        const room = restartRoom(code);
+        expect(room).not.toBeNull();
+        if (room) {
+          expect(room.status).toBe("lobby");
+          expect(room.drawerId).toBeNull();
+          expect(room.secretWord).toBeNull();
+          expect(room.canvasData).toBe("[]");
+          expect(room.guesses).toHaveLength(0);
+          expect(room.scores[creatorResult.participantId]).toBe(0);
+          expect(room.scores[joinResult.participantId]).toBe(0);
+          expect(room.participants).toHaveLength(2);
         }
       }
     }

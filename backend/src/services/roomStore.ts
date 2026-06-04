@@ -178,6 +178,28 @@ export function submitGuess(code: string, participantId: string, text: string) {
   return cloneRoom(room);
 }
 
+export function restartRoom(code: string) {
+  const room = rooms.get(code);
+
+  if (!room) {
+    return null;
+  }
+
+  room.status = "lobby";
+  room.drawerId = null;
+  room.secretWord = null;
+  room.canvasData = "[]";
+  room.guesses = [];
+  room.scores = {};
+  room.participants.forEach((p) => {
+    room.scores[p.id] = 0;
+  });
+  room.updatedAt = now();
+  rooms.set(room.code, room);
+
+  return cloneRoom(room);
+}
+
 export function getRoom(code: string) {
   const room = rooms.get(code);
   return room ? cloneRoom(room) : null;

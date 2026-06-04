@@ -83,12 +83,12 @@
 **Independent Test**: Complete a game, verify result overlay, click restart in host tab, verify both tabs return to lobby.
 
 ### Implementation for User Story 4
-- [ ] T026 [US4] Reveal secretWord to everyone in toRoomSnapshot when status is result in backend/src/services/roomStore.ts
-- [ ] T027 [US4] Implement restartRoom service method in backend/src/services/roomStore.ts and mount POST /rooms/:code/restart route in backend/src/api/rooms.ts
-- [ ] T028 [US4] Add test cases for restart logic in backend/src/services/roomStore.test.ts
-- [ ] T029 [US4] Add restartRoom store action in frontend/src/state/roomStore.ts
-- [ ] T030 [US4] Add redirect to LobbyPage when room status transitions to lobby in frontend/src/pages/GamePage.tsx
-- [ ] T031 [US4] Render result panel with scores, revealed word, and host-restricted restart button in frontend/src/pages/GamePage.tsx
+- [x] T026 [US4] Reveal secretWord to everyone in toRoomSnapshot when status is result in backend/src/services/roomStore.ts
+- [x] T027 [US4] Implement restartRoom service method in backend/src/services/roomStore.ts and mount POST /rooms/:code/restart route in backend/src/api/rooms.ts
+- [x] T028 [US4] Add test cases for restart logic in backend/src/services/roomStore.test.ts
+- [x] T029 [US4] Add restartRoom store action in frontend/src/state/roomStore.ts
+- [x] T030 [US4] Add redirect to LobbyPage when room status transitions to lobby in frontend/src/pages/GamePage.tsx
+- [x] T031 [US4] Render result panel with scores, revealed word, and host-restricted restart button in frontend/src/pages/GamePage.tsx
 - [ ] T032 [US4] Run full backend/frontend test suites and execute end-to-end happy path validation in browser
 
 **Checkpoint**: Full round lifecycle is completed and verified.

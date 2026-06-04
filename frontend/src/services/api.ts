@@ -91,5 +91,10 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ participantId, text })
     });
+  },
+  restartRoom(code: string) {
+    return request<{ room: RoomSnapshot }>(`/rooms/${encodeURIComponent(code)}/restart`, {
+      method: "POST"
+    });
   }
 };

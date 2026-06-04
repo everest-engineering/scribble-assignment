@@ -8,7 +8,7 @@ import {
   submitDrawSchema,
   submitGuessSchema
 } from "./schemas.js";
-import { createRoom, getRoom, joinRoom, startGame, submitDraw, submitGuess, toRoomSnapshot } from "../services/roomStore.js";
+import { createRoom, getRoom, joinRoom, restartRoom, startGame, submitDraw, submitGuess, toRoomSnapshot } from "../services/roomStore.js";
 
 export function createRoomsRouter() {
   const router = Router();
@@ -111,6 +111,23 @@ export function createRoomsRouter() {
 
       response.json({
         room: toRoomSnapshot(room, participantId)
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/:code/restart", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const room = restartRoom(code.toUpperCase());
+
+      if (!room) {
+        throw new HttpError(404, "Room code not found");
+      }
+
+      response.json({
+        room: toRoomSnapshot(room, room.hostId)
       });
     } catch (error) {
       next(error);
