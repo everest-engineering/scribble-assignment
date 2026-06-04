@@ -64,6 +64,7 @@ export function createRoom(playerName?: string) {
     participants: [participant],
     strokes: [],
     guesses: [],
+    round: 1,
     createdAt: now(),
     updatedAt: now()
   };
