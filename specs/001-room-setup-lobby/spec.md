@@ -90,6 +90,8 @@ now shows Tab 2's player name.
    UI does not flash, lose state, or navigate away unnecessarily.
 3. **Given** a player who leaves the Lobby screen (navigates away), **When** they leave,
    **Then** polling stops and no further background requests are made for that room.
+4. **Given** a player on the Lobby screen, **When** they view the participant list area,
+   **Then** there is no manual "Refresh Room" button — the list updates automatically.
 
 ---
 
@@ -108,7 +110,8 @@ Click "Start Game" on Tab 1 and confirm both tabs eventually navigate to the gam
 **Acceptance Scenarios**:
 
 1. **Given** the host is in the lobby with fewer than 2 players, **When** they view the lobby,
-   **Then** the "Start Game" button is disabled with a visible reason.
+   **Then** the "Start Game" button is disabled and the label "Need at least 2 players to start"
+   is visible.
 2. **Given** the host is in the lobby with 2 or more players, **When** they click "Start Game",
    **Then** the room status transitions and all players are navigated to the game screen.
 3. **Given** a non-host player in the lobby with 2 or more players, **When** they view the
@@ -144,8 +147,11 @@ room 1. Confirm room 2's participant list does not include Tab 3's player.
 - What happens when a player submits a room code in lowercase? The system normalises the
   code to uppercase before lookup; the player lands on the lobby normally.
 - What happens when the backend restarts while a player is in the lobby? The room no longer
-  exists; the next poll returns an error and the player is redirected to the Start screen
+  exists; the next poll returns a 404 and the player is redirected to the Start screen
   with an error message.
+- What happens when a lobby poll fails with a transient error (network timeout, 5xx)? The
+  error message is displayed inline in the lobby and polling continues at the normal interval;
+  the error clears automatically when the next poll succeeds.
 - What happens when two players join the same room at the same moment? Both are added
   independently; both land on the lobby showing all participants.
 - What happens if a player refreshes the browser while in the lobby? The in-memory session
@@ -168,8 +174,10 @@ room 1. Confirm room 2's participant list does not include Tab 3's player.
 - **FR-006**: The lobby MUST poll the room snapshot automatically at approximately 2-second
   intervals while the Lobby screen is visible.
 - **FR-007**: Lobby polling MUST stop when the player navigates away from the Lobby screen.
-- **FR-008**: The "Start Game" control MUST be visible and enabled only for the host when
-  at least 2 players are present in the room.
+  The manual "Refresh Room" button MUST be removed; polling is the sole refresh mechanism.
+- **FR-008**: The "Start Game" control MUST be visible only to the host. When fewer than
+  2 players are present it MUST be disabled and accompanied by the label "Need at least
+  2 players to start". It becomes enabled once 2 or more players are in the room.
 - **FR-009**: The "Start Game" control MUST be absent or permanently disabled for non-host
   players regardless of player count.
 - **FR-010**: The backend MUST reject start-game requests from non-host participants; the
@@ -178,6 +186,9 @@ room 1. Confirm room 2's participant list does not include Tab 3's player.
   other room's state.
 - **FR-012**: The system MUST display user-facing error messages for all failure states
   including invalid code, empty name, and server errors.
+- **FR-013**: When a lobby poll fails with a transient error, the lobby MUST display the
+  error inline and continue polling; the error MUST clear automatically on the next
+  successful poll.
 
 ### Key Entities
 
@@ -208,6 +219,16 @@ room 1. Confirm room 2's participant list does not include Tab 3's player.
   direct backend access.
 - **SC-007**: The participant lists of two independent rooms remain fully isolated during
   concurrent use.
+
+---
+
+## Clarifications
+
+### Session 2026-06-04
+
+- Q: How should the lobby behave when a poll fails with a transient error (network timeout, 5xx)? → A: Show the error inline in the lobby and keep polling; the error clears on the next successful poll.
+- Q: Should the existing manual "Refresh Room" button be kept alongside auto-polling? → A: No — remove it; polling replaces it entirely.
+- Q: What label should accompany the disabled "Start Game" button when fewer than 2 players are present? → A: "Need at least 2 players to start."
 
 ---
 

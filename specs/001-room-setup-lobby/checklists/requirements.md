@@ -31,7 +31,10 @@
 
 ## Notes
 
-- All 12 checks pass. No issues found.
+- All 16 checks pass. No issues found.
 - Spec covers 5 user stories: create room (P1), join room (P1), lobby polling (P2),
   start game with host guard (P2), multi-room isolation (P3).
-- Ready for `/speckit-clarify` or `/speckit-plan`.
+- Clarification session 2026-06-04: 3 questions answered — transient poll failure behaviour
+  (FR-013 added), manual refresh button removed (FR-007 updated), Start Game disabled label
+  defined (FR-008 updated).
+- Ready for `/speckit-plan`.
