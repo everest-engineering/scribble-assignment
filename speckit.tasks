@@ -1,0 +1,81 @@
+# Speckit Tasks
+
+## Phase 1: Discovery & Artifacts
+
+| # | Task | Dependencies | Status |
+|---|------|-------------|--------|
+| 1.1 | Read and document starter codebase gaps | None | Done |
+| 1.2 | Write speckit.constitution | None | Done |
+| 1.3 | Write spec files (4 groups) | 1.1 | Done |
+| 1.4 | Write plan with state model and data flow | 1.1, 1.3 | Done |
+| 1.5 | Write task list | 1.4 | Done |
+
+## Phase 2: Room Setup & Lobby (Scenario 1)
+
+| # | Task | Dependencies | Status |
+|---|------|-------------|--------|
+| 2.1 | Backend: Add `hostId` and `"playing"` status to Room model | 1.1 | Done |
+| 2.2 | Backend: Add start game schema, validate empty room codes | 2.1 | Done |
+| 2.3 | Backend: Set `hostId` on room creation, add `startGame()` logic | 2.1 | Done |
+| 2.4 | Backend: Add `POST /:code/start` route | 2.2, 2.3 | Done |
+| 2.5 | Backend: Write tests for host tracking, start game, code validation | 2.1–2.4 | Done |
+| 2.6 | Frontend: Add `hostId` to RoomSnapshot, add `startGame()` API method | 2.1, 2.4 | Done |
+| 2.7 | Frontend: Add `startGame()` to room store | 2.6 | Done |
+| 2.8 | Frontend: Add auto-polling, host detection, conditional start to lobby | 2.7 | Done |
+| 2.9 | Frontend: Write API tests for startGame | 2.6 | Done |
+| 2.10 | Validate Scenario 1 with two browser tabs | 2.1–2.9 | Done |
+
+## Phase 3: Game Start & Drawer Flow (Scenario 2)
+
+| # | Task | Dependencies | Status |
+|---|------|-------------|--------|
+| 3.1 | Backend: Add `drawerId`, `secretWord`, `round` to Room model | 2.1 | Done |
+| 3.2 | Backend: Require playerName with trim, reject empty/whitespace | 3.1 | Done |
+| 3.3 | Backend: Add `selectWord()`, assign drawer on start, gate secretWord | 3.1, 3.2 | Done |
+| 3.4 | Backend: Write tests for drawer assignment, word selection, gating | 3.1–3.3 | Done |
+| 3.5 | Frontend: Add drawerId, secretWord?, round to RoomSnapshot type | 3.1 | Done |
+| 3.6 | Frontend: Add client-side name validation to CreateRoomPage | 3.2 | Done |
+| 3.7 | Frontend: Add client-side name/code validation to JoinRoomPage | 3.2 | Done |
+| 3.8 | Frontend: Update GamePage with drawer display, secret word, role | 3.5 | Done |
+| 3.9 | Validate Scenario 2 with two browser tabs | 3.1–3.8 | Done |
+
+## Phase 4: Gameplay Interaction (Scenario 3)
+
+| # | Task | Dependencies | Status |
+|---|------|-------------|--------|
+| 4.1 | Backend: Add Guess type, guesses[], scores{} to Room model | 3.1 | Pending |
+| 4.2 | Backend: Add guess validation schema (trim, non-empty) | 3.2 | Pending |
+| 4.3 | Backend: Add `submitGuess()` — case-insensitive compare, award 100 | 4.1, 4.2 | Pending |
+| 4.4 | Backend: Add `POST /:code/guess` route | 4.3 | Pending |
+| 4.5 | Backend: Write tests for guess submission, scoring, validation | 4.1–4.4 | Pending |
+| 4.6 | Frontend: Add submitGuess and Guess type to API service | 4.1, 4.4 | Pending |
+| 4.7 | Frontend: Add submitGuess to room store | 4.6 | Pending |
+| 4.8 | Frontend: Create interactive canvas component for drawer | None | Pending |
+| 4.9 | Frontend: Wire GuessForm to submit via API | 4.7 | Pending |
+| 4.10 | Frontend: Update Scoreboard to show live scores from snapshot | 4.6 | Pending |
+| 4.11 | Frontend: Add guess history display to GamePage | 4.6 | Pending |
+| 4.12 | Validate Scenario 3 with two browser tabs | 4.1–4.11 | Pending |
+
+## Phase 5: Result, Restart & Final Validation (Scenario 4)
+
+| # | Task | Dependencies | Status |
+|---|------|-------------|--------|
+| 5.1 | Backend: Add `"result"` status to Room model | 4.1 | Pending |
+| 5.2 | Backend: Add `revealCorrectWord()` — expose secretWord to all in result | 5.1 | Pending |
+| 5.3 | Backend: Add `restartGame()` — reset round state, keep players | 5.1 | Pending |
+| 5.4 | Backend: Add `POST /:code/restart` route | 5.3 | Pending |
+| 5.5 | Backend: Write tests for result and restart flows | 5.1–5.4 | Pending |
+| 5.6 | Frontend: Add restartGame to API service and room store | 5.4 | Pending |
+| 5.7 | Frontend: Add result state UI to GamePage (scores, history, word) | 5.2 | Pending |
+| 5.8 | Frontend: Add host-only restart button | 5.6 | Pending |
+| 5.9 | Frontend: Auto-redirect to lobby on restart (polling detects status change) | 5.8 | Pending |
+| 5.10 | Validate Scenario 4 with two browser tabs | 5.1–5.9 | Pending |
+
+## Phase 6: Final Validation
+
+| # | Task | Dependencies | Status |
+|---|------|-------------|--------|
+| 6.1 | Run full test suite (backend + frontend) | All | Pending |
+| 6.2 | Run full build (backend + frontend) | All | Pending |
+| 6.3 | Two-browser end-to-end walkthrough of all 4 scenarios | 6.1, 6.2 | Pending |
+| 6.4 | Write reflection report | 6.3 | Pending |

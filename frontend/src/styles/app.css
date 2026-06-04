@@ -543,6 +543,146 @@ input {
   font-weight: 500;
 }
 
+.secret-word-display {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 24px;
+  border: 2px dashed var(--accent);
+  border-radius: 12px;
+  background: #fffbeb;
+}
+
+.secret-word {
+  color: var(--ink);
+  font-size: 1.75rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+}
+
+.host-badge {
+  color: var(--brand);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.waiting-message {
+  color: var(--ink-soft);
+  font-size: 0.95rem;
+  font-style: italic;
+}
+
+.scoreboard-list {
+  gap: 8px;
+}
+
+.scoreboard-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+}
+
+.scoreboard-rank {
+  color: var(--ink-soft);
+  font-size: 0.875rem;
+  font-weight: 600;
+  min-width: 24px;
+}
+
+.scoreboard-name {
+  flex: 1;
+  color: var(--ink);
+  font-size: 1rem;
+  font-weight: 500;
+}
+
+.scoreboard-score {
+  color: var(--ink);
+  font-size: 1.125rem;
+  font-weight: 700;
+}
+
+.guess-history {
+  display: grid;
+  gap: 8px;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.guess-entry {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+  padding: 12px 16px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-strong);
+  align-items: center;
+}
+
+.guess-entry--correct {
+  background: #ecfdf5;
+  border-color: #a7f3d0;
+}
+
+.guess-entry__player {
+  color: var(--ink-soft);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.guess-entry__text {
+  color: var(--ink);
+  font-size: 1rem;
+  font-weight: 500;
+  grid-column: 1 / -1;
+}
+
+.guess-entry__badge {
+  display: inline-flex;
+  padding: 2px 10px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.guess-entry__badge--correct {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.guess-entry__badge--incorrect {
+  background: var(--surface-muted);
+  color: var(--ink-soft);
+}
+
+.correct-word-display {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 32px;
+  border: 2px solid #a7f3d0;
+  border-radius: 12px;
+  background: #ecfdf5;
+}
+
+.correct-word {
+  color: #065f46;
+  font-size: 2rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+}
+
 @media (max-width: 720px) {
   .app-shell {
     padding: 24px 16px;

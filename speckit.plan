@@ -1,0 +1,219 @@
+# Speckit Plan
+
+## Discovery Notes
+
+### Incomplete Behaviors Found in Starter (≥3)
+
+1. **No host tracking** — The starter `Room` model had no `hostId` field. The creator was just the first participant with no special designation. No host-only permissions existed.
+2. **No start-game endpoint or validation** — The lobby page had an unconditional "Start Game" button that navigated directly to `/game` without any backend call. No validation that the starter was the host or that ≥2 players were present.
+3. **No drawer assignment on game start** — `startGame()` only set `status = "playing"`. No drawer was assigned, no secret word was selected, and no round was tracked.
+4. **No lobby auto-polling** — The lobby used a manual "Refresh Room" button instead of automatic polling at ~2s intervals.
+5. **No player name validation** — The Zod schemas used `z.string().optional()`, so empty/whitespace-only names were silently defaulted to "Player".
+
+### Key Assumptions Made (≥2)
+
+1. **Host is always the first drawer** — For Scenario 2, we assumed the host (room creator) is the drawer for the first round. This matches "the host (or first player)" wording in the scenario.
+2. **Deterministic word selection via room code** — The secret word is selected by summing the char codes of the room code and taking modulo word count. This ensures reproducibility: the same room code always picks the same word.
+3. **Server-side secret word gating** — The `toRoomSnapshot()` function conditionally includes `secretWord` only when the viewer is the drawer. This means the frontend never receives the word for non-drawers — the enforcement happens server-side.
+
+### Relevant Files
+
+| Area | Files |
+|------|-------|
+| Models | `backend/src/models/game.ts` |
+| API | `backend/src/api/rooms.ts`, `backend/src/api/schemas.ts`, `backend/src/api/router.ts` |
+| Services | `backend/src/services/roomStore.ts` |
+| Seed | `backend/src/seed/starterData.ts` |
+| Components | `frontend/src/pages/*.tsx`, `frontend/src/components/*.tsx` |
+| State | `frontend/src/state/roomStore.ts` |
+| API Client | `frontend/src/services/api.ts` |
+| Styles | `frontend/src/styles/app.css` |
+
+---
+
+## State Model
+
+### `Room` (backend, in-memory)
+
+```typescript
+interface Room {
+  code: string;                    // Unique 4-char alphanumeric (auto-generated)
+  status: "lobby" | "playing" | "result";  // S4 adds "result"
+  hostId: string;                  // Participant ID of room creator (S1)
+  drawerId: string;                // Current drawer's participant ID (S2)
+  secretWord: string;              // Current round's secret word (S2)
+  round: number;                   // Current round number (S2)
+  participants: Participant[];     // All joined players
+  guesses: Guess[];                // Round guess history (S3)
+  scores: Record<string, number>;  // participantId → score (S3)
+  createdAt: string;
+  updatedAt: string;
+}
+```
+
+### `RoomSnapshot` (returned to clients)
+
+```typescript
+interface RoomSnapshot {
+  code: string;
+  status: "lobby" | "playing" | "result";
+  hostId: string;
+  drawerId: string;
+  secretWord?: string;        // Only present if viewer is drawer (S2)
+  round: number;
+  participants: Participant[];
+  guesses: Guess[];           // Full guess history (S3)
+  scores: Record<string, number>;  // S3
+  correctWord?: string;       // Revealed in result state (S4)
+  availableWords: string[];
+  roles: ParticipantRole[];
+}
+```
+
+### `Guess` (S3)
+
+```typescript
+interface Guess {
+  participantId: string;
+  playerName: string;
+  text: string;
+  isCorrect: boolean;
+  timestamp: string;
+}
+```
+
+---
+
+## Data Flow
+
+### Scenario 1 (Implemented)
+
+```
+Create Room:
+  POST /rooms { playerName }
+    → createRoom() generates code, sets hostId = participant.id
+    → 201 { participantId, room: RoomSnapshot }
+
+Join Room:
+  POST /rooms/:code/join { playerName }
+    → joinRoom() validates code exists, adds participant
+    → 200 { participantId, room: RoomSnapshot }
+
+Poll Lobby:
+  GET /rooms/:code?participantId=X
+    → getRoom() returns fresh snapshot
+    → Frontend polls every 2s, updates participant list
+
+Start Game:
+  POST /rooms/:code/start { participantId }
+    → startGame() validates host + ≥2 players
+    → Sets drawerId, secretWord, round, status="playing"
+    → 200 { room: RoomSnapshot }
+```
+
+### Scenario 2 (Implemented)
+
+```
+Name Validation:
+  Zod .trim().min(1) on createRoomSchema & joinRoomSchema
+  Frontend also trims and rejects empty before submit
+
+Drawer Assignment:
+  startGame() sets drawerId = hostId
+
+Word Selection:
+  selectWord(code) = STARTER_WORDS[sum(charCodes) % 5]
+
+Snapshot Gating:
+  toRoomSnapshot(room, viewerId):
+    secretWord = (viewerId === room.drawerId) ? room.secretWord : undefined
+```
+
+### Scenario 3 (Planned)
+
+```
+Submit Guess:
+  POST /rooms/:code/guess { participantId, text }
+    → Trim text, reject if empty
+    → Case-insensitive compare to room.secretWord
+    → Add Guess { participantId, text, isCorrect, timestamp }
+    → If correct, award 100 points to guesser
+    → Return updated room snapshot
+
+Fetch State (polling):
+  GET /rooms/:code?participantId=X
+    → Returns snapshot with guesses[], scores {}
+
+Canvas Drawing:
+  Client-side only in React canvas element
+  Drawer can draw strokes and clear canvas
+  (Out of scope: real-time sync to guessers)
+```
+
+### Scenario 4 (Planned)
+
+```
+End Round:
+  POST /rooms/:code/end-round (or triggered by correct guess)
+    → Set status = "result"
+    → Reveal correctWord to all (in snapshot)
+
+Restart:
+  POST /rooms/:code/restart { participantId }
+    → Validate participant is host (403 if not)
+    → Reset: drawerId="", secretWord="", round=0, guesses=[], scores={}
+    → Set status = "lobby"
+    → Participants preserved
+    → 200 { room: RoomSnapshot with status="lobby" }
+```
+
+---
+
+## File-Level Implementation Sequence
+
+### Completed (S1+S2, 14 files changed)
+
+| Order | Files | Purpose |
+|-------|-------|---------|
+| 1 | `backend/src/models/game.ts` | Add hostId, drawerId, secretWord, round |
+| 2 | `backend/src/api/schemas.ts` | Add schemas, name validation |
+| 3 | `backend/src/services/roomStore.ts` | Host tracking, startGame logic, word selection |
+| 4 | `backend/src/api/rooms.ts` | POST start route |
+| 5 | Backend test files | Tests for S1+S2 |
+| 6 | `frontend/src/services/api.ts` | Type updates, startGame method |
+| 7 | `frontend/src/state/roomStore.ts` | startGame store method |
+| 8 | `frontend/src/pages/LobbyPage.tsx` | Polling, host UI |
+| 9 | `frontend/src/pages/CreateRoomPage.tsx` | Name validation |
+| 10 | `frontend/src/pages/JoinRoomPage.tsx` | Name/code validation |
+| 11 | `frontend/src/pages/GamePage.tsx` | Drawer display, word visibility |
+| 12 | `frontend/src/styles/app.css` | Host badge, secret word styles |
+| 13 | Frontend test files | S1+S2 API tests |
+
+### Planned (S3)
+
+| Order | Files | Purpose |
+|-------|-------|---------|
+| 1 | `backend/src/models/game.ts` | Add Guess type, guesses[], scores{} |
+| 2 | `backend/src/api/schemas.ts` | Add guessSchema |
+| 3 | `backend/src/services/roomStore.ts` | submitGuess(), scoring logic |
+| 4 | `backend/src/api/rooms.ts` | POST guess route |
+| 5 | `frontend/src/services/api.ts` | submitGuess method, Guess type |
+| 6 | `frontend/src/state/roomStore.ts` | submitGuess, fetch updates |
+| 7 | `frontend/src/pages/GamePage.tsx` | Wire guess form, scoreboard, history |
+| 8 | `frontend/src/components/GuessForm.tsx` | Submit to API |
+| 9 | `frontend/src/components/Scoreboard.tsx` | Live scores from snapshot |
+| 10 | `frontend/src/pages/GamePage.tsx` | Canvas component |
+| 11 | Tests | S3 API and component tests |
+
+### Planned (S4)
+
+| Order | Files | Purpose |
+|-------|-------|---------|
+| 1 | `backend/src/models/game.ts` | Add correctWord reveal logic |
+| 2 | `backend/src/services/roomStore.ts` | restartGame() |
+| 3 | `backend/src/api/rooms.ts` | POST restart route |
+| 4 | `frontend/src/services/api.ts` | restartGame method |
+| 5 | `frontend/src/state/roomStore.ts` | restartGame, auto-navigate on status change |
+| 6 | `frontend/src/pages/GamePage.tsx` | Result state UI |
+| 7 | `frontend/src/pages/LobbyPage.tsx` | Handle return from restart |
+| 8 | Tests | S4 API and navigation tests |
