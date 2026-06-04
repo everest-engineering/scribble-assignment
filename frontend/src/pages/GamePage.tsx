@@ -53,6 +53,7 @@ export function GamePage() {
 
   const viewer = room.participants.find((participant) => participant.id === participantId) ?? null;
   const isDrawer = participantId === room.drawerId;
+  const isHost = participantId === room.hostId;
   const isResult = room.status === "result";
 
   async function handleDraw(stroke: Stroke) {
@@ -75,12 +76,20 @@ export function GamePage() {
     await roomStore.submitGuess(text);
   }
 
+  async function handleRestart() {
+    try {
+      await roomStore.restartGame();
+    } catch {
+      // restart errors handled by polling
+    }
+  }
+
   return (
     <section className="panel game-page">
       <div className="game-page__header">
         <div className="game-page__header-left">
           <span className="section-kicker">Round {room.round}</span>
-          <h1 className="game-page__title">Guess the Word!</h1>
+          <h1 className="game-page__title">{isResult ? "Round Over!" : "Guess the Word!"}</h1>
         </div>
         <RoomCodeBadge code={room.code} />
       </div>
@@ -88,7 +97,7 @@ export function GamePage() {
       <div className="game-page__layout">
         <aside className="game-page__sidebar game-page__sidebar--left">
           <Scoreboard participants={room.participants} scores={room.scores} />
-          <ResultPanel guesses={room.guesses} secretWord={isResult ? room.secretWord : undefined} status={room.status} />
+          <ResultPanel guesses={room.guesses} secretWord={room.secretWord} status={room.status} />
         </aside>
 
         <div className="game-page__main">
@@ -126,6 +135,11 @@ export function GamePage() {
       </div>
 
       <div className="button-row">
+        {isResult && isHost ? (
+          <button className="button button--primary" onClick={handleRestart}>
+            Play Again
+          </button>
+        ) : null}
         <button className="button button--secondary" onClick={() => navigate("/lobby")}>
           Exit Game
         </button>
