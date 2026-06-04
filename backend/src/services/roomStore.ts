@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import type { Participant, Room, RoomSnapshot } from "../models/game.js";
+import type { Guess, Participant, Room, RoomSnapshot } from "../models/game.js";
 import { HttpError } from "../api/schemas.js";
 import { STARTER_ROLES, STARTER_WORDS } from "../seed/starterData.js";
 
@@ -65,6 +65,8 @@ export function createRoom(playerName: string) {
     secretWord: "",
     round: 0,
     participants: [participant],
+    guesses: [],
+    scores: {},
     createdAt: now(),
     updatedAt: now()
   };
@@ -133,6 +135,55 @@ export function saveRoom(room: Room) {
   return getRoom(room.code);
 }
 
+export function submitGuess(code: string, participantId: string, text: string) {
+  const room = rooms.get(code);
+
+  if (!room) {
+    throw new HttpError(404, "Room not found");
+  }
+
+  if (room.status !== "playing") {
+    throw new HttpError(400, "Game is not in progress");
+  }
+
+  if (room.drawerId === participantId) {
+    throw new HttpError(400, "Drawer cannot submit guesses");
+  }
+
+  const participant = room.participants.find((p) => p.id === participantId);
+  if (!participant) {
+    throw new HttpError(404, "Participant not found in room");
+  }
+
+  const trimmed = text.trim();
+  const isCorrect = trimmed.toLowerCase() === room.secretWord.toLowerCase();
+  const alreadyCorrect = (room.scores[participantId] ?? 0) >= 100;
+
+  if (isCorrect && !alreadyCorrect) {
+    room.scores[participantId] = (room.scores[participantId] ?? 0) + 100;
+  }
+
+  if (!isCorrect && !room.scores[participantId]) {
+    room.scores[participantId] = 0;
+  }
+
+  const guess: Guess = {
+    participantId,
+    playerName: participant.name,
+    text,
+    isCorrect,
+    timestamp: now()
+  };
+
+  room.guesses.push(guess);
+  room.updatedAt = now();
+  rooms.set(room.code, room);
+
+  return {
+    room: cloneRoom(room)
+  };
+}
+
 export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSnapshot {
   const isDrawer = viewerParticipantId === room.drawerId;
 
@@ -144,6 +195,8 @@ export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSn
     secretWord: isDrawer ? room.secretWord : undefined,
     round: room.round,
     participants: room.participants.map((participant) => ({ ...participant })),
+    guesses: room.guesses.map((guess) => ({ ...guess })),
+    scores: { ...room.scores },
     availableWords: listWords(),
     roles: [...STARTER_ROLES]
   };
