@@ -4,6 +4,7 @@ export interface Participant {
   id: string;
   name: string;
   joinedAt: string;
+  isHost?: boolean;
 }
 
 export interface RoomSnapshot {
@@ -12,6 +13,11 @@ export interface RoomSnapshot {
   participants: Participant[];
   availableWords: string[];
   roles: ParticipantRole[];
+  gameStarted: boolean;
+  currentDrawer: string | null;
+  secretWord?: string | null;
+  guesses?: { participantId: string; text: string; timestamp: string; correct: boolean }[];
+  scores?: Record<string, number>;
 }
 
 export interface RoomSessionResponse {
@@ -19,7 +25,7 @@ export interface RoomSessionResponse {
   room: RoomSnapshot;
 }
 
-const API_BASE_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3001/bug";
+const API_BASE_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3001";
 
 async function request<T>(path: string, init?: RequestInit) {
   const response = await fetch(`${API_BASE_URL}${path}`, {
@@ -57,5 +63,20 @@ export const api = {
   fetchRoom(code: string, participantId?: string) {
     const query = participantId ? `?participantId=${encodeURIComponent(participantId)}` : "";
     return request<{ room: RoomSnapshot }>(`/rooms/${encodeURIComponent(code)}${query}`);
+  },
+  startRoom(code: string, participantId: string) {
+    const query = `?participantId=${encodeURIComponent(participantId)}`;
+    return request<{ room: RoomSnapshot }>(`/rooms/${encodeURIComponent(code)}/start${query}`, {
+      method: "POST"
+    });
+  }
+  ,
+  submitGuess(code: string, participantId: string, text: string) {
+    const query = `?participantId=${encodeURIComponent(participantId)}`;
+    return request<{ room: RoomSnapshot }>(`/rooms/${encodeURIComponent(code)}/guesses${query}`, {
+      method: "POST",
+      body: JSON.stringify({ text })
+    });
   }
 };
+ 

@@ -5,12 +5,23 @@ export interface Participant {
   id: string;
   name: string;
   joinedAt: string;
+  isHost: boolean;
 }
 
 export interface Room {
   code: string;
   status: RoomStatus;
   participants: Participant[];
+  gameStarted: boolean;
+  currentDrawer: string | null;
+  secretWord: string | null;
+  guesses?: {
+    participantId: string;
+    text: string;
+    timestamp: string;
+    correct: boolean;
+  }[];
+  scores?: Record<string, number>;
   createdAt: string;
   updatedAt: string;
 }
@@ -21,6 +32,16 @@ export interface RoomSnapshot {
   participants: Participant[];
   availableWords: string[];
   roles: ParticipantRole[];
+  gameStarted: boolean;
+  currentDrawer: string | null;
+  secretWord?: string | null;
+  guesses?: {
+    participantId: string;
+    text: string;
+    timestamp: string;
+    correct: boolean;
+  }[];
+  scores?: Record<string, number>;
 }
 
 export interface RoomSessionResponse {
