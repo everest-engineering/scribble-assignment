@@ -1,0 +1,92 @@
+# Implementation Plan: Scribble Multiplayer Drawing Game
+
+**Branch**: `scribble-lab` | **Date**: 2026-06-04 | **Spec**: [spec.md](./spec.md)
+
+**Input**: Feature specification from `/specs/001-scribble-game/spec.md`
+
+## Summary
+
+The Scribble drawing game is a multiplayer, web-based drawing and guessing application. It consists of a React frontend and an Express backend. All game state is stored in-memory using Node.js memory structures, and client synchronization is handled via 2-second HTTP polling. Drawing canvas vectors and guesses are fully synchronized over polling.
+
+## Technical Context
+
+**Language/Version**: TypeScript 5.6 (strictly typed, ES Modules)
+
+**Primary Dependencies**: Express 4.21, Zod 3.23 (backend validation), React 18.3, React Router v6 (frontend)
+
+**Storage**: In-memory JavaScript Map (in `roomStore.ts`). No databases.
+
+**Testing**: Vitest for both backend and frontend unit tests.
+
+**Target Platform**: Node.js 18+ (backend), Modern Browsers (frontend)
+
+**Project Type**: Web application (frontend + backend)
+
+**Performance Goals**: Canvas updates render on guesser screens within 2.5 seconds. UI state updates are fast (<50ms locally).
+
+**Constraints**:
+- Strictly NO WebSockets. Polling cadence ~2s.
+- Strictly NO databases/sessions/authentication.
+- Zero external libraries for canvas drawing, pure HTML5 canvas and standard React event handlers.
+
+**Scale/Scope**: Up to 10 active players per room, 1 active drawing room session.
+
+## Constitution Check
+
+*GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
+
+- **TypeScript First**: Yes, Zod validates payloads, and all backend/frontend entities are strictly typed.
+- **ES Modules**: Yes, backend imports use `.js` extension, frontend uses relative imports.
+- **In-Memory Only**: Yes, rooms Map is in-memory only.
+- **No WebSockets**: Yes, frontend page hooks poll `GET /rooms/:code` every 2s.
+- **No Auth**: Yes, participant IDs are generated per session.
+
+## Project Structure
+
+### Documentation (this feature)
+
+```text
+specs/001-scribble-game/
+├── plan.md              # This file
+├── research.md          # Phase 0 output
+├── data-model.md        # Phase 1 output
+├── quickstart.md        # Phase 1 output
+├── contracts/           # Phase 1 output
+└── tasks.md             # Phase 2 output
+```
+
+### Source Code
+
+```text
+backend/
+├── src/
+│   ├── models/
+│   │   └── game.ts
+│   ├── services/
+│   │   └── roomStore.ts
+│   ├── api/
+│   │   ├── rooms.ts
+│   │   └── schemas.ts
+│   └── app.ts
+└── tests/
+
+frontend/
+├── src/
+│   ├── components/
+│   │   ├── GuessForm.tsx
+│   │   ├── Scoreboard.tsx
+│   │   └── ResultPanel.tsx
+│   ├── pages/
+│   │   ├── LobbyPage.tsx
+│   │   └── GamePage.tsx
+│   ├── services/
+│   │   └── api.ts
+│   └── state/
+│       └── roomStore.ts
+```
+
+**Structure Decision**: Monorepo with split `backend/` and `frontend/` folders. This aligns exactly with the repository structure.
+
+## Complexity Tracking
+
+No constitution violations detected.
