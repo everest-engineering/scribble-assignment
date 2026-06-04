@@ -18,7 +18,7 @@ export interface RoomState {
 
 type Listener = () => void;
 
-class RoomStore {
+export class RoomStore {
   private state: RoomState = {
     room: null,
     participantId: null,
@@ -27,6 +27,8 @@ class RoomStore {
   };
 
   private listeners = new Set<Listener>();
+  private pollInterval: ReturnType<typeof setInterval> | null = null;
+  private isFetching = false;
 
   subscribe = (listener: Listener) => {
     this.listeners.add(listener);
@@ -37,6 +39,18 @@ class RoomStore {
 
   getSnapshot = () => this.state;
 
+  startPolling() {
+    if (this.pollInterval) return;
+    this.pollInterval = setInterval(() => this.fetchRoom(), 2000);
+  }
+
+  stopPolling() {
+    if (this.pollInterval) {
+      clearInterval(this.pollInterval);
+      this.pollInterval = null;
+    }
+  }
+
   private setState(nextState: Partial<RoomState>) {
     this.state = {
       ...this.state,
@@ -45,7 +59,7 @@ class RoomStore {
     this.listeners.forEach((listener) => listener());
   }
 
-  private async withLoading<T>(operation: () => Promise<T>) {
+  private async withLoading<T>(operation: () => Promise<T>, errorMessage?: string) {
     this.setState({
       isLoading: true,
       error: null
@@ -54,8 +68,10 @@ class RoomStore {
     try {
       return await operation();
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Unexpected request failure";
+      const message = errorMessage ?? (error instanceof Error ? error.message : "Unexpected request failure");
       this.setState({ error: message });
+      // Here we would ideally trigger a toast, for now updating the state.error suffices
+      // The UI should display this error.
       throw error;
     } finally {
       this.setState({ isLoading: false });
@@ -90,13 +106,71 @@ class RoomStore {
   }
 
   async fetchRoom() {
-    if (!this.state.room) {
+    if (!this.state.room || this.isFetching) {
       return null;
     }
 
-    const response = await api.fetchRoom(this.state.room.code, this.state.participantId ?? undefined);
-    this.setRoomSnapshot(response.room);
-    return response.room;
+    try {
+      this.isFetching = true;
+      const response = await api.fetchRoom(this.state.room.code, this.state.participantId ?? undefined);
+      this.setRoomSnapshot(response.room);
+      return response.room;
+    } catch (error) {
+      // Don't set global error state for polling failures to avoid UI flicker,
+      // but log it or handle 404 for room closure.
+      if (error instanceof Error && error.message.includes("404")) {
+         this.setState({ error: "Room closed or not found", room: null });
+         this.stopPolling();
+      }
+      return null;
+    } finally {
+      this.isFetching = false;
+    }
+  }
+
+  async startGame() {
+    if (!this.state.room || !this.state.participantId) {
+      return null;
+    }
+
+    return await this.withLoading(() =>
+      api.startGame(this.state.room!.code, this.state.participantId!),
+      "Failed to start game"
+    );
+  }
+
+  async endGame() {
+    if (!this.state.room || !this.state.participantId) {
+      return null;
+    }
+
+    return await this.withLoading(() =>
+      api.endGame(this.state.room!.code, this.state.participantId!),
+      "Failed to end round"
+    );
+  }
+
+  async restartGame() {
+    if (!this.state.room || !this.state.participantId) {
+      return null;
+    }
+
+    return await this.withLoading(() =>
+      api.restartGame(this.state.room!.code, this.state.participantId!),
+      "Failed to restart game"
+    );
+  }
+
+  async updateCanvas(drawingEvents: any) {
+    if (!this.state.room || !this.state.participantId) {
+      return null;
+    }
+
+    return await api.updateCanvas(
+      this.state.room.code,
+      this.state.participantId,
+      drawingEvents
+    );
   }
 }
 

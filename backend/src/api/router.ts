@@ -24,13 +24,13 @@ export function notFoundHandler(_request: Request, response: Response) {
 }
 
 export function errorHandler(
-  error: Error & { statusCode?: number },
+  error: Error & { statusCode?: number; issues?: any[] },
   _request: Request,
   response: Response,
   _next: NextFunction
 ) {
-  if (error.name === "ZodError") {
-    response.status(400).json({ message: "Invalid request payload" });
+  if (error.name === "ZodError" && error.issues && error.issues.length > 0) {
+    response.status(400).json({ message: error.issues[0].message });
     return;
   }
 

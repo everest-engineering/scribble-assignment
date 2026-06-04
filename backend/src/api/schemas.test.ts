@@ -7,8 +7,10 @@ describe("schemas", () => {
 
     expect(result.playerName).toBe("Alice");
   });
-
-  it("roomCodeParamsSchema rejects missing code", () => {
-    expect(() => roomCodeParamsSchema.parse({})).toThrow();
+  it("createRoomSchema rejects invalid playerName", () => {
+    const invalidInputs = ["", "   ", "A".repeat(21)];
+    for (const input of invalidInputs) {
+      expect(() => createRoomSchema.parse({ playerName: input })).toThrow("Player name invalid");
+    }
   });
 });

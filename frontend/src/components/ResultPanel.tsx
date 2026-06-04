@@ -1,11 +1,22 @@
-import { Card } from "./Card";
+import React from 'react';
+import type { Guess } from '../../../backend/src/models/game';
 
-export function ResultPanel() {
-  return (
-    <Card title="Activity">
-      <div className="placeholder-block" style={{ backgroundColor: '#f9fafb' }}>
-        <p style={{ fontSize: '0.875rem', color: '#6b7280' }}>Game activity and guesses will appear here.</p>
-      </div>
-    </Card>
-  );
+interface ResultPanelProps {
+  guessHistory: Guess[];
+  participants: { id: string; name: string }[];
 }
+
+export const ResultPanel: React.FC<ResultPanelProps> = ({ guessHistory = [], participants = [] }) => {
+  return (
+    <div className="result-panel">
+      <h3>Activity</h3>
+      <ul className="guess-history">
+        {guessHistory?.map((guess, index) => (
+          <li key={index} className={guess.isCorrect ? 'correct' : ''}>
+            {participants?.find(p => p.id === guess.playerId)?.name || 'Unknown'}: {guess.text}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+};

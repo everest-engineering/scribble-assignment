@@ -14,8 +14,14 @@ export function LobbyPage() {
   useEffect(() => {
     if (!room) {
       navigate("/", { replace: true });
+    } else {
+      if (room.status === "in-game") {
+        navigate("/game");
+      }
+      roomStore.startPolling();
+      return () => roomStore.stopPolling();
     }
-  }, [navigate, room]);
+  }, [navigate, room, roomStore]);
 
   async function handleRefresh() {
     try {
@@ -26,9 +32,20 @@ export function LobbyPage() {
     }
   }
 
+  async function handleStartGame() {
+    try {
+      setRefreshError(null);
+      await roomStore.startGame();
+    } catch (caughtError) {
+      setRefreshError(caughtError instanceof Error ? caughtError.message : "Unable to start game");
+    }
+  }
+
   if (!room) {
     return null;
   }
+
+  const isStartDisabled = isLoading || room.participants.length < 2;
 
   return (
     <section className="panel placeholder-page">
@@ -49,7 +66,14 @@ export function LobbyPage() {
             <ul className="player-list">
               {room.participants.map((participant) => (
                 <li key={participant.id}>
-                  <span>{participant.name}</span>
+                  <span>
+                    {participant.name}
+                    {participant.id === room.hostId && (
+                      <span className="badge badge--primary" style={{ marginLeft: '8px', fontSize: '0.7em', verticalAlign: 'middle' }}>
+                        Host
+                      </span>
+                    )}
+                  </span>
                   <span className="player-list__meta">joined</span>
                 </li>
               ))}
@@ -69,9 +93,11 @@ export function LobbyPage() {
         <button className="button button--secondary" disabled={isLoading} onClick={handleRefresh}>
           {isLoading ? "Refreshing..." : "Refresh Room"}
         </button>
-        <button className="button button--primary" onClick={() => navigate("/game")}>
-          Start Game
-        </button>
+        {room.isHost && (
+          <button className="button button--primary" disabled={isStartDisabled} onClick={handleStartGame}>
+            Start Game
+          </button>
+        )}
       </div>
     </section>
   );

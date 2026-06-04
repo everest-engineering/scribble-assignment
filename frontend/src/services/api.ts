@@ -1,17 +1,30 @@
 export type ParticipantRole = "drawer" | "guesser";
+export type RoomStatus = "lobby" | "in-game" | "ended";
 
 export interface Participant {
   id: string;
   name: string;
   joinedAt: string;
+  isDrawer: boolean;
+}
+
+export interface Guess {
+  playerId: string;
+  text: string;
+  isCorrect: boolean;
+  timestamp: string;
 }
 
 export interface RoomSnapshot {
   code: string;
-  status: "lobby";
+  status: RoomStatus;
+  hostId: string;
+  isHost: boolean;
   participants: Participant[];
-  availableWords: string[];
-  roles: ParticipantRole[];
+  currentWord: string | null;
+  canvasData: any;
+  guessHistory: Guess[];
+  scoreboard: Record<string, number>;
 }
 
 export interface RoomSessionResponse {
@@ -40,9 +53,14 @@ async function request<T>(path: string, init?: RequestInit) {
 
   return (await response.json()) as T;
 }
-
 export const api = {
+  // ... existing methods
+  getCurrentDrawer(room: RoomSnapshot) {
+    return room.participants.find((p) => p.isDrawer);
+  },
   createRoom(playerName: string) {
+// ...
+
     return request<RoomSessionResponse>("/rooms", {
       method: "POST",
       body: JSON.stringify({ playerName })
@@ -57,5 +75,49 @@ export const api = {
   fetchRoom(code: string, participantId?: string) {
     const query = participantId ? `?participantId=${encodeURIComponent(participantId)}` : "";
     return request<{ room: RoomSnapshot }>(`/rooms/${encodeURIComponent(code)}${query}`);
+  },
+  startGame(code: string, participantId: string) {
+    return request<{ success: boolean }>(`/rooms/${encodeURIComponent(code)}/start`, {
+      method: "POST",
+      headers: {
+        "x-participant-id": participantId
+      }
+    });
+  },
+  endGame(code: string, participantId: string) {
+    return request<{ success: boolean }>(`/rooms/${encodeURIComponent(code)}/end`, {
+      method: "POST",
+      headers: {
+        "x-participant-id": participantId
+      }
+    });
+  },
+  restartGame(code: string, participantId: string) {
+    return request<{ success: boolean }>(`/rooms/${encodeURIComponent(code)}/restart`, {
+      method: "POST",
+      headers: {
+        "x-participant-id": participantId
+      }
+    });
+  },
+  submitGuess(code: string, participantId: string, guess: string) {
+    return request<{ success: boolean; isCorrect: boolean; pointsAwarded: number }>(`/rooms/${encodeURIComponent(code)}/guess`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-participant-id": participantId
+      },
+      body: JSON.stringify({ guess })
+    });
+  },
+  updateCanvas(code: string, participantId: string, drawingEvents: any) {
+    return request<{ success: boolean }>(`/rooms/${encodeURIComponent(code)}/canvas`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-participant-id": participantId
+      },
+      body: JSON.stringify({ drawingEvents })
+    });
   }
 };

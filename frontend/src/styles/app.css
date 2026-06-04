@@ -451,7 +451,39 @@ input {
   font-weight: 500;
 }
 
-/* --- GAME PAGE LAYOUT --- */
+/* --- RoundEndedModal Styles --- */
+.modal {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 1000;
+  width: min(500px, 90%);
+  padding: 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.modal h2 {
+  margin: 0;
+  color: var(--ink);
+  font-size: 1.5rem;
+}
+
+.modal .scrollable {
+  max-height: 200px;
+  overflow-y: auto;
+  border: 1px solid var(--line);
+  padding: 16px;
+  border-radius: 8px;
+}
+
+.modal .footer {
+  margin-top: auto;
+  padding-top: 20px;
+  border-top: 1px solid var(--line);
+}
 /* Changed layout structure to be much wider and utilize screen space */
 .game-page {
   display: grid;

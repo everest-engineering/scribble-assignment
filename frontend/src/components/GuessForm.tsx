@@ -1,14 +1,19 @@
 import { useState } from "react";
 
 interface GuessFormProps {
+  onSubmit: (guess: string) => void;
   disabled?: boolean;
 }
 
-export function GuessForm({ disabled = false }: GuessFormProps) {
+export function GuessForm({ onSubmit, disabled = false }: GuessFormProps) {
   const [guessText, setGuessText] = useState("");
 
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (guessText.trim()) {
+      onSubmit(guessText);
+      setGuessText("");
+    }
   }
 
   return (
@@ -23,7 +28,7 @@ export function GuessForm({ disabled = false }: GuessFormProps) {
         />
       </label>
       <div className="button-row button-row--compact">
-        <button className="button button--primary" type="submit" disabled={disabled}>
+        <button className="button button--primary" type="submit" disabled={disabled || !guessText.trim()}>
           Submit Guess
         </button>
       </div>
