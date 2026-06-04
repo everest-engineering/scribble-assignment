@@ -8,11 +8,13 @@ export interface Participant {
 
 export interface RoomSnapshot {
   code: string;
-  status: "lobby";
+  status: "lobby" | "playing";
   participants: Participant[];
   hostId: string;
+  drawerId?: string;
   availableWords: string[];
   roles: ParticipantRole[];
+  secretWord?: string;
 }
 
 export interface RoomSessionResponse {
@@ -49,14 +51,21 @@ export const api = {
       body: JSON.stringify({ playerName })
     });
   },
+
   joinRoom(code: string, playerName: string) {
     return request<RoomSessionResponse>(`/rooms/${encodeURIComponent(code)}/join`, {
       method: "POST",
       body: JSON.stringify({ playerName })
     });
   },
+
   fetchRoom(code: string, participantId?: string) {
-    const query = participantId ? `?participantId=${encodeURIComponent(participantId)}` : "";
-    return request<{ room: RoomSnapshot }>(`/rooms/${encodeURIComponent(code)}${query}`);
+    const query = participantId
+      ? `?participantId=${encodeURIComponent(participantId)}`
+      : "";
+
+    return request<{ room: RoomSnapshot }>(
+      `/rooms/${encodeURIComponent(code)}${query}`
+    );
   }
 };

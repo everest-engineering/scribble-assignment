@@ -21,7 +21,17 @@ export function GamePage() {
     return null;
   }
 
-  const viewer = room.participants.find((participant) => participant.id === participantId) ?? null;
+  const viewer =
+    room.participants.find(
+      (participant) => participant.id === participantId
+    ) ?? null;
+
+  const drawer =
+    room.participants.find(
+      (participant) => participant.id === room.drawerId
+    ) ?? null;
+
+  const isDrawer = room.drawerId === participantId;
 
   return (
     <section className="panel game-page">
@@ -41,7 +51,14 @@ export function GamePage() {
 
         <div className="game-page__main">
           <Card title="Canvas">
-            <div className="canvas-placeholder" style={{ minHeight: '500px', backgroundColor: '#ffffff', border: '1px solid #e5e7eb' }}>
+            <div
+              className="canvas-placeholder"
+              style={{
+                minHeight: "500px",
+                backgroundColor: "#ffffff",
+                border: "1px solid #e5e7eb"
+              }}
+            >
               Waiting for drawer...
             </div>
           </Card>
@@ -54,21 +71,42 @@ export function GamePage() {
                 <dt>Name</dt>
                 <dd>{viewer?.name ?? "Unknown player"}</dd>
               </div>
+
+              <div>
+                <dt>Role</dt>
+                <dd>{isDrawer ? "Drawer" : "Guesser"}</dd>
+              </div>
+
+              <div>
+                <dt>Current Drawer</dt>
+                <dd>{drawer?.name ?? "Unknown"}</dd>
+              </div>
+
               <div>
                 <dt>Status</dt>
                 <dd>Playing</dd>
               </div>
+
+              {isDrawer ? (
+                <div>
+                  <dt>Secret Word</dt>
+                  <dd>{room.secretWord ?? "No word assigned"}</dd>
+                </div>
+              ) : null}
             </dl>
           </Card>
 
           <Card title="Your Guess">
-            <GuessForm />
+            <GuessForm disabled={isDrawer} />
           </Card>
         </aside>
       </div>
 
       <div className="button-row">
-        <button className="button button--secondary" onClick={() => navigate("/lobby")}>
+        <button
+          className="button button--secondary"
+          onClick={() => navigate("/lobby")}
+        >
           Exit Game
         </button>
       </div>
