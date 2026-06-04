@@ -26,7 +26,7 @@ description: "Task list for Room Setup & Lobby — Scenario 1"
 
 **Purpose**: Confirm the baseline builds clean before any changes.
 
-- [ ] T001 Verify baseline — run `npm run build` in `backend/` and `frontend/`; confirm zero errors before starting
+- [x] T001 Verify baseline — run `npm run build` in `backend/` and `frontend/`; confirm zero errors before starting
 
 ---
 
@@ -36,9 +36,9 @@ description: "Task list for Room Setup & Lobby — Scenario 1"
 
 **⚠️ CRITICAL**: No user story implementation can start until T002–T004 pass.
 
-- [ ] T002 Expand `RoomStatus` to `"lobby" | "playing" | "result"` and add `hostId: string` to `Room` and `RoomSnapshot` interfaces in `backend/src/models/game.ts`
-- [ ] T003 Mirror type changes in `frontend/src/services/api.ts` — export `type RoomStatus = "lobby" | "playing" | "result"`, add `hostId: string` to `RoomSnapshot`, change `status` field from literal `"lobby"` to `RoomStatus`
-- [ ] T004 Verify TypeScript builds pass in both `backend/` and `frontend/` after T002–T003 (`npm run build` in each directory)
+- [x] T002 Expand `RoomStatus` to `"lobby" | "playing" | "result"` and add `hostId: string` to `Room` and `RoomSnapshot` interfaces in `backend/src/models/game.ts`
+- [x] T003 Mirror type changes in `frontend/src/services/api.ts` — export `type RoomStatus = "lobby" | "playing" | "result"`, add `hostId: string` to `RoomSnapshot`, change `status` field from literal `"lobby"` to `RoomStatus`
+- [x] T004 Verify TypeScript builds pass in both `backend/` and `frontend/` after T002–T003 (`npm run build` in each directory)
 
 **Checkpoint**: Both builds pass with the expanded types — user story work can now begin.
 
@@ -52,10 +52,10 @@ description: "Task list for Room Setup & Lobby — Scenario 1"
 
 ### Implementation for User Story 1
 
-- [ ] T005 [US1] Add name validation to `createParticipant()` in `backend/src/services/roomStore.ts` — trim the name and throw `HttpError(400, "Player name is required")` if the trimmed value is empty
-- [ ] T006 [US1] Set `room.hostId = participant.id` in `createRoom()` in `backend/src/services/roomStore.ts` (depends on T002)
-- [ ] T007 [US1] Return `hostId` from `toRoomSnapshot()` in `backend/src/services/roomStore.ts` — include `room.hostId` in the returned `RoomSnapshot` object
-- [ ] T008 [P] [US1] Add client-side name validation in `frontend/src/pages/CreateRoomPage.tsx` — trim `playerName` before submit; if empty after trim, set an error message and return without calling the API
+- [x] T005 [US1] Add name validation to `createParticipant()` in `backend/src/services/roomStore.ts` — trim the name and throw `HttpError(400, "Player name is required")` if the trimmed value is empty
+- [x] T006 [US1] Set `room.hostId = participant.id` in `createRoom()` in `backend/src/services/roomStore.ts` (depends on T002)
+- [x] T007 [US1] Return `hostId` from `toRoomSnapshot()` in `backend/src/services/roomStore.ts` — include `room.hostId` in the returned `RoomSnapshot` object
+- [x] T008 [P] [US1] Add client-side name validation in `frontend/src/pages/CreateRoomPage.tsx` — trim `playerName` before submit; if empty after trim, set an error message and return without calling the API
 
 **Checkpoint**: Create a room with a valid name → lobby loads with `hostId` in the snapshot. Create with blank/whitespace name → inline error shown, no navigation.
 
@@ -71,7 +71,7 @@ description: "Task list for Room Setup & Lobby — Scenario 1"
 
 ### Implementation for User Story 2
 
-- [ ] T009 [US2] Add client-side validation in `frontend/src/pages/JoinRoomPage.tsx` — trim both `playerName` and `roomCode` before submit; if either is empty after trim, show an error and return without calling the API
+- [x] T009 [US2] Add client-side validation in `frontend/src/pages/JoinRoomPage.tsx` — trim both `playerName` and `roomCode` before submit; if either is empty after trim, show an error and return without calling the API
 
 **Checkpoint**: Join with valid code and name → lobby. Join with empty name or empty code → inline error. Join with a non-existent code → error from backend ("Unable to join room").
 
@@ -85,9 +85,9 @@ description: "Task list for Room Setup & Lobby — Scenario 1"
 
 ### Implementation for User Story 3
 
-- [ ] T010 [US3] Remove the `handleRefresh` function and the "Refresh Room" `<button>` from `frontend/src/pages/LobbyPage.tsx`
-- [ ] T011 [US3] Add `const POLL_INTERVAL_MS = 2000` constant and a `useEffect` with `setInterval(() => store.fetchRoom(), POLL_INTERVAL_MS)` and a `clearInterval` cleanup return in `frontend/src/pages/LobbyPage.tsx` (depends on T010)
-- [ ] T012 [US3] Handle poll outcomes in the polling `useEffect` in `frontend/src/pages/LobbyPage.tsx`: on success, if `room.status !== "lobby"` clear the interval and navigate to `/game`; on 404, clear the interval and navigate to `/` with an error message; on any other error, show the error inline and continue polling (depends on T011)
+- [x] T010 [US3] Remove the `handleRefresh` function and the "Refresh Room" `<button>` from `frontend/src/pages/LobbyPage.tsx`
+- [x] T011 [US3] Add `const POLL_INTERVAL_MS = 2000` constant and a `useEffect` with `setInterval(() => store.fetchRoom(), POLL_INTERVAL_MS)` and a `clearInterval` cleanup return in `frontend/src/pages/LobbyPage.tsx` (depends on T010)
+- [x] T012 [US3] Handle poll outcomes in the polling `useEffect` in `frontend/src/pages/LobbyPage.tsx`: on success, if `room.status !== "lobby"` clear the interval and navigate to `/game`; on 404, clear the interval and navigate to `/` with an error message; on any other error, show the error inline and continue polling (depends on T011)
 
 **Checkpoint**: Lobby auto-updates within ~3 s. No manual refresh button. Stopping the backend shows an inline error without crashing or redirecting. Restarting the backend clears the error.
 
@@ -101,12 +101,12 @@ description: "Task list for Room Setup & Lobby — Scenario 1"
 
 ### Implementation for User Story 4
 
-- [ ] T013 [US4] Add `startRoom(code: string, participantId: string)` to `backend/src/services/roomStore.ts` — validate room exists (404), `participantId === room.hostId` (403), `participants.length >= 2` (409), then set `room.status = "playing"` and return the updated snapshot
-- [ ] T014 [US4] Add `startRoomSchema = z.object({ participantId: z.string() })` to `backend/src/api/schemas.ts` (depends on T013)
-- [ ] T015 [US4] Add `POST /:code/start` route handler to `backend/src/api/rooms.ts` — parse params with `roomCodeParamsSchema`, parse body with `startRoomSchema`, call `startRoom`, return updated snapshot (depends on T013, T014)
-- [ ] T016 [P] [US4] Add `startRoom(code: string, participantId: string)` API function to `frontend/src/services/api.ts` — `POST /rooms/:code/start` with `{ participantId }` body (depends on T003)
-- [ ] T017 [US4] Add `async startRoom()` method to `RoomStore` class in `frontend/src/state/roomStore.ts` — calls `api.startRoom(room.code, participantId)` and updates snapshot (depends on T016)
-- [ ] T018 [US4] Add host guard and Start Game button to `frontend/src/pages/LobbyPage.tsx` — derive `isHost = room.hostId === participantId`; derive `canStart = isHost && room.participants.length >= 2`; render the button only for the host, disabled with label "Need at least 2 players to start" when `!canStart`; on click call `store.startRoom()` then navigate to `/game` (depends on T012, T017)
+- [x] T013 [US4] Add `startRoom(code: string, participantId: string)` to `backend/src/services/roomStore.ts` — validate room exists (404), `participantId === room.hostId` (403), `participants.length >= 2` (409), then set `room.status = "playing"` and return the updated snapshot
+- [x] T014 [US4] Add `startRoomSchema = z.object({ participantId: z.string() })` to `backend/src/api/schemas.ts` (depends on T013)
+- [x] T015 [US4] Add `POST /:code/start` route handler to `backend/src/api/rooms.ts` — parse params with `roomCodeParamsSchema`, parse body with `startRoomSchema`, call `startRoom`, return updated snapshot (depends on T013, T014)
+- [x] T016 [P] [US4] Add `startRoom(code: string, participantId: string)` API function to `frontend/src/services/api.ts` — `POST /rooms/:code/start` with `{ participantId }` body (depends on T003)
+- [x] T017 [US4] Add `async startRoom()` method to `RoomStore` class in `frontend/src/state/roomStore.ts` — calls `api.startRoom(room.code, participantId)` and updates snapshot (depends on T016)
+- [x] T018 [US4] Add host guard and Start Game button to `frontend/src/pages/LobbyPage.tsx` — derive `isHost = room.hostId === participantId`; derive `canStart = isHost && room.participants.length >= 2`; render the button only for the host, disabled with label "Need at least 2 players to start" when `!canStart`; on click call `store.startRoom()` then navigate to `/game` (depends on T012, T017)
 
 **Checkpoint**: Host alone → button disabled with label. Two players → button enabled. Clicking start → host navigates immediately; non-host navigates on next poll. Non-host has no start button.
 
@@ -133,8 +133,8 @@ description: "Task list for Room Setup & Lobby — Scenario 1"
 **Purpose**: Final validation and quality checks across all user stories.
 
 - [ ] T020 [P] Run full quickstart.md validation — all 9 tests with two browser tabs open simultaneously
-- [ ] T021 [P] Run `npm run build` in `backend/` and `frontend/` to confirm zero TypeScript errors post-implementation
-- [ ] T022 [P] Review all changed files against the AI self-review checklist (constitution Section 3): type safety, scope, spec alignment, polling hygiene, error handling
+- [x] T021 [P] Run `npm run build` in `backend/` and `frontend/` to confirm zero TypeScript errors post-implementation
+- [x] T022 [P] Review all changed files against the AI self-review checklist (constitution Section 3): type safety, scope, spec alignment, polling hygiene, error handling
 
 ---
 

@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { HttpError } from "../api/schemas.js";
 import type { Participant, Room, RoomSnapshot } from "../models/game.js";
 import { STARTER_ROLES, STARTER_WORDS } from "../seed/starterData.js";
 
@@ -29,14 +30,14 @@ function generateUniqueCode() {
   return code;
 }
 
-function displayName(name?: string) {
-  return name || "Player";
-}
-
 function createParticipant(name?: string): Participant {
+  const trimmed = (name ?? "").trim();
+  if (!trimmed) {
+    throw new HttpError(400, "Player name is required");
+  }
   return {
     id: randomUUID(),
-    name: displayName(name),
+    name: trimmed,
     joinedAt: now()
   };
 }
@@ -55,6 +56,7 @@ export function createRoom(playerName?: string) {
     code: generateUniqueCode(),
     status: "lobby",
     participants: [participant],
+    hostId: participant.id,
     createdAt: now(),
     updatedAt: now()
   };
@@ -96,6 +98,28 @@ export function saveRoom(room: Room) {
   return getRoom(room.code);
 }
 
+export function startRoom(code: string, participantId: string) {
+  const room = rooms.get(code);
+
+  if (!room) {
+    throw new HttpError(404, "Unable to load room");
+  }
+
+  if (room.hostId !== participantId) {
+    throw new HttpError(403, "Only the host can start the game");
+  }
+
+  if (room.participants.length < 2) {
+    throw new HttpError(409, "At least 2 players are required to start");
+  }
+
+  room.status = "playing";
+  room.updatedAt = now();
+  rooms.set(room.code, room);
+
+  return { room: toRoomSnapshot(cloneRoom(room)) };
+}
+
 export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSnapshot {
   void viewerParticipantId;
 
@@ -103,6 +127,7 @@ export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSn
     code: room.code,
     status: room.status,
     participants: room.participants.map((participant) => ({ ...participant })),
+    hostId: room.hostId,
     availableWords: listWords(),
     roles: [...STARTER_ROLES]
   };
