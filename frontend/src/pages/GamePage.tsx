@@ -55,9 +55,7 @@ export function GamePage() {
     return null;
   }
 
-  if (room.drawerId === null) {
-    return <p>Loading game...</p>;
-  }
+  const isHost = room.hostId === participantId;
 
   const viewer = room.participants.find((participant) => participant.id === participantId) ?? null;
   const isDrawer = room.drawerId === participantId;
@@ -73,142 +71,272 @@ export function GamePage() {
         <RoomCodeBadge code={room.code} />
       </div>
 
-      <div className="game-page__layout">
-        <aside className="game-page__sidebar game-page__sidebar--left">
-          <Scoreboard participants={room.participants} />
-          <ResultPanel guesses={room.guesses} />
-        </aside>
+      {room.status === "lobby" && (
+        <div className="game-page__layout">
+          <aside className="game-page__sidebar game-page__sidebar--left">
+            <Scoreboard participants={room.participants} />
+          </aside>
 
-        <div className="game-page__main">
-          <Card title="Canvas">
-            <canvas
-              ref={canvasRef}
-              width={500}
-              height={500}
-              style={{
-                border: "1px solid #e5e7eb",
-                backgroundColor: "#ffffff",
-                pointerEvents: isDrawer ? "auto" : "none"
-              }}
-              onMouseDown={(event) => {
-                if (!isDrawer || !canvasRef.current) return;
-                const rect = canvasRef.current.getBoundingClientRect();
-                const x = event.clientX - rect.left;
-                const y = event.clientY - rect.top;
-                setIsDrawing(true);
-                setStartPos({ x, y });
-                setLastPos({ x, y });
-              }}
-              onMouseMove={(event) => {
-                if (!isDrawing || !isDrawer || !canvasRef.current || !lastPos) return;
-                const rect = canvasRef.current.getBoundingClientRect();
-                const x = event.clientX - rect.left;
-                const y = event.clientY - rect.top;
-                const ctx = canvasRef.current.getContext("2d");
-                if (!ctx) return;
-                ctx.beginPath();
-                ctx.moveTo(lastPos.x, lastPos.y);
-                ctx.lineTo(x, y);
-                ctx.strokeStyle = "#000000";
-                ctx.lineWidth = 3;
-                ctx.stroke();
-                setLastPos({ x, y });
-              }}
-              onMouseUp={() => {
-                if (!isDrawing || !isDrawer || !canvasRef.current || !startPos || !lastPos || !room) return;
-                api.submitStroke(room.code, participantId, {
-                  type: "draw",
-                  x0: startPos.x,
-                  y0: startPos.y,
-                  x1: lastPos.x,
-                  y1: lastPos.y,
-                  color: "#000000",
-                  lineWidth: 3
-                }).then(() => roomStore.fetchRoom()).catch(() => {});
-                setIsDrawing(false);
-                setStartPos(null);
-                setLastPos(null);
-              }}
-            />
-            {isDrawer ? (
-              <div className="button-row button-row--compact" style={{ marginTop: "0.5rem" }}>
-                <button
-                  className="button button--secondary"
-                  type="button"
-                  onClick={() => {
-                    if (!room) return;
-                    api.submitStroke(room.code, participantId, { type: "clear" })
-                      .then(() => roomStore.fetchRoom())
-                      .catch(() => {});
-                  }}
-                >
-                  Clear Canvas
-                </button>
-              </div>
-            ) : null}
-          </Card>
+          <div className="game-page__main">
+            <Card title="Lobby">
+              <p>Waiting for the host to start the next round.</p>
+              <ul style={{ listStyle: "none", padding: 0, margin: "1rem 0 0" }}>
+                {room.participants.map((p) => (
+                  <li key={p.id} style={{ padding: "0.25rem 0" }}>
+                    {p.name} {p.id === room.hostId && "(Host)"}
+                  </li>
+                ))}
+              </ul>
+              {isHost ? (
+                <div className="button-row button-row--compact" style={{ marginTop: "1rem" }}>
+                  <button
+                    className="button button--primary"
+                    type="button"
+                    onClick={() => {
+                      if (!room || !participantId) return;
+                      api.startGame(room.code, participantId)
+                        .then(() => roomStore.fetchRoom())
+                        .catch(() => {});
+                    }}
+                  >
+                    Start Game
+                  </button>
+                </div>
+              ) : (
+                <p style={{ marginTop: "1rem", color: "#6b7280" }}>Waiting for host to start...</p>
+              )}
+            </Card>
+          </div>
+
+          <aside className="game-page__sidebar game-page__sidebar--right">
+            <Card title="Player Info">
+              <dl className="detail-list">
+                <div>
+                  <dt>Name</dt>
+                  <dd>{viewer?.name ?? "Unknown player"}</dd>
+                </div>
+                <div>
+                  <dt>Status</dt>
+                  <dd>Lobby</dd>
+                </div>
+              </dl>
+            </Card>
+          </aside>
         </div>
+      )}
 
-        <aside className="game-page__sidebar game-page__sidebar--right">
-          <Card title="Drawer">
-            <p>{isDrawer ? "You are the drawer" : `Drawing: ${drawerName}`}</p>
-          </Card>
+      {room.status === "playing" && (
+        <div className="game-page__layout">
+          <aside className="game-page__sidebar game-page__sidebar--left">
+            <Scoreboard participants={room.participants} />
+            <ResultPanel guesses={room.guesses} />
+          </aside>
 
-          <Card title="Secret Word">
-            <p>{room.currentWord !== null ? room.currentWord : "Guess the word!"}</p>
-          </Card>
+          <div className="game-page__main">
+            <Card title="Canvas">
+              {room.drawerId === null ? (
+                <p>Loading game...</p>
+              ) : (
+                <>
+                  <canvas
+                    ref={canvasRef}
+                    width={500}
+                    height={500}
+                    style={{
+                      border: "1px solid #e5e7eb",
+                      backgroundColor: "#ffffff",
+                      pointerEvents: isDrawer ? "auto" : "none"
+                    }}
+                    onMouseDown={(event) => {
+                      if (!isDrawer || !canvasRef.current) return;
+                      const rect = canvasRef.current.getBoundingClientRect();
+                      const x = event.clientX - rect.left;
+                      const y = event.clientY - rect.top;
+                      setIsDrawing(true);
+                      setStartPos({ x, y });
+                      setLastPos({ x, y });
+                    }}
+                    onMouseMove={(event) => {
+                      if (!isDrawing || !isDrawer || !canvasRef.current || !lastPos) return;
+                      const rect = canvasRef.current.getBoundingClientRect();
+                      const x = event.clientX - rect.left;
+                      const y = event.clientY - rect.top;
+                      const ctx = canvasRef.current.getContext("2d");
+                      if (!ctx) return;
+                      ctx.beginPath();
+                      ctx.moveTo(lastPos.x, lastPos.y);
+                      ctx.lineTo(x, y);
+                      ctx.strokeStyle = "#000000";
+                      ctx.lineWidth = 3;
+                      ctx.stroke();
+                      setLastPos({ x, y });
+                    }}
+                    onMouseUp={() => {
+                      if (!isDrawing || !isDrawer || !canvasRef.current || !startPos || !lastPos || !room || !participantId) return;
+                      api.submitStroke(room.code, participantId, {
+                        type: "draw",
+                        x0: startPos.x,
+                        y0: startPos.y,
+                        x1: lastPos.x,
+                        y1: lastPos.y,
+                        color: "#000000",
+                        lineWidth: 3
+                      }).then(() => roomStore.fetchRoom()).catch(() => {});
+                      setIsDrawing(false);
+                      setStartPos(null);
+                      setLastPos(null);
+                    }}
+                  />
+                  {isDrawer ? (
+                    <div className="button-row button-row--compact" style={{ marginTop: "0.5rem" }}>
+                      <button
+                        className="button button--secondary"
+                        type="button"
+                        onClick={() => {
+                          if (!room || !participantId) return;
+                          api.submitStroke(room.code, participantId, { type: "clear" })
+                            .then(() => roomStore.fetchRoom())
+                            .catch(() => {});
+                        }}
+                      >
+                        Clear Canvas
+                      </button>
+                    </div>
+                  ) : null}
+                </>
+              )}
+            </Card>
+          </div>
 
-          <Card title="Player Info">
-            <dl className="detail-list">
-              <div>
-                <dt>Name</dt>
-                <dd>{viewer?.name ?? "Unknown player"}</dd>
+          <aside className="game-page__sidebar game-page__sidebar--right">
+            <Card title="Drawer">
+              <p>{isDrawer ? "You are the drawer" : `Drawing: ${drawerName}`}</p>
+            </Card>
+
+            <Card title="Secret Word">
+              <p>{room.currentWord !== null ? room.currentWord : "Guess the word!"}</p>
+            </Card>
+
+            <Card title="Player Info">
+              <dl className="detail-list">
+                <div>
+                  <dt>Name</dt>
+                  <dd>{viewer?.name ?? "Unknown player"}</dd>
+                </div>
+                <div>
+                  <dt>Status</dt>
+                  <dd>Playing</dd>
+                </div>
+              </dl>
+            </Card>
+
+            {pollError ? <p className="form__error">{pollError}</p> : null}
+
+            <Card title="Your Guess">
+              {isDrawer ? (
+                <p>You are drawing — guess form is hidden</p>
+              ) : (
+                <GuessForm
+                  onSubmit={(guess) => {
+                    if (!room || !participantId) return;
+                    setGuessError(null);
+                    setGuessResult(null);
+                    api.submitGuess(room.code, participantId, guess)
+                      .then((result) => {
+                        setGuessResult(result.correct ? "correct" : "incorrect");
+                        roomStore.fetchRoom();
+                      })
+                      .catch((error) => {
+                        setGuessError(error instanceof Error ? error.message : "Guess failed");
+                      });
+                  }}
+                  error={guessError ?? undefined}
+                  lastResult={guessResult ?? undefined}
+                />
+              )}
+            </Card>
+
+            <Card title="Guess History">
+              <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
+                {room.guesses.map((g, index) => (
+                  <li key={index} style={{ padding: "0.25rem 0", fontSize: "0.875rem" }}>
+                    <strong>{g.participantName}</strong>: {g.text}{" "}
+                    {g.correct ? <span style={{ color: "green" }}>✓</span> : <span style={{ color: "red" }}>✗</span>}
+                  </li>
+                ))}
+              </ul>
+            </Card>
+          </aside>
+        </div>
+      )}
+
+      {room.status === "finished" && (
+        <div className="game-page__layout">
+          <aside className="game-page__sidebar game-page__sidebar--left">
+            <Scoreboard participants={room.participants} />
+            <ResultPanel guesses={room.guesses} />
+          </aside>
+
+          <div className="game-page__main">
+            <Card title="Result">
+              <p style={{ fontSize: "1.25rem", fontWeight: 600 }}>
+                The word was: {room.currentWord}
+              </p>
+              <div style={{ marginTop: "1rem" }}>
+                <h3 style={{ fontSize: "1rem", marginBottom: "0.5rem" }}>Guess History</h3>
+                <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
+                  {room.guesses.map((g, index) => (
+                    <li key={index} style={{ padding: "0.25rem 0", fontSize: "0.875rem" }}>
+                      <strong>{g.participantName}</strong>: {g.text}{" "}
+                      {g.correct ? <span style={{ color: "green" }}>✓</span> : <span style={{ color: "red" }}>✗</span>}
+                    </li>
+                  ))}
+                </ul>
               </div>
-              <div>
-                <dt>Status</dt>
-                <dd>Playing</dd>
-              </div>
-            </dl>
-          </Card>
+            </Card>
+          </div>
 
-          {pollError ? <p className="form__error">{pollError}</p> : null}
+          <aside className="game-page__sidebar game-page__sidebar--right">
+            <Card title="Player Info">
+              <dl className="detail-list">
+                <div>
+                  <dt>Name</dt>
+                  <dd>{viewer?.name ?? "Unknown player"}</dd>
+                </div>
+                <div>
+                  <dt>Status</dt>
+                  <dd>Finished</dd>
+                </div>
+              </dl>
+            </Card>
 
-          <Card title="Your Guess">
-            {isDrawer ? (
-              <p>You are drawing — guess form is hidden</p>
+            {isHost ? (
+              <Card title="Next Round">
+                <div className="button-row button-row--compact">
+                  <button
+                    className="button button--primary"
+                    type="button"
+                    onClick={() => {
+                      if (!room || !participantId) return;
+                      api.restartGame(room.code, participantId)
+                        .then(() => roomStore.fetchRoom())
+                        .catch(() => {});
+                    }}
+                  >
+                    Restart Game
+                  </button>
+                </div>
+              </Card>
             ) : (
-              <GuessForm
-                onSubmit={(guess) => {
-                  if (!room || !participantId) return;
-                  setGuessError(null);
-                  setGuessResult(null);
-                  api.submitGuess(room.code, participantId, guess)
-                    .then((result) => {
-                      setGuessResult(result.correct ? "correct" : "incorrect");
-                      roomStore.fetchRoom();
-                    })
-                    .catch((error) => {
-                      setGuessError(error instanceof Error ? error.message : "Guess failed");
-                    });
-                }}
-                error={guessError ?? undefined}
-                lastResult={guessResult ?? undefined}
-              />
+              <Card title="Next Round">
+                <p style={{ fontSize: "0.875rem", color: "#6b7280" }}>
+                  Waiting for host to restart...
+                </p>
+              </Card>
             )}
-          </Card>
-
-          <Card title="Guess History">
-            <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
-              {room.guesses.map((g, index) => (
-                <li key={index} style={{ padding: "0.25rem 0", fontSize: "0.875rem" }}>
-                  <strong>{g.participantName}</strong>: {g.text}{" "}
-                  {g.correct ? <span style={{ color: "green" }}>✓</span> : <span style={{ color: "red" }}>✗</span>}
-                </li>
-              ))}
-            </ul>
-          </Card>
-        </aside>
-      </div>
+          </aside>
+        </div>
+      )}
 
       <div className="button-row">
         <button className="button button--secondary" onClick={() => navigate("/lobby")}>

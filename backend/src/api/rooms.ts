@@ -1,15 +1,17 @@
 import { Router } from "express";
 import {
   createRoomSchema,
+  endRoundSchema,
   guessSchema,
   HttpError,
   joinRoomSchema,
+  restartSchema,
   roomCodeParamsSchema,
   roomViewerQuerySchema,
   startGameSchema,
   strokeSchema
 } from "./schemas.js";
-import { createRoom, getRoom, joinRoom, saveRoom, selectWord, toRoomSnapshot } from "../services/roomStore.js";
+import { createRoom, getRoom, joinRoom, restartRoom, saveRoom, selectWord, toRoomSnapshot } from "../services/roomStore.js";
 
 export function createRoomsRouter() {
   const router = Router();
@@ -165,6 +167,7 @@ export function createRoomsRouter() {
       const correct = trimmedGuess.toLowerCase() === room.currentWord.toLowerCase();
       if (correct) {
         participant.score += 100;
+        room.status = "finished";
       }
 
       room.guesses.push({
@@ -176,6 +179,61 @@ export function createRoomsRouter() {
 
       saveRoom(room);
       response.json({ correct, score: participant.score });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/:code/end", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId } = endRoundSchema.parse(request.body);
+      const room = getRoom(code.toUpperCase());
+
+      if (!room) {
+        throw new HttpError(404, "Unable to load room");
+      }
+
+      if (room.status !== "playing") {
+        throw new HttpError(400, "Game is not in progress");
+      }
+
+      if (room.hostId !== participantId) {
+        throw new HttpError(403, "Only the host can end the round");
+      }
+
+      room.status = "finished";
+      saveRoom(room);
+      response.json({ room: toRoomSnapshot(room, participantId) });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/:code/restart", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId } = restartSchema.parse(request.body);
+      const room = getRoom(code.toUpperCase());
+
+      if (!room) {
+        throw new HttpError(404, "Unable to load room");
+      }
+
+      if (room.status === "lobby") {
+        throw new HttpError(400, "Room is already in lobby");
+      }
+
+      if (room.hostId !== participantId) {
+        throw new HttpError(403, "Only the host can restart the game");
+      }
+
+      const updatedRoom = restartRoom(code.toUpperCase());
+      if (!updatedRoom) {
+        throw new HttpError(404, "Unable to restart room");
+      }
+
+      response.json({ room: toRoomSnapshot(updatedRoom, participantId) });
     } catch (error) {
       next(error);
     }
