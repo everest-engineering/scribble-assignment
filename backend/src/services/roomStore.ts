@@ -2,6 +2,14 @@ import { randomUUID } from "node:crypto";
 import type { Participant, Room, RoomSnapshot } from "../models/game.js";
 import { STARTER_ROLES, STARTER_WORDS } from "../seed/starterData.js";
 
+function selectWord(code: string): string {
+  let hash = 0;
+  for (let index = 0; index < code.length; index += 1) {
+    hash += code.charCodeAt(index);
+  }
+  return STARTER_WORDS[hash % STARTER_WORDS.length];
+}
+
 const rooms = new Map<string, Room>();
 
 function now() {
@@ -29,12 +37,13 @@ function generateUniqueCode() {
   return code;
 }
 
-function createParticipant(name: string, isHost: boolean): Participant {
+function createParticipant(name: string, isHost: boolean, isDrawer = false): Participant {
   return {
     id: randomUUID(),
     name,
     joinedAt: now(),
-    isHost
+    isHost,
+    isDrawer
   };
 }
 
@@ -53,7 +62,8 @@ export function createRoom(playerName: string) {
     status: "lobby",
     participants: [participant],
     createdAt: now(),
-    updatedAt: now()
+    updatedAt: now(),
+    word: null
   };
 
   rooms.set(room.code, room);
@@ -99,6 +109,9 @@ export function startGame(code: string, participantId: string) {
     return null;
   }
 
+  const word = selectWord(room.code);
+  room.participants[0].isDrawer = true;
+  room.word = word;
   room.status = "playing";
   room.updatedAt = now();
   rooms.set(room.code, room);
@@ -118,7 +131,8 @@ export function saveRoom(room: Room) {
 }
 
 export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSnapshot {
-  void viewerParticipantId;
+  const viewer = room.participants.find((p) => p.id === viewerParticipantId);
+  const isViewerDrawer = viewer?.isDrawer ?? false;
 
   return {
     code: room.code,
@@ -126,6 +140,7 @@ export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSn
     participants: room.participants.map((participant) => ({ ...participant })),
     availableWords: listWords(),
     roles: [...STARTER_ROLES],
-    canStart: room.status === "lobby" && room.participants.length >= 2
+    canStart: room.status === "lobby" && room.participants.length >= 2,
+    word: isViewerDrawer ? room.word : null
   };
 }

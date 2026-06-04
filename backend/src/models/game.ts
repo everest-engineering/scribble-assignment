@@ -6,6 +6,7 @@ export interface Participant {
   name: string;
   joinedAt: string;
   isHost: boolean;
+  isDrawer: boolean;
 }
 
 export interface Room {
@@ -14,6 +15,7 @@ export interface Room {
   participants: Participant[];
   createdAt: string;
   updatedAt: string;
+  word: string | null;
 }
 
 export interface RoomSnapshot {
@@ -23,6 +25,7 @@ export interface RoomSnapshot {
   availableWords: string[];
   roles: ParticipantRole[];
   canStart: boolean;
+  word: string | null;
 }
 
 export interface RoomSessionResponse {

@@ -55,4 +55,36 @@ describe("roomStore", () => {
     expect(gameRoom).not.toBeNull();
     expect(gameRoom!.status).toBe("playing");
   });
+
+  it("startGame assigns first participant as drawer", () => {
+    const result = createRoom("Alice");
+    joinRoom(result.room.code, "Bob");
+    const gameRoom = startGame(result.room.code, result.participantId);
+
+    expect(gameRoom!.participants[0].isDrawer).toBe(true);
+    expect(gameRoom!.participants[1].isDrawer).toBe(false);
+  });
+
+  it("startGame sets a word on the room", () => {
+    const result = createRoom("Alice");
+    joinRoom(result.room.code, "Bob");
+    const gameRoom = startGame(result.room.code, result.participantId);
+
+    expect(gameRoom!.word).not.toBeNull();
+    expect(typeof gameRoom!.word).toBe("string");
+  });
+
+  it("toRoomSnapshot shows word only to drawer", () => {
+    const result = createRoom("Alice");
+    joinRoom(result.room.code, "Bob");
+    const hostId = result.participantId;
+    const joinResult = joinRoom(result.room.code, "Charlie");
+    const gameRoom = startGame(result.room.code, hostId);
+
+    const drawerSnap = toRoomSnapshot(gameRoom!, hostId);
+    const guesserSnap = toRoomSnapshot(gameRoom!, joinResult!.participantId);
+
+    expect(drawerSnap.word).toBe(gameRoom!.word);
+    expect(guesserSnap.word).toBeNull();
+  });
 });

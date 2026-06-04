@@ -22,6 +22,7 @@ export function GamePage() {
   }
 
   const viewer = room.participants.find((participant) => participant.id === participantId) ?? null;
+  const isDrawer = viewer?.isDrawer ?? false;
 
   return (
     <section className="panel game-page">
@@ -40,9 +41,9 @@ export function GamePage() {
         </aside>
 
         <div className="game-page__main">
-          <Card title="Canvas">
+          <Card title={isDrawer ? `Your Word: ${room.word ?? "..."}` : "Canvas"}>
             <div className="canvas-placeholder" style={{ minHeight: '500px', backgroundColor: '#ffffff', border: '1px solid #e5e7eb' }}>
-              Waiting for drawer...
+              {isDrawer ? `Draw the word: "${room.word}"` : "Waiting for drawer to draw..."}
             </div>
           </Card>
         </div>
@@ -55,14 +56,14 @@ export function GamePage() {
                 <dd>{viewer?.name ?? "Unknown player"}</dd>
               </div>
               <div>
-                <dt>Status</dt>
-                <dd>Playing</dd>
+                <dt>Role</dt>
+                <dd>{isDrawer ? "Drawer" : "Guesser"}</dd>
               </div>
             </dl>
           </Card>
 
           <Card title="Your Guess">
-            <GuessForm />
+            <GuessForm disabled={isDrawer} />
           </Card>
         </aside>
       </div>
