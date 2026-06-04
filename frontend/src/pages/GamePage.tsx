@@ -35,6 +35,12 @@ export function GamePage() {
     };
   }, [navigate, room, doPoll]);
 
+  useEffect(() => {
+    if (room && room.status === "lobby") {
+      navigate("/lobby", { replace: true });
+    }
+  }, [navigate, room]);
+
   if (!room) {
     return null;
   }
@@ -42,19 +48,31 @@ export function GamePage() {
   const viewer = room.participants.find((participant) => participant.id === participantId) ?? null;
   const drawer = room.participants.find((participant) => participant.id === room.drawerId) ?? null;
   const isDrawer = participantId === room.drawerId;
+  const isHost = room.hostId === participantId;
+  const isResult = room.status === "result";
 
   async function handleGuess(text: string) {
     await roomStore.submitGuess(text);
     doPoll();
   }
 
+  async function handleRestart() {
+    try {
+      await roomStore.restartGame();
+    } catch (caughtError) {
+      setRefreshError(caughtError instanceof Error ? caughtError.message : "Unable to restart game");
+    }
+  }
+
   return (
     <section className="panel game-page">
       <div className="game-page__header">
         <div className="game-page__header-left">
-          <span className="section-kicker">Round {room.round}</span>
+          <span className="section-kicker">
+            {isResult ? "Round Complete" : `Round ${room.round}`}
+          </span>
           <h1 className="game-page__title">
-            {isDrawer ? "Draw the Word!" : "Guess the Word!"}
+            {isResult ? "Round Over!" : isDrawer ? "Draw the Word!" : "Guess the Word!"}
           </h1>
         </div>
         <RoomCodeBadge code={room.code} />
@@ -69,22 +87,32 @@ export function GamePage() {
         </aside>
 
         <div className="game-page__main">
-          {isDrawer && room.secretWord ? (
-            <Card title="Your Secret Word">
-              <div className="secret-word-display">
-                <span className="secret-word">{room.secretWord}</span>
+          {isResult ? (
+            <Card title="The Word Was">
+              <div className="correct-word-display">
+                <span className="correct-word">{room.correctWord}</span>
               </div>
             </Card>
-          ) : null}
-          <Card title="Canvas">
-            {isDrawer ? (
-              <DrawingCanvas />
-            ) : (
-              <div className="canvas-placeholder" style={{ minHeight: "500px", backgroundColor: "#ffffff", border: "1px solid #e5e7eb" }}>
-                Waiting for {drawer?.name ?? "the drawer"} to draw...
-              </div>
-            )}
-          </Card>
+          ) : (
+            <>
+              {isDrawer && room.secretWord ? (
+                <Card title="Your Secret Word">
+                  <div className="secret-word-display">
+                    <span className="secret-word">{room.secretWord}</span>
+                  </div>
+                </Card>
+              ) : null}
+              <Card title="Canvas">
+                {isDrawer ? (
+                  <DrawingCanvas />
+                ) : (
+                  <div className="canvas-placeholder" style={{ minHeight: "500px", backgroundColor: "#ffffff", border: "1px solid #e5e7eb" }}>
+                    Waiting for {drawer?.name ?? "the drawer"} to draw...
+                  </div>
+                )}
+              </Card>
+            </>
+          )}
         </div>
 
         <aside className="game-page__sidebar game-page__sidebar--right">
@@ -96,7 +124,7 @@ export function GamePage() {
               </div>
               <div>
                 <dt>Role</dt>
-                <dd>{isDrawer ? "Drawer" : "Guesser"}</dd>
+                <dd>{isResult ? "Spectator" : isDrawer ? "Drawer" : "Guesser"}</dd>
               </div>
               {!isDrawer && drawer ? (
                 <div>
@@ -107,7 +135,21 @@ export function GamePage() {
             </dl>
           </Card>
 
-          {!isDrawer ? (
+          {isResult ? (
+            isHost ? (
+              <Card title="Actions">
+                <div className="button-row">
+                  <button className="button button--primary" onClick={handleRestart}>
+                    Restart Game
+                  </button>
+                </div>
+              </Card>
+            ) : (
+              <Card title="Actions">
+                <p className="waiting-message">Waiting for the host to restart the game...</p>
+              </Card>
+            )
+          ) : !isDrawer ? (
             <Card title="Your Guess">
               <GuessForm onSubmit={handleGuess} />
             </Card>
