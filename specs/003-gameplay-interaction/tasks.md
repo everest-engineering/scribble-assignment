@@ -37,7 +37,7 @@
 validation and all business rule gates.
 
 - [ ] T008 Add `strokeSchema` (z.discriminatedUnion with `"draw"` and `"clear"` variants) and `guessSchema` (participantId + guess string) to `backend/src/api/schemas.ts`
-- [ ] T009 Add `POST /rooms/:code/strokes` handler in `backend/src/api/rooms.ts`: Zod parse → check room exists (404) → check `status === "playing"` (400) → check `participantId === drawerId` (403) → append stroke (or clear) → `saveRoom()` → return `toRoomSnapshot()`
+- [ ] T009 Add `POST /rooms/:code/strokes` handler in `backend/src/api/rooms.ts`: Zod parse → check room exists (404) → check `status === "playing"` (400) → check `participantId === drawerId` (403) → if `type === "draw"`, push stroke to `room.strokes`; if `type === "clear"`, reset `room.strokes` to `[]` (FR-002) → `saveRoom()` → return `toRoomSnapshot()`
 - [ ] T010 Add `POST /rooms/:code/guess` handler in `backend/src/api/rooms.ts`: Zod parse → trim guess → check not empty/whitespace (400) → check room exists (404) → check `status === "playing"` and `currentWord !== null` (400) → check `participantId !== drawerId` (403) → find participant (404) → check no existing correct guess by this `participantId` via `room.guesses.some()` (400) → case-insensitive compare → update participant `score` (+100 if correct) → append to `room.guesses` → `saveRoom()` → return `{ correct, score }`
 
 ---
@@ -49,7 +49,7 @@ validation and all business rule gates.
 
 - [ ] T011 Add `DrawStroke`, `ClearStroke`, `Stroke`, `SnapshotGuessRecord` types and extend `Participant` with `score: number` in `frontend/src/services/api.ts`
 - [ ] T012 Extend `RoomSnapshot` with `strokes: Stroke[]` and `guesses: SnapshotGuessRecord[]` in `frontend/src/services/api.ts`
-- [ ] T013 Add `api.submitStroke(code, stroke)` method in `frontend/src/services/api.ts`: `POST /rooms/:code/strokes` with stroke payload
+- [ ] T013 Add `api.submitStroke(code, participantId, strokeData)` method in `frontend/src/services/api.ts`: `POST /rooms/:code/strokes` with body `{ ...strokeData, participantId }` where `strokeData: Stroke` (the `Stroke` type from T011/T012 has no `participantId` field — it is injected by the API method)
 - [ ] T014 Add `api.submitGuess(code, participantId, guess)` method in `frontend/src/services/api.ts`: `POST /rooms/:code/guess`, returns `{ correct: boolean; score: number }`
 
 ---
@@ -63,7 +63,7 @@ Submit; confirm `onSubmit` is called with the trimmed guess string.
 
 - [ ] T015 [US2] Add `onSubmit: (guess: string) => void` prop to `GuessFormProps` interface in `frontend/src/components/GuessForm.tsx`
 - [ ] T016 [US2] In `frontend/src/components/GuessForm.tsx`, inside `handleSubmit` call `onSubmit(guessText.trim())` and clear the input (set state to `""`); the parent is responsible for server communication
-- [ ] T017 [US2] Render inline feedback in `frontend/src/components/GuessForm.tsx` when `submitError` or `lastResult` state is set by the parent (accept these as optional props: `error?: string`, `lastResult?: "correct" | "incorrect"`) — this is display-only; the parent drives the actual submit logic
+- [ ] T017 [US2] Extend `GuessFormProps` in `frontend/src/components/GuessForm.tsx` with optional props `error?: string` and `lastResult?: "correct" | "incorrect"`; inside the component render these inline below the input/button when provided — `GuessForm` is display-only for feedback; the parent (`GamePage`) drives the actual submit logic and passes these props
 
 ---
 
@@ -77,8 +77,8 @@ same line appears within ~2s. Tab A clicks Clear; Tab B canvas goes blank within
 
 - [ ] T018 [US1] In `frontend/src/pages/GamePage.tsx`, replace the `<div className="canvas-placeholder">` with `<canvas ref={canvasRef} width={500} height={500}>` inside the existing `<Card title="Canvas">`
 - [ ] T019 [US1] Add a `useRef<HTMLCanvasElement>(null)` for the canvas and a `useEffect` keyed on `room.strokes`: if `canvasRef.current` exists, get 2D context, call `clearRect(0, 0, width, height)`, then iterate `room.strokes` and replay each `"draw"` stroke with `beginPath`/`moveTo`/`lineTo`/`stroke`; skip `"clear"` entries since `clearRect` already handled it (FR-004a)
-- [ ] T020 [US1] For the drawer (`isDrawer`) only: add mouse event handlers (`onMouseDown`, `onMouseMove`, `onMouseUp`) on the `<canvas>` element that track a local `isDrawing` flag and accumulate the current stroke; on `mouseUp` call `api.submitStroke(code, { type:"draw", participantId, x0, y0, x1, y1, color: "#000000", lineWidth: 3 })`, then call `roomStore.fetchRoom()` to refresh local state
-- [ ] T021 [US1] Add a "Clear Canvas" button below the canvas, visible only when `isDrawer`; on click call `api.submitStroke(code, { type:"clear", participantId })`, then `roomStore.fetchRoom()` (FR-002)
+- [ ] T020 [US1] For the drawer (`isDrawer`) only: add mouse event handlers (`onMouseDown`, `onMouseMove`, `onMouseUp`) on the `<canvas>` element that track a local `isDrawing` flag and accumulate the current stroke; on `mouseUp` call `api.submitStroke(code, participantId, { type:"draw", x0, y0, x1, y1, color: "#000000", lineWidth: 3 })` (participantId is separate from the `Stroke` payload per T013 fix), then call `roomStore.fetchRoom()` to refresh local state
+- [ ] T021 [US1] Add a "Clear Canvas" button below the canvas, visible only when `isDrawer`; on click call `api.submitStroke(code, participantId, { type:"clear" })`, then `roomStore.fetchRoom()` (FR-002)
 - [ ] T022 [US1] For non-drawers (`!isDrawer`): set `style={{ pointerEvents: "none" }}` on the `<canvas>` element so the canvas is read-only (FR-003a); they still see strokes replayed from `room.strokes`
 
 ---
@@ -91,7 +91,7 @@ same line appears within ~2s. Tab A clicks Clear; Tab B canvas goes blank within
 Tab B submits whitespace → sees error inline. Tab A (drawer) confirms no guess form visible.
 
 - [ ] T023 [US2] In `frontend/src/pages/GamePage.tsx`, conditionally render `<GuessForm>` only when `!isDrawer` inside the "Your Guess" `<Card>`; when `isDrawer` show a message such as `"You are drawing — guess form is hidden"` (FR-008a)
-- [ ] T024 [US2] In `frontend/src/pages/GamePage.tsx`, pass an `onSubmit` handler to `<GuessForm>` that calls `api.submitGuess(room.code, participantId, guess)`, then sets local `guessResult` state with the returned `{ correct, score }` to render inline feedback below the form
+- [ ] T024 [US2] In `frontend/src/pages/GamePage.tsx`, pass `onSubmit` to `<GuessForm>` that calls `api.submitGuess(room.code, participantId, guess)`; on success set `lastResult` state to `"correct"` or `"incorrect"` and pass it as the `lastResult` prop to `<GuessForm>`; on error set `guessError` state and pass it as the `error` prop — all feedback rendering lives inside `GuessForm` (T017), not in `GamePage`
 - [ ] T025 [US2] In `frontend/src/pages/GamePage.tsx`, catch submit errors from `api.submitGuess` (e.g., 400/403) and pass `error` prop to `<GuessForm>` so the user sees the error message inline without crashing the UI
 
 ---
