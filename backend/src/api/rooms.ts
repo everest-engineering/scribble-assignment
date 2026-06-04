@@ -5,13 +5,15 @@ import {
   HttpError,
   joinRoomSchema,
   roomCodeParamsSchema,
-  roomViewerQuerySchema
+  roomViewerQuerySchema,
+  startGameSchema
 } from "./schemas.js";
 
 import {
   createRoom,
   getRoom,
   joinRoom,
+  startGame,
   submitGuess,
   toRoomSnapshot
 } from "../services/roomStore.js";
@@ -68,6 +70,25 @@ export function createRoomsRouter() {
 
       if (!room) {
         throw new HttpError(404, "Unable to submit guess");
+      }
+
+      response.json({
+        room: toRoomSnapshot(room, participantId)
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/:code/start", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId } = startGameSchema.parse(request.body);
+
+      const room = startGame(code.toUpperCase(), participantId);
+
+      if (!room) {
+        throw new HttpError(400, "Unable to start game");
       }
 
       response.json({

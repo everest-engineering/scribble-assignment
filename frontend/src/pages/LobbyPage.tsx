@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card } from "../components/Card";
 import { PageHeader } from "../components/PageHeader";
@@ -32,6 +32,12 @@ export function LobbyPage() {
       window.clearInterval(intervalId);
     };
   }, [room, roomStore]);
+
+  useEffect(() => {
+    if (room?.status === "playing") {
+      navigate("/game");
+    }
+  }, [room?.status, navigate]);
 
   async function handleRefresh() {
     try {
@@ -116,7 +122,7 @@ export function LobbyPage() {
           <button
             className="button button--primary"
             disabled={!canStartGame}
-            onClick={() => navigate("/game")}
+            onClick={() => roomStore.startGame()}
           >
             Start Game
           </button>

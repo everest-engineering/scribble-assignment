@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useCallback, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card } from "../components/Card";
 import { CanvasBoard } from "../components/CanvasBoard";
@@ -6,10 +6,11 @@ import { GuessForm } from "../components/GuessForm";
 import { ResultPanel } from "../components/ResultPanel";
 import { RoomCodeBadge } from "../components/RoomCodeBadge";
 import { Scoreboard } from "../components/Scoreboard";
-import { useRoomState } from "../state/roomStore";
+import { useRoomState, useRoomStore } from "../state/roomStore";
 
 export function GamePage() {
   const navigate = useNavigate();
+  const roomStore = useRoomStore();
   const { room, participantId } = useRoomState();
 
   useEffect(() => {
@@ -17,6 +18,25 @@ export function GamePage() {
       navigate("/", { replace: true });
     }
   }, [navigate, room]);
+
+  useEffect(() => {
+    if (!room) {
+      return;
+    }
+
+    const intervalId = window.setInterval(() => {
+      void roomStore.fetchRoom().catch(() => {});
+    }, 2000);
+
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, [room, roomStore]);
+
+  const handleSubmitGuess = useCallback(
+    (guess: string) => roomStore.submitGuess(guess),
+    [roomStore]
+  );
 
   if (!room) {
     return null;
@@ -46,8 +66,8 @@ export function GamePage() {
 
       <div className="game-page__layout">
         <aside className="game-page__sidebar game-page__sidebar--left">
-          <Scoreboard />
-          <ResultPanel />
+          <Scoreboard scores={room.scores} participants={room.participants} />
+          <ResultPanel guesses={room.guesses} />
         </aside>
 
         <div className="game-page__main">
@@ -89,7 +109,7 @@ export function GamePage() {
           </Card>
 
           <Card title="Your Guess">
-            <GuessForm disabled={isDrawer} />
+            <GuessForm disabled={isDrawer} onSubmitGuess={handleSubmitGuess} />
           </Card>
         </aside>
       </div>

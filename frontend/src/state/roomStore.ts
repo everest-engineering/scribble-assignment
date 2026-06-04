@@ -98,6 +98,30 @@ class RoomStore {
     this.setRoomSnapshot(response.room);
     return response.room;
   }
+
+  async submitGuess(guess: string) {
+    const { room, participantId } = this.state;
+
+    if (!room || !participantId) {
+      return;
+    }
+
+    const response = await api.submitGuess(room.code, participantId, guess);
+    this.setRoomSnapshot(response.room);
+  }
+
+  async startGame() {
+    const { room, participantId } = this.state;
+
+    if (!room || !participantId) {
+      return;
+    }
+
+    await this.withLoading(async () => {
+      const response = await api.startGame(room.code, participantId);
+      this.setRoomSnapshot(response.room);
+    });
+  }
 }
 
 const RoomStoreContext = createContext<RoomStore | null>(null);

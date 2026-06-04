@@ -123,6 +123,29 @@ export function saveRoom(room: Room) {
   return getRoom(room.code);
 }
 
+export function startGame(code: string, participantId: string) {
+  const room = rooms.get(code);
+
+  if (!room) {
+    return null;
+  }
+
+  if (room.hostId !== participantId) {
+    return null;
+  }
+
+  if (room.participants.length < 2) {
+    return null;
+  }
+
+  room.status = "playing";
+  room.updatedAt = now();
+
+  rooms.set(room.code, room);
+
+  return cloneRoom(room);
+}
+
 export function submitGuess(
   code: string,
   participantId: string,

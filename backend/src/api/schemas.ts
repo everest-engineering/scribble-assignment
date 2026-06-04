@@ -29,6 +29,10 @@ export const roomCodeParamsSchema = z.object({
     .regex(/^[A-Z0-9]+$/i, "Room code contains invalid characters")
 });
 
+export const startGameSchema = z.object({
+  participantId: z.string()
+});
+
 export const roomViewerQuerySchema = z.object({
   participantId: z.string().optional()
 });
