@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import type { Participant, Room, RoomSnapshot } from "../models/game.js";
+import type { Participant, Room, RoomSnapshot, Stroke } from "../models/game.js";
 import { STARTER_ROLES, STARTER_WORDS } from "../seed/starterData.js";
 
 const rooms = new Map<string, Room>();
@@ -61,6 +61,9 @@ export function createRoom(playerName?: string) {
     hostId: participant.id,
     wordIndex: (roomCreationCount - 1) % STARTER_WORDS.length,
     participants: [participant],
+    strokes: [],
+    guesses: [],
+    scores: { [participant.id]: 0 },
     createdAt: now(),
     updatedAt: now()
   };
@@ -82,6 +85,7 @@ export function joinRoom(code: string, playerName?: string) {
 
   const participant = createParticipant(playerName);
   room.participants.push(participant);
+  room.scores[participant.id] = 0;
   room.updatedAt = now();
   rooms.set(room.code, room);
 
@@ -129,6 +133,102 @@ export function startGame(
   return { room: cloneRoom(room) };
 }
 
+const CORRECT_GUESS_SCORE = 100;
+
+export type DrawError = "not-found" | "not-drawer";
+export type GuessError = "not-found" | "is-drawer" | "unknown-participant" | "empty";
+
+export function addStroke(
+  code: string,
+  requesterId: string,
+  stroke: Stroke
+): { room: Room } | { error: DrawError } {
+  const room = rooms.get(code);
+
+  if (!room) {
+    return { error: "not-found" };
+  }
+
+  if (room.drawerId !== requesterId) {
+    return { error: "not-drawer" };
+  }
+
+  room.strokes.push(stroke.map((point) => ({ ...point })));
+  room.updatedAt = now();
+  rooms.set(room.code, room);
+
+  return { room: cloneRoom(room) };
+}
+
+export function clearCanvas(
+  code: string,
+  requesterId: string
+): { room: Room } | { error: DrawError } {
+  const room = rooms.get(code);
+
+  if (!room) {
+    return { error: "not-found" };
+  }
+
+  if (room.drawerId !== requesterId) {
+    return { error: "not-drawer" };
+  }
+
+  room.strokes = [];
+  room.updatedAt = now();
+  rooms.set(room.code, room);
+
+  return { room: cloneRoom(room) };
+}
+
+export function submitGuess(
+  code: string,
+  requesterId: string,
+  rawText: string
+): { room: Room; correct: boolean } | { error: GuessError } {
+  const room = rooms.get(code);
+
+  if (!room) {
+    return { error: "not-found" };
+  }
+
+  if (room.drawerId === requesterId) {
+    return { error: "is-drawer" };
+  }
+
+  const participant = room.participants.find((person) => person.id === requesterId);
+
+  if (!participant) {
+    return { error: "unknown-participant" };
+  }
+
+  const text = rawText.trim();
+
+  if (!text) {
+    return { error: "empty" };
+  }
+
+  const secretWord = STARTER_WORDS[room.wordIndex];
+  const correct = text.toLowerCase() === secretWord.toLowerCase();
+
+  if (correct) {
+    // A correct guess is worth a fixed 100 points, awarded once for the round.
+    room.scores[requesterId] = CORRECT_GUESS_SCORE;
+  }
+
+  room.guesses.push({
+    participantId: requesterId,
+    name: participant.name,
+    text,
+    correct,
+    at: now()
+  });
+  room.updatedAt = now();
+  rooms.set(room.code, room);
+
+  return { room: cloneRoom(room), correct };
+}
+
 export function saveRoom(room: Room) {
   room.updatedAt = now();
   rooms.set(room.code, cloneRoom(room));
@@ -147,6 +247,9 @@ export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSn
     // everyone else so it cannot leak over the wire.
     word: isDrawer ? STARTER_WORDS[room.wordIndex] : undefined,
     participants: room.participants.map((participant) => ({ ...participant })),
+    strokes: room.strokes.map((stroke) => stroke.map((point) => ({ ...point }))),
+    guesses: room.guesses.map((guess) => ({ ...guess })),
+    scores: { ...room.scores },
     availableWords: listWords(),
     roles: [...STARTER_ROLES]
   };

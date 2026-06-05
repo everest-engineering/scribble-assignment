@@ -1,6 +1,24 @@
 import { describe, expect, it } from "vitest";
-import { createRoom, getRoom, joinRoom, startGame, toRoomSnapshot } from "./roomStore.js";
+import {
+  addStroke,
+  clearCanvas,
+  createRoom,
+  getRoom,
+  joinRoom,
+  startGame,
+  submitGuess,
+  toRoomSnapshot
+} from "./roomStore.js";
 import { STARTER_WORDS } from "../seed/starterData.js";
+
+// Helper: create a room, add a guesser, and start the game. Returns ids + word.
+function startedRoom() {
+  const host = createRoom("Alice");
+  const guest = joinRoom(host.room.code, "Bob")!;
+  startGame(host.room.code, host.participantId);
+  const word = STARTER_WORDS[getRoom(host.room.code)!.wordIndex];
+  return { code: host.room.code, hostId: host.participantId, guestId: guest.participantId, word };
+}
 
 describe("roomStore", () => {
   it("createRoom returns a room with a 4-character uppercase code", () => {
@@ -85,5 +103,71 @@ describe("roomStore", () => {
     const result = startGame(host.room.code, host.participantId);
 
     expect(result).toEqual({ error: "not-enough-players" });
+  });
+
+  it("starts every participant with a score of 0", () => {
+    const host = createRoom("Alice");
+    const guest = joinRoom(host.room.code, "Bob")!;
+
+    const room = getRoom(host.room.code)!;
+
+    expect(room.scores[host.participantId]).toBe(0);
+    expect(room.scores[guest.participantId]).toBe(0);
+  });
+
+  it("scores a correct guess 100, case-insensitively and trimmed", () => {
+    const game = startedRoom();
+
+    const result = submitGuess(game.code, game.guestId, `  ${game.word.toUpperCase()} `);
+
+    expect("room" in result && result.correct).toBe(true);
+    const room = getRoom(game.code)!;
+    expect(room.scores[game.guestId]).toBe(100);
+    expect(room.guesses.at(-1)?.correct).toBe(true);
+  });
+
+  it("does not award more than 100 for repeated correct guesses", () => {
+    const game = startedRoom();
+
+    submitGuess(game.code, game.guestId, game.word);
+    submitGuess(game.code, game.guestId, game.word);
+
+    expect(getRoom(game.code)!.scores[game.guestId]).toBe(100);
+  });
+
+  it("records an incorrect guess with 0 points", () => {
+    const game = startedRoom();
+
+    const result = submitGuess(game.code, game.guestId, "definitely-wrong");
+
+    expect("room" in result && result.correct).toBe(false);
+    const room = getRoom(game.code)!;
+    expect(room.scores[game.guestId]).toBe(0);
+    expect(room.guesses.at(-1)?.correct).toBe(false);
+  });
+
+  it("rejects empty guesses and the drawer guessing", () => {
+    const game = startedRoom();
+
+    expect(submitGuess(game.code, game.guestId, "   ")).toEqual({ error: "empty" });
+    expect(submitGuess(game.code, game.hostId, game.word)).toEqual({ error: "is-drawer" });
+  });
+
+  it("lets only the drawer add and clear strokes", () => {
+    const game = startedRoom();
+    const stroke = [
+      { x: 0.1, y: 0.1 },
+      { x: 0.2, y: 0.2 }
+    ];
+
+    expect(addStroke(game.code, game.guestId, stroke)).toEqual({ error: "not-drawer" });
+
+    const added = addStroke(game.code, game.hostId, stroke);
+    expect("room" in added).toBe(true);
+    expect(getRoom(game.code)!.strokes).toHaveLength(1);
+
+    expect(clearCanvas(game.code, game.guestId)).toEqual({ error: "not-drawer" });
+    clearCanvas(game.code, game.hostId);
+    expect(getRoom(game.code)!.strokes).toHaveLength(0);
   });
 });

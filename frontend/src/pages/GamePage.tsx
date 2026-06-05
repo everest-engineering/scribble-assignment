@@ -1,11 +1,13 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card } from "../components/Card";
+import { DrawingCanvas } from "../components/DrawingCanvas";
 import { GuessForm } from "../components/GuessForm";
 import { ResultPanel } from "../components/ResultPanel";
 import { RoomCodeBadge } from "../components/RoomCodeBadge";
 import { Scoreboard } from "../components/Scoreboard";
 import { useRoomState, useRoomStore } from "../state/roomStore";
+import type { Stroke } from "../services/api";
 
 const POLL_INTERVAL_MS = 2000;
 
@@ -40,6 +42,18 @@ export function GamePage() {
   const viewer = room.participants.find((participant) => participant.id === participantId) ?? null;
   const isDrawer = room.drawerId === participantId;
 
+  function handleStrokeComplete(stroke: Stroke) {
+    roomStore.addStroke(stroke).catch(() => undefined);
+  }
+
+  function handleClearCanvas() {
+    roomStore.clearCanvas().catch(() => undefined);
+  }
+
+  async function handleGuess(text: string) {
+    await roomStore.submitGuess(text);
+  }
+
   return (
     <section className="panel game-page">
       <div className="game-page__header">
@@ -52,15 +66,24 @@ export function GamePage() {
 
       <div className="game-page__layout">
         <aside className="game-page__sidebar game-page__sidebar--left">
-          <Scoreboard />
-          <ResultPanel />
+          <Scoreboard participants={room.participants} scores={room.scores} />
+          <ResultPanel guesses={room.guesses} />
         </aside>
 
         <div className="game-page__main">
           <Card title="Canvas">
-            <div className="canvas-placeholder" style={{ minHeight: '500px', backgroundColor: '#ffffff', border: '1px solid #e5e7eb' }}>
-              Waiting for drawer...
-            </div>
+            <DrawingCanvas
+              strokes={room.strokes}
+              canDraw={isDrawer}
+              onStrokeComplete={handleStrokeComplete}
+            />
+            {isDrawer ? (
+              <div className="button-row button-row--compact">
+                <button className="button button--secondary" onClick={handleClearCanvas}>
+                  Clear Canvas
+                </button>
+              </div>
+            ) : null}
           </Card>
         </div>
 
@@ -85,7 +108,7 @@ export function GamePage() {
             </Card>
           ) : (
             <Card title="Your Guess">
-              <GuessForm />
+              <GuessForm onGuess={handleGuess} />
             </Card>
           )}
         </aside>

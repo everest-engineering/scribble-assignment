@@ -7,6 +7,21 @@ export interface Participant {
   joinedAt: string;
 }
 
+export interface Point {
+  x: number;
+  y: number;
+}
+
+export type Stroke = Point[];
+
+export interface Guess {
+  participantId: string;
+  name: string;
+  text: string;
+  correct: boolean;
+  at: string;
+}
+
 export interface Room {
   code: string;
   status: RoomStatus;
@@ -14,6 +29,9 @@ export interface Room {
   wordIndex: number;
   drawerId?: string;
   participants: Participant[];
+  strokes: Stroke[];
+  guesses: Guess[];
+  scores: Record<string, number>;
   createdAt: string;
   updatedAt: string;
 }
@@ -25,6 +43,9 @@ export interface RoomSnapshot {
   drawerId?: string;
   word?: string;
   participants: Participant[];
+  strokes: Stroke[];
+  guesses: Guess[];
+  scores: Record<string, number>;
   availableWords: string[];
   roles: ParticipantRole[];
 }

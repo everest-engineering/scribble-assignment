@@ -1,17 +1,23 @@
 import { Router } from "express";
 import {
+  clearCanvasSchema,
   createRoomSchema,
+  guessSchema,
   HttpError,
   joinRoomSchema,
   roomCodeParamsSchema,
   roomViewerQuerySchema,
-  startGameSchema
+  startGameSchema,
+  strokeSchema
 } from "./schemas.js";
 import {
+  addStroke,
+  clearCanvas,
   createRoom,
   getRoom,
   joinRoom,
   startGame,
+  submitGuess,
   toRoomSnapshot
 } from "../services/roomStore.js";
 
@@ -68,6 +74,76 @@ export function createRoomsRouter() {
       }
 
       response.json({
+        room: toRoomSnapshot(result.room, participantId)
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/:code/strokes", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId, stroke } = strokeSchema.parse(request.body);
+      const result = addStroke(code.toUpperCase(), participantId, stroke);
+
+      if ("error" in result) {
+        if (result.error === "not-found") {
+          throw new HttpError(404, "Room not found");
+        }
+        throw new HttpError(403, "Only the drawer can draw");
+      }
+
+      response.json({
+        room: toRoomSnapshot(result.room, participantId)
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/:code/clear-canvas", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId } = clearCanvasSchema.parse(request.body);
+      const result = clearCanvas(code.toUpperCase(), participantId);
+
+      if ("error" in result) {
+        if (result.error === "not-found") {
+          throw new HttpError(404, "Room not found");
+        }
+        throw new HttpError(403, "Only the drawer can clear the canvas");
+      }
+
+      response.json({
+        room: toRoomSnapshot(result.room, participantId)
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/:code/guess", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId, text } = guessSchema.parse(request.body);
+      const result = submitGuess(code.toUpperCase(), participantId, text);
+
+      if ("error" in result) {
+        if (result.error === "not-found") {
+          throw new HttpError(404, "Room not found");
+        }
+        if (result.error === "is-drawer") {
+          throw new HttpError(403, "The drawer cannot guess");
+        }
+        if (result.error === "unknown-participant") {
+          throw new HttpError(403, "You are not a participant in this room");
+        }
+        throw new HttpError(400, "Guess cannot be empty");
+      }
+
+      response.json({
+        correct: result.correct,
         room: toRoomSnapshot(result.room, participantId)
       });
     } catch (error) {

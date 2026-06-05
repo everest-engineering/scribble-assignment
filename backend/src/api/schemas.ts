@@ -25,6 +25,25 @@ export const startGameSchema = z.object({
   participantId: z.string().min(1)
 });
 
+const pointSchema = z.object({
+  x: z.number(),
+  y: z.number()
+});
+
+export const strokeSchema = z.object({
+  participantId: z.string().min(1),
+  stroke: z.array(pointSchema).min(1)
+});
+
+export const clearCanvasSchema = z.object({
+  participantId: z.string().min(1)
+});
+
+export const guessSchema = z.object({
+  participantId: z.string().min(1),
+  text: z.string()
+});
+
 export class HttpError extends Error {
   statusCode: number;
 
