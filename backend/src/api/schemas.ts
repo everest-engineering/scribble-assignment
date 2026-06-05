@@ -29,6 +29,14 @@ export const clearCanvasSchema = z.object({
   participantId: z.string().min(1)
 });
 
+export const endRoundSchema = z.object({
+  participantId: z.string().min(1)
+});
+
+export const restartRoomSchema = z.object({
+  participantId: z.string().min(1)
+});
+
 export const guessSchema = z.object({
   participantId: z.string().min(1),
   text: z.string().transform((s) => s.trim()).pipe(z.string().min(1, "Guess cannot be empty"))

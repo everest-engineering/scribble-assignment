@@ -19,8 +19,10 @@ export function GamePage() {
   useEffect(() => {
     if (!room) {
       navigate("/", { replace: true });
+    } else if (room.status === "result") {
+      navigate("/result");
     }
-  }, [navigate, room]);
+  }, [navigate, room?.status]);
 
   useEffect(() => {
     if (!room) return;
@@ -62,6 +64,7 @@ export function GamePage() {
   const viewer = room.participants.find((p) => p.id === participantId) ?? null;
   const drawer = room.participants.find((p) => p.id === room.drawerId) ?? null;
   const isDrawer = participantId === room.drawerId;
+  const isHost = participantId === room.hostId;
 
   function getPoint(event: React.MouseEvent<HTMLCanvasElement>) {
     const rect = canvasRef.current!.getBoundingClientRect();
@@ -193,10 +196,15 @@ export function GamePage() {
         </aside>
       </div>
 
-      <div className="button-row">
+      <div className="button-row button-row--spread">
         <button className="button button--secondary" onClick={() => navigate("/lobby")}>
           Exit Game
         </button>
+        {isHost ? (
+          <button className="button button--primary" onClick={() => roomStore.endRound()}>
+            End Round
+          </button>
+        ) : null}
       </div>
     </section>
   );

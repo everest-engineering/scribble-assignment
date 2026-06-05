@@ -102,6 +102,31 @@ export function saveRoom(room: Room) {
   return getRoom(room.code);
 }
 
+export function endRound(code: string, participantId: string) {
+  const room = rooms.get(code);
+  if (!room) throw new HttpError(404, "Unable to load room");
+  if (room.status !== "active") throw new HttpError(400, "Game is not active");
+  if (participantId !== room.hostId) throw new HttpError(403, "Only the host can end the round");
+  room.status = "result";
+  saveRoom(room);
+  return { ok: true };
+}
+
+export function restartRoom(code: string, participantId: string) {
+  const room = rooms.get(code);
+  if (!room) throw new HttpError(404, "Unable to load room");
+  if (room.status !== "result") throw new HttpError(400, "Round has not ended");
+  if (participantId !== room.hostId) throw new HttpError(403, "Only the host can restart");
+  room.canvasStrokes = [];
+  room.guesses = [];
+  delete room.scores;
+  delete room.currentWord;
+  delete room.drawerId;
+  room.status = "lobby";
+  saveRoom(room);
+  return { ok: true };
+}
+
 export function addStroke(code: string, participantId: string, points: Point[]) {
   const room = rooms.get(code);
   if (!room) throw new HttpError(404, "Unable to load room");
@@ -168,7 +193,7 @@ export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSn
     status: room.status,
     hostId: room.hostId,
     ...(room.drawerId && { drawerId: room.drawerId }),
-    ...(room.currentWord && viewerParticipantId === room.drawerId && { currentWord: room.currentWord }),
+    ...(room.currentWord && (viewerParticipantId === room.drawerId || room.status === "result") && { currentWord: room.currentWord }),
     ...(room.canvasStrokes !== undefined && { canvasStrokes: room.canvasStrokes.map((s) => [...s]) }),
     ...(room.guesses !== undefined && { guesses: [...room.guesses] }),
     ...(room.scores !== undefined && { scores: { ...room.scores } }),

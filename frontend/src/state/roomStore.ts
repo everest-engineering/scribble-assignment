@@ -107,6 +107,20 @@ class RoomStore {
     return response.room;
   }
 
+  async endRound() {
+    const { room, participantId } = this.state;
+    if (!room || !participantId) return null;
+    await this.withLoading(() => api.endRound(room.code, participantId));
+    await this.fetchRoom();
+  }
+
+  async restartGame() {
+    const { room, participantId } = this.state;
+    if (!room || !participantId) return null;
+    await this.withLoading(() => api.restartGame(room.code, participantId));
+    await this.fetchRoom();
+  }
+
   async addStroke(points: Point[]) {
     const { room, participantId } = this.state;
     if (!room || !participantId) return;
