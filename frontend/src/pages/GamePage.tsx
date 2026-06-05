@@ -5,10 +5,11 @@ import { GuessForm } from "../components/GuessForm";
 import { ResultPanel } from "../components/ResultPanel";
 import { RoomCodeBadge } from "../components/RoomCodeBadge";
 import { Scoreboard } from "../components/Scoreboard";
-import { useRoomState } from "../state/roomStore";
+import { useRoomState, useRoomStore } from "../state/roomStore";
 
 export function GamePage() {
   const navigate = useNavigate();
+  const roomStore = useRoomStore();
   const { room, participantId } = useRoomState();
 
   useEffect(() => {
@@ -17,11 +18,27 @@ export function GamePage() {
     }
   }, [navigate, room]);
 
+  // Keep the game view in sync via the same ~2s polling used by the lobby.
+  useEffect(() => {
+    roomStore.startPolling(2000);
+    return () => roomStore.stopPolling();
+  }, [roomStore]);
+
+  // If the round is not active (e.g., not started yet, or reset in a later
+  // scenario), fall back to the lobby.
+  useEffect(() => {
+    if (room && room.status === "lobby") {
+      navigate("/lobby", { replace: true });
+    }
+  }, [navigate, room?.status]);
+
   if (!room) {
     return null;
   }
 
   const viewer = room.participants.find((participant) => participant.id === participantId) ?? null;
+  const drawer = room.participants.find((participant) => participant.id === room.drawerId) ?? null;
+  const roleLabel = room.isDrawer ? "Drawer" : "Guesser";
 
   return (
     <section className="panel game-page">
@@ -40,9 +57,18 @@ export function GamePage() {
         </aside>
 
         <div className="game-page__main">
-          <Card title="Canvas">
+          <Card title={room.isDrawer ? "Your word to draw" : "Canvas"}>
+            {room.isDrawer ? (
+              <p className="status-line" style={{ backgroundColor: '#e0e7ff', color: '#3730a3' }}>
+                Secret word: <strong>{room.secretWord}</strong>
+              </p>
+            ) : (
+              <p style={{ marginBottom: '8px' }}>
+                {drawer?.name ?? "The drawer"} is drawing — guess the word!
+              </p>
+            )}
             <div className="canvas-placeholder" style={{ minHeight: '500px', backgroundColor: '#ffffff', border: '1px solid #e5e7eb' }}>
-              Waiting for drawer...
+              {room.isDrawer ? "Draw here (coming soon)" : "Waiting for the drawing..."}
             </div>
           </Card>
         </div>
@@ -55,8 +81,12 @@ export function GamePage() {
                 <dd>{viewer?.name ?? "Unknown player"}</dd>
               </div>
               <div>
-                <dt>Status</dt>
-                <dd>Playing</dd>
+                <dt>Your role</dt>
+                <dd>{roleLabel}{room.isDrawer ? " (you are drawing)" : ""}</dd>
+              </div>
+              <div>
+                <dt>Drawer</dt>
+                <dd>{drawer?.name ?? "Unassigned"}</dd>
               </div>
             </dl>
           </Card>

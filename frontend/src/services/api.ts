@@ -8,13 +8,16 @@ export interface Participant {
 
 export interface RoomSnapshot {
   code: string;
-  status: "lobby";
+  status: "lobby" | "playing";
   participants: Participant[];
   availableWords: string[];
   roles: ParticipantRole[];
   hostId: string;
   isHost: boolean;
   canStart: boolean;
+  drawerId: string | null;
+  isDrawer: boolean;
+  secretWord: string | null;
 }
 
 export interface RoomSessionResponse {
@@ -55,6 +58,12 @@ export const api = {
     return request<RoomSessionResponse>(`/rooms/${encodeURIComponent(code)}/join`, {
       method: "POST",
       body: JSON.stringify({ playerName })
+    });
+  },
+  startRoom(code: string, participantId: string) {
+    return request<{ room: RoomSnapshot }>(`/rooms/${encodeURIComponent(code)}/start`, {
+      method: "POST",
+      body: JSON.stringify({ participantId })
     });
   },
   fetchRoom(code: string, participantId?: string) {

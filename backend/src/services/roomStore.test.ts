@@ -1,5 +1,17 @@
 import { describe, expect, it } from "vitest";
-import { createRoom, joinRoom, toRoomSnapshot } from "./roomStore.js";
+import { createRoom, joinRoom, selectWord, startRound, toRoomSnapshot } from "./roomStore.js";
+import { STARTER_WORDS } from "../seed/starterData.js";
+
+function startedRoom() {
+  const { room, participantId: hostId } = createRoom("Alice");
+  const joined = joinRoom(room.code, "Bob");
+  const guesserId = joined!.participantId;
+  const started = startRound(room.code, hostId);
+  if (!started.ok) {
+    throw new Error("expected start to succeed");
+  }
+  return { room: started.room, hostId, guesserId };
+}
 
 describe("roomStore", () => {
   it("createRoom returns a room with a 4-character uppercase code", () => {
@@ -77,5 +89,59 @@ describe("roomStore", () => {
     const snapshot = toRoomSnapshot(joined!.room, joined!.participantId);
     expect(snapshot.isHost).toBe(false);
     expect(snapshot.canStart).toBe(false);
+  });
+
+  it("startRound sets playing status and assigns the host as drawer (US1)", () => {
+    const { room, hostId } = startedRoom();
+
+    expect(room.status).toBe("playing");
+    expect(room.drawerId).toBe(hostId);
+    expect(room.secretWord).not.toBeNull();
+  });
+
+  it("startRound rejects a non-host requester and a one-player room (US1)", () => {
+    const { room, participantId: hostId } = createRoom("Alice");
+
+    expect(startRound(room.code, hostId)).toEqual({ ok: false, reason: "too_few_players" });
+
+    const joined = joinRoom(room.code, "Bob");
+    expect(startRound(room.code, joined!.participantId)).toEqual({
+      ok: false,
+      reason: "not_host"
+    });
+
+    expect(startRound("ZZZZ", hostId)).toEqual({ ok: false, reason: "not_found" });
+  });
+
+  it("identifies exactly one drawer and the viewer's own role (US2)", () => {
+    const { room, hostId, guesserId } = startedRoom();
+
+    const hostView = toRoomSnapshot(room, hostId);
+    const guesserView = toRoomSnapshot(room, guesserId);
+
+    expect(hostView.isDrawer).toBe(true);
+    expect(guesserView.isDrawer).toBe(false);
+    expect(hostView.drawerId).toBe(hostId);
+    expect(room.participants.filter((p) => p.id === room.drawerId)).toHaveLength(1);
+  });
+
+  it("selects a deterministic starter word (US3)", () => {
+    const { room } = createRoom("Alice");
+    const word = selectWord(room.code);
+
+    expect(STARTER_WORDS).toContain(word);
+    expect(selectWord(room.code)).toBe(word);
+    expect(selectWord(room.code.toLowerCase())).toBe(word);
+  });
+
+  it("reveals the secret word only to the drawer (US3)", () => {
+    const { room, hostId, guesserId } = startedRoom();
+
+    const hostView = toRoomSnapshot(room, hostId);
+    const guesserView = toRoomSnapshot(room, guesserId);
+
+    expect(hostView.secretWord).toBe(room.secretWord);
+    expect(STARTER_WORDS).toContain(hostView.secretWord);
+    expect(guesserView.secretWord).toBeNull();
   });
 });

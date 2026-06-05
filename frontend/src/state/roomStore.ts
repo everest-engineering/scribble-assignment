@@ -93,6 +93,18 @@ class RoomStore {
     return response;
   }
 
+  async startRoom(participantId: string) {
+    if (!this.state.room) {
+      return null;
+    }
+
+    const response = await this.withLoading(() =>
+      api.startRoom(this.state.room!.code, participantId)
+    );
+    this.setRoomSnapshot(response.room);
+    return response.room;
+  }
+
   async fetchRoom() {
     if (!this.state.room) {
       return null;

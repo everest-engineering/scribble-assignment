@@ -13,7 +13,13 @@ export function JoinRoomPage() {
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
+    const trimmedName = playerName.trim();
     const normalizedCode = roomCode.trim().toUpperCase();
+
+    if (!trimmedName) {
+      setError("Player name is required.");
+      return;
+    }
 
     if (!normalizedCode) {
       setError("Room code is required.");
@@ -22,7 +28,7 @@ export function JoinRoomPage() {
 
     try {
       setError(null);
-      await roomStore.joinRoom(normalizedCode, playerName);
+      await roomStore.joinRoom(normalizedCode, trimmedName);
       navigate("/lobby");
     } catch (caughtError) {
       setError(caughtError instanceof Error ? caughtError.message : "Unable to join room");
