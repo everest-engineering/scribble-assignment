@@ -543,6 +543,88 @@ input {
   font-weight: 500;
 }
 
+.lobby-waiting {
+  margin: 0;
+  align-self: center;
+  color: var(--muted, #6b7280);
+  font-weight: 500;
+}
+
+.secret-word {
+  margin: 0;
+  font-size: 1.75rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: capitalize;
+  color: var(--ink, #111827);
+}
+
+.secret-word__hint {
+  margin: 4px 0 0;
+  font-size: 0.85rem;
+  color: var(--muted, #6b7280);
+}
+
+.drawing-canvas {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  background-color: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  display: block;
+  cursor: default;
+}
+
+.drawing-canvas--active {
+  cursor: crosshair;
+}
+
+.result-word {
+  margin: 0 0 8px;
+  font-size: 0.95rem;
+  color: var(--ink, #111827);
+  text-transform: capitalize;
+}
+
+.guess-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.guess-list__item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.875rem;
+  color: var(--ink, #111827);
+}
+
+.guess-list__item--correct {
+  font-weight: 600;
+}
+
+.guess-list__marker {
+  width: 1.25em;
+  text-align: center;
+  color: #9ca3af;
+}
+
+.guess-list__item--correct .guess-list__marker {
+  color: #16a34a;
+}
+
+.guess-list__name {
+  font-weight: 500;
+}
+
+.guess-list__text {
+  color: var(--muted, #6b7280);
+}
+
 @media (max-width: 720px) {
   .app-shell {
     padding: 24px 16px;

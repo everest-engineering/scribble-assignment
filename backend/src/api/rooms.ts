@@ -1,12 +1,27 @@
 import { Router } from "express";
 import {
+  clearCanvasSchema,
   createRoomSchema,
+  guessSchema,
   HttpError,
   joinRoomSchema,
+  restartSchema,
   roomCodeParamsSchema,
-  roomViewerQuerySchema
+  roomViewerQuerySchema,
+  startGameSchema,
+  strokeSchema
 } from "./schemas.js";
-import { createRoom, getRoom, joinRoom, toRoomSnapshot } from "../services/roomStore.js";
+import {
+  addStroke,
+  clearCanvas,
+  createRoom,
+  getRoom,
+  joinRoom,
+  restartGame,
+  startGame,
+  submitGuess,
+  toRoomSnapshot
+} from "../services/roomStore.js";
 
 export function createRoomsRouter() {
   const router = Router();
@@ -38,6 +53,121 @@ export function createRoomsRouter() {
       response.json({
         participantId: result.participantId,
         room: toRoomSnapshot(result.room, result.participantId)
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/:code/start", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId } = startGameSchema.parse(request.body);
+      const result = startGame(code.toUpperCase(), participantId);
+
+      if ("error" in result) {
+        if (result.error === "not-found") {
+          throw new HttpError(404, "Room not found");
+        }
+        if (result.error === "not-host") {
+          throw new HttpError(403, "Only the host can start the game");
+        }
+        throw new HttpError(400, "At least 2 players are required to start");
+      }
+
+      response.json({
+        room: toRoomSnapshot(result.room, participantId)
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/:code/strokes", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId, stroke } = strokeSchema.parse(request.body);
+      const result = addStroke(code.toUpperCase(), participantId, stroke);
+
+      if ("error" in result) {
+        if (result.error === "not-found") {
+          throw new HttpError(404, "Room not found");
+        }
+        throw new HttpError(403, "Only the drawer can draw");
+      }
+
+      response.json({
+        room: toRoomSnapshot(result.room, participantId)
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/:code/clear-canvas", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId } = clearCanvasSchema.parse(request.body);
+      const result = clearCanvas(code.toUpperCase(), participantId);
+
+      if ("error" in result) {
+        if (result.error === "not-found") {
+          throw new HttpError(404, "Room not found");
+        }
+        throw new HttpError(403, "Only the drawer can clear the canvas");
+      }
+
+      response.json({
+        room: toRoomSnapshot(result.room, participantId)
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/:code/guess", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId, text } = guessSchema.parse(request.body);
+      const result = submitGuess(code.toUpperCase(), participantId, text);
+
+      if ("error" in result) {
+        if (result.error === "not-found") {
+          throw new HttpError(404, "Room not found");
+        }
+        if (result.error === "is-drawer") {
+          throw new HttpError(403, "The drawer cannot guess");
+        }
+        if (result.error === "unknown-participant") {
+          throw new HttpError(403, "You are not a participant in this room");
+        }
+        throw new HttpError(400, "Guess cannot be empty");
+      }
+
+      response.json({
+        correct: result.correct,
+        room: toRoomSnapshot(result.room, participantId)
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/:code/restart", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId } = restartSchema.parse(request.body);
+      const result = restartGame(code.toUpperCase(), participantId);
+
+      if ("error" in result) {
+        if (result.error === "not-found") {
+          throw new HttpError(404, "Room not found");
+        }
+        throw new HttpError(403, "Only the host can restart the game");
+      }
+
+      response.json({
+        room: toRoomSnapshot(result.room, participantId)
       });
     } catch (error) {
       next(error);
