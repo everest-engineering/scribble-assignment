@@ -8,7 +8,7 @@ import { useRoomState, useRoomStore } from "../state/roomStore";
 export function LobbyPage() {
   const navigate = useNavigate();
   const roomStore = useRoomStore();
-  const { room, error, isLoading } = useRoomState();
+  const { room, participantId, error, isLoading } = useRoomState();
   const [refreshError, setRefreshError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -17,12 +17,40 @@ export function LobbyPage() {
     }
   }, [navigate, room]);
 
+  // Automatic lobby polling (~2s). Starts on mount and stops on unmount so the
+  // participant list and start gating stay current without a manual refresh.
+  useEffect(() => {
+    roomStore.startPolling(2000);
+    return () => roomStore.stopPolling();
+  }, [roomStore]);
+
+  // Once the host starts, every player's poll sees the active round and is
+  // carried into the game view automatically.
+  useEffect(() => {
+    if (room?.status === "playing") {
+      navigate("/game");
+    }
+  }, [navigate, room?.status]);
+
   async function handleRefresh() {
     try {
       setRefreshError(null);
       await roomStore.fetchRoom();
     } catch (caughtError) {
       setRefreshError(caughtError instanceof Error ? caughtError.message : "Unable to refresh room");
+    }
+  }
+
+  async function handleStart() {
+    if (!participantId) {
+      return;
+    }
+    try {
+      setRefreshError(null);
+      await roomStore.startRoom(participantId);
+      navigate("/game");
+    } catch (caughtError) {
+      setRefreshError(caughtError instanceof Error ? caughtError.message : "Unable to start game");
     }
   }
 
@@ -50,7 +78,9 @@ export function LobbyPage() {
               {room.participants.map((participant) => (
                 <li key={participant.id}>
                   <span>{participant.name}</span>
-                  <span className="player-list__meta">joined</span>
+                  <span className="player-list__meta">
+                    {participant.id === room.hostId ? "host" : "joined"}
+                  </span>
                 </li>
               ))}
             </ul>
@@ -69,9 +99,16 @@ export function LobbyPage() {
         <button className="button button--secondary" disabled={isLoading} onClick={handleRefresh}>
           {isLoading ? "Refreshing..." : "Refresh Room"}
         </button>
-        <button className="button button--primary" onClick={() => navigate("/game")}>
-          Start Game
-        </button>
+        {room.isHost ? (
+          <button
+            className="button button--primary"
+            disabled={!room.canStart || isLoading}
+            title={room.canStart ? undefined : "At least 2 players are required to start"}
+            onClick={handleStart}
+          >
+            {room.canStart ? "Start Game" : "Waiting for 2+ players"}
+          </button>
+        ) : null}
       </div>
     </section>
   );

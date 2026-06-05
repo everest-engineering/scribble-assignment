@@ -28,6 +28,10 @@ class RoomStore {
 
   private listeners = new Set<Listener>();
 
+  private pollHandle: ReturnType<typeof setInterval> | null = null;
+
+  private isPolling = false;
+
   subscribe = (listener: Listener) => {
     this.listeners.add(listener);
     return () => {
@@ -89,6 +93,69 @@ class RoomStore {
     return response;
   }
 
+  async startRoom(participantId: string) {
+    if (!this.state.room) {
+      return null;
+    }
+
+    const response = await this.withLoading(() =>
+      api.startRoom(this.state.room!.code, participantId)
+    );
+    this.setRoomSnapshot(response.room);
+    return response.room;
+  }
+
+  async endRound(participantId: string) {
+    if (!this.state.room) {
+      return null;
+    }
+
+    const response = await this.withLoading(() =>
+      api.endRound(this.state.room!.code, participantId)
+    );
+    this.setRoomSnapshot(response.room);
+    return response.room;
+  }
+
+  async restartRound(participantId: string) {
+    if (!this.state.room) {
+      return null;
+    }
+
+    const response = await this.withLoading(() =>
+      api.restartRound(this.state.room!.code, participantId)
+    );
+    this.setRoomSnapshot(response.room);
+    return response.room;
+  }
+
+  async submitGuess(text: string) {
+    if (!this.state.room || !this.state.participantId) {
+      return null;
+    }
+
+    const response = await this.withLoading(() =>
+      api.submitGuess(this.state.room!.code, this.state.participantId!, text)
+    );
+    this.setRoomSnapshot(response.room);
+    return response.room;
+  }
+
+  // Drawer pushes its canvas image. Fire-and-forget: a failed push must not
+  // disrupt drawing, so transient errors are swallowed (the next push retries).
+  async updateDrawing(drawing: string | null) {
+    const { room, participantId } = this.state;
+    if (!room || !participantId) {
+      return;
+    }
+
+    try {
+      await api.updateDrawing(room.code, participantId, drawing);
+    } catch {
+      // Ignore; polling and the next push will reconcile.
+    }
+  }
+
   async fetchRoom() {
     if (!this.state.room) {
       return null;
@@ -97,6 +164,45 @@ class RoomStore {
     const response = await api.fetchRoom(this.state.room.code, this.state.participantId ?? undefined);
     this.setRoomSnapshot(response.room);
     return response.room;
+  }
+
+  // Automatic lobby refresh. On failure the last known snapshot is kept and a
+  // non-fatal error is surfaced; the next tick retries. An in-flight guard
+  // prevents overlapping requests when a poll is slower than the interval.
+  private async pollOnce() {
+    if (this.isPolling || !this.state.room) {
+      return;
+    }
+
+    this.isPolling = true;
+
+    try {
+      const response = await api.fetchRoom(
+        this.state.room.code,
+        this.state.participantId ?? undefined
+      );
+      this.setRoomSnapshot(response.room);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unable to refresh room";
+      this.setState({ error: message });
+    } finally {
+      this.isPolling = false;
+    }
+  }
+
+  startPolling(intervalMs = 2000) {
+    this.stopPolling();
+    void this.pollOnce();
+    this.pollHandle = setInterval(() => {
+      void this.pollOnce();
+    }, intervalMs);
+  }
+
+  stopPolling() {
+    if (this.pollHandle !== null) {
+      clearInterval(this.pollHandle);
+      this.pollHandle = null;
+    }
   }
 }
 
