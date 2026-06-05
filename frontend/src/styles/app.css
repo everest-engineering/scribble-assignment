@@ -451,6 +451,61 @@ input {
   font-weight: 500;
 }
 
+.drawing-canvas {
+  display: block;
+  width: 100%;
+  aspect-ratio: 8 / 5;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #ffffff;
+  touch-action: none;
+}
+
+.activity-list {
+  display: grid;
+  gap: 12px;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.activity-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--ink-soft);
+  font-size: 0.95rem;
+}
+
+.activity-list strong {
+  color: var(--ink);
+}
+
+.result-word {
+  display: grid;
+  gap: 6px;
+  padding: 16px 20px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #ecfdf5;
+}
+
+.result-word span {
+  color: #047857;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.result-word strong {
+  color: var(--ink);
+  font-size: 1.5rem;
+  line-height: 1.2;
+  text-transform: capitalize;
+}
+
 /* --- GAME PAGE LAYOUT --- */
 /* Changed layout structure to be much wider and utilize screen space */
 .game-page {
