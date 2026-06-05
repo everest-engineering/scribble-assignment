@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import type { Participant, Room, RoomSnapshot } from "../models/game.js";
+import type { Guess, Participant, Point, Room, RoomSnapshot } from "../models/game.js";
 import { HttpError } from "../api/schemas.js";
 import { STARTER_ROLES, STARTER_WORDS } from "../seed/starterData.js";
 
@@ -102,6 +102,41 @@ export function saveRoom(room: Room) {
   return getRoom(room.code);
 }
 
+export function addStroke(code: string, participantId: string, points: Point[]) {
+  const room = rooms.get(code);
+  if (!room) throw new HttpError(404, "Unable to load room");
+  if (room.status !== "active") throw new HttpError(400, "Game is not active");
+  if (participantId !== room.drawerId) throw new HttpError(403, "Only the drawer can draw");
+  room.canvasStrokes!.push(points);
+  saveRoom(room);
+  return { ok: true };
+}
+
+export function clearCanvas(code: string, participantId: string) {
+  const room = rooms.get(code);
+  if (!room) throw new HttpError(404, "Unable to load room");
+  if (room.status !== "active") throw new HttpError(400, "Game is not active");
+  if (participantId !== room.drawerId) throw new HttpError(403, "Only the drawer can clear the canvas");
+  room.canvasStrokes = [];
+  saveRoom(room);
+  return { ok: true };
+}
+
+export function submitGuess(code: string, participantId: string, text: string): Guess {
+  const room = rooms.get(code);
+  if (!room) throw new HttpError(404, "Unable to load room");
+  if (room.status !== "active") throw new HttpError(400, "Game is not active");
+  if (participantId === room.drawerId) throw new HttpError(403, "The drawer cannot submit guesses");
+  const isCorrect = text.toLowerCase() === (room.currentWord ?? "").toLowerCase();
+  const guess: Guess = { participantId, text, isCorrect, submittedAt: now() };
+  room.guesses!.push(guess);
+  if (isCorrect) {
+    room.scores![participantId] = (room.scores![participantId] ?? 0) + 100;
+  }
+  saveRoom(room);
+  return guess;
+}
+
 export function startRoom(code: string, participantId: string): RoomSnapshot {
   const room = rooms.get(code);
 
@@ -120,6 +155,9 @@ export function startRoom(code: string, participantId: string): RoomSnapshot {
   room.status = "active";
   room.drawerId = room.hostId;
   room.currentWord = STARTER_WORDS[0];
+  room.canvasStrokes = [];
+  room.guesses = [];
+  room.scores = Object.fromEntries(room.participants.map((p) => [p.id, 0]));
   const saved = saveRoom(room)!;
   return toRoomSnapshot(saved);
 }
@@ -131,6 +169,9 @@ export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSn
     hostId: room.hostId,
     ...(room.drawerId && { drawerId: room.drawerId }),
     ...(room.currentWord && viewerParticipantId === room.drawerId && { currentWord: room.currentWord }),
+    ...(room.canvasStrokes !== undefined && { canvasStrokes: room.canvasStrokes.map((s) => [...s]) }),
+    ...(room.guesses !== undefined && { guesses: [...room.guesses] }),
+    ...(room.scores !== undefined && { scores: { ...room.scores } }),
     participants: room.participants.map((participant) => ({ ...participant })),
     availableWords: listWords(),
     roles: [...STARTER_ROLES]

@@ -20,6 +20,20 @@ export const startRoomSchema = z.object({
   participantId: z.string().min(1)
 });
 
+export const strokeSchema = z.object({
+  participantId: z.string().min(1),
+  points: z.array(z.object({ x: z.number(), y: z.number() })).min(1)
+});
+
+export const clearCanvasSchema = z.object({
+  participantId: z.string().min(1)
+});
+
+export const guessSchema = z.object({
+  participantId: z.string().min(1),
+  text: z.string().transform((s) => s.trim()).pipe(z.string().min(1, "Guess cannot be empty"))
+});
+
 export class HttpError extends Error {
   statusCode: number;
 
