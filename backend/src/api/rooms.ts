@@ -1,17 +1,23 @@
 import { Router } from "express";
 import {
+  clearCanvasSchema,
   createRoomSchema,
+  guessSchema,
   HttpError,
   joinRoomSchema,
   roomCodeParamsSchema,
   roomViewerQuerySchema,
-  startRoomSchema
+  startRoomSchema,
+  strokeSchema
 } from "./schemas.js";
 import {
+  addStroke,
+  clearCanvas,
   createRoom,
   getRoom,
   joinRoom,
   startRoom,
+  submitGuess,
   toRoomSnapshot
 } from "../services/roomStore.js";
 
@@ -71,6 +77,85 @@ export function createRoomsRouter() {
 
       response.json({
         room: toRoomSnapshot(result.room, participantId)
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/:code/strokes", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId, stroke } = strokeSchema.parse(request.body);
+      const result = addStroke(code, participantId, stroke);
+
+      if (!result.ok) {
+        if (result.reason === "not-found") {
+          throw new HttpError(404, "Room not found");
+        }
+
+        if (result.reason === "forbidden") {
+          throw new HttpError(403, "Only the drawer can draw");
+        }
+
+        throw new HttpError(409, "The round has ended");
+      }
+
+      response.json({
+        room: toRoomSnapshot(result.room, participantId)
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/:code/canvas/clear", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId } = clearCanvasSchema.parse(request.body);
+      const result = clearCanvas(code, participantId);
+
+      if (!result.ok) {
+        if (result.reason === "not-found") {
+          throw new HttpError(404, "Room not found");
+        }
+
+        if (result.reason === "forbidden") {
+          throw new HttpError(403, "Only the drawer can draw");
+        }
+
+        throw new HttpError(409, "The round has ended");
+      }
+
+      response.json({
+        room: toRoomSnapshot(result.room, participantId)
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/:code/guess", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId, guess } = guessSchema.parse(request.body);
+      const result = submitGuess(code, participantId, guess);
+
+      if (!result.ok) {
+        if (result.reason === "not-found") {
+          throw new HttpError(404, "Room not found");
+        }
+
+        if (result.reason === "forbidden") {
+          throw new HttpError(403, "Only guessers can submit guesses");
+        }
+
+        throw new HttpError(409, "The round has ended");
+      }
+
+      response.json({
+        room: toRoomSnapshot(result.room, participantId),
+        correct: result.correct
       });
     } catch (error) {
       next(error);

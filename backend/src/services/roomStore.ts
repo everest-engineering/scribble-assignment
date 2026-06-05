@@ -1,7 +1,15 @@
 import { randomUUID } from "node:crypto";
-import type { ParticipantRole, Participant, Room, RoomSnapshot, RoundState } from "../models/game.js";
+import type {
+  ParticipantRole,
+  Participant,
+  Room,
+  RoomSnapshot,
+  RoundState,
+  Stroke
+} from "../models/game.js";
 import { STARTER_ROLES, STARTER_WORDS } from "../seed/starterData.js";
 import { selectWord } from "./wordSelection.js";
+import { CORRECT_SCORE, INCORRECT_SCORE, isCorrectGuess } from "./gameRules.js";
 
 const rooms = new Map<string, Room>();
 
@@ -10,6 +18,14 @@ const MIN_PLAYERS_TO_START = 2;
 export type StartRoomResult =
   | { ok: true; room: Room }
   | { ok: false; reason: "not-found" | "forbidden" | "too-few-players" };
+
+export type StrokeResult =
+  | { ok: true; room: Room }
+  | { ok: false; reason: "not-found" | "forbidden" | "round-ended" };
+
+export type GuessResult =
+  | { ok: true; room: Room; correct: boolean }
+  | { ok: false; reason: "not-found" | "forbidden" | "round-ended" };
 
 function now() {
   return new Date().toISOString();
@@ -134,11 +150,105 @@ function initializeRound(room: Room): RoundState {
     return acc;
   }, {});
 
+  const scores = room.participants.reduce<Record<string, number>>((acc, participant) => {
+    acc[participant.id] = 0;
+    return acc;
+  }, {});
+
   return {
     drawerId: room.hostId,
     secretWord: selectWord(room.code, STARTER_WORDS),
-    roles
+    roles,
+    strokes: [],
+    guesses: [],
+    scores,
+    ended: false
   };
+}
+
+export function addStroke(code: string, participantId: string, stroke: Stroke): StrokeResult {
+  const room = rooms.get(code);
+
+  if (!room || !room.round) {
+    return { ok: false, reason: "not-found" };
+  }
+
+  if (room.round.drawerId !== participantId) {
+    return { ok: false, reason: "forbidden" };
+  }
+
+  if (room.round.ended) {
+    return { ok: false, reason: "round-ended" };
+  }
+
+  room.round.strokes.push(stroke);
+  room.updatedAt = now();
+  rooms.set(room.code, room);
+
+  return { ok: true, room: cloneRoom(room) };
+}
+
+export function clearCanvas(code: string, participantId: string): StrokeResult {
+  const room = rooms.get(code);
+
+  if (!room || !room.round) {
+    return { ok: false, reason: "not-found" };
+  }
+
+  if (room.round.drawerId !== participantId) {
+    return { ok: false, reason: "forbidden" };
+  }
+
+  if (room.round.ended) {
+    return { ok: false, reason: "round-ended" };
+  }
+
+  room.round.strokes = [];
+  room.updatedAt = now();
+  rooms.set(room.code, room);
+
+  return { ok: true, room: cloneRoom(room) };
+}
+
+export function submitGuess(code: string, participantId: string, guessText: string): GuessResult {
+  const room = rooms.get(code);
+
+  if (!room || !room.round) {
+    return { ok: false, reason: "not-found" };
+  }
+
+  const guesser = room.participants.find((participant) => participant.id === participantId);
+
+  if (!guesser || room.round.roles[participantId] !== "guesser") {
+    return { ok: false, reason: "forbidden" };
+  }
+
+  if (room.round.ended) {
+    return { ok: false, reason: "round-ended" };
+  }
+
+  const trimmed = guessText.trim();
+  const correct = isCorrectGuess(trimmed, room.round.secretWord);
+
+  room.round.guesses.push({
+    participantId,
+    name: guesser.name,
+    guess: trimmed,
+    correct,
+    at: now()
+  });
+
+  room.round.scores[participantId] =
+    (room.round.scores[participantId] ?? 0) + (correct ? CORRECT_SCORE : INCORRECT_SCORE);
+
+  if (correct) {
+    room.round.ended = true;
+  }
+
+  room.updatedAt = now();
+  rooms.set(room.code, room);
+
+  return { ok: true, room: cloneRoom(room), correct };
 }
 
 export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSnapshot {
@@ -150,10 +260,14 @@ export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSn
     participants: room.participants.map((participant) => ({
       ...participant,
       isHost: participant.id === room.hostId,
-      role: room.round?.roles[participant.id] ?? null
+      role: room.round?.roles[participant.id] ?? null,
+      score: room.round?.scores[participant.id] ?? 0
     })),
     availableWords: listWords(),
-    roles: [...STARTER_ROLES]
+    roles: [...STARTER_ROLES],
+    strokes: room.round ? room.round.strokes : [],
+    guesses: room.round ? room.round.guesses : [],
+    roundEnded: room.round?.ended ?? false
   };
 
   if (room.round && viewerParticipantId === room.round.drawerId) {

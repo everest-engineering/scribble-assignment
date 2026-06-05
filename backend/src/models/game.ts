@@ -7,10 +7,31 @@ export interface Participant {
   joinedAt: string;
 }
 
+export interface StrokePoint {
+  x: number;
+  y: number;
+}
+
+export interface Stroke {
+  points: StrokePoint[];
+}
+
+export interface GuessRecord {
+  participantId: string;
+  name: string;
+  guess: string;
+  correct: boolean;
+  at: string;
+}
+
 export interface RoundState {
   drawerId: string;
   secretWord: string;
   roles: Record<string, ParticipantRole>;
+  strokes: Stroke[];
+  guesses: GuessRecord[];
+  scores: Record<string, number>;
+  ended: boolean;
 }
 
 export interface Room {
@@ -26,6 +47,7 @@ export interface Room {
 export interface SnapshotParticipant extends Participant {
   isHost: boolean;
   role: ParticipantRole | null;
+  score: number;
 }
 
 export interface RoomSnapshot {
@@ -36,6 +58,9 @@ export interface RoomSnapshot {
   participants: SnapshotParticipant[];
   availableWords: string[];
   roles: ParticipantRole[];
+  strokes: Stroke[];
+  guesses: GuessRecord[];
+  roundEnded: boolean;
   secretWord?: string;
 }
 

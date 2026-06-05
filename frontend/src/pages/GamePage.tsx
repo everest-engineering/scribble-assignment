@@ -1,21 +1,46 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card } from "../components/Card";
+import { DrawingCanvas } from "../components/DrawingCanvas";
 import { GuessForm } from "../components/GuessForm";
 import { ResultPanel } from "../components/ResultPanel";
 import { RoomCodeBadge } from "../components/RoomCodeBadge";
 import { Scoreboard } from "../components/Scoreboard";
-import { useRoomState } from "../state/roomStore";
+import type { Stroke } from "../services/api";
+import { useRoomState, useRoomStore } from "../state/roomStore";
+
+const POLL_INTERVAL_MS = 2000;
 
 export function GamePage() {
   const navigate = useNavigate();
+  const roomStore = useRoomStore();
   const { room, participantId } = useRoomState();
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [refreshError, setRefreshError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!room) {
       navigate("/", { replace: true });
     }
   }, [navigate, room]);
+
+  useEffect(() => {
+    if (!room) {
+      return undefined;
+    }
+
+    const intervalId = window.setInterval(() => {
+      roomStore.fetchRoom().catch((caughtError) => {
+        setRefreshError(
+          caughtError instanceof Error ? caughtError.message : "Unable to refresh game"
+        );
+      });
+    }, POLL_INTERVAL_MS);
+
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, [room, roomStore]);
 
   if (!room) {
     return null;
@@ -24,6 +49,27 @@ export function GamePage() {
   const viewer = room.participants.find((participant) => participant.id === participantId) ?? null;
   const drawer = room.participants.find((participant) => participant.id === room.drawerId) ?? null;
   const isDrawer = viewer?.role === "drawer";
+  const roundEnded = room.roundEnded;
+  const canDraw = isDrawer && !roundEnded;
+  const canGuess = !isDrawer && !roundEnded;
+
+  async function handleStrokeComplete(stroke: Stroke) {
+    try {
+      setActionError(null);
+      await roomStore.submitStroke(stroke);
+    } catch (caughtError) {
+      setActionError(caughtError instanceof Error ? caughtError.message : "Unable to send stroke");
+    }
+  }
+
+  async function handleClear() {
+    try {
+      setActionError(null);
+      await roomStore.clearCanvas();
+    } catch (caughtError) {
+      setActionError(caughtError instanceof Error ? caughtError.message : "Unable to clear canvas");
+    }
+  }
 
   return (
     <section className="panel game-page">
@@ -37,27 +83,39 @@ export function GamePage() {
 
       <div className="game-page__layout">
         <aside className="game-page__sidebar game-page__sidebar--left">
-          <Scoreboard />
-          <ResultPanel />
+          <Scoreboard participants={room.participants} />
+          <ResultPanel guesses={room.guesses} />
         </aside>
 
         <div className="game-page__main">
           <Card title="Canvas">
-            <p className="status-line" style={{ backgroundColor: '#e0e7ff', color: '#3730a3' }}>
-              {isDrawer
-                ? "You are the drawer."
-                : `${drawer?.name ?? "The host"} is the drawer.`}
+            <p className="status-line" style={{ backgroundColor: "#e0e7ff", color: "#3730a3" }}>
+              {roundEnded
+                ? "The round has ended."
+                : isDrawer
+                  ? "You are the drawer."
+                  : `${drawer?.name ?? "The host"} is the drawer.`}
             </p>
             {isDrawer ? (
-              <p style={{ marginTop: '8px' }}>
+              <p style={{ marginTop: "8px" }}>
                 Your secret word: <strong>{room.secretWord ?? "…"}</strong>
               </p>
             ) : (
-              <p style={{ marginTop: '8px' }}>Guess the word the drawer is drawing.</p>
+              <p style={{ marginTop: "8px" }}>Guess the word the drawer is drawing.</p>
             )}
-            <div className="canvas-placeholder" style={{ minHeight: '500px', backgroundColor: '#ffffff', border: '1px solid #e5e7eb', marginTop: '12px' }}>
-              {isDrawer ? "Drawing tools arrive in a later round." : "Waiting for drawer..."}
+            <div style={{ marginTop: "12px" }}>
+              <DrawingCanvas
+                strokes={room.strokes}
+                canDraw={canDraw}
+                onStrokeComplete={handleStrokeComplete}
+                onClear={handleClear}
+              />
             </div>
+            {actionError ? (
+              <p className="form__error" style={{ marginTop: "8px" }}>
+                {actionError}
+              </p>
+            ) : null}
           </Card>
         </div>
 
@@ -70,14 +128,28 @@ export function GamePage() {
               </div>
               <div>
                 <dt>Status</dt>
-                <dd>Playing</dd>
+                <dd>{roundEnded ? "Round over" : "Playing"}</dd>
               </div>
             </dl>
           </Card>
 
           <Card title="Your Guess">
-            <GuessForm />
+            {isDrawer ? (
+              <p style={{ fontSize: "0.875rem", color: "#6b7280" }}>
+                You are drawing this round — guessing is disabled.
+              </p>
+            ) : (
+              <>
+                <GuessForm disabled={!canGuess} />
+                {roundEnded ? (
+                  <p style={{ fontSize: "0.875rem", color: "#6b7280", marginTop: "8px" }}>
+                    The round has ended. No more guesses.
+                  </p>
+                ) : null}
+              </>
+            )}
           </Card>
+          {refreshError ? <p className="form__error">{refreshError}</p> : null}
         </aside>
       </div>
 

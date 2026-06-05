@@ -66,4 +66,27 @@ describe("api service", () => {
       })
     );
   });
+
+  // T023 [US2]
+  it("submitGuess POSTs to /rooms/:code/guess with participantId and guess", async () => {
+    const mockResponse = {
+      ok: true,
+      json: () =>
+        Promise.resolve({
+          room: { code: "ABCD", status: "started", participants: [] },
+          correct: false
+        })
+    };
+    vi.mocked(fetch).mockResolvedValue(mockResponse as unknown as Response);
+
+    await api.submitGuess("ABCD", "p2", "cat");
+
+    expect(fetch).toHaveBeenCalledWith(
+      expect.stringContaining("/rooms/ABCD/guess"),
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({ participantId: "p2", guess: "cat" })
+      })
+    );
+  });
 });

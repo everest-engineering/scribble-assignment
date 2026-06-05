@@ -8,6 +8,24 @@ export interface Participant {
   joinedAt: string;
   isHost: boolean;
   role: ParticipantRole | null;
+  score: number;
+}
+
+export interface StrokePoint {
+  x: number;
+  y: number;
+}
+
+export interface Stroke {
+  points: StrokePoint[];
+}
+
+export interface GuessRecord {
+  participantId: string;
+  name: string;
+  guess: string;
+  correct: boolean;
+  at: string;
 }
 
 export interface RoomSnapshot {
@@ -18,6 +36,9 @@ export interface RoomSnapshot {
   participants: Participant[];
   availableWords: string[];
   roles: ParticipantRole[];
+  strokes: Stroke[];
+  guesses: GuessRecord[];
+  roundEnded: boolean;
   secretWord?: string;
 }
 
@@ -70,5 +91,26 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ participantId })
     });
+  },
+  submitStroke(code: string, participantId: string, stroke: Stroke) {
+    return request<{ room: RoomSnapshot }>(`/rooms/${encodeURIComponent(code)}/strokes`, {
+      method: "POST",
+      body: JSON.stringify({ participantId, stroke })
+    });
+  },
+  clearCanvas(code: string, participantId: string) {
+    return request<{ room: RoomSnapshot }>(`/rooms/${encodeURIComponent(code)}/canvas/clear`, {
+      method: "POST",
+      body: JSON.stringify({ participantId })
+    });
+  },
+  submitGuess(code: string, participantId: string, guess: string) {
+    return request<{ room: RoomSnapshot; correct: boolean }>(
+      `/rooms/${encodeURIComponent(code)}/guess`,
+      {
+        method: "POST",
+        body: JSON.stringify({ participantId, guess })
+      }
+    );
   }
 };

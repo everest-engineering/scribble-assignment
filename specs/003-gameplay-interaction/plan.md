@@ -301,3 +301,30 @@ specs/003-gameplay-interaction/
 ├── checklists/requirements.md
 └── tasks.md             # /speckit-tasks (next)
 ```
+
+## Implementation Notes & Deviations (post-execution)
+
+Recorded during `/speckit-implement` on 2026-06-05. All 33 tasks except T032 (manual two-tab
+validation) are complete; automated suites pass (backend 42 tests, frontend 4 tests; both builds green).
+
+- **I1 reconciliation (FR-038 "clear message" vs generic 400)**: Mirrors the Group 2 decision. The
+  backend keeps the generic Zod `400 { "message": "Invalid request payload" }` for empty guesses; the
+  user-facing clear message is delivered **client-side** in `GuessForm.tsx` ("Enter a guess before
+  submitting."), which blocks the request before it is sent. FR-038's "or equivalent client-side block"
+  is satisfied; the server 400 is the backstop and stays consistent with Groups 1–2.
+- **`submitGuess` not split across two commits**: The plan split guess gating (T020) and scoring/history
+  side effects (T026) into separate tasks. They were implemented together in a single `submitGuess`
+  function for cohesion (one authoritative mutation path), still covered by both the US2 gating tests and
+  the US3 scoring/history tests. No behavioral deviation.
+- **Guess/clear "round-ended" maps to HTTP 409**: As designed in `contracts/rooms-api.md`. Drawer/guesser
+  role violations map to 403; unknown room/round to 404.
+- **`submitGuess` forbidden cases**: Drawer (role !== "guesser") and unknown participants both return
+  `forbidden` (403), matching the contract.
+- **Canvas implementation detail**: `DrawingCanvas.tsx` uses a fixed internal resolution (640×480) and
+  scales pointer coordinates from the rendered element, storing raw `{x,y}` in canvas space so all clients
+  redraw consistently from `snapshot.strokes`. One `POST /strokes` is sent per completed pointer stroke
+  (on pointer up/leave), keeping request volume polling-friendly. Stroke point cap is 2000 (Zod guard).
+- **Scoreboard ordering**: Scores render sorted descending for readability; the drawer is shown with a
+  "(drawer)" tag and starts at 0. History (`ResultPanel`) renders newest-first while the authoritative
+  `guesses` array stays in submission order (verified by a unit test).
+- **No new dependencies**: Native HTML `<canvas>` only; constitution I/V upheld.

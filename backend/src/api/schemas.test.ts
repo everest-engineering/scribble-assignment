@@ -1,5 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { createRoomSchema, joinRoomSchema, roomCodeParamsSchema, startRoomSchema } from "./schemas.js";
+import {
+  clearCanvasSchema,
+  createRoomSchema,
+  guessSchema,
+  joinRoomSchema,
+  roomCodeParamsSchema,
+  startRoomSchema,
+  strokeSchema
+} from "./schemas.js";
 
 describe("schemas", () => {
   it("createRoomSchema accepts a valid body with playerName", () => {
@@ -45,5 +53,28 @@ describe("schemas", () => {
     expect(() => startRoomSchema.parse({})).toThrow();
     expect(() => startRoomSchema.parse({ participantId: "" })).toThrow();
     expect(startRoomSchema.parse({ participantId: "p1" }).participantId).toBe("p1");
+  });
+
+  // T009 [US1]
+  it("strokeSchema requires at least one point and rejects oversized strokes", () => {
+    expect(strokeSchema.parse({ participantId: "p1", stroke: { points: [{ x: 1, y: 2 }] } })).toBeTruthy();
+    expect(() => strokeSchema.parse({ participantId: "p1", stroke: { points: [] } })).toThrow();
+    const tooMany = { points: Array.from({ length: 2001 }, () => ({ x: 0, y: 0 })) };
+    expect(() => strokeSchema.parse({ participantId: "p1", stroke: tooMany })).toThrow();
+    expect(() => strokeSchema.parse({ participantId: "p1", stroke: { points: [{ x: "a", y: 2 }] } })).toThrow();
+  });
+
+  // T009 [US1]
+  it("clearCanvasSchema requires a non-empty participantId", () => {
+    expect(clearCanvasSchema.parse({ participantId: "p1" }).participantId).toBe("p1");
+    expect(() => clearCanvasSchema.parse({ participantId: "" })).toThrow();
+  });
+
+  // T017 [US2]
+  it("guessSchema rejects empty/whitespace guesses and trims valid ones", () => {
+    expect(() => guessSchema.parse({ participantId: "p1", guess: "" })).toThrow();
+    expect(() => guessSchema.parse({ participantId: "p1", guess: "   " })).toThrow();
+    expect(() => guessSchema.parse({ participantId: "", guess: "cat" })).toThrow();
+    expect(guessSchema.parse({ participantId: "p1", guess: "  cat " }).guess).toBe("cat");
   });
 });

@@ -1,5 +1,28 @@
 import { describe, expect, it } from "vitest";
-import { createRoom, getRoom, joinRoom, listWords, startRoom, toRoomSnapshot } from "./roomStore.js";
+import {
+  addStroke,
+  clearCanvas,
+  createRoom,
+  getRoom,
+  joinRoom,
+  listWords,
+  startRoom,
+  submitGuess,
+  toRoomSnapshot
+} from "./roomStore.js";
+
+function startedRoom() {
+  const host = createRoom("Alice");
+  const guesser = joinRoom(host.room.code, "Bob")!;
+  const started = startRoom(host.room.code, host.participantId);
+  if (!started.ok) throw new Error("expected room to start");
+  return {
+    code: host.room.code,
+    drawerId: host.participantId,
+    guesserId: guesser.participantId,
+    secretWord: started.room.round!.secretWord
+  };
+}
 
 describe("roomStore", () => {
   it("createRoom returns a room with a 4-character uppercase code", () => {
@@ -170,5 +193,139 @@ describe("roomStore", () => {
 
     expect(Object.prototype.hasOwnProperty.call(anonView, "secretWord")).toBe(false);
     expect(Object.prototype.hasOwnProperty.call(unknownView, "secretWord")).toBe(false);
+  });
+
+  // --- Group 3 ---
+
+  // T008 [US1]
+  it("addStroke appends for the drawer and exposes strokes to all viewers", () => {
+    const game = startedRoom();
+    const stroke = { points: [{ x: 1, y: 2 }, { x: 3, y: 4 }] };
+
+    const result = addStroke(game.code, game.drawerId, stroke);
+    expect(result.ok).toBe(true);
+
+    const guesserView = toRoomSnapshot(getRoom(game.code)!, game.guesserId);
+    expect(guesserView.strokes).toHaveLength(1);
+    expect(guesserView.strokes[0].points).toHaveLength(2);
+  });
+
+  // T008 [US1]
+  it("addStroke rejects non-drawers", () => {
+    const game = startedRoom();
+    const result = addStroke(game.code, game.guesserId, { points: [{ x: 0, y: 0 }] });
+    expect(result).toEqual({ ok: false, reason: "forbidden" });
+  });
+
+  // T008 [US1]
+  it("clearCanvas empties strokes for the drawer and is idempotent", () => {
+    const game = startedRoom();
+    addStroke(game.code, game.drawerId, { points: [{ x: 1, y: 1 }] });
+
+    const first = clearCanvas(game.code, game.drawerId);
+    expect(first.ok).toBe(true);
+    expect(toRoomSnapshot(getRoom(game.code)!, game.drawerId).strokes).toHaveLength(0);
+
+    const second = clearCanvas(game.code, game.drawerId);
+    expect(second.ok).toBe(true);
+  });
+
+  // T008 [US1]
+  it("addStroke and clearCanvas are rejected after the round ends", () => {
+    const game = startedRoom();
+    submitGuess(game.code, game.guesserId, game.secretWord);
+
+    expect(addStroke(game.code, game.drawerId, { points: [{ x: 0, y: 0 }] })).toEqual({
+      ok: false,
+      reason: "round-ended"
+    });
+    expect(clearCanvas(game.code, game.drawerId)).toEqual({ ok: false, reason: "round-ended" });
+  });
+
+  // T008 [US1]
+  it("drawing in room A leaves room B strokes unchanged", () => {
+    const gameA = startedRoom();
+    const gameB = startedRoom();
+
+    addStroke(gameA.code, gameA.drawerId, { points: [{ x: 5, y: 5 }] });
+
+    expect(toRoomSnapshot(getRoom(gameB.code)!, gameB.drawerId).strokes).toHaveLength(0);
+  });
+
+  // T018 [US2]
+  it("submitGuess rejects the drawer and unknown participants", () => {
+    const game = startedRoom();
+    expect(submitGuess(game.code, game.drawerId, "anything")).toEqual({
+      ok: false,
+      reason: "forbidden"
+    });
+    expect(submitGuess(game.code, "not-real", "anything")).toEqual({
+      ok: false,
+      reason: "forbidden"
+    });
+    expect(submitGuess("ZZZZ", game.guesserId, "anything")).toEqual({
+      ok: false,
+      reason: "not-found"
+    });
+  });
+
+  // T018 [US2]
+  it("submitGuess is rejected after the round has ended", () => {
+    const game = startedRoom();
+    submitGuess(game.code, game.guesserId, game.secretWord);
+
+    expect(submitGuess(game.code, game.guesserId, game.secretWord)).toEqual({
+      ok: false,
+      reason: "round-ended"
+    });
+  });
+
+  // T025 [US3]
+  it("a newly started round has all scores at 0 and no guesses", () => {
+    const game = startedRoom();
+    const view = toRoomSnapshot(getRoom(game.code)!, game.guesserId);
+
+    expect(view.guesses).toHaveLength(0);
+    expect(view.roundEnded).toBe(false);
+    view.participants.forEach((participant) => expect(participant.score).toBe(0));
+  });
+
+  // T025 [US3]
+  it("an incorrect guess adds 0 and records history as incorrect", () => {
+    const game = startedRoom();
+    const wrong = `${game.secretWord}-definitely-wrong`;
+
+    const result = submitGuess(game.code, game.guesserId, wrong);
+    expect(result.ok && result.correct).toBe(false);
+
+    const view = toRoomSnapshot(getRoom(game.code)!, game.guesserId);
+    const guesser = view.participants.find((participant) => participant.id === game.guesserId);
+    expect(guesser?.score).toBe(0);
+    expect(view.guesses.at(-1)?.correct).toBe(false);
+    expect(view.roundEnded).toBe(false);
+  });
+
+  // T025 [US3]
+  it("a correct guess (case-insensitive) adds 100, marks correct, and ends the round", () => {
+    const game = startedRoom();
+
+    const result = submitGuess(game.code, game.guesserId, `  ${game.secretWord.toUpperCase()} `);
+    expect(result.ok && result.correct).toBe(true);
+
+    const view = toRoomSnapshot(getRoom(game.code)!, game.guesserId);
+    const guesser = view.participants.find((participant) => participant.id === game.guesserId);
+    expect(guesser?.score).toBe(100);
+    expect(view.guesses.at(-1)?.correct).toBe(true);
+    expect(view.roundEnded).toBe(true);
+  });
+
+  // T025 [US3]
+  it("guess history preserves submission order", () => {
+    const game = startedRoom();
+    submitGuess(game.code, game.guesserId, "first");
+    submitGuess(game.code, game.guesserId, "second");
+
+    const view = toRoomSnapshot(getRoom(game.code)!, game.guesserId);
+    expect(view.guesses.map((entry) => entry.guess)).toEqual(["first", "second"]);
   });
 });
