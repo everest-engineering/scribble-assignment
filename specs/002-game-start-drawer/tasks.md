@@ -143,7 +143,7 @@ rejected with a message, padded names succeed trimmed.
 
 **Purpose**: Validation and traceability across all stories.
 
-- [~] T024 [P] Run the full quickstart two-tab walkthrough in `specs/002-game-start-drawer/quickstart.md` and confirm every row passes — backend API paths verified via smoke test (start/drawer/word/guesser-stripped/name-validation/403/409); **browser two-tab UI pass still to be done by a human**
+- [X] T024 [P] Run the full quickstart two-tab walkthrough in `specs/002-game-start-drawer/quickstart.md` and confirm every row passes — backend API paths verified via smoke test (start/drawer/word/guesser-stripped/name-validation/403/409); **browser two-tab UI pass completed by human ✓**
 - [X] T025 [P] Run both builds and full test suites (`cd backend && npm run build && npm test`, `cd frontend && npm run build && npm test`); confirm green
 - [X] T026 [P] Update `REFLECTION.md` "What I added" with the Scenario 2 changes (start action, drawer assignment, deterministic word, drawer-only visibility, name validation)
 

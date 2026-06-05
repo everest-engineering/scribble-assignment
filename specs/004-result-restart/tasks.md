@@ -123,7 +123,7 @@ lock that behavior in.
 
 **Purpose**: Validation and traceability; final lab close-out.
 
-- [~] T023 [P] Run the full quickstart two-tab walkthrough (incl. the full loop, SC-008) in `specs/004-result-restart/quickstart.md` and confirm every row passes — full lifecycle API verified via smoke test (host end → result with word revealed; guesser end/restart 403; host restart → lobby, scores 0, players preserved); **browser two-tab full-loop pass still to be done by a human**
+- [X] T023 [P] Run the full quickstart two-tab walkthrough (incl. the full loop, SC-008) in `specs/004-result-restart/quickstart.md` and confirm every row passes — full lifecycle API verified via smoke test (host end → result with word revealed; guesser end/restart 403; host restart → lobby, scores 0, players preserved); **browser two-tab full-loop pass completed by human ✓**
 - [X] T024 [P] Run both builds and full test suites (`cd backend && npm run build && npm test`, `cd frontend && npm run build && npm test`); confirm green
 - [X] T025 [P] Update `REFLECTION.md` "What I added" with the Scenario 4 changes (result state, end/restart, word reveal, host-only lifecycle) and note the lab is complete
 

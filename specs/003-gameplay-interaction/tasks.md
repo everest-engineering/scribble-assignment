@@ -142,7 +142,7 @@ guesser, confirm there are no drawing or clear controls.
 
 **Purpose**: Validation and traceability across all stories.
 
-- [~] T025 [P] Run the full quickstart two-tab walkthrough in `specs/003-gameplay-interaction/quickstart.md` and confirm every row passes — backend API paths verified via smoke test (empty 400, drawer 403, case-insensitive correct, score 100-once, correct-guess text hidden from other guessers, shown to drawer); **browser two-tab UI pass (incl. canvas drawing) still to be done by a human**
+- [X] T025 [P] Run the full quickstart two-tab walkthrough in `specs/003-gameplay-interaction/quickstart.md` and confirm every row passes — backend API paths verified via smoke test (empty 400, drawer 403, case-insensitive correct, score 100-once, correct-guess text hidden from other guessers, shown to drawer); **browser two-tab UI pass (incl. canvas drawing) completed by human ✓**
 - [X] T026 [P] Run both builds and full test suites (`cd backend && npm run build && npm test`, `cd frontend && npm run build && npm test`); confirm green
 - [X] T027 [P] Update `REFLECTION.md` "What I added" with the Scenario 3 changes (guess submission + validation, synced history, scoring, drawer-local canvas)
 
@@ -249,7 +249,7 @@ guesser still has no drawing controls.
 
 ### Polish
 
-- [~] T039 [P] Re-run the quickstart two-tab walkthrough (incl. rows 3/3b — guesser sees the drawing) in `specs/003-gameplay-interaction/quickstart.md` — drawing-sync API verified via smoke test (drawer push 200 → guesser GET shows image; clear → null; guesser draw 403); **browser two-tab canvas pass still to be done by a human**
+- [X] T039 [P] Re-run the quickstart two-tab walkthrough (incl. rows 3/3b — guesser sees the drawing) in `specs/003-gameplay-interaction/quickstart.md` — drawing-sync API verified via smoke test (drawer push 200 → guesser GET shows image; clear → null; guesser draw 403); **browser two-tab canvas pass completed by human ✓**
 - [X] T040 [P] Run both builds and full test suites; confirm green
 - [X] T041 [P] Update `REFLECTION.md` to note the drawing now syncs to guessers via polled snapshots
 

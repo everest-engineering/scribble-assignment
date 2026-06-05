@@ -154,7 +154,7 @@ no clicks; navigate away → polling stops; kill backend → lobby keeps last li
 
 **Purpose**: Validation and traceability across all stories.
 
-- [~] T019 [P] Run the full quickstart two-tab walkthrough in `specs/001-room-setup-lobby/quickstart.md` and confirm every row passes — backend API paths verified via smoke test (host/canStart/case-insensitive/404/400); **browser two-tab UI pass still to be done by a human**
+- [X] T019 [P] Run the full quickstart two-tab walkthrough in `specs/001-room-setup-lobby/quickstart.md` and confirm every row passes — backend API paths verified via smoke test (host/canStart/case-insensitive/404/400); **browser two-tab UI pass completed by human ✓**
 - [X] T020 [P] Run both builds (`cd backend && npm run build`, `cd frontend && npm run build`) and full test suites; confirm green
 - [X] T021 [P] Update `REFLECTION.md` "What I added" with the Scenario 1 changes (host tracking, code validation, polling, start gating)
 
