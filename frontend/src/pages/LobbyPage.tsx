@@ -37,12 +37,33 @@ export function LobbyPage() {
     return () => clearInterval(interval);
   }, [room, roomStore]);
 
+  // Once the game has started, send every participant to the game screen. The
+  // host transitions on its own start call; guessers transition when polling
+  // reports the playing status.
+  useEffect(() => {
+    if (room?.status === "playing") {
+      navigate("/game");
+    }
+  }, [navigate, room?.status]);
+
   async function handleRefresh() {
     try {
       setRefreshError(null);
       await roomStore.fetchRoom();
     } catch {
       setRefreshError("Couldn't reach the room — retrying…");
+    }
+  }
+
+  async function handleStart() {
+    try {
+      setRefreshError(null);
+      await roomStore.startGame();
+      navigate("/game");
+    } catch (caughtError) {
+      setRefreshError(
+        caughtError instanceof Error ? caughtError.message : "Unable to start the game"
+      );
     }
   }
 
@@ -98,8 +119,8 @@ export function LobbyPage() {
         {isHost ? (
           <button
             className="button button--primary"
-            disabled={!canStart}
-            onClick={() => navigate("/game")}
+            disabled={!canStart || isLoading}
+            onClick={handleStart}
           >
             {canStart ? "Start Game" : "Start Game (need 2+ players)"}
           </button>

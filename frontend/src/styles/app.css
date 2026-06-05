@@ -543,6 +543,28 @@ input {
   font-weight: 500;
 }
 
+.lobby-waiting {
+  margin: 0;
+  align-self: center;
+  color: var(--muted, #6b7280);
+  font-weight: 500;
+}
+
+.secret-word {
+  margin: 0;
+  font-size: 1.75rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: capitalize;
+  color: var(--ink, #111827);
+}
+
+.secret-word__hint {
+  margin: 4px 0 0;
+  font-size: 0.85rem;
+  color: var(--muted, #6b7280);
+}
+
 @media (max-width: 720px) {
   .app-shell {
     padding: 24px 16px;

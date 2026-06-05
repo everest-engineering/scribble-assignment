@@ -5,10 +5,13 @@ import { GuessForm } from "../components/GuessForm";
 import { ResultPanel } from "../components/ResultPanel";
 import { RoomCodeBadge } from "../components/RoomCodeBadge";
 import { Scoreboard } from "../components/Scoreboard";
-import { useRoomState } from "../state/roomStore";
+import { useRoomState, useRoomStore } from "../state/roomStore";
+
+const POLL_INTERVAL_MS = 2000;
 
 export function GamePage() {
   const navigate = useNavigate();
+  const roomStore = useRoomStore();
   const { room, participantId } = useRoomState();
 
   useEffect(() => {
@@ -17,11 +20,25 @@ export function GamePage() {
     }
   }, [navigate, room]);
 
+  // Keep the game state synced across players (~2s). Failures are non-fatal.
+  useEffect(() => {
+    if (!room) {
+      return;
+    }
+
+    const interval = setInterval(() => {
+      roomStore.fetchRoom().catch(() => undefined);
+    }, POLL_INTERVAL_MS);
+
+    return () => clearInterval(interval);
+  }, [room, roomStore]);
+
   if (!room) {
     return null;
   }
 
   const viewer = room.participants.find((participant) => participant.id === participantId) ?? null;
+  const isDrawer = room.drawerId === participantId;
 
   return (
     <section className="panel game-page">
@@ -55,15 +72,22 @@ export function GamePage() {
                 <dd>{viewer?.name ?? "Unknown player"}</dd>
               </div>
               <div>
-                <dt>Status</dt>
-                <dd>Playing</dd>
+                <dt>Role</dt>
+                <dd>{isDrawer ? "Drawer" : "Guesser"}</dd>
               </div>
             </dl>
           </Card>
 
-          <Card title="Your Guess">
-            <GuessForm />
-          </Card>
+          {isDrawer ? (
+            <Card title="Your Secret Word">
+              <p className="secret-word">{room.word ?? "…"}</p>
+              <p className="secret-word__hint">Only you can see this. Draw it!</p>
+            </Card>
+          ) : (
+            <Card title="Your Guess">
+              <GuessForm />
+            </Card>
+          )}
         </aside>
       </div>
 
