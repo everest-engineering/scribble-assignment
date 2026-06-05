@@ -29,6 +29,10 @@ export const startRoomSchema = z.object({
   participantId: z.string().min(1, "participantId is required")
 });
 
+export const restartRoomSchema = z.object({
+  participantId: z.string().min(1, "participantId is required")
+});
+
 const MAX_STROKE_POINTS = 2000;
 
 const strokePointSchema = z.object({

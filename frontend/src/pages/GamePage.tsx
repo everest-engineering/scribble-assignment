@@ -25,6 +25,12 @@ export function GamePage() {
   }, [navigate, room]);
 
   useEffect(() => {
+    if (room?.status === "lobby") {
+      navigate("/lobby", { replace: true });
+    }
+  }, [navigate, room?.status]);
+
+  useEffect(() => {
     if (!room) {
       return undefined;
     }
@@ -49,9 +55,19 @@ export function GamePage() {
   const viewer = room.participants.find((participant) => participant.id === participantId) ?? null;
   const drawer = room.participants.find((participant) => participant.id === room.drawerId) ?? null;
   const isDrawer = viewer?.role === "drawer";
+  const isHost = Boolean(participantId) && room.hostId === participantId;
   const roundEnded = room.roundEnded;
   const canDraw = isDrawer && !roundEnded;
   const canGuess = !isDrawer && !roundEnded;
+
+  async function handleRestart() {
+    try {
+      setActionError(null);
+      await roomStore.restartGame();
+    } catch (caughtError) {
+      setActionError(caughtError instanceof Error ? caughtError.message : "Unable to restart game");
+    }
+  }
 
   async function handleStrokeComplete(stroke: Stroke) {
     try {
@@ -96,7 +112,14 @@ export function GamePage() {
                   ? "You are the drawer."
                   : `${drawer?.name ?? "The host"} is the drawer.`}
             </p>
-            {isDrawer ? (
+            {roundEnded ? (
+              <p
+                className="status-line"
+                style={{ marginTop: "8px", backgroundColor: "#dcfce7", color: "#166534" }}
+              >
+                The word was: <strong>{room.secretWord ?? "—"}</strong>
+              </p>
+            ) : isDrawer ? (
               <p style={{ marginTop: "8px" }}>
                 Your secret word: <strong>{room.secretWord ?? "…"}</strong>
               </p>
@@ -154,6 +177,16 @@ export function GamePage() {
       </div>
 
       <div className="button-row">
+        {roundEnded && isHost ? (
+          <button className="button button--primary" onClick={handleRestart}>
+            Restart Game
+          </button>
+        ) : null}
+        {roundEnded && !isHost ? (
+          <p style={{ fontSize: "0.875rem", color: "#6b7280" }}>
+            Waiting for the host to restart…
+          </p>
+        ) : null}
         <button className="button button--secondary" onClick={() => navigate("/lobby")}>
           Exit Game
         </button>

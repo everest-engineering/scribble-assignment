@@ -6,6 +6,7 @@ import {
   getRoom,
   joinRoom,
   listWords,
+  restartRoom,
   startRoom,
   submitGuess,
   toRoomSnapshot
@@ -327,5 +328,107 @@ describe("roomStore", () => {
 
     const view = toRoomSnapshot(getRoom(game.code)!, game.guesserId);
     expect(view.guesses.map((entry) => entry.guess)).toEqual(["first", "second"]);
+  });
+
+  // --- Group 4 ---
+
+  // T002 [US1]
+  it("toRoomSnapshot hides secretWord from a guesser while active but reveals it once ended", () => {
+    const game = startedRoom();
+
+    const activeView = toRoomSnapshot(getRoom(game.code)!, game.guesserId);
+    expect(Object.prototype.hasOwnProperty.call(activeView, "secretWord")).toBe(false);
+
+    submitGuess(game.code, game.guesserId, game.secretWord);
+
+    const endedView = toRoomSnapshot(getRoom(game.code)!, game.guesserId);
+    expect(endedView.roundEnded).toBe(true);
+    expect(endedView.secretWord).toBe(game.secretWord);
+  });
+
+  // T002 [US1]
+  it("revealing room A's word when ended does not affect room B", () => {
+    const gameA = startedRoom();
+    const gameB = startedRoom();
+
+    submitGuess(gameA.code, gameA.guesserId, gameA.secretWord);
+
+    const viewB = toRoomSnapshot(getRoom(gameB.code)!, gameB.guesserId);
+    expect(viewB.roundEnded).toBe(false);
+    expect(Object.prototype.hasOwnProperty.call(viewB, "secretWord")).toBe(false);
+  });
+
+  // T005 [US2]
+  it("restartRoom returns an ended round to the lobby and clears round state", () => {
+    const game = startedRoom();
+    submitGuess(game.code, game.guesserId, game.secretWord);
+
+    const result = restartRoom(game.code, game.drawerId);
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+
+    expect(result.room.status).toBe("lobby");
+    expect(result.room.round).toBeNull();
+    expect(result.room.participants).toHaveLength(2);
+    expect(result.room.hostId).toBe(game.drawerId);
+
+    const view = toRoomSnapshot(getRoom(game.code)!, game.guesserId);
+    expect(view.drawerId).toBeNull();
+    expect(view.strokes).toHaveLength(0);
+    expect(view.guesses).toHaveLength(0);
+    expect(Object.prototype.hasOwnProperty.call(view, "secretWord")).toBe(false);
+  });
+
+  // T005 [US2]
+  it("restartRoom rejects non-host and active-round attempts without mutating state", () => {
+    const game = startedRoom();
+
+    expect(restartRoom(game.code, game.guesserId)).toEqual({ ok: false, reason: "forbidden" });
+    expect(restartRoom(game.code, game.drawerId)).toEqual({ ok: false, reason: "not-ended" });
+    expect(restartRoom("ZZZZ", game.drawerId)).toEqual({ ok: false, reason: "not-found" });
+
+    expect(getRoom(game.code)!.status).toBe("started");
+  });
+
+  // T005 [US2]
+  it("restartRoom is idempotent when already in the lobby", () => {
+    const game = startedRoom();
+    submitGuess(game.code, game.guesserId, game.secretWord);
+
+    const first = restartRoom(game.code, game.drawerId);
+    const second = restartRoom(game.code, game.drawerId);
+    expect(first.ok && second.ok).toBe(true);
+    if (!second.ok) return;
+    expect(second.room.status).toBe("lobby");
+    expect(second.room.round).toBeNull();
+  });
+
+  // T005 [US2]
+  it("a fresh start after restart re-initializes a clean round", () => {
+    const game = startedRoom();
+    submitGuess(game.code, game.guesserId, game.secretWord);
+    restartRoom(game.code, game.drawerId);
+
+    const restarted = startRoom(game.code, game.drawerId);
+    expect(restarted.ok).toBe(true);
+    if (!restarted.ok) return;
+
+    expect(restarted.room.round?.ended).toBe(false);
+    expect(restarted.room.round?.strokes).toHaveLength(0);
+    expect(restarted.room.round?.guesses).toHaveLength(0);
+    Object.values(restarted.room.round!.scores).forEach((score) => expect(score).toBe(0));
+  });
+
+  // T005 [US2]
+  it("restarting room A does not change room B", () => {
+    const gameA = startedRoom();
+    const gameB = startedRoom();
+    submitGuess(gameA.code, gameA.guesserId, gameA.secretWord);
+
+    restartRoom(gameA.code, gameA.drawerId);
+
+    const roomB = getRoom(gameB.code)!;
+    expect(roomB.status).toBe("started");
+    expect(roomB.round).not.toBeNull();
   });
 });

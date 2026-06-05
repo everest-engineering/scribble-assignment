@@ -29,7 +29,7 @@ Web app: `backend/src/`, `frontend/src/` (per plan.md).
 
 **Purpose**: Confirm Groups 1–3 are complete before extending result/restart behavior.
 
-- [ ] T001 Verify Groups 1–3 baseline: run `npm test` and `npm run build` in `backend/`, and `npm run build` in `frontend/` (must pass before Group 4 changes).
+- [X] T001 Verify Groups 1–3 baseline: run `npm test` and `npm run build` in `backend/`, and `npm run build` in `frontend/` (must pass before Group 4 changes).
 
 ---
 
@@ -50,12 +50,12 @@ This phase is a checkpoint only; proceed directly to user stories after T001.
 
 ### Tests for User Story 1
 
-- [ ] T002 [P] [US1] Add reveal-projection tests in `backend/src/services/roomStore.test.ts`: while active (`round.ended` false), guesser snapshot omits `secretWord`; after ended, guesser snapshot includes `secretWord`; drawer still sees word during play; room A ended does not affect room B.
+- [X] T002 [P] [US1] Add reveal-projection tests in `backend/src/services/roomStore.test.ts`: while active (`round.ended` false), guesser snapshot omits `secretWord`; after ended, guesser snapshot includes `secretWord`; drawer still sees word during play; room A ended does not affect room B.
 
 ### Implementation for User Story 1
 
-- [ ] T003 [US1] Update `toRoomSnapshot` in `backend/src/services/roomStore.ts` to include `secretWord` when `viewerParticipantId === round.drawerId` **or** `round.ended === true` (preserve drawer-only while active).
-- [ ] T004 [US1] Update `frontend/src/pages/GamePage.tsx` to render a result view when `room.roundEnded`: show revealed `secretWord` to all players, reuse `Scoreboard` and `ResultPanel` for final scores/history, keep canvas/guess disabled (depends on T003).
+- [X] T003 [US1] Update `toRoomSnapshot` in `backend/src/services/roomStore.ts` to include `secretWord` when `viewerParticipantId === round.drawerId` **or** `round.ended === true` (preserve drawer-only while active).
+- [X] T004 [US1] Update `frontend/src/pages/GamePage.tsx` to render a result view when `room.roundEnded`: show revealed `secretWord` to all players, reuse `Scoreboard` and `ResultPanel` for final scores/history, keep canvas/guess disabled (depends on T003).
 
 **Checkpoint**: Result reveal works server-side and in the UI for all participants.
 
@@ -69,17 +69,17 @@ This phase is a checkpoint only; proceed directly to user stories after T001.
 
 ### Tests for User Story 2
 
-- [ ] T005 [P] [US2] Add `restartRoom` tests in `backend/src/services/roomStore.test.ts`: host on ended round → `status` lobby, `round` null, participants preserved; non-host → `forbidden`; active round → `not-ended`; idempotent when already lobby; restart in room A leaves room B unchanged; `startRoom` after restart yields fresh round (scores 0, empty strokes/guesses).
-- [ ] T006 [P] [US2] Add `restartRoomSchema` tests in `backend/src/api/schemas.test.ts`: requires non-empty `participantId`; rejects empty.
+- [X] T005 [P] [US2] Add `restartRoom` tests in `backend/src/services/roomStore.test.ts`: host on ended round → `status` lobby, `round` null, participants preserved; non-host → `forbidden`; active round → `not-ended`; idempotent when already lobby; restart in room A leaves room B unchanged; `startRoom` after restart yields fresh round (scores 0, empty strokes/guesses).
+- [X] T006 [P] [US2] Add `restartRoomSchema` tests in `backend/src/api/schemas.test.ts`: requires non-empty `participantId`; rejects empty.
 
 ### Implementation for User Story 2
 
-- [ ] T007 [US2] Add `RestartRoomResult` type and `restartRoom(code, participantId)` in `backend/src/services/roomStore.ts` with gates (`not-found` / `forbidden` / `not-ended` / `ok`) and idempotency when already lobby with `round === null`.
-- [ ] T008 [US2] Add `restartRoomSchema` to `backend/src/api/schemas.ts` (`participantId` non-empty).
-- [ ] T009 [US2] Add `POST /:code/restart` route in `backend/src/api/rooms.ts`, mapping results to 200/400/403/404/409 per `contracts/rooms-api.md` (depends on T007, T008).
-- [ ] T010 [P] [US2] Add `restartRoom` method to `frontend/src/services/api.ts` and `restartGame` action to `frontend/src/state/roomStore.ts` (POST `/rooms/:code/restart`, store returned snapshot).
-- [ ] T011 [P] [US2] Add `api.restartRoom` URL/body test in `frontend/src/services/api.test.ts`.
-- [ ] T012 [US2] Add host-only **Restart** button to `frontend/src/pages/GamePage.tsx` (visible when `roundEnded`, calls `restartGame`; hidden/disabled for non-hosts) (depends on T004, T010).
+- [X] T007 [US2] Add `RestartRoomResult` type and `restartRoom(code, participantId)` in `backend/src/services/roomStore.ts` with gates (`not-found` / `forbidden` / `not-ended` / `ok`) and idempotency when already lobby with `round === null`.
+- [X] T008 [US2] Add `restartRoomSchema` to `backend/src/api/schemas.ts` (`participantId` non-empty).
+- [X] T009 [US2] Add `POST /:code/restart` route in `backend/src/api/rooms.ts`, mapping results to 200/400/403/404/409 per `contracts/rooms-api.md` (depends on T007, T008).
+- [X] T010 [P] [US2] Add `restartRoom` method to `frontend/src/services/api.ts` and `restartGame` action to `frontend/src/state/roomStore.ts` (POST `/rooms/:code/restart`, store returned snapshot).
+- [X] T011 [P] [US2] Add `api.restartRoom` URL/body test in `frontend/src/services/api.test.ts`.
+- [X] T012 [US2] Add host-only **Restart** button to `frontend/src/pages/GamePage.tsx` (visible when `roundEnded`, calls `restartGame`; hidden/disabled for non-hosts) (depends on T004, T010).
 
 **Checkpoint**: Restart resets round state; guards enforced; host can trigger from the game screen.
 
@@ -93,7 +93,7 @@ This phase is a checkpoint only; proceed directly to user stories after T001.
 
 ### Implementation for User Story 3
 
-- [ ] T013 [US3] Add auto-navigation in `frontend/src/pages/GamePage.tsx`: when `room.status === "lobby"`, `navigate("/lobby", { replace: true })` (mirror `LobbyPage.tsx` game navigation); ensure existing poll interval is cleared on unmount (depends on T012).
+- [X] T013 [US3] Add auto-navigation in `frontend/src/pages/GamePage.tsx`: when `room.status === "lobby"`, `navigate("/lobby", { replace: true })` (mirror `LobbyPage.tsx` game navigation); ensure existing poll interval is cleared on unmount (depends on T012).
 
 **Checkpoint**: No tab stranded on the game screen after restart.
 
@@ -101,9 +101,9 @@ This phase is a checkpoint only; proceed directly to user stories after T001.
 
 ## Phase 6: Polish & Cross-Cutting Concerns
 
-- [ ] T014 Run full automated suite: `npm test` and `npm run build` in `backend/`, `npm run build` in `frontend/`; fix any failures.
+- [X] T014 Run full automated suite: `npm test` and `npm run build` in `backend/`, `npm run build` in `frontend/`; fix any failures.
 - [ ] T015 Execute `specs/004-result-restart/quickstart.md` multi-tab validation (steps 1–9) and confirm SC-001…SC-005.
-- [ ] T016 Add a brief "Implementation Notes & Deviations (post-execution)" section to `specs/004-result-restart/plan.md` recording any decisions made during implementation.
+- [X] T016 Add a brief "Implementation Notes & Deviations (post-execution)" section to `specs/004-result-restart/plan.md` recording any decisions made during implementation.
 
 ---
 

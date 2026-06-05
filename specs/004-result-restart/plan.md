@@ -244,6 +244,16 @@ Per constitution §V and FR-062: multiple rounds per session, drawer rotation, t
 score persistence, leaderboards across games, WebSockets, databases, auth, new libraries, unrelated
 refactors. A separate `"ended"` room status is intentionally avoided (reveal is driven by `round.ended`).
 
+## Implementation Notes & Deviations (post-execution)
+
+- **Reveal rule (T003)**: `toRoomSnapshot` now sets `secretWord` when the viewer is the drawer **or** `round.ended === true`, keeping drawer-only visibility during active play. No model shape change.
+- **Restart guard order (T007)**: `restartRoom` checks `not-found` → `forbidden` (host only) → idempotent short-circuit when already `lobby`/`round === null` → `not-ended`. On success it sets `status = "lobby"`, `round = null`, preserves participants/`hostId`, and bumps `updatedAt`.
+- **HTTP mapping (T009)**: `POST /:code/restart` maps `not-found` → 404, `forbidden` → 403, `not-ended` → 409, Zod failures → 400, success → 200 with viewer-scoped snapshot. Mirrors the existing `start` endpoint shape.
+- **Frontend result view (T004)**: When `room.roundEnded`, the canvas card shows a green "The word was: …" banner to all players; `Scoreboard`/`ResultPanel` are reused unchanged for final scores/history. Canvas and guess form stay disabled via existing `canDraw`/`canGuess` gates.
+- **Restart UX (T012)**: Host sees a "Restart Game" button only when `roundEnded`; non-hosts see a "Waiting for the host to restart…" hint.
+- **Auto-nav (T013)**: A dedicated effect navigates to `/lobby` (replace) whenever `room.status === "lobby"`, so all polling game tabs return to the lobby after restart.
+- **Validation**: 50 backend tests + 5 frontend tests pass; backend and frontend builds clean; no lint errors. T015 (multi-tab quickstart) left for manual verification.
+
 ## Project Structure (documentation)
 
 ```text

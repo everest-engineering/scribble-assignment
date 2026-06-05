@@ -19,6 +19,10 @@ export type StartRoomResult =
   | { ok: true; room: Room }
   | { ok: false; reason: "not-found" | "forbidden" | "too-few-players" };
 
+export type RestartRoomResult =
+  | { ok: true; room: Room }
+  | { ok: false; reason: "not-found" | "forbidden" | "not-ended" };
+
 export type StrokeResult =
   | { ok: true; room: Room }
   | { ok: false; reason: "not-found" | "forbidden" | "round-ended" };
@@ -138,6 +142,33 @@ export function startRoom(code: string, participantId: string): StartRoomResult 
 
   room.status = "started";
   room.round = initializeRound(room);
+  room.updatedAt = now();
+  rooms.set(room.code, room);
+
+  return { ok: true, room: cloneRoom(room) };
+}
+
+export function restartRoom(code: string, participantId: string): RestartRoomResult {
+  const room = rooms.get(code);
+
+  if (!room) {
+    return { ok: false, reason: "not-found" };
+  }
+
+  if (room.hostId !== participantId) {
+    return { ok: false, reason: "forbidden" };
+  }
+
+  if (room.status === "lobby" && room.round === null) {
+    return { ok: true, room: cloneRoom(room) };
+  }
+
+  if (!room.round || !room.round.ended) {
+    return { ok: false, reason: "not-ended" };
+  }
+
+  room.status = "lobby";
+  room.round = null;
   room.updatedAt = now();
   rooms.set(room.code, room);
 
@@ -270,7 +301,7 @@ export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSn
     roundEnded: room.round?.ended ?? false
   };
 
-  if (room.round && viewerParticipantId === room.round.drawerId) {
+  if (room.round && (viewerParticipantId === room.round.drawerId || room.round.ended)) {
     snapshot.secretWord = room.round.secretWord;
   }
 

@@ -4,6 +4,7 @@ import {
   createRoomSchema,
   guessSchema,
   joinRoomSchema,
+  restartRoomSchema,
   roomCodeParamsSchema,
   startRoomSchema,
   strokeSchema
@@ -76,5 +77,12 @@ describe("schemas", () => {
     expect(() => guessSchema.parse({ participantId: "p1", guess: "   " })).toThrow();
     expect(() => guessSchema.parse({ participantId: "", guess: "cat" })).toThrow();
     expect(guessSchema.parse({ participantId: "p1", guess: "  cat " }).guess).toBe("cat");
+  });
+
+  // T006 [US2]
+  it("restartRoomSchema requires a non-empty participantId", () => {
+    expect(restartRoomSchema.parse({ participantId: "p1" }).participantId).toBe("p1");
+    expect(() => restartRoomSchema.parse({ participantId: "" })).toThrow();
+    expect(() => restartRoomSchema.parse({})).toThrow();
   });
 });

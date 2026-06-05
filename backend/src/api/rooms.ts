@@ -5,6 +5,7 @@ import {
   guessSchema,
   HttpError,
   joinRoomSchema,
+  restartRoomSchema,
   roomCodeParamsSchema,
   roomViewerQuerySchema,
   startRoomSchema,
@@ -16,6 +17,7 @@ import {
   createRoom,
   getRoom,
   joinRoom,
+  restartRoom,
   startRoom,
   submitGuess,
   toRoomSnapshot
@@ -125,6 +127,32 @@ export function createRoomsRouter() {
         }
 
         throw new HttpError(409, "The round has ended");
+      }
+
+      response.json({
+        room: toRoomSnapshot(result.room, participantId)
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/:code/restart", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId } = restartRoomSchema.parse(request.body);
+      const result = restartRoom(code, participantId);
+
+      if (!result.ok) {
+        if (result.reason === "not-found") {
+          throw new HttpError(404, "Room not found");
+        }
+
+        if (result.reason === "forbidden") {
+          throw new HttpError(403, "Only the host can restart the game");
+        }
+
+        throw new HttpError(409, "The round is still in progress");
       }
 
       response.json({
