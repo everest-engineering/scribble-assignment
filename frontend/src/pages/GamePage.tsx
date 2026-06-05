@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card } from "../components/Card";
+import { DrawingCanvas } from "../components/DrawingCanvas";
 import { GuessForm } from "../components/GuessForm";
 import { ResultPanel } from "../components/ResultPanel";
 import { RoomCodeBadge } from "../components/RoomCodeBadge";
@@ -40,6 +41,14 @@ export function GamePage() {
   const drawer = room.participants.find((participant) => participant.id === room.drawerId) ?? null;
   const roleLabel = room.isDrawer ? "Drawer" : "Guesser";
 
+  async function handleGuess(text: string) {
+    await roomStore.submitGuess(text);
+  }
+
+  function handleDrawingPush(drawing: string | null) {
+    void roomStore.updateDrawing(drawing);
+  }
+
   return (
     <section className="panel game-page">
       <div className="game-page__header">
@@ -52,7 +61,7 @@ export function GamePage() {
 
       <div className="game-page__layout">
         <aside className="game-page__sidebar game-page__sidebar--left">
-          <Scoreboard />
+          <Scoreboard scores={room.scores} />
           <ResultPanel />
         </aside>
 
@@ -67,9 +76,11 @@ export function GamePage() {
                 {drawer?.name ?? "The drawer"} is drawing — guess the word!
               </p>
             )}
-            <div className="canvas-placeholder" style={{ minHeight: '500px', backgroundColor: '#ffffff', border: '1px solid #e5e7eb' }}>
-              {room.isDrawer ? "Draw here (coming soon)" : "Waiting for the drawing..."}
-            </div>
+            <DrawingCanvas
+              isDrawer={room.isDrawer}
+              drawing={room.drawing}
+              onPush={handleDrawingPush}
+            />
           </Card>
         </div>
 
@@ -91,8 +102,34 @@ export function GamePage() {
             </dl>
           </Card>
 
-          <Card title="Your Guess">
-            <GuessForm />
+          {room.isDrawer ? (
+            <Card title="Your Guess">
+              <p>You are the drawer — guessers submit the guesses.</p>
+            </Card>
+          ) : (
+            <Card title="Your Guess">
+              <GuessForm onSubmit={handleGuess} />
+            </Card>
+          )}
+
+          <Card title="Guesses">
+            {room.guesses.length === 0 ? (
+              <p>No guesses yet.</p>
+            ) : (
+              <ul className="player-list">
+                {room.guesses.map((guess) => (
+                  <li key={guess.id}>
+                    <span>
+                      <strong>{guess.participantName}:</strong>{" "}
+                      {guess.correct && guess.text === null ? "•••" : guess.text}
+                    </span>
+                    <span className="player-list__meta">
+                      {guess.correct ? "✓ correct" : "✗"}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
           </Card>
         </aside>
       </div>

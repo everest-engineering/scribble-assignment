@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { createRoomSchema, joinRoomSchema, roomCodeParamsSchema, startRoomSchema } from "./schemas.js";
+import {
+  createRoomSchema,
+  drawingSchema,
+  guessSchema,
+  joinRoomSchema,
+  roomCodeParamsSchema,
+  startRoomSchema
+} from "./schemas.js";
 
 describe("schemas", () => {
   it("createRoomSchema accepts a valid body with playerName", () => {
@@ -20,6 +27,21 @@ describe("schemas", () => {
   it("startRoomSchema requires a participantId (US1)", () => {
     expect(() => startRoomSchema.parse({})).toThrow();
     expect(startRoomSchema.parse({ participantId: "p1" }).participantId).toBe("p1");
+  });
+
+  it("guessSchema requires participantId and a non-empty trimmed text (Scenario 3 US1)", () => {
+    expect(() => guessSchema.parse({ participantId: "p1", text: "" })).toThrow();
+    expect(() => guessSchema.parse({ participantId: "p1", text: "   " })).toThrow();
+    expect(() => guessSchema.parse({ text: "pizza" })).toThrow();
+    expect(guessSchema.parse({ participantId: "p1", text: "  pizza  " }).text).toBe("pizza");
+  });
+
+  it("drawingSchema requires participantId and accepts a string or null (Scenario 3 US4)", () => {
+    expect(() => drawingSchema.parse({ drawing: "data:..." })).toThrow();
+    expect(drawingSchema.parse({ participantId: "p1", drawing: "data:image/png" }).drawing).toBe(
+      "data:image/png"
+    );
+    expect(drawingSchema.parse({ participantId: "p1", drawing: null }).drawing).toBeNull();
   });
 
   it("roomCodeParamsSchema rejects missing code", () => {

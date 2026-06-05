@@ -105,6 +105,33 @@ class RoomStore {
     return response.room;
   }
 
+  async submitGuess(text: string) {
+    if (!this.state.room || !this.state.participantId) {
+      return null;
+    }
+
+    const response = await this.withLoading(() =>
+      api.submitGuess(this.state.room!.code, this.state.participantId!, text)
+    );
+    this.setRoomSnapshot(response.room);
+    return response.room;
+  }
+
+  // Drawer pushes its canvas image. Fire-and-forget: a failed push must not
+  // disrupt drawing, so transient errors are swallowed (the next push retries).
+  async updateDrawing(drawing: string | null) {
+    const { room, participantId } = this.state;
+    if (!room || !participantId) {
+      return;
+    }
+
+    try {
+      await api.updateDrawing(room.code, participantId, drawing);
+    } catch {
+      // Ignore; polling and the next push will reconcile.
+    }
+  }
+
   async fetchRoom() {
     if (!this.state.room) {
       return null;

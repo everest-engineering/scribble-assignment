@@ -1,5 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { createRoom, joinRoom, selectWord, startRound, toRoomSnapshot } from "./roomStore.js";
+import {
+  createRoom,
+  getRoom,
+  joinRoom,
+  selectWord,
+  startRound,
+  submitGuess,
+  toRoomSnapshot,
+  updateDrawing
+} from "./roomStore.js";
 import { STARTER_WORDS } from "../seed/starterData.js";
 
 function startedRoom() {
@@ -144,4 +153,111 @@ describe("roomStore", () => {
     expect(STARTER_WORDS).toContain(hostView.secretWord);
     expect(guesserView.secretWord).toBeNull();
   });
+
+  it("rejects invalid, drawer, and not-playing guesses (US1)", () => {
+    const lobby = createRoom("Alice");
+    joinRoom(lobby.room.code, "Bob");
+    // Not playing yet.
+    expect(submitGuess(lobby.room.code, lobby.participantId, "pizza").ok).toBe(false);
+
+    const { room, hostId, guesserId } = startedRoom();
+    expect(submitGuess(room.code, guesserId, "   ")).toEqual({ ok: false, reason: "invalid" });
+    expect(submitGuess(room.code, hostId, room.secretWord!)).toEqual({
+      ok: false,
+      reason: "not_guesser"
+    });
+    expect(submitGuess("ZZZZ", guesserId, "pizza")).toEqual({ ok: false, reason: "not_found" });
+  });
+
+  it("matches the word case-insensitively and records history in order (US1/US2)", () => {
+    const { room, guesserId } = startedRoom();
+    const word = room.secretWord!;
+
+    submitGuess(room.code, guesserId, "definitely-wrong");
+    const after = submitGuess(room.code, guesserId, `  ${word.toUpperCase()} `);
+    if (!after.ok) throw new Error("expected guess to succeed");
+
+    expect(after.room.guesses).toHaveLength(2);
+    expect(after.room.guesses[0].correct).toBe(false);
+    expect(after.room.guesses[1].correct).toBe(true);
+  });
+
+  it("withholds a correct guess's text from other guessers but not the drawer/author (US2)", () => {
+    const { room, hostId, guesserId } = startedRoom();
+    const carol = joinRoom(room.code, "Carol")!.participantId;
+    const word = room.secretWord!;
+    const result = submitGuess(room.code, guesserId, word);
+    if (!result.ok) throw new Error("expected guess to succeed");
+
+    const drawerView = toRoomSnapshot(result.room, hostId);
+    const authorView = toRoomSnapshot(result.room, guesserId);
+    const otherView = toRoomSnapshot(result.room, carol);
+
+    expect(drawerView.guesses[0].text).toBe(word);
+    expect(authorView.guesses[0].text).toBe(word);
+    expect(otherView.guesses[0].text).toBeNull();
+    expect(otherView.guesses[0].correct).toBe(true);
+  });
+
+  it("scores 100 once for a correct guess and 0 for incorrect (US3)", () => {
+    const { room, hostId, guesserId } = startedRoom();
+    const word = room.secretWord!;
+
+    const scoreOf = (snapRoom: typeof room, id: string) =>
+      toRoomSnapshot(snapRoom, id).scores.find((s) => s.participantId === id)!.score;
+
+    // All start at 0.
+    expect(scoreOf(room, guesserId)).toBe(0);
+    expect(scoreOf(room, hostId)).toBe(0);
+
+    submitGuess(room.code, guesserId, "wrong");
+    const wrong = getRoomOrThrow(room.code);
+    expect(scoreOf(wrong, guesserId)).toBe(0);
+
+    submitGuess(room.code, guesserId, word);
+    const right = getRoomOrThrow(room.code);
+    expect(scoreOf(right, guesserId)).toBe(100);
+
+    // Repeat correct guess does not exceed 100.
+    submitGuess(room.code, guesserId, word);
+    const again = getRoomOrThrow(room.code);
+    expect(scoreOf(again, guesserId)).toBe(100);
+  });
+
+  it("stores the drawing only for the drawer and shows it to everyone (US4 amended)", () => {
+    const { room, hostId, guesserId } = startedRoom();
+
+    // A non-drawer cannot update the drawing.
+    expect(updateDrawing(room.code, guesserId, "data:image/png;base64,AAA")).toEqual({
+      ok: false,
+      reason: "not_drawer"
+    });
+
+    const updated = updateDrawing(room.code, hostId, "data:image/png;base64,AAA");
+    if (!updated.ok) throw new Error("expected drawing update to succeed");
+
+    // Visible to both the drawer and a guesser.
+    expect(toRoomSnapshot(updated.room, hostId).drawing).toBe("data:image/png;base64,AAA");
+    expect(toRoomSnapshot(updated.room, guesserId).drawing).toBe("data:image/png;base64,AAA");
+
+    // Clearing sets it back to null for everyone.
+    const cleared = updateDrawing(room.code, hostId, null);
+    if (!cleared.ok) throw new Error("expected clear to succeed");
+    expect(toRoomSnapshot(cleared.room, guesserId).drawing).toBeNull();
+  });
+
+  it("rejects drawing updates when the round is not active (US4 amended)", () => {
+    const { room } = createRoom("Alice");
+    joinRoom(room.code, "Bob");
+    expect(updateDrawing(room.code, room.hostId, "data:image/png;base64,AAA")).toEqual({
+      ok: false,
+      reason: "not_playing"
+    });
+  });
 });
+
+function getRoomOrThrow(code: string) {
+  const room = getRoom(code);
+  if (!room) throw new Error("room missing");
+  return room;
+}

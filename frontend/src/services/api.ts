@@ -6,6 +6,21 @@ export interface Participant {
   joinedAt: string;
 }
 
+export interface GuessView {
+  id: string;
+  participantId: string;
+  participantName: string;
+  correct: boolean;
+  text: string | null;
+  createdAt: string;
+}
+
+export interface ScoreView {
+  participantId: string;
+  name: string;
+  score: number;
+}
+
 export interface RoomSnapshot {
   code: string;
   status: "lobby" | "playing";
@@ -18,6 +33,9 @@ export interface RoomSnapshot {
   drawerId: string | null;
   isDrawer: boolean;
   secretWord: string | null;
+  guesses: GuessView[];
+  scores: ScoreView[];
+  drawing: string | null;
 }
 
 export interface RoomSessionResponse {
@@ -64,6 +82,18 @@ export const api = {
     return request<{ room: RoomSnapshot }>(`/rooms/${encodeURIComponent(code)}/start`, {
       method: "POST",
       body: JSON.stringify({ participantId })
+    });
+  },
+  submitGuess(code: string, participantId: string, text: string) {
+    return request<{ room: RoomSnapshot }>(`/rooms/${encodeURIComponent(code)}/guess`, {
+      method: "POST",
+      body: JSON.stringify({ participantId, text })
+    });
+  },
+  updateDrawing(code: string, participantId: string, drawing: string | null) {
+    return request<{ room: RoomSnapshot }>(`/rooms/${encodeURIComponent(code)}/drawing`, {
+      method: "PUT",
+      body: JSON.stringify({ participantId, drawing })
     });
   },
   fetchRoom(code: string, participantId?: string) {

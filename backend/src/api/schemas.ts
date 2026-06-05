@@ -16,6 +16,16 @@ export const startRoomSchema = z.object({
   participantId: z.string().min(1)
 });
 
+export const guessSchema = z.object({
+  participantId: z.string().min(1),
+  text: z.string().trim().min(1)
+});
+
+export const drawingSchema = z.object({
+  participantId: z.string().min(1),
+  drawing: z.string().nullable()
+});
+
 export const roomViewerQuerySchema = z.object({
   participantId: z.string().optional()
 });

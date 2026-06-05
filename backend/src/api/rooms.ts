@@ -1,13 +1,23 @@
 import { Router } from "express";
 import {
   createRoomSchema,
+  drawingSchema,
+  guessSchema,
   HttpError,
   joinRoomSchema,
   roomCodeParamsSchema,
   roomViewerQuerySchema,
   startRoomSchema
 } from "./schemas.js";
-import { createRoom, getRoom, joinRoom, startRound, toRoomSnapshot } from "../services/roomStore.js";
+import {
+  createRoom,
+  getRoom,
+  joinRoom,
+  startRound,
+  submitGuess,
+  toRoomSnapshot,
+  updateDrawing
+} from "../services/roomStore.js";
 
 export function createRoomsRouter() {
   const router = Router();
@@ -59,6 +69,57 @@ export function createRoomsRouter() {
           throw new HttpError(403, "Only the host can start the game");
         }
         throw new HttpError(409, "At least 2 players are required to start");
+      }
+
+      response.json({
+        room: toRoomSnapshot(result.room, participantId)
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/:code/guess", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId, text } = guessSchema.parse(request.body);
+      const result = submitGuess(code, participantId, text);
+
+      if (!result.ok) {
+        if (result.reason === "not_found") {
+          throw new HttpError(404, "Room not found");
+        }
+        if (result.reason === "not_playing") {
+          throw new HttpError(409, "The round is not active");
+        }
+        if (result.reason === "not_guesser") {
+          throw new HttpError(403, "Only guessers can submit guesses");
+        }
+        throw new HttpError(400, "Invalid request payload");
+      }
+
+      response.json({
+        room: toRoomSnapshot(result.room, participantId)
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.put("/:code/drawing", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId, drawing } = drawingSchema.parse(request.body);
+      const result = updateDrawing(code, participantId, drawing);
+
+      if (!result.ok) {
+        if (result.reason === "not_found") {
+          throw new HttpError(404, "Room not found");
+        }
+        if (result.reason === "not_playing") {
+          throw new HttpError(409, "The round is not active");
+        }
+        throw new HttpError(403, "Only the drawer can update the drawing");
       }
 
       response.json({
