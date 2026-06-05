@@ -24,9 +24,7 @@ secret word, game start), Scenario 3 (guesses, scores, canvas sync via polling).
 - Q: Should final scores on the results screen be sorted by score descending or shown in join order? → A: Sort by score descending (highest scorer first); ties broken by original join order.
 - Q: After restart returns to lobby, does the ≥ 2 player minimum from Scenario 1 still apply before "Start Game" is enabled? → A: Yes — same rule applies; lobby after restart is identical to lobby after initial room creation.
 - Q: Should the non-host waiting message be generic ("Waiting for host to restart…") or personalised with the host's display name? → A: Personalised — `"Waiting for [host name] to restart…"` using the host's display name from the room snapshot.
-- Q: When the 60-second round timer expires, what triggers the transition to "result" status — the server or a client? → A: Server-side: the server starts a 60-second timer when the game begins and automatically transitions `status` to `"result"` when it fires, with no client action required.
-- Q: Should the remaining round time be displayed on the game screen? → A: Yes — a countdown timer (e.g., "0:42") is shown to all players (drawer and guessers) throughout the round.
-- Q: Does the host retain the ability to manually end the round before the 60-second timer expires? → A: Yes — the "End Round" button remains available throughout the round; manual early end and server-side timer are two independent paths to the same `"result"` transition.
+- Q (reverted — constitution violation): 60-second server-side timer and countdown display were added then removed; timers/countdowns are explicitly out-of-scope per the project constitution.
 
 ---
 
@@ -60,15 +58,6 @@ shows the results view.
    "End Round" button is visible only to Alice (non-host players do not see it).
 5. **Given** Bob is a non-host player, **When** he views the game screen, **Then** no "End
    Round" button is present.
-6. **Given** a round is active, **When** any player views the game screen, **Then** a countdown
-   timer showing the remaining time (e.g., "0:42") is visible to all players — drawer and
-   guessers.
-7. **Given** 60 seconds have elapsed since the game started, **When** the server timer fires,
-   **Then** the room `status` transitions to `"result"` automatically — identical in effect to
-   the host clicking "End Round" — and all players see the results view on their next poll.
-8. **Given** the host clicks "End Round" at the 30-second mark, **When** the remaining 30
-   seconds later elapse, **Then** the server timer has no further effect (room is already in
-   `"result"` status).
 
 ---
 
@@ -159,12 +148,6 @@ and the canvas is blank.
   behaviour).
 - What happens if "End Round" is clicked again after the round has already ended? The action
   is a no-op (button not rendered when phase is already "result").
-- What happens if the server-side timer fires while no player tabs are open? The room
-  transitions to `"result"` status silently on the server. Players see the results screen
-  on their next poll when they return.
-- What happens if the server-side timer fires at the same moment the host clicks "End Round"?
-  Both paths transition `status` to `"result"` — the second transition is a no-op (already
-  in "result").
 
 ---
 
@@ -173,10 +156,7 @@ and the canvas is blank.
 ### Functional Requirements
 
 - **FR-001**: While the room is in "playing" phase, the host MUST see an "End Round" button
-  on the game screen. Non-host players MUST NOT see this button. The host may click this
-  button at any point during the round, including before the 60-second timer (FR-015) expires.
-  Both the manual button and the server timer are independent paths to the same `"result"`
-  transition.
+  on the game screen. Non-host players MUST NOT see this button.
 - **FR-002**: When the host clicks "End Round", the server MUST transition the room to "result"
   phase. The response MUST include the updated room snapshot (phase = "result").
 - **FR-003**: The game screen MUST detect a `status` value of `"result"` in the poll response
@@ -210,25 +190,14 @@ and the canvas is blank.
   Start screen.
 - **FR-014**: The "End Round" button MUST only be rendered when the room is in "playing"
   phase. It MUST NOT be rendered in "lobby" or "result" phase.
-- **FR-015**: When the host starts a game, the server MUST start a 60-second countdown timer.
-  When the timer expires, the server MUST automatically transition `status` to `"result"` —
-  identical in effect to the host clicking "End Round". No client action is required to trigger
-  this transition.
-- **FR-016**: The room snapshot MUST include the round end time (the exact moment the 60-second
-  timer will expire) so that all clients can calculate and display the remaining time. The game
-  screen MUST show a countdown timer (e.g., `"0:42"`) to all players — drawer and guessers —
-  for the duration of the round. The countdown updates on each poll cycle (approximately every
-  2 seconds).
 
 ### Key Entities
 
 - **Room** (extended): The existing `status` field is extended to accept a third value:
   `"result"`. The three valid values are `"lobby"`, `"playing"`, and `"result"`. The field
-  name `status` is unchanged from prior scenarios. Gains a `roundEndsAt` field (timestamp)
-  set when the game starts; included in every snapshot during `"playing"` status so clients
-  can display the countdown. On restart, all round-specific fields (`guesses`, `scores`,
-  `canvasData`, `word`, `drawerId`, `roundEndsAt`) are reset to their initial (empty/null/zero)
-  values and `status` returns to `"lobby"`.
+  name `status` is unchanged from prior scenarios. On restart, all round-specific fields
+  (`guesses`, `scores`, `canvasData`, `word`, `drawerId`) are reset to their initial
+  (empty/null/zero) values and `status` returns to `"lobby"`.
 - **RoundResult** (derived): Not a stored entity — derived at read time from the Room in
   "result" phase. Contains the secret word, final scores map, and complete guess history.
   Returned as part of the room snapshot so all players receive it via the existing poll.
@@ -260,9 +229,6 @@ and the canvas is blank.
   canvas is blank — confirming full round state clearance.
 - **SC-008**: A non-host player's attempt to trigger "End Round" or "Restart" via any
   mechanism results in a 403 response and no state change on the server.
-- **SC-009**: A countdown timer is visible to all players on the game screen throughout the
-  round, accurately reflecting the remaining time. All players' timers reach zero within one
-  poll cycle (approximately 2 seconds) of each other.
 
 ---
 
@@ -272,8 +238,9 @@ and the canvas is blank.
   scores across rounds is not implemented in this lab scope.
 - **Host transfer**: If the host leaves the room during the "result" phase, no automatic
   transfer of host rights occurs. Other players remain on the results screen.
-- **Automatic round timeout display format**: No progress-bar or animated ring — a simple
-  numeric countdown (e.g., "0:42") is sufficient for this lab scope.
+- **Automatic round timeout**: The round does not end automatically after a time limit.
+  The host must manually trigger "End Round". Timers and countdowns are explicitly forbidden
+  by the project constitution.
 - **New players joining during "result" phase**: Joining during "result" phase is handled
   by displaying the current room snapshot (results view) to the newly joined player, but no
   special onboarding flow is added.
