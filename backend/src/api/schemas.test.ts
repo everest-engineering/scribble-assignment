@@ -2,8 +2,10 @@ import { describe, expect, it } from "vitest";
 import {
   createRoomSchema,
   drawingSchema,
+  endRoomSchema,
   guessSchema,
   joinRoomSchema,
+  restartRoomSchema,
   roomCodeParamsSchema,
   startRoomSchema
 } from "./schemas.js";
@@ -42,6 +44,13 @@ describe("schemas", () => {
       "data:image/png"
     );
     expect(drawingSchema.parse({ participantId: "p1", drawing: null }).drawing).toBeNull();
+  });
+
+  it("end/restart schemas require a participantId (Scenario 4)", () => {
+    expect(() => endRoomSchema.parse({})).toThrow();
+    expect(() => restartRoomSchema.parse({})).toThrow();
+    expect(endRoomSchema.parse({ participantId: "p1" }).participantId).toBe("p1");
+    expect(restartRoomSchema.parse({ participantId: "p1" }).participantId).toBe("p1");
   });
 
   it("roomCodeParamsSchema rejects missing code", () => {

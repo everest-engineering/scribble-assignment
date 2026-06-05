@@ -231,9 +231,67 @@ export function updateDrawing(
   return { ok: true, room: cloneRoom(room) };
 }
 
+export type LifecycleResult =
+  | { ok: true; room: Room }
+  | { ok: false; reason: "not_found" | "not_host" | "wrong_status" };
+
+export function endRound(code: string, participantId: string): LifecycleResult {
+  const room = rooms.get(normalizeCode(code));
+
+  if (!room) {
+    return { ok: false, reason: "not_found" };
+  }
+
+  if (participantId !== room.hostId) {
+    return { ok: false, reason: "not_host" };
+  }
+
+  if (room.status !== "playing") {
+    return { ok: false, reason: "wrong_status" };
+  }
+
+  room.status = "result";
+  room.updatedAt = now();
+  rooms.set(room.code, room);
+
+  return { ok: true, room: cloneRoom(room) };
+}
+
+export function restartRound(code: string, participantId: string): LifecycleResult {
+  const room = rooms.get(normalizeCode(code));
+
+  if (!room) {
+    return { ok: false, reason: "not_found" };
+  }
+
+  if (participantId !== room.hostId) {
+    return { ok: false, reason: "not_host" };
+  }
+
+  if (room.status !== "result") {
+    return { ok: false, reason: "wrong_status" };
+  }
+
+  // Return to a fresh lobby: clear all round state and reset scores, but keep
+  // the participants and the host.
+  room.status = "lobby";
+  room.drawerId = null;
+  room.secretWord = null;
+  room.guesses = [];
+  room.drawing = null;
+  room.scores = Object.fromEntries(room.participants.map((p) => [p.id, 0]));
+  room.updatedAt = now();
+  rooms.set(room.code, room);
+
+  return { ok: true, room: cloneRoom(room) };
+}
+
 export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSnapshot {
   const isHost = viewerParticipantId != null && viewerParticipantId === room.hostId;
   const isDrawer = viewerParticipantId != null && viewerParticipantId === room.drawerId;
+  // Once the round is over the word is public, so the during-round secrecy
+  // (drawer-only word, hidden correct-guess text) no longer applies.
+  const isResult = room.status === "result";
 
   return {
     code: room.code,
@@ -246,17 +304,17 @@ export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSn
     canStart: isHost && room.participants.length >= 2,
     drawerId: room.drawerId,
     isDrawer,
-    // The secret word is stripped server-side for everyone but the drawer.
-    secretWord: isDrawer ? room.secretWord : null,
+    // The secret word is drawer-only during play; revealed to all at result.
+    secretWord: isDrawer || isResult ? room.secretWord : null,
     // A correct guess equals the word, so its text is withheld from everyone
-    // except the drawer and the guess's own author.
+    // except the drawer and the guess's own author — until the result reveals it.
     guesses: room.guesses.map((guess) => ({
       id: guess.id,
       participantId: guess.participantId,
       participantName: guess.participantName,
       correct: guess.correct,
       text:
-        guess.correct && !isDrawer && viewerParticipantId !== guess.participantId
+        guess.correct && !isResult && !isDrawer && viewerParticipantId !== guess.participantId
           ? null
           : guess.text,
       createdAt: guess.createdAt
@@ -267,6 +325,8 @@ export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSn
       score: room.scores[participant.id] ?? 0
     })),
     // The current drawing is visible to all viewers (drawer and guessers).
-    drawing: room.drawing
+    drawing: room.drawing,
+    canEndRound: isHost && room.status === "playing",
+    canRestart: isHost && room.status === "result"
   };
 }

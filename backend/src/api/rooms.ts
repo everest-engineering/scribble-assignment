@@ -2,17 +2,21 @@ import { Router } from "express";
 import {
   createRoomSchema,
   drawingSchema,
+  endRoomSchema,
   guessSchema,
   HttpError,
   joinRoomSchema,
+  restartRoomSchema,
   roomCodeParamsSchema,
   roomViewerQuerySchema,
   startRoomSchema
 } from "./schemas.js";
 import {
   createRoom,
+  endRound,
   getRoom,
   joinRoom,
+  restartRound,
   startRound,
   submitGuess,
   toRoomSnapshot,
@@ -120,6 +124,54 @@ export function createRoomsRouter() {
           throw new HttpError(409, "The round is not active");
         }
         throw new HttpError(403, "Only the drawer can update the drawing");
+      }
+
+      response.json({
+        room: toRoomSnapshot(result.room, participantId)
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/:code/end", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId } = endRoomSchema.parse(request.body);
+      const result = endRound(code, participantId);
+
+      if (!result.ok) {
+        if (result.reason === "not_found") {
+          throw new HttpError(404, "Room not found");
+        }
+        if (result.reason === "not_host") {
+          throw new HttpError(403, "Only the host can end the round");
+        }
+        throw new HttpError(409, "The round is not active");
+      }
+
+      response.json({
+        room: toRoomSnapshot(result.room, participantId)
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/:code/restart", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId } = restartRoomSchema.parse(request.body);
+      const result = restartRound(code, participantId);
+
+      if (!result.ok) {
+        if (result.reason === "not_found") {
+          throw new HttpError(404, "Room not found");
+        }
+        if (result.reason === "not_host") {
+          throw new HttpError(403, "Only the host can restart the game");
+        }
+        throw new HttpError(409, "Restart is only available after a round");
       }
 
       response.json({

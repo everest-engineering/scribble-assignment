@@ -26,6 +26,14 @@ export const drawingSchema = z.object({
   drawing: z.string().nullable()
 });
 
+export const endRoomSchema = z.object({
+  participantId: z.string().min(1)
+});
+
+export const restartRoomSchema = z.object({
+  participantId: z.string().min(1)
+});
+
 export const roomViewerQuerySchema = z.object({
   participantId: z.string().optional()
 });

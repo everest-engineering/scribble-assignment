@@ -3,6 +3,8 @@ import {
   createRoom,
   getRoom,
   joinRoom,
+  endRound,
+  restartRound,
   selectWord,
   startRound,
   submitGuess,
@@ -253,6 +255,71 @@ describe("roomStore", () => {
       ok: false,
       reason: "not_playing"
     });
+  });
+
+  it("ends the round only for the host and only while playing (S4 US1)", () => {
+    const { room, hostId, guesserId } = startedRoom();
+
+    expect(endRound(room.code, guesserId)).toEqual({ ok: false, reason: "not_host" });
+
+    const ended = endRound(room.code, hostId);
+    if (!ended.ok) throw new Error("expected end to succeed");
+    expect(ended.room.status).toBe("result");
+
+    // Cannot end again (no longer playing).
+    expect(endRound(room.code, hostId)).toEqual({ ok: false, reason: "wrong_status" });
+  });
+
+  it("reveals the word and correct-guess text to everyone at result (S4 US1)", () => {
+    const { room, hostId, guesserId } = startedRoom();
+    const word = room.secretWord!;
+    submitGuess(room.code, guesserId, word);
+    endRound(room.code, hostId);
+    const resultRoom = getRoomOrThrow(room.code);
+
+    const guesserView = toRoomSnapshot(resultRoom, guesserId);
+    expect(guesserView.secretWord).toBe(word);
+    expect(guesserView.guesses[0].text).toBe(word);
+    expect(guesserView.canRestart).toBe(false); // guesser is not the host
+  });
+
+  it("restarts only for the host from the result state, clearing round state (S4 US2)", () => {
+    const { room, hostId, guesserId } = startedRoom();
+    submitGuess(room.code, guesserId, room.secretWord!);
+
+    // Cannot restart while still playing.
+    expect(restartRound(room.code, hostId)).toEqual({ ok: false, reason: "wrong_status" });
+
+    endRound(room.code, hostId);
+    expect(restartRound(room.code, guesserId)).toEqual({ ok: false, reason: "not_host" });
+
+    const restarted = restartRound(room.code, hostId);
+    if (!restarted.ok) throw new Error("expected restart to succeed");
+    const r = restarted.room;
+
+    expect(r.status).toBe("lobby");
+    expect(r.drawerId).toBeNull();
+    expect(r.secretWord).toBeNull();
+    expect(r.guesses).toHaveLength(0);
+    expect(r.drawing).toBeNull();
+    // Participants and host preserved; all scores reset to 0.
+    expect(r.participants).toHaveLength(2);
+    expect(r.hostId).toBe(hostId);
+    expect(Object.values(r.scores).every((s) => s === 0)).toBe(true);
+  });
+
+  it("gates end/restart controls to the host (S4 US3)", () => {
+    const { room, hostId, guesserId } = startedRoom();
+
+    // Playing: host can end, guesser cannot.
+    expect(toRoomSnapshot(room, hostId).canEndRound).toBe(true);
+    expect(toRoomSnapshot(room, guesserId).canEndRound).toBe(false);
+
+    endRound(room.code, hostId);
+    const resultRoom = getRoomOrThrow(room.code);
+    // Result: host can restart, guesser cannot.
+    expect(toRoomSnapshot(resultRoom, hostId).canRestart).toBe(true);
+    expect(toRoomSnapshot(resultRoom, guesserId).canRestart).toBe(false);
   });
 });
 

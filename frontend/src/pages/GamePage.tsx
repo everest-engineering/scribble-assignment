@@ -25,10 +25,12 @@ export function GamePage() {
     return () => roomStore.stopPolling();
   }, [roomStore]);
 
-  // If the round is not active (e.g., not started yet, or reset in a later
-  // scenario), fall back to the lobby.
+  // Carry every player out of the game view when the round ends (→ result) or
+  // is reset back to the lobby.
   useEffect(() => {
-    if (room && room.status === "lobby") {
+    if (room && room.status === "result") {
+      navigate("/result", { replace: true });
+    } else if (room && room.status === "lobby") {
       navigate("/lobby", { replace: true });
     }
   }, [navigate, room?.status]);
@@ -47,6 +49,14 @@ export function GamePage() {
 
   function handleDrawingPush(drawing: string | null) {
     void roomStore.updateDrawing(drawing);
+  }
+
+  async function handleEndRound() {
+    if (!participantId) {
+      return;
+    }
+    await roomStore.endRound(participantId);
+    navigate("/result");
   }
 
   return (
@@ -134,11 +144,13 @@ export function GamePage() {
         </aside>
       </div>
 
-      <div className="button-row">
-        <button className="button button--secondary" onClick={() => navigate("/lobby")}>
-          Exit Game
-        </button>
-      </div>
+      {room.canEndRound ? (
+        <div className="button-row">
+          <button className="button button--primary" onClick={handleEndRound}>
+            End Round
+          </button>
+        </div>
+      ) : null}
     </section>
   );
 }
