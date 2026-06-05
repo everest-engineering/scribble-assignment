@@ -22,6 +22,8 @@ export function GamePage() {
   }
 
   const viewer = room.participants.find((participant) => participant.id === participantId) ?? null;
+  const drawer = room.participants.find((participant) => participant.id === room.drawerId) ?? null;
+  const isDrawer = viewer?.role === "drawer";
 
   return (
     <section className="panel game-page">
@@ -41,8 +43,20 @@ export function GamePage() {
 
         <div className="game-page__main">
           <Card title="Canvas">
-            <div className="canvas-placeholder" style={{ minHeight: '500px', backgroundColor: '#ffffff', border: '1px solid #e5e7eb' }}>
-              Waiting for drawer...
+            <p className="status-line" style={{ backgroundColor: '#e0e7ff', color: '#3730a3' }}>
+              {isDrawer
+                ? "You are the drawer."
+                : `${drawer?.name ?? "The host"} is the drawer.`}
+            </p>
+            {isDrawer ? (
+              <p style={{ marginTop: '8px' }}>
+                Your secret word: <strong>{room.secretWord ?? "…"}</strong>
+              </p>
+            ) : (
+              <p style={{ marginTop: '8px' }}>Guess the word the drawer is drawing.</p>
+            )}
+            <div className="canvas-placeholder" style={{ minHeight: '500px', backgroundColor: '#ffffff', border: '1px solid #e5e7eb', marginTop: '12px' }}>
+              {isDrawer ? "Drawing tools arrive in a later round." : "Waiting for drawer..."}
             </div>
           </Card>
         </div>

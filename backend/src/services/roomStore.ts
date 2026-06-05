@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
-import type { Participant, Room, RoomSnapshot } from "../models/game.js";
+import type { ParticipantRole, Participant, Room, RoomSnapshot, RoundState } from "../models/game.js";
 import { STARTER_ROLES, STARTER_WORDS } from "../seed/starterData.js";
+import { selectWord } from "./wordSelection.js";
 
 const rooms = new Map<string, Room>();
 
@@ -35,14 +36,10 @@ function generateUniqueCode() {
   return code;
 }
 
-function displayName(name?: string) {
-  return name || "Player";
-}
-
-function createParticipant(name?: string): Participant {
+function createParticipant(name: string): Participant {
   return {
     id: randomUUID(),
-    name: displayName(name),
+    name,
     joinedAt: now()
   };
 }
@@ -55,13 +52,14 @@ export function listWords() {
   return [...STARTER_WORDS];
 }
 
-export function createRoom(playerName?: string) {
+export function createRoom(playerName: string) {
   const participant = createParticipant(playerName);
   const room: Room = {
     code: generateUniqueCode(),
     status: "lobby",
     hostId: participant.id,
     participants: [participant],
+    round: null,
     createdAt: now(),
     updatedAt: now()
   };
@@ -74,7 +72,7 @@ export function createRoom(playerName?: string) {
   };
 }
 
-export function joinRoom(code: string, playerName?: string) {
+export function joinRoom(code: string, playerName: string) {
   const room = rooms.get(code);
 
   if (!room) {
@@ -123,22 +121,44 @@ export function startRoom(code: string, participantId: string): StartRoomResult 
   }
 
   room.status = "started";
+  room.round = initializeRound(room);
   room.updatedAt = now();
   rooms.set(room.code, room);
 
   return { ok: true, room: cloneRoom(room) };
 }
 
-export function toRoomSnapshot(room: Room, _viewerParticipantId?: string): RoomSnapshot {
+function initializeRound(room: Room): RoundState {
+  const roles = room.participants.reduce<Record<string, ParticipantRole>>((acc, participant) => {
+    acc[participant.id] = participant.id === room.hostId ? "drawer" : "guesser";
+    return acc;
+  }, {});
+
   return {
+    drawerId: room.hostId,
+    secretWord: selectWord(room.code, STARTER_WORDS),
+    roles
+  };
+}
+
+export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSnapshot {
+  const snapshot: RoomSnapshot = {
     code: room.code,
     status: room.status,
     hostId: room.hostId,
+    drawerId: room.round?.drawerId ?? null,
     participants: room.participants.map((participant) => ({
       ...participant,
-      isHost: participant.id === room.hostId
+      isHost: participant.id === room.hostId,
+      role: room.round?.roles[participant.id] ?? null
     })),
     availableWords: listWords(),
     roles: [...STARTER_ROLES]
   };
+
+  if (room.round && viewerParticipantId === room.round.drawerId) {
+    snapshot.secretWord = room.round.secretWord;
+  }
+
+  return snapshot;
 }

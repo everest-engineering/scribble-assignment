@@ -22,8 +22,8 @@ name validation, deterministic word selection, role assignment, and viewer-speci
 
 **Purpose**: Confirm Group 1 baseline is green before extending it.
 
-- [ ] T001 Confirm Group 1 suites/builds pass from a clean state: `cd backend && npm test` and `cd frontend && npm test`, then `npm run build` in each (baseline for the Group 2 changes)
-- [ ] T002 Re-read `backend/src/seed/starterData.ts` to confirm `STARTER_WORDS` (5 words) and `STARTER_ROLES` are the source for word/role logic
+- [X] T001 Confirm Group 1 suites/builds pass from a clean state: `cd backend && npm test` and `cd frontend && npm test`, then `npm run build` in each (baseline for the Group 2 changes)
+- [X] T002 Re-read `backend/src/seed/starterData.ts` to confirm `STARTER_WORDS` (5 words) and `STARTER_ROLES` are the source for word/role logic
 
 ---
 
@@ -33,10 +33,10 @@ name validation, deterministic word selection, role assignment, and viewer-speci
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete.
 
-- [ ] T003 In `backend/src/models/game.ts`, add `RoundState` interface (`drawerId: string`, `secretWord: string`, `roles: Record<string, ParticipantRole>`)
-- [ ] T004 In `backend/src/models/game.ts`, add `round: RoundState | null` to `Room`
-- [ ] T005 In `backend/src/models/game.ts`, extend `SnapshotParticipant` with `role: ParticipantRole | null`, and `RoomSnapshot` with `drawerId: string | null` and optional `secretWord?: string`
-- [ ] T006 In `backend/src/services/roomStore.ts`, initialize `round: null` in `createRoom` so existing construction stays type-correct (depends on T004)
+- [X] T003 In `backend/src/models/game.ts`, add `RoundState` interface (`drawerId: string`, `secretWord: string`, `roles: Record<string, ParticipantRole>`)
+- [X] T004 In `backend/src/models/game.ts`, add `round: RoundState | null` to `Room`
+- [X] T005 In `backend/src/models/game.ts`, extend `SnapshotParticipant` with `role: ParticipantRole | null`, and `RoomSnapshot` with `drawerId: string | null` and optional `secretWord?: string`
+- [X] T006 In `backend/src/services/roomStore.ts`, initialize `round: null` in `createRoom` so existing construction stays type-correct (depends on T004)
 
 **Checkpoint**: Shared types compile; user stories can now proceed.
 
@@ -51,15 +51,15 @@ no silent `"Player"` default.
 
 ### Tests for User Story 1 ⚠️
 
-- [ ] T007 [P] [US1] Unit test in `backend/src/api/schemas.test.ts`: `createRoomSchema` and `joinRoomSchema` reject empty and whitespace-only `playerName`, and trim accepted names (`"  Ada "` → `"Ada"`)
-- [ ] T008 [P] [US1] Unit test in `backend/src/services/roomStore.test.ts`: `createRoom`/`joinRoom` store the provided trimmed name and never substitute `"Player"`
+- [X] T007 [P] [US1] Unit test in `backend/src/api/schemas.test.ts`: `createRoomSchema` and `joinRoomSchema` reject empty and whitespace-only `playerName`, and trim accepted names (`"  Ada "` → `"Ada"`)
+- [X] T008 [P] [US1] Unit test in `backend/src/services/roomStore.test.ts`: `createRoom`/`joinRoom` store the provided trimmed name and never substitute `"Player"`
 
 ### Implementation for User Story 1
 
-- [ ] T009 [US1] In `backend/src/api/schemas.ts`, add a shared `playerNameSchema` (`z.string().transform(trim).pipe(z.string().min(1, "Player name is required"))`) and use it in `createRoomSchema` and `joinRoomSchema`
-- [ ] T010 [US1] In `backend/src/services/roomStore.ts`, remove the `displayName(name) = name || "Player"` default; store the (already-validated, trimmed) name as-is (depends on T009)
-- [ ] T011 [P] [US1] In `frontend/src/pages/CreateRoomPage.tsx`, block submit on empty/whitespace name with a visible message before calling the server (FR-022)
-- [ ] T012 [P] [US1] In `frontend/src/pages/JoinRoomPage.tsx`, add an empty/whitespace name guard alongside the existing room-code guard (FR-022)
+- [X] T009 [US1] In `backend/src/api/schemas.ts`, add a shared `playerNameSchema` (`z.string().transform(trim).pipe(z.string().min(1, "Player name is required"))`) and use it in `createRoomSchema` and `joinRoomSchema`
+- [X] T010 [US1] In `backend/src/services/roomStore.ts`, remove the `displayName(name) = name || "Player"` default; store the (already-validated, trimmed) name as-is (depends on T009)
+- [X] T011 [P] [US1] In `frontend/src/pages/CreateRoomPage.tsx`, block submit on empty/whitespace name with a visible message before calling the server (FR-022)
+- [X] T012 [P] [US1] In `frontend/src/pages/JoinRoomPage.tsx`, add an empty/whitespace name guard alongside the existing room-code guard (FR-022)
 
 **Checkpoint**: Name validation enforced at the edge and mirrored in the UI.
 
@@ -75,11 +75,11 @@ no silent `"Player"` default.
 
 ### Tests for User Story 3 ⚠️
 
-- [ ] T013 [P] [US3] Unit test in `backend/src/services/wordSelection.test.ts`: same code returns same word (determinism); result is always a member of the list; at least two different codes can map to different words
+- [X] T013 [P] [US3] Unit test in `backend/src/services/wordSelection.test.ts`: same code returns same word (determinism); result is always a member of the list; at least two different codes can map to different words
 
 ### Implementation for User Story 3
 
-- [ ] T014 [US3] Create `backend/src/services/wordSelection.ts` with pure `selectWord(code, words)` = `words[ sum(code char codes) % words.length ]`, no randomness (FR-026, FR-027)
+- [X] T014 [US3] Create `backend/src/services/wordSelection.ts` with pure `selectWord(code, words)` = `words[ sum(code char codes) % words.length ]`, no randomness (FR-026, FR-027)
 
 **Checkpoint**: Deterministic word function exists and is unit-tested.
 
@@ -95,14 +95,14 @@ others `role: "guesser"`.
 
 ### Tests for User Story 2 ⚠️
 
-- [ ] T015 [P] [US2] Unit test in `backend/src/services/roomStore.test.ts`: after `startRoom` success, `room.round` has `drawerId === hostId`, host role `"drawer"`, every other participant `"guesser"`, and a `secretWord` from the starter list
-- [ ] T016 [P] [US2] Unit test in `backend/src/services/roomStore.test.ts`: round init is idempotent — calling `startRoom` again while `started` does not re-select the word or change roles
-- [ ] T017 [P] [US2] Unit test in `backend/src/services/roomStore.test.ts`: starting room A creates no `round` in room B (isolation, SC-005)
+- [X] T015 [P] [US2] Unit test in `backend/src/services/roomStore.test.ts`: after `startRoom` success, `room.round` has `drawerId === hostId`, host role `"drawer"`, every other participant `"guesser"`, and a `secretWord` from the starter list
+- [X] T016 [P] [US2] Unit test in `backend/src/services/roomStore.test.ts`: round init is idempotent — calling `startRoom` again while `started` does not re-select the word or change roles
+- [X] T017 [P] [US2] Unit test in `backend/src/services/roomStore.test.ts`: starting room A creates no `round` in room B (isolation, SC-005)
 
 ### Implementation for User Story 2
 
-- [ ] T018 [US2] In `backend/src/services/roomStore.ts`, in the `startRoom` success branch, build `round` once on first `started` transition: `drawerId = hostId`, `roles` map (host=drawer, others=guesser), `secretWord = selectWord(room.code, STARTER_WORDS)`; leave existing host/2-player/idempotency gates intact (depends on T014, T004)
-- [ ] T019 [US2] In `backend/src/services/roomStore.ts`, update `toRoomSnapshot` to set `drawerId = room.round?.drawerId ?? null` and per-participant `role = room.round?.roles[p.id] ?? null` (FR-024) (depends on T005, T018)
+- [X] T018 [US2] In `backend/src/services/roomStore.ts`, in the `startRoom` success branch, build `round` once on first `started` transition: `drawerId = hostId`, `roles` map (host=drawer, others=guesser), `secretWord = selectWord(room.code, STARTER_WORDS)`; leave existing host/2-player/idempotency gates intact (depends on T014, T004)
+- [X] T019 [US2] In `backend/src/services/roomStore.ts`, update `toRoomSnapshot` to set `drawerId = room.round?.drawerId ?? null` and per-participant `role = room.round?.roles[p.id] ?? null` (FR-024) (depends on T005, T018)
 
 **Checkpoint**: Drawer identity and roles are assigned on start and visible in every snapshot.
 
@@ -117,15 +117,15 @@ server-side; surfaced on the game screen only for the drawer.
 
 ### Tests for User Story 4 ⚠️
 
-- [ ] T020 [P] [US4] Unit test in `backend/src/services/roomStore.test.ts`: `toRoomSnapshot(room, drawerId)` includes `secretWord`; `toRoomSnapshot(room, guesserId)` omits the `secretWord` key entirely (not null) (FR-028, FR-029)
-- [ ] T021 [P] [US4] Unit test in `backend/src/services/roomStore.test.ts`: `toRoomSnapshot` with missing/unknown viewer id omits `secretWord` (safe default, FR-030)
+- [X] T020 [P] [US4] Unit test in `backend/src/services/roomStore.test.ts`: `toRoomSnapshot(room, drawerId)` includes `secretWord`; `toRoomSnapshot(room, guesserId)` omits the `secretWord` key entirely (not null) (FR-028, FR-029)
+- [X] T021 [P] [US4] Unit test in `backend/src/services/roomStore.test.ts`: `toRoomSnapshot` with missing/unknown viewer id omits `secretWord` (safe default, FR-030)
 
 ### Implementation for User Story 4
 
-- [ ] T022 [US4] In `backend/src/services/roomStore.ts`, in `toRoomSnapshot`, conditionally attach `secretWord` only when `room.round && viewerParticipantId === room.round.drawerId` (use conditional spread so the key is absent otherwise) (FR-028, FR-029, FR-030) (depends on T019)
-- [ ] T023 [P] [US4] In `frontend/src/services/api.ts`, extend the `RoomSnapshot` type: add `drawerId: string | null`, `role: ParticipantRole | null` on participants, optional `secretWord?: string`
-- [ ] T024 [P] [US4] In `frontend/src/state/roomStore.ts`, mirror the extended snapshot type (no new action needed; `fetchRoom()`/`startGame()` already pass the viewer id) (depends on T023)
-- [ ] T025 [US4] In `frontend/src/pages/GamePage.tsx`, show the drawer's name to everyone; if the current viewer is the drawer (or `secretWord` is present), show the secret word; otherwise show a guesser prompt (FR-031) (depends on T023, T024)
+- [X] T022 [US4] In `backend/src/services/roomStore.ts`, in `toRoomSnapshot`, conditionally attach `secretWord` only when `room.round && viewerParticipantId === room.round.drawerId` (use conditional spread so the key is absent otherwise) (FR-028, FR-029, FR-030) (depends on T019)
+- [X] T023 [P] [US4] In `frontend/src/services/api.ts`, extend the `RoomSnapshot` type: add `drawerId: string | null`, `role: ParticipantRole | null` on participants, optional `secretWord?: string`
+- [X] T024 [P] [US4] In `frontend/src/state/roomStore.ts`, mirror the extended snapshot type (no new action needed; `fetchRoom()`/`startGame()` already pass the viewer id) (depends on T023)
+- [X] T025 [US4] In `frontend/src/pages/GamePage.tsx`, show the drawer's name to everyone; if the current viewer is the drawer (or `secretWord` is present), show the secret word; otherwise show a guesser prompt (FR-031) (depends on T023, T024)
 
 **Checkpoint**: Word is hidden from guessers over the wire and shown to the drawer in the UI.
 
@@ -133,11 +133,11 @@ server-side; surfaced on the game screen only for the drawer.
 
 ## Phase 7: Polish & Cross-Cutting Concerns
 
-- [ ] T026 [P] Minor styles in `frontend/src/styles/app.css` for drawer badge / secret-word display (only if needed)
-- [ ] T027 [P] Run automated suites green: `cd backend && npm test` and `cd frontend && npm test`
-- [ ] T028 Run `cd backend && npm run build` and `cd frontend && npm run build`; fix any strict-TS issues from the new `round`/optional `secretWord` types
+- [X] T026 [P] Minor styles in `frontend/src/styles/app.css` for drawer badge / secret-word display (only if needed)
+- [X] T027 [P] Run automated suites green: `cd backend && npm test` and `cd frontend && npm test`
+- [X] T028 Run `cd backend && npm run build` and `cd frontend && npm run build`; fix any strict-TS issues from the new `round`/optional `secretWord` types
 - [ ] T029 Run the two-tab manual validation in `specs/002-game-start-drawer/quickstart.md` (drawer sees word, guesser does not — verify in UI and network response)
-- [ ] T030 Verify artifacts remain consistent with the implementation; document any deviation in `spec.md`/`plan.md` per constitution Principle II
+- [X] T030 Verify artifacts remain consistent with the implementation; document any deviation in `spec.md`/`plan.md` per constitution Principle II
 
 ---
 

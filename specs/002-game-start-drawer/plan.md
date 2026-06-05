@@ -292,6 +292,24 @@ Per constitution §V and spec FR-032: drawing/canvas strokes, clear canvas, gues
 history, scoring, result state, restart, game-screen gameplay polling, WebSockets, databases, auth,
 timers, multiple rounds, drawer rotation, custom/random word packs, new libraries, unrelated refactors.
 
+## Implementation Notes & Deviations (post-execution)
+
+Recorded per constitution Principle II (traceability):
+
+- **Supersedes Group 1 FR-018**: Group 1's `startRoom` test asserted "no role or word" on start. Group 2
+  intentionally changes this — `startRoom` now assigns roles and selects the word. The Group 1 test was
+  updated to keep only the status/idempotency assertions; round-state assertions live in the Group 2
+  tests (T015/T016/T020/T021).
+- **I1 decision (from `/speckit-analyze`)**: Kept the generic Zod `400 { "message": "Invalid request
+  payload" }` for empty names server-side; the clear, name-specific message is shown client-side (FR-022),
+  consistent with Group 1. No `errorHandler` change.
+- **`createRoom`/`joinRoom` signatures** narrowed from `playerName?: string` to `playerName: string`
+  since the Zod edge now guarantees a trimmed non-empty name; the `"Player"` default was removed.
+- **GamePage**: drawer sees the secret word and a "you are the drawer" line; guessers see the drawer's
+  name and a guess prompt. Canvas remains a placeholder (drawing is Group 3, FR-032).
+- **T031/T026 (CSS)**: No new styles required — existing `status-line`/`form__error` classes covered the
+  drawer/word display.
+
 ## Project Structure (documentation)
 
 ```text
