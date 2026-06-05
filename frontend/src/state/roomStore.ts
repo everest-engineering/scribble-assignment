@@ -7,7 +7,7 @@ import {
   useSyncExternalStore,
   type PropsWithChildren
 } from "react";
-import { api, type RoomSessionResponse, type RoomSnapshot } from "../services/api";
+import { api, type Point, type RoomSessionResponse, type RoomSnapshot } from "../services/api";
 
 export interface RoomState {
   room: RoomSnapshot | null;
@@ -97,6 +97,53 @@ class RoomStore {
     const response = await api.fetchRoom(this.state.room.code, this.state.participantId ?? undefined);
     this.setRoomSnapshot(response.room);
     return response.room;
+  }
+
+  async startGame() {
+    const { room, participantId } = this.state;
+    if (!room || !participantId) return null;
+    const response = await this.withLoading(() => api.startGame(room.code, participantId));
+    this.setRoomSnapshot(response.room);
+    return response.room;
+  }
+
+  async endRound() {
+    const { room, participantId } = this.state;
+    if (!room || !participantId) return null;
+    await this.withLoading(() => api.endRound(room.code, participantId));
+    await this.fetchRoom();
+  }
+
+  async restartGame() {
+    const { room, participantId } = this.state;
+    if (!room || !participantId) return null;
+    await this.withLoading(() => api.restartGame(room.code, participantId));
+    await this.fetchRoom();
+  }
+
+  async addStroke(points: Point[]) {
+    const { room, participantId } = this.state;
+    if (!room || !participantId) return;
+    await api.addStroke(room.code, participantId, points).catch(() => undefined);
+  }
+
+  async clearCanvas() {
+    const { room, participantId } = this.state;
+    if (!room || !participantId) return;
+    await api.clearCanvas(room.code, participantId);
+    await this.fetchRoom();
+  }
+
+  async submitGuess(text: string) {
+    const { room, participantId } = this.state;
+    if (!room || !participantId) return null;
+    const result = await this.withLoading(async () => {
+      const r = await api.submitGuess(room.code, participantId, text);
+      const updated = await api.fetchRoom(room.code, participantId);
+      this.setRoomSnapshot(updated.room);
+      return r;
+    });
+    return result?.guess ?? null;
   }
 }
 
