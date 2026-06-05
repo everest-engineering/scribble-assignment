@@ -98,6 +98,59 @@ class RoomStore {
     this.setRoomSnapshot(response.room);
     return response.room;
   }
+
+  async startRoom() {
+    if (!this.state.room || !this.state.participantId) {
+      return null;
+    }
+
+    return this.withLoading(async () => {
+      const response = await api.startRoom(this.state.room!.code, this.state.participantId!);
+      this.setRoomSnapshot(response.room);
+      return response.room;
+    });
+  }
+
+  async submitGuess(guessText: string) {
+    if (!this.state.room || !this.state.participantId) {
+      return;
+    }
+
+    const response = await api.submitGuess(
+      this.state.room.code,
+      this.state.participantId,
+      guessText
+    );
+    this.setRoomSnapshot(response.room);
+  }
+
+  async updateCanvas(canvasData: string | null) {
+    if (!this.state.room || !this.state.participantId) {
+      return;
+    }
+
+    await api.updateCanvas(this.state.room.code, this.state.participantId, canvasData);
+  }
+
+  async endRoom() {
+    if (!this.state.room || !this.state.participantId) {
+      return null;
+    }
+
+    const response = await api.endRoom(this.state.room.code, this.state.participantId);
+    this.setRoomSnapshot(response.room);
+    return response.room;
+  }
+
+  async restartRoom() {
+    if (!this.state.room || !this.state.participantId) {
+      return null;
+    }
+
+    const response = await api.restartRoom(this.state.room.code, this.state.participantId);
+    this.setRoomSnapshot(response.room);
+    return response.room;
+  }
 }
 
 const RoomStoreContext = createContext<RoomStore | null>(null);
