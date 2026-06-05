@@ -21,7 +21,9 @@ export function GamePage() {
     return null;
   }
 
-  const viewer = room.participants.find((participant) => participant.id === participantId) ?? null;
+  const viewer = room.participants.find((p) => p.id === participantId) ?? null;
+  const drawer = room.participants.find((p) => p.id === room.drawerId) ?? null;
+  const isDrawer = participantId === room.drawerId;
 
   return (
     <section className="panel game-page">
@@ -41,8 +43,8 @@ export function GamePage() {
 
         <div className="game-page__main">
           <Card title="Canvas">
-            <div className="canvas-placeholder" style={{ minHeight: '500px', backgroundColor: '#ffffff', border: '1px solid #e5e7eb' }}>
-              Waiting for drawer...
+            <div className="canvas-placeholder" style={{ minHeight: "500px", backgroundColor: "#ffffff", border: "1px solid #e5e7eb" }}>
+              {drawer ? `${drawer.name} is drawing...` : "Waiting for drawer..."}
             </div>
           </Card>
         </div>
@@ -55,10 +57,24 @@ export function GamePage() {
                 <dd>{viewer?.name ?? "Unknown player"}</dd>
               </div>
               <div>
-                <dt>Status</dt>
-                <dd>Playing</dd>
+                <dt>Role</dt>
+                <dd>{isDrawer ? "Drawer" : "Guesser"}</dd>
               </div>
+              {drawer ? (
+                <div>
+                  <dt>Drawing</dt>
+                  <dd>
+                    {drawer.name}
+                    {isDrawer ? " (you)" : ""}
+                  </dd>
+                </div>
+              ) : null}
             </dl>
+            {isDrawer && room.currentWord ? (
+              <p style={{ marginTop: "12px", padding: "8px 12px", backgroundColor: "#dcfce7", borderRadius: "6px", fontWeight: 600 }}>
+                Secret word: {room.currentWord}
+              </p>
+            ) : null}
           </Card>
 
           <Card title="Your Guess">

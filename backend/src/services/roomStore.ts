@@ -118,17 +118,19 @@ export function startRoom(code: string, participantId: string): RoomSnapshot {
   }
 
   room.status = "active";
+  room.drawerId = room.hostId;
+  room.currentWord = STARTER_WORDS[0];
   const saved = saveRoom(room)!;
   return toRoomSnapshot(saved);
 }
 
 export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSnapshot {
-  void viewerParticipantId;
-
   return {
     code: room.code,
     status: room.status,
     hostId: room.hostId,
+    ...(room.drawerId && { drawerId: room.drawerId }),
+    ...(room.currentWord && viewerParticipantId === room.drawerId && { currentWord: room.currentWord }),
     participants: room.participants.map((participant) => ({ ...participant })),
     availableWords: listWords(),
     roles: [...STARTER_ROLES]
