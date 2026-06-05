@@ -28,6 +28,8 @@ class RoomStore {
 
   private listeners = new Set<Listener>();
 
+  private pollTimer: ReturnType<typeof setInterval> | null = null;
+
   subscribe = (listener: Listener) => {
     this.listeners.add(listener);
     return () => {
@@ -97,6 +99,65 @@ class RoomStore {
     const response = await api.fetchRoom(this.state.room.code, this.state.participantId ?? undefined);
     this.setRoomSnapshot(response.room);
     return response.room;
+  }
+
+  isHost() {
+    const { room, participantId } = this.state;
+    return Boolean(room && participantId && room.hostId === participantId);
+  }
+
+  async startGame() {
+    const { room, participantId } = this.state;
+
+    if (!room || !participantId) {
+      return null;
+    }
+
+    const response = await this.withLoading(() => api.startGame(room.code, participantId));
+    this.setRoomSnapshot(response.room);
+    return response.room;
+  }
+
+  async submitGuess(text: string) {
+    const { room, participantId } = this.state;
+
+    if (!room || !participantId) {
+      return null;
+    }
+
+    const response = await this.withLoading(() => api.submitGuess(room.code, participantId, text));
+    this.setRoomSnapshot(response.room);
+    return response.room;
+  }
+
+  async restartGame() {
+    const { room, participantId } = this.state;
+
+    if (!room || !participantId) {
+      return null;
+    }
+
+    const response = await this.withLoading(() => api.restartGame(room.code, participantId));
+    this.setRoomSnapshot(response.room);
+    return response.room;
+  }
+
+  startPolling(intervalMs = 2000) {
+    if (this.pollTimer) {
+      return;
+    }
+
+    this.pollTimer = setInterval(() => {
+      // Keep polling on transient failures; fetchRoom leaves prior state intact on error.
+      void this.fetchRoom().catch(() => undefined);
+    }, intervalMs);
+  }
+
+  stopPolling() {
+    if (this.pollTimer) {
+      clearInterval(this.pollTimer);
+      this.pollTimer = null;
+    }
   }
 }
 
