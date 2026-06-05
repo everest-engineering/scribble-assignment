@@ -45,4 +45,30 @@ describe("api service", () => {
       expect.anything()
     );
   });
+
+  it("fetchRoom returns a snapshot carrying host fields (US4)", async () => {
+    const mockResponse = {
+      ok: true,
+      json: () =>
+        Promise.resolve({
+          room: {
+            code: "XYZW",
+            status: "lobby",
+            participants: [{ id: "p1", name: "Alice", joinedAt: "t" }],
+            availableWords: [],
+            roles: [],
+            hostId: "p1",
+            isHost: true,
+            canStart: false,
+          },
+        }),
+    };
+    vi.mocked(fetch).mockResolvedValue(mockResponse as unknown as Response);
+
+    const result = await api.fetchRoom("XYZW", "p1");
+
+    expect(result.room.hostId).toBe("p1");
+    expect(result.room.isHost).toBe(true);
+    expect(result.room.canStart).toBe(false);
+  });
 });

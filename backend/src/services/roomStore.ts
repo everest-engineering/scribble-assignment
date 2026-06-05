@@ -55,6 +55,7 @@ export function createRoom(playerName?: string) {
     code: generateUniqueCode(),
     status: "lobby",
     participants: [participant],
+    hostId: participant.id,
     createdAt: now(),
     updatedAt: now()
   };
@@ -67,8 +68,12 @@ export function createRoom(playerName?: string) {
   };
 }
 
+function normalizeCode(code: string) {
+  return code.trim().toUpperCase();
+}
+
 export function joinRoom(code: string, playerName?: string) {
-  const room = rooms.get(code);
+  const room = rooms.get(normalizeCode(code));
 
   if (!room) {
     return null;
@@ -86,7 +91,7 @@ export function joinRoom(code: string, playerName?: string) {
 }
 
 export function getRoom(code: string) {
-  const room = rooms.get(code);
+  const room = rooms.get(normalizeCode(code));
   return room ? cloneRoom(room) : null;
 }
 
@@ -97,13 +102,16 @@ export function saveRoom(room: Room) {
 }
 
 export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSnapshot {
-  void viewerParticipantId;
+  const isHost = viewerParticipantId != null && viewerParticipantId === room.hostId;
 
   return {
     code: room.code,
     status: room.status,
     participants: room.participants.map((participant) => ({ ...participant })),
     availableWords: listWords(),
-    roles: [...STARTER_ROLES]
+    roles: [...STARTER_ROLES],
+    hostId: room.hostId,
+    isHost,
+    canStart: isHost && room.participants.length >= 2
   };
 }

@@ -28,6 +28,10 @@ class RoomStore {
 
   private listeners = new Set<Listener>();
 
+  private pollHandle: ReturnType<typeof setInterval> | null = null;
+
+  private isPolling = false;
+
   subscribe = (listener: Listener) => {
     this.listeners.add(listener);
     return () => {
@@ -97,6 +101,45 @@ class RoomStore {
     const response = await api.fetchRoom(this.state.room.code, this.state.participantId ?? undefined);
     this.setRoomSnapshot(response.room);
     return response.room;
+  }
+
+  // Automatic lobby refresh. On failure the last known snapshot is kept and a
+  // non-fatal error is surfaced; the next tick retries. An in-flight guard
+  // prevents overlapping requests when a poll is slower than the interval.
+  private async pollOnce() {
+    if (this.isPolling || !this.state.room) {
+      return;
+    }
+
+    this.isPolling = true;
+
+    try {
+      const response = await api.fetchRoom(
+        this.state.room.code,
+        this.state.participantId ?? undefined
+      );
+      this.setRoomSnapshot(response.room);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unable to refresh room";
+      this.setState({ error: message });
+    } finally {
+      this.isPolling = false;
+    }
+  }
+
+  startPolling(intervalMs = 2000) {
+    this.stopPolling();
+    void this.pollOnce();
+    this.pollHandle = setInterval(() => {
+      void this.pollOnce();
+    }, intervalMs);
+  }
+
+  stopPolling() {
+    if (this.pollHandle !== null) {
+      clearInterval(this.pollHandle);
+      this.pollHandle = null;
+    }
   }
 }
 

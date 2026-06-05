@@ -17,6 +17,13 @@ export function LobbyPage() {
     }
   }, [navigate, room]);
 
+  // Automatic lobby polling (~2s). Starts on mount and stops on unmount so the
+  // participant list and start gating stay current without a manual refresh.
+  useEffect(() => {
+    roomStore.startPolling(2000);
+    return () => roomStore.stopPolling();
+  }, [roomStore]);
+
   async function handleRefresh() {
     try {
       setRefreshError(null);
@@ -50,7 +57,9 @@ export function LobbyPage() {
               {room.participants.map((participant) => (
                 <li key={participant.id}>
                   <span>{participant.name}</span>
-                  <span className="player-list__meta">joined</span>
+                  <span className="player-list__meta">
+                    {participant.id === room.hostId ? "host" : "joined"}
+                  </span>
                 </li>
               ))}
             </ul>
@@ -69,9 +78,16 @@ export function LobbyPage() {
         <button className="button button--secondary" disabled={isLoading} onClick={handleRefresh}>
           {isLoading ? "Refreshing..." : "Refresh Room"}
         </button>
-        <button className="button button--primary" onClick={() => navigate("/game")}>
-          Start Game
-        </button>
+        {room.isHost ? (
+          <button
+            className="button button--primary"
+            disabled={!room.canStart}
+            title={room.canStart ? undefined : "At least 2 players are required to start"}
+            onClick={() => navigate("/game")}
+          >
+            {room.canStart ? "Start Game" : "Waiting for 2+ players"}
+          </button>
+        ) : null}
       </div>
     </section>
   );
