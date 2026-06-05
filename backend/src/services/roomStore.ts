@@ -187,6 +187,47 @@ export function submitGuess(code: string, participantId: string, guessText: stri
   return toRoomSnapshot(cloneRoom(room), participantId);
 }
 
+export function restartRoom(code: string, participantId: string) {
+  const room = rooms.get(code);
+
+  if (!room) {
+    throw new HttpError(404, "Unable to load room");
+  }
+
+  if (room.hostId !== participantId) {
+    throw new HttpError(403, "Only the host can restart the game");
+  }
+
+  room.status = "lobby";
+  room.drawerId = undefined;
+  room.secretWord = undefined;
+  room.guesses = [];
+  room.scores = {};
+  room.canvasData = null;
+  room.updatedAt = now();
+  rooms.set(room.code, room);
+
+  return { room: toRoomSnapshot(cloneRoom(room), participantId) };
+}
+
+export function endRoom(code: string, participantId: string) {
+  const room = rooms.get(code);
+
+  if (!room) {
+    throw new HttpError(404, "Unable to load room");
+  }
+
+  if (room.hostId !== participantId) {
+    throw new HttpError(403, "Only the host can end the round");
+  }
+
+  room.status = "result";
+  room.updatedAt = now();
+  rooms.set(room.code, room);
+
+  return { room: toRoomSnapshot(cloneRoom(room), participantId) };
+}
+
 export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSnapshot {
   const snapshot: RoomSnapshot = {
     code: room.code,
@@ -201,7 +242,7 @@ export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSn
     roles: [...STARTER_ROLES]
   };
 
-  if (room.drawerId && viewerParticipantId === room.drawerId) {
+  if (room.status === "result" || (room.drawerId && viewerParticipantId === room.drawerId)) {
     snapshot.secretWord = room.secretWord;
   }
 

@@ -22,9 +22,9 @@
 
 **⚠️ CRITICAL**: All Phase 3–5 tasks depend on this phase being complete.
 
-- [ ] T001 [P] Add `endRoomSchema` and `restartRoomSchema` (both `z.object({ participantId: z.string() })`) to `backend/src/api/schemas.ts`
-- [ ] T002 Extend `toRoomSnapshot` in `backend/src/services/roomStore.ts`: include `secretWord` for all viewers when `room.status === "result"` (change the existing `if (room.drawerId && viewerParticipantId === room.drawerId)` guard to `if (room.status === "result" || (room.drawerId && viewerParticipantId === room.drawerId))`)
-- [ ] T003 [P] Add `api.endRoom(code, participantId)` and `api.restartRoom(code, participantId)` methods to `frontend/src/services/api.ts` (both POST, body `{ participantId }`, return `{ room: RoomSnapshot }`)
+- [x] T001 [P] Add `endRoomSchema` and `restartRoomSchema` (both `z.object({ participantId: z.string() })`) to `backend/src/api/schemas.ts`
+- [x] T002 Extend `toRoomSnapshot` in `backend/src/services/roomStore.ts`: include `secretWord` for all viewers when `room.status === "result"` (change the existing `if (room.drawerId && viewerParticipantId === room.drawerId)` guard to `if (room.status === "result" || (room.drawerId && viewerParticipantId === room.drawerId))`)
+- [x] T003 [P] Add `api.endRoom(code, participantId)` and `api.restartRoom(code, participantId)` methods to `frontend/src/services/api.ts` (both POST, body `{ participantId }`, return `{ room: RoomSnapshot }`)
 
 **Checkpoint**: Schema types exist, word redaction logic is correct for result status, and frontend API methods are ready for store wiring.
 
@@ -36,10 +36,10 @@
 
 **Independent Test**: Two tabs — Alice (host) and Bob (guesser). Alice clicks "End Round" on the game screen. The button triggers `POST /rooms/:code/end`. Verify (via network tab or room polling) that the room snapshot now has `status: "result"` and `secretWord` is present for all viewers. FR-001, FR-002, FR-004 (word in snapshot), FR-011 (403 for Bob) satisfied. Note: the results view UI is wired in US2.
 
-- [ ] T004 [P] [US1] Add `endRoom(code: string, participantId: string)` to `backend/src/services/roomStore.ts`: 404 if room not found; 403 if `participantId !== room.hostId`; set `room.status = "result"`, update `updatedAt`, persist; return `{ room: toRoomSnapshot(cloneRoom(room), participantId) }`
-- [ ] T005 [US1] Add `POST /:code/end` route to `backend/src/api/rooms.ts`: parse params with `roomCodeParamsSchema`, parse body with `endRoomSchema`, call `endRoom(code.toUpperCase(), participantId)`, respond with `{ room }` (import `endRoom` and `endRoomSchema`)
-- [ ] T006 [P] [US1] Add `endRoom()` method to `frontend/src/state/roomStore.ts`: calls `api.endRoom(room.code, participantId)`, calls `this.setRoomSnapshot(response.room)`, returns the snapshot
-- [ ] T007 [US1] Add host-only "End Round" button to `frontend/src/pages/GamePage.tsx`: add `isHost = room.hostId === participantId` constant; render `<button className="button button--secondary" onClick={handleEndRound}>End Round</button>` only when `isHost` is true (the existing `room.status === "result"` early return added in T009 ensures the button is never shown in result phase, satisfying FR-014); add `handleEndRound` async function that calls `store.endRoom()` and catches errors into `setPollError`
+- [x] T004 [P] [US1] Add `endRoom(code: string, participantId: string)` to `backend/src/services/roomStore.ts`: 404 if room not found; 403 if `participantId !== room.hostId`; set `room.status = "result"`, update `updatedAt`, persist; return `{ room: toRoomSnapshot(cloneRoom(room), participantId) }`
+- [x] T005 [US1] Add `POST /:code/end` route to `backend/src/api/rooms.ts`: parse params with `roomCodeParamsSchema`, parse body with `endRoomSchema`, call `endRoom(code.toUpperCase(), participantId)`, respond with `{ room }` (import `endRoom` and `endRoomSchema`)
+- [x] T006 [P] [US1] Add `endRoom()` method to `frontend/src/state/roomStore.ts`: calls `api.endRoom(room.code, participantId)`, calls `this.setRoomSnapshot(response.room)`, returns the snapshot
+- [x] T007 [US1] Add host-only "End Round" button to `frontend/src/pages/GamePage.tsx`: add `isHost = room.hostId === participantId` constant; render `<button className="button button--secondary" onClick={handleEndRound}>End Round</button>` only when `isHost` is true (the existing `room.status === "result"` early return added in T009 ensures the button is never shown in result phase, satisfying FR-014); add `handleEndRound` async function that calls `store.endRoom()` and catches errors into `setPollError`
 
 **Checkpoint**: Host clicks "End Round" → `POST /rooms/:code/end` returns 200 with `status: "result"` and `secretWord` visible. Bob's tab (via polling) also receives `status: "result"` within ~2 s. Non-host POST attempt returns 403.
 
@@ -51,8 +51,8 @@
 
 **Independent Test**: After Phase 3 checkpoint, Alice clicks "End Round". Both tabs now show `RoundResultsView` in place of the gameplay view (no page reload). Confirm: (1) secret word displayed on both tabs, (2) scores sorted highest first, (3) full guess history with green/red rows in submission order, (4) Alice sees "Restart" button, (5) Bob sees "Waiting for Alice to restart…". FR-003–FR-008 satisfied.
 
-- [ ] T008 [P] [US2] Create `frontend/src/components/RoundResultsView.tsx`: reads `room` and `participantId` from `useRoomState()`; renders (a) word reveal (`room.secretWord`), (b) scores sorted descending (`[...room.participants].sort((a,b) => (room.scores[b.id]??0)-(room.scores[a.id]??0))`), (c) guess history in submission order with green/red colour-coding matching `ResultPanel` style (empty state: "No guesses were submitted."), (d) if `participantId === room.hostId`: "Restart" button (onClick stub — wired in T013), else: `"Waiting for {hostName} to restart…"` where `hostName = room.participants.find(p => p.id === room.hostId)?.name ?? "host"`
-- [ ] T009 [P] [US2] Extend `frontend/src/pages/GamePage.tsx`: (a) add early return `if (room.status === "result") return <RoundResultsView />;` before the main JSX return (import `RoundResultsView`); (b) in the polling `setInterval` callback, after a successful `store.fetchRoom()`, add `if (updated?.status === "lobby") { clearInterval(id); navigate("/lobby"); }` to handle restart detection for non-host players
+- [x] T008 [P] [US2] Create `frontend/src/components/RoundResultsView.tsx`: reads `room` and `participantId` from `useRoomState()`; renders (a) word reveal (`room.secretWord`), (b) scores sorted descending (`[...room.participants].sort((a,b) => (room.scores[b.id]??0)-(room.scores[a.id]??0))`), (c) guess history in submission order with green/red colour-coding matching `ResultPanel` style (empty state: "No guesses were submitted."), (d) if `participantId === room.hostId`: "Restart" button (onClick stub — wired in T013), else: `"Waiting for {hostName} to restart…"` where `hostName = room.participants.find(p => p.id === room.hostId)?.name ?? "host"`
+- [x] T009 [P] [US2] Extend `frontend/src/pages/GamePage.tsx`: (a) add early return `if (room.status === "result") return <RoundResultsView />;` before the main JSX return (import `RoundResultsView`); (b) in the polling `setInterval` callback, after a successful `store.fetchRoom()`, add `if (updated?.status === "lobby") { clearInterval(id); navigate("/lobby"); }` to handle restart detection for non-host players
 
 **Checkpoint**: Full results view displayed on both tabs immediately after "End Round" (host via API response, non-host via next poll). Polling continues silently; navigates to lobby when host restarts (wired in US3).
 
@@ -64,10 +64,10 @@
 
 **Independent Test**: Both tabs on results screen. Alice clicks "Restart". Alice's screen transitions to lobby immediately (navigate to "/lobby" from `store.restartRoom()` success handler). Bob's tab transitions within ~2 s via polling. Confirm: lobby shows both Alice and Bob; starting a new game shows scores at 0 and blank canvas. FR-009, FR-010, FR-011 (403 for non-host restart) satisfied. SC-006, SC-007 confirmed.
 
-- [ ] T010 [P] [US3] Add `restartRoom(code: string, participantId: string)` to `backend/src/services/roomStore.ts`: 404 if room not found; 403 if `participantId !== room.hostId`; set `room.status = "lobby"`, `room.drawerId = undefined`, `room.secretWord = undefined`, `room.guesses = []`, `room.scores = {}`, `room.canvasData = null`; keep `room.participants` and `room.hostId` intact; update `updatedAt`, persist; return `{ room: toRoomSnapshot(cloneRoom(room), participantId) }`
-- [ ] T011 [US3] Add `POST /:code/restart` route to `backend/src/api/rooms.ts`: parse params with `roomCodeParamsSchema`, parse body with `restartRoomSchema`, call `restartRoom(code.toUpperCase(), participantId)`, respond with `{ room }` (import `restartRoom` and `restartRoomSchema`)
-- [ ] T012 [P] [US3] Add `restartRoom()` method to `frontend/src/state/roomStore.ts`: calls `api.restartRoom(room.code, participantId)`, calls `this.setRoomSnapshot(response.room)`, returns the snapshot
-- [ ] T013 [US3] Wire "Restart" button in `frontend/src/components/RoundResultsView.tsx`: replace the onClick stub with `async () => { await store.restartRoom(); navigate("/lobby"); }` (use `useRoomStore()` and `useNavigate()` inside the component); wrap in try/catch and display error inline if the API call fails
+- [x] T010 [P] [US3] Add `restartRoom(code: string, participantId: string)` to `backend/src/services/roomStore.ts`: 404 if room not found; 403 if `participantId !== room.hostId`; set `room.status = "lobby"`, `room.drawerId = undefined`, `room.secretWord = undefined`, `room.guesses = []`, `room.scores = {}`, `room.canvasData = null`; keep `room.participants` and `room.hostId` intact; update `updatedAt`, persist; return `{ room: toRoomSnapshot(cloneRoom(room), participantId) }`
+- [x] T011 [US3] Add `POST /:code/restart` route to `backend/src/api/rooms.ts`: parse params with `roomCodeParamsSchema`, parse body with `restartRoomSchema`, call `restartRoom(code.toUpperCase(), participantId)`, respond with `{ room }` (import `restartRoom` and `restartRoomSchema`)
+- [x] T012 [P] [US3] Add `restartRoom()` method to `frontend/src/state/roomStore.ts`: calls `api.restartRoom(room.code, participantId)`, calls `this.setRoomSnapshot(response.room)`, returns the snapshot
+- [x] T013 [US3] Wire "Restart" button in `frontend/src/components/RoundResultsView.tsx`: replace the onClick stub with `async () => { await store.restartRoom(); navigate("/lobby"); }` (use `useRoomStore()` and `useNavigate()` inside the component); wrap in try/catch and display error inline if the API call fails
 
 **Checkpoint**: Host clicks "Restart" → navigates to lobby immediately. Bob transitions within ~2 s. New game starts with 0 scores and blank canvas. Non-host restart attempt returns 403.
 
@@ -77,7 +77,7 @@
 
 **Purpose**: End-to-end two-tab validation of the complete Scenario 4 flow.
 
-- [ ] T014 Manual two-tab validation: open Alice (host) and Bob (guesser) tabs; play a round (Bob submits correct + incorrect guesses); Alice clicks "End Round"; verify results screen on both tabs (word, sorted scores, guess history, Restart button vs waiting message); Alice clicks "Restart"; verify both tabs return to lobby with players preserved; start a new game and confirm scores begin at 0 and canvas is blank
+- [x] T014 Manual two-tab validation: open Alice (host) and Bob (guesser) tabs; play a round (Bob submits correct + incorrect guesses); Alice clicks "End Round"; verify results screen on both tabs (word, sorted scores, guess history, Restart button vs waiting message); Alice clicks "Restart"; verify both tabs return to lobby with players preserved; start a new game and confirm scores begin at 0 and canvas is blank
 
 **Checkpoint**: All acceptance scenarios from spec.md User Stories 1–3 confirmed passing. SC-001 through SC-008 verified.
 

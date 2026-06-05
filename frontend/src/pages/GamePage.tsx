@@ -4,6 +4,7 @@ import { Card } from "../components/Card";
 import { GuessForm } from "../components/GuessForm";
 import { ResultPanel } from "../components/ResultPanel";
 import { RoomCodeBadge } from "../components/RoomCodeBadge";
+import { RoundResultsView } from "../components/RoundResultsView";
 import { Scoreboard } from "../components/Scoreboard";
 import { useRoomState, useRoomStore } from "../state/roomStore";
 
@@ -24,6 +25,7 @@ export function GamePage() {
   }, [navigate, room]);
 
   const isDrawer = room !== null && room.drawerId !== undefined && room.drawerId === participantId;
+  const isHost = room !== null && room.hostId === participantId;
 
   // Drawing effect — attaches mouse listeners to canvas for the drawer
   useEffect(() => {
@@ -52,7 +54,7 @@ export function GamePage() {
     function onMouseUp() {
       if (isDrawingRef.current) {
         isDrawingRef.current = false;
-        store.updateCanvas(canvas.toDataURL()).catch(() => undefined);
+        store.updateCanvas(canvas!.toDataURL()).catch(() => undefined);
       }
     }
 
@@ -69,12 +71,17 @@ export function GamePage() {
     };
   }, [isDrawer, store]);
 
-  // Polling effect — syncs room state every 2 s; redirects on 404
+  // Polling effect — syncs room state every 2 s; redirects on 404 or lobby (after restart)
   useEffect(() => {
     const id = setInterval(async () => {
       try {
-        await store.fetchRoom();
+        const updated = await store.fetchRoom();
         setPollError(null);
+
+        if (updated?.status === "lobby") {
+          clearInterval(id);
+          navigate("/lobby");
+        }
       } catch (error) {
         const msg = error instanceof Error ? error.message : "";
         if (msg.includes("404") || msg.includes("Unable to load room")) {
@@ -92,6 +99,10 @@ export function GamePage() {
     return null;
   }
 
+  if (room.status === "result") {
+    return <RoundResultsView />;
+  }
+
   function handleClearCanvas() {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -103,6 +114,14 @@ export function GamePage() {
     await store.submitGuess(guessText);
   }
 
+  async function handleEndRound() {
+    try {
+      await store.endRoom();
+    } catch (error) {
+      setPollError(error instanceof Error ? error.message : "Failed to end round");
+    }
+  }
+
   return (
     <section className="panel game-page">
       <div className="game-page__header">
@@ -111,6 +130,11 @@ export function GamePage() {
           <h1 className="game-page__title">Guess the Word!</h1>
         </div>
         <RoomCodeBadge code={room.code} />
+        {isHost ? (
+          <button className="button button--secondary" onClick={handleEndRound}>
+            End Round
+          </button>
+        ) : null}
       </div>
 
       <div className="game-page__layout">

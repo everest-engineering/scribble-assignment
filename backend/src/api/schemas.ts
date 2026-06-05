@@ -25,6 +25,14 @@ export const guessSchema = z.object({
   guessText: z.string()
 });
 
+export const endRoomSchema = z.object({
+  participantId: z.string()
+});
+
+export const restartRoomSchema = z.object({
+  participantId: z.string()
+});
+
 const CANVAS_DATA_MAX = 400_000;
 const CANVAS_DATA_RE = /^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/]+=*$/;
 
