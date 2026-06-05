@@ -4,9 +4,10 @@ import {
   HttpError,
   joinRoomSchema,
   roomCodeParamsSchema,
-  roomViewerQuerySchema
+  roomViewerQuerySchema,
+  startRoomSchema
 } from "./schemas.js";
-import { createRoom, getRoom, joinRoom, toRoomSnapshot } from "../services/roomStore.js";
+import { createRoom, getRoom, joinRoom, startRoom, toRoomSnapshot } from "../services/roomStore.js";
 
 export function createRoomsRouter() {
   const router = Router();
@@ -35,10 +36,25 @@ export function createRoomsRouter() {
         throw new HttpError(404, "Unable to join room");
       }
 
+      if ("error" in result && result.error === "ROOM_ACTIVE") {
+        throw new HttpError(400, "Game already started");
+      }
+
       response.json({
         participantId: result.participantId,
         room: toRoomSnapshot(result.room, result.participantId)
       });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/:code/start", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId } = startRoomSchema.parse(request.body);
+      const snapshot = startRoom(code.toUpperCase(), participantId);
+      response.json({ room: snapshot });
     } catch (error) {
       next(error);
     }
