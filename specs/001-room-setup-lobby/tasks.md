@@ -32,8 +32,8 @@ host/start/isolation rules. Test tasks are marked accordingly.
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete.
 
-- [ ] T003 Widen `RoomStatus` to `"lobby" | "started"` and add `hostId: string` to `Room` in `backend/src/models/game.ts`
-- [ ] T004 Update `RoomSnapshot` in `backend/src/models/game.ts` to include `hostId` and change `participants` to `Array<Participant & { isHost: boolean }>`
+- [X] T003 Widen `RoomStatus` to `"lobby" | "started"` and add `hostId: string` to `Room` in `backend/src/models/game.ts`
+- [X] T004 Update `RoomSnapshot` in `backend/src/models/game.ts` to include `hostId` and change `participants` to `Array<Participant & { isHost: boolean }>`
 
 **Checkpoint**: Shared types compile; user stories can now proceed.
 
@@ -49,16 +49,16 @@ as host.
 
 ### Tests for User Story 1 ⚠️
 
-- [ ] T005 [P] [US1] Unit test in `backend/src/services/roomStore.test.ts`: `createRoom` sets `hostId` to the creator's participant id and `status` is `"lobby"`
-- [ ] T006 [P] [US1] Unit test in `backend/src/services/roomStore.test.ts`: `toRoomSnapshot` includes `hostId` and marks the creator participant `isHost: true`
+- [X] T005 [P] [US1] Unit test in `backend/src/services/roomStore.test.ts`: `createRoom` sets `hostId` to the creator's participant id and `status` is `"lobby"`
+- [X] T006 [P] [US1] Unit test in `backend/src/services/roomStore.test.ts`: `toRoomSnapshot` includes `hostId` and marks the creator participant `isHost: true`
 
 ### Implementation for User Story 1
 
-- [ ] T007 [US1] In `backend/src/services/roomStore.ts`, set `hostId = participant.id` and `status: "lobby"` in `createRoom` (depends on T003)
-- [ ] T008 [US1] In `backend/src/services/roomStore.ts`, update `toRoomSnapshot` to include `hostId` and compute per-participant `isHost` (remove the `void viewerParticipantId` no-op) (depends on T004)
-- [ ] T009 [P] [US1] In `frontend/src/services/api.ts`, extend `RoomSnapshot` type: `hostId: string`, `status: "lobby" | "started"`, participants include `isHost: boolean`
-- [ ] T010 [P] [US1] In `frontend/src/state/roomStore.ts`, mirror the updated `RoomSnapshot` type
-- [ ] T011 [US1] In `frontend/src/pages/LobbyPage.tsx`, display the room code (uppercase) and a host indicator next to the host participant (FR-003, FR-005a) (depends on T009, T010)
+- [X] T007 [US1] In `backend/src/services/roomStore.ts`, set `hostId = participant.id` and `status: "lobby"` in `createRoom` (depends on T003)
+- [X] T008 [US1] In `backend/src/services/roomStore.ts`, update `toRoomSnapshot` to include `hostId` and compute per-participant `isHost` (remove the `void viewerParticipantId` no-op) (depends on T004)
+- [X] T009 [P] [US1] In `frontend/src/services/api.ts`, extend `RoomSnapshot` type: `hostId: string`, `status: "lobby" | "started"`, participants include `isHost: boolean`
+- [X] T010 [P] [US1] In `frontend/src/state/roomStore.ts`, mirror the updated `RoomSnapshot` type
+- [X] T011 [US1] In `frontend/src/pages/LobbyPage.tsx`, display the room code (uppercase) and a host indicator next to the host participant (FR-003, FR-005a) (depends on T009, T010)
 
 **Checkpoint**: Create flow works end-to-end; host is identifiable in the lobby.
 
@@ -74,14 +74,14 @@ same room; bad codes show errors and do not navigate.
 
 ### Tests for User Story 2 ⚠️
 
-- [ ] T012 [P] [US2] Unit test in `backend/src/api/schemas.test.ts`: room code param is trimmed/uppercased and empty/whitespace codes are rejected
-- [ ] T013 [P] [US2] Unit test in `backend/src/services/roomStore.test.ts`: joining an unknown code returns no room (drives 404); joining a valid code appends the participant with `isHost: false`
+- [X] T012 [P] [US2] Unit test in `backend/src/api/schemas.test.ts`: room code param is trimmed/uppercased and empty/whitespace codes are rejected
+- [X] T013 [P] [US2] Unit test in `backend/src/services/roomStore.test.ts`: joining an unknown code returns no room (drives 404); joining a valid code appends the participant with `isHost: false`
 
 ### Implementation for User Story 2
 
-- [ ] T014 [US2] In `backend/src/api/schemas.ts`, add a shared code normalization (trim + uppercase) and reject empty/whitespace codes for `:code` params (FR-005, FR-007)
-- [ ] T015 [US2] In `backend/src/api/rooms.ts`, ensure join returns `404 { "message": "Room not found" }` for unknown codes and uses the normalized code (FR-006)
-- [ ] T016 [US2] In `frontend/src/pages/JoinRoomPage.tsx`, block submit on empty/whitespace code with a visible message before any request; surface backend "room not found" error without navigating (FR-007, FR-019)
+- [X] T014 [US2] In `backend/src/api/schemas.ts`, add a shared code normalization (trim + uppercase) and reject empty/whitespace codes for `:code` params (FR-005, FR-007)
+- [X] T015 [US2] In `backend/src/api/rooms.ts`, ensure join returns `404 { "message": "Room not found" }` for unknown codes and uses the normalized code (FR-006)
+- [X] T016 [US2] In `frontend/src/pages/JoinRoomPage.tsx`, block submit on empty/whitespace code with a visible message before any request; surface backend "room not found" error without navigating (FR-007, FR-019)
 
 **Checkpoint**: Join flow works; invalid/unknown codes are handled gracefully.
 
@@ -97,8 +97,8 @@ no manual action.
 
 ### Implementation for User Story 3
 
-- [ ] T017 [US3] In `frontend/src/pages/LobbyPage.tsx`, add a `useEffect` that calls the store's `fetchRoom()` on a `setInterval(2000)` and clears the interval on unmount (FR-009, FR-010)
-- [ ] T018 [US3] In `frontend/src/pages/LobbyPage.tsx`, keep the lobby resilient: a failed poll sets a readable error but the interval continues and the participant list is not wiped (FR-011, FR-019)
+- [X] T017 [US3] In `frontend/src/pages/LobbyPage.tsx`, add a `useEffect` that calls the store's `fetchRoom()` on a `setInterval(2000)` and clears the interval on unmount (FR-009, FR-010)
+- [X] T018 [US3] In `frontend/src/pages/LobbyPage.tsx`, keep the lobby resilient: a failed poll sets a readable error but the interval continues and the participant list is not wiped (FR-011, FR-019)
 
 **Checkpoint**: Lobby updates automatically and survives transient fetch failures.
 
@@ -114,21 +114,21 @@ start; after start both tabs land on `/game`.
 
 ### Tests for User Story 4 ⚠️
 
-- [ ] T019 [P] [US4] Unit test in `backend/src/services/roomStore.test.ts`: `startRoom` returns `forbidden` for non-host, `too-few-players` for <2, `not-found` for unknown code
-- [ ] T020 [P] [US4] Unit test in `backend/src/services/roomStore.test.ts`: `startRoom` success sets `status = "started"`, is idempotent when already started, and assigns NO role/word (FR-017, FR-018)
-- [ ] T021 [P] [US4] Unit test in `backend/src/services/roomStore.test.ts`: starting room A does not change room B (isolation, FR-008/SC-005)
-- [ ] T022 [P] [US4] Unit test in `backend/src/api/schemas.test.ts`: `startRoomSchema` rejects missing/empty `participantId`
-- [ ] T023 [P] [US4] Unit test in `frontend/src/services/api.test.ts`: `startRoom(code, participantId)` POSTs to `/rooms/:code/start` with the participant id
+- [X] T019 [P] [US4] Unit test in `backend/src/services/roomStore.test.ts`: `startRoom` returns `forbidden` for non-host, `too-few-players` for <2, `not-found` for unknown code
+- [X] T020 [P] [US4] Unit test in `backend/src/services/roomStore.test.ts`: `startRoom` success sets `status = "started"`, is idempotent when already started, and assigns NO role/word (FR-017, FR-018)
+- [X] T021 [P] [US4] Unit test in `backend/src/services/roomStore.test.ts`: starting room A does not change room B (isolation, FR-008/SC-005)
+- [X] T022 [P] [US4] Unit test in `backend/src/api/schemas.test.ts`: `startRoomSchema` rejects missing/empty `participantId`
+- [X] T023 [P] [US4] Unit test in `frontend/src/services/api.test.ts`: `startRoom(code, participantId)` POSTs to `/rooms/:code/start` with the participant id
 
 ### Implementation for User Story 4
 
-- [ ] T024 [US4] In `backend/src/services/roomStore.ts`, implement `startRoom(code, participantId)` returning a discriminated result (`ok`/`reason`), idempotent when already `started` (depends on T003)
-- [ ] T025 [US4] In `backend/src/api/schemas.ts`, add `startRoomSchema` (`participantId: z.string().min(1)`)
-- [ ] T026 [US4] In `backend/src/api/rooms.ts`, add `POST /:code/start`; parse params + body with Zod; map results to 200 / 403 / 404 / 422 with the messages in `contracts/rooms-api.md` (depends on T024, T025)
-- [ ] T027 [P] [US4] In `frontend/src/services/api.ts`, add `startRoom(code, participantId)` → `POST /rooms/:code/start`
-- [ ] T028 [US4] In `frontend/src/state/roomStore.ts`, add a `startGame()` action that calls `api.startRoom` and stores the returned snapshot (depends on T027)
-- [ ] T029 [US4] In `frontend/src/pages/LobbyPage.tsx`, gate the Start control on `isHost && participants.length >= 2`, with explanatory copy when disabled; non-hosts see "waiting for host" (FR-012, FR-013, FR-016)
-- [ ] T030 [US4] In `frontend/src/pages/LobbyPage.tsx`, replace direct `navigate("/game")` with `startGame()` then navigate; non-host tabs auto-navigate to `/game` when a poll observes `status === "started"` (FR-014, FR-017) (depends on T017, T028)
+- [X] T024 [US4] In `backend/src/services/roomStore.ts`, implement `startRoom(code, participantId)` returning a discriminated result (`ok`/`reason`), idempotent when already `started` (depends on T003)
+- [X] T025 [US4] In `backend/src/api/schemas.ts`, add `startRoomSchema` (`participantId: z.string().min(1)`)
+- [X] T026 [US4] In `backend/src/api/rooms.ts`, add `POST /:code/start`; parse params + body with Zod; map results to 200 / 403 / 404 / 422 with the messages in `contracts/rooms-api.md` (depends on T024, T025)
+- [X] T027 [P] [US4] In `frontend/src/services/api.ts`, add `startRoom(code, participantId)` → `POST /rooms/:code/start`
+- [X] T028 [US4] In `frontend/src/state/roomStore.ts`, add a `startGame()` action that calls `api.startRoom` and stores the returned snapshot (depends on T027)
+- [X] T029 [US4] In `frontend/src/pages/LobbyPage.tsx`, gate the Start control on `isHost && participants.length >= 2`, with explanatory copy when disabled; non-hosts see "waiting for host" (FR-012, FR-013, FR-016)
+- [X] T030 [US4] In `frontend/src/pages/LobbyPage.tsx`, replace direct `navigate("/game")` with `startGame()` then navigate; non-host tabs auto-navigate to `/game` when a poll observes `status === "started"` (FR-014, FR-017) (depends on T017, T028)
 
 **Checkpoint**: Host-only start enforced server-side; all tabs transition to the game screen.
 
@@ -136,12 +136,12 @@ start; after start both tabs land on `/game`.
 
 ## Phase 7: Polish & Cross-Cutting Concerns
 
-- [ ] T031 [P] Add minor styles in `frontend/src/styles/app.css` for the host badge and disabled-start messaging (only if needed)
-- [ ] T032 Confirm session-guard redirects still hold after snapshot changes: visiting `/lobby` or `/game` with no active room session redirects to `/` (`frontend/src/pages/LobbyPage.tsx`, `frontend/src/pages/GamePage.tsx`) — direct-navigation edge case
-- [ ] T033 [P] Run automated suites green: `cd backend && npm test` and `cd frontend && npm test`
-- [ ] T034 Run `cd backend && npm run build` and `cd frontend && npm run build`; fix any strict-TS issues from widening `RoomStatus`
+- [X] T031 [P] Add minor styles in `frontend/src/styles/app.css` for the host badge and disabled-start messaging (only if needed)
+- [X] T032 Confirm session-guard redirects still hold after snapshot changes: visiting `/lobby` or `/game` with no active room session redirects to `/` (`frontend/src/pages/LobbyPage.tsx`, `frontend/src/pages/GamePage.tsx`) — direct-navigation edge case
+- [X] T033 [P] Run automated suites green: `cd backend && npm test` and `cd frontend && npm test`
+- [X] T034 Run `cd backend && npm run build` and `cd frontend && npm run build`; fix any strict-TS issues from widening `RoomStatus`
 - [ ] T035 Run the two-tab manual validation in `specs/001-room-setup-lobby/quickstart.md` and confirm all acceptance scenarios pass
-- [ ] T036 Verify artifacts remain consistent with the implementation; document any deviation in `spec.md`/`plan.md` per constitution Principle II (`specs/001-room-setup-lobby/spec.md`, `specs/001-room-setup-lobby/plan.md`)
+- [X] T036 Verify artifacts remain consistent with the implementation; document any deviation in `spec.md`/`plan.md` per constitution Principle II (`specs/001-room-setup-lobby/spec.md`, `specs/001-room-setup-lobby/plan.md`)
 
 ---
 

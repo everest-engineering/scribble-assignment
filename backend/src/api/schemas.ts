@@ -9,11 +9,19 @@ export const joinRoomSchema = z.object({
 });
 
 export const roomCodeParamsSchema = z.object({
-  code: z.string()
+  code: z
+    .string()
+    .trim()
+    .min(1, "Room code is required")
+    .transform((value) => value.toUpperCase())
 });
 
 export const roomViewerQuerySchema = z.object({
   participantId: z.string().optional()
+});
+
+export const startRoomSchema = z.object({
+  participantId: z.string().min(1, "participantId is required")
 });
 
 export class HttpError extends Error {

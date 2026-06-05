@@ -245,6 +245,20 @@ Per constitution §V and spec: name trim/reject (Group 2), drawer assignment, se
 guessing, scoring, results, restart, WebSockets, databases, auth, timers, multiple rounds, new
 libraries, unrelated refactors.
 
+## Implementation Notes & Deviations (post-execution)
+
+Recorded per constitution Principle II (traceability):
+
+- **T008**: The forward-looking `viewerParticipantId` argument on `toRoomSnapshot` was kept (renamed
+  `_viewerParticipantId`, intentionally unused) rather than deleted, since callers still pass a viewer
+  id and Group 2 will use it to hide the secret word from guessers. The `void` no-op was removed.
+- **LobbyPage UX additions** (within FR-016/FR-019 intent, not new scope): a "(you)" marker next to the
+  current participant and a "Leave Lobby" button replacing the old direct-to-game button.
+- **T031**: No new CSS was required — existing `form__error` and `player-list__meta` classes covered the
+  host badge and disabled-start messaging.
+- **Scope guard**: client-side player-name trim/reject was intentionally NOT added (deferred to Group 2
+  per §10). Only the in-scope room-code emptiness guard (FR-007) is enforced in `JoinRoomPage`.
+
 ## Project Structure (documentation)
 
 ```text

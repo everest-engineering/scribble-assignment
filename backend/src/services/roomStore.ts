@@ -4,6 +4,12 @@ import { STARTER_ROLES, STARTER_WORDS } from "../seed/starterData.js";
 
 const rooms = new Map<string, Room>();
 
+const MIN_PLAYERS_TO_START = 2;
+
+export type StartRoomResult =
+  | { ok: true; room: Room }
+  | { ok: false; reason: "not-found" | "forbidden" | "too-few-players" };
+
 function now() {
   return new Date().toISOString();
 }
@@ -54,6 +60,7 @@ export function createRoom(playerName?: string) {
   const room: Room = {
     code: generateUniqueCode(),
     status: "lobby",
+    hostId: participant.id,
     participants: [participant],
     createdAt: now(),
     updatedAt: now()
@@ -96,13 +103,41 @@ export function saveRoom(room: Room) {
   return getRoom(room.code);
 }
 
-export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSnapshot {
-  void viewerParticipantId;
+export function startRoom(code: string, participantId: string): StartRoomResult {
+  const room = rooms.get(code);
 
+  if (!room) {
+    return { ok: false, reason: "not-found" };
+  }
+
+  if (room.hostId !== participantId) {
+    return { ok: false, reason: "forbidden" };
+  }
+
+  if (room.status === "started") {
+    return { ok: true, room: cloneRoom(room) };
+  }
+
+  if (room.participants.length < MIN_PLAYERS_TO_START) {
+    return { ok: false, reason: "too-few-players" };
+  }
+
+  room.status = "started";
+  room.updatedAt = now();
+  rooms.set(room.code, room);
+
+  return { ok: true, room: cloneRoom(room) };
+}
+
+export function toRoomSnapshot(room: Room, _viewerParticipantId?: string): RoomSnapshot {
   return {
     code: room.code,
     status: room.status,
-    participants: room.participants.map((participant) => ({ ...participant })),
+    hostId: room.hostId,
+    participants: room.participants.map((participant) => ({
+      ...participant,
+      isHost: participant.id === room.hostId
+    })),
     availableWords: listWords(),
     roles: [...STARTER_ROLES]
   };
