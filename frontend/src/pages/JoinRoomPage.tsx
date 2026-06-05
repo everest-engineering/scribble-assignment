@@ -6,6 +6,7 @@ import { useRoomStore } from "../state/roomStore";
 export function JoinRoomPage() {
   const [playerName, setPlayerName] = useState("");
   const [roomCode, setRoomCode] = useState("");
+  const [nameError, setNameError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
   const roomStore = useRoomStore();
@@ -13,9 +14,20 @@ export function JoinRoomPage() {
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
+    const trimmedName = playerName.trim();
+    if (trimmedName.length === 0) {
+      setNameError("Name is required");
+      return;
+    }
+
+    if (roomCode.trim() === "") {
+      setError("Room code is required");
+      return;
+    }
+
     try {
       setError(null);
-      await roomStore.joinRoom(roomCode.toUpperCase(), playerName);
+      await roomStore.joinRoom(roomCode.toUpperCase(), trimmedName);
       navigate("/lobby");
     } catch (caughtError) {
       setError(caughtError instanceof Error ? caughtError.message : "Unable to join room");
@@ -35,10 +47,11 @@ export function JoinRoomPage() {
           <input
             className="form__input"
             value={playerName}
-            onChange={(event) => setPlayerName(event.target.value)}
+            onChange={(event) => { setPlayerName(event.target.value); setNameError(null); }}
             placeholder="Second pencil"
           />
         </label>
+        {nameError ? <p className="form__error">{nameError}</p> : null}
 
         <label className="form__field">
           <span>Room code</span>

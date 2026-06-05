@@ -7,7 +7,7 @@ import {
   useSyncExternalStore,
   type PropsWithChildren
 } from "react";
-import { api, type RoomSessionResponse, type RoomSnapshot } from "../services/api";
+import { api, type Point, type RoomSessionResponse, type RoomSnapshot } from "../services/api";
 
 export interface RoomState {
   room: RoomSnapshot | null;
@@ -87,6 +87,33 @@ class RoomStore {
     const response = await this.withLoading(() => api.joinRoom(code, playerName));
     this.setRoomSession(response);
     return response;
+  }
+
+  async startRoom() {
+    if (!this.state.room) return null;
+    const response = await this.withLoading(() => api.startRoom(this.state.room!.code));
+    this.setRoomSession(response);
+    return response;
+  }
+
+  async addStroke(points: Point[]) {
+    if (!this.state.room) return null;
+    return api.addStroke(this.state.room.code, points);
+  }
+
+  async clearCanvas() {
+    if (!this.state.room) return null;
+    return api.clearCanvas(this.state.room.code);
+  }
+
+  async submitGuess(text: string) {
+    if (!this.state.room || !this.state.participantId) return null;
+    return api.submitGuess(this.state.room.code, this.state.participantId, text);
+  }
+
+  async restartGame() {
+    if (!this.state.room || !this.state.participantId) return null;
+    return api.restartGame(this.state.room.code, this.state.participantId);
   }
 
   async fetchRoom() {

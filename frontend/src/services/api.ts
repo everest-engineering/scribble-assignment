@@ -6,10 +6,31 @@ export interface Participant {
   joinedAt: string;
 }
 
+export interface Point {
+  x: number;
+  y: number;
+}
+
+export interface GuessSnapshot {
+  id: string;
+  participantId: string;
+  participantName: string;
+  text: string;
+  isCorrect: boolean;
+  timestamp: string;
+}
+
 export interface RoomSnapshot {
   code: string;
-  status: "lobby";
+  status: "lobby" | "playing" | "finished";
   participants: Participant[];
+  hostId: string;
+  drawerId?: string;
+  winnerId?: string;
+  word?: string;
+  strokes: Point[][];
+  guesses: GuessSnapshot[];
+  scores: Record<string, number>;
   availableWords: string[];
   roles: ParticipantRole[];
 }
@@ -19,7 +40,7 @@ export interface RoomSessionResponse {
   room: RoomSnapshot;
 }
 
-const API_BASE_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3001/bug";
+const API_BASE_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3001";
 
 async function request<T>(path: string, init?: RequestInit) {
   const response = await fetch(`${API_BASE_URL}${path}`, {
@@ -57,5 +78,33 @@ export const api = {
   fetchRoom(code: string, participantId?: string) {
     const query = participantId ? `?participantId=${encodeURIComponent(participantId)}` : "";
     return request<{ room: RoomSnapshot }>(`/rooms/${encodeURIComponent(code)}${query}`);
+  },
+  startRoom(code: string) {
+    return request<RoomSessionResponse>(`/rooms/${encodeURIComponent(code)}/start`, {
+      method: "POST"
+    });
+  },
+  addStroke(code: string, points: Point[]) {
+    return request<{ ok: boolean }>(`/rooms/${encodeURIComponent(code)}/stroke`, {
+      method: "POST",
+      body: JSON.stringify({ points })
+    });
+  },
+  clearCanvas(code: string) {
+    return request<{ ok: boolean }>(`/rooms/${encodeURIComponent(code)}/clear-canvas`, {
+      method: "POST"
+    });
+  },
+  submitGuess(code: string, participantId: string, text: string) {
+    return request<{ guess: GuessSnapshot; score: number }>(`/rooms/${encodeURIComponent(code)}/guess`, {
+      method: "POST",
+      body: JSON.stringify({ participantId, text })
+    });
+  },
+  restartGame(code: string, participantId: string) {
+    return request<{ ok: boolean }>(`/rooms/${encodeURIComponent(code)}/restart`, {
+      method: "POST",
+      body: JSON.stringify({ participantId })
+    });
   }
 };
