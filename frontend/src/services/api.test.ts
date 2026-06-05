@@ -1,6 +1,15 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { api } from "./api";
 
+const mockRoomSnapshot = {
+  code: "ABCD",
+  status: "lobby" as const,
+  hostId: "p1",
+  participants: [],
+  availableWords: [],
+  roles: []
+};
+
 describe("api service", () => {
   beforeEach(() => {
     vi.stubGlobal("fetch", vi.fn());
@@ -12,8 +21,8 @@ describe("api service", () => {
       json: () =>
         Promise.resolve({
           participantId: "p1",
-          room: { code: "ABCD", status: "lobby", participants: [] },
-        }),
+          room: mockRoomSnapshot
+        })
     };
     vi.mocked(fetch).mockResolvedValue(mockResponse as unknown as Response);
 
@@ -23,7 +32,7 @@ describe("api service", () => {
       expect.stringContaining("/rooms"),
       expect.objectContaining({
         method: "POST",
-        body: JSON.stringify({ playerName: "Alice" }),
+        body: JSON.stringify({ playerName: "Alice" })
       })
     );
   });
@@ -33,8 +42,8 @@ describe("api service", () => {
       ok: true,
       json: () =>
         Promise.resolve({
-          room: { code: "XYZW", status: "lobby", participants: [] },
-        }),
+          room: { ...mockRoomSnapshot, code: "XYZW" }
+        })
     };
     vi.mocked(fetch).mockResolvedValue(mockResponse as unknown as Response);
 
@@ -43,6 +52,27 @@ describe("api service", () => {
     expect(fetch).toHaveBeenCalledWith(
       expect.stringContaining("/rooms/XYZW?participantId=p1"),
       expect.anything()
+    );
+  });
+
+  it("startRoom sends POST to /rooms/:code/start with participantId", async () => {
+    const mockResponse = {
+      ok: true,
+      json: () =>
+        Promise.resolve({
+          room: { ...mockRoomSnapshot, status: "active" }
+        })
+    };
+    vi.mocked(fetch).mockResolvedValue(mockResponse as unknown as Response);
+
+    await api.startRoom("ABCD", "p1");
+
+    expect(fetch).toHaveBeenCalledWith(
+      expect.stringContaining("/rooms/ABCD/start"),
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({ participantId: "p1" })
+      })
     );
   });
 });
