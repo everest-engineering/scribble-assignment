@@ -132,7 +132,7 @@ export function ResultPage() {
         <span />
         {isHost ? (
           <button className="button button--primary" onClick={handleRestart}>
-            Play Again
+            Restart
           </button>
         ) : (
           <p style={{ fontSize: "0.875rem", color: "#6b7280" }}>Waiting for the host to restart…</p>
