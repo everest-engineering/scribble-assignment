@@ -136,7 +136,12 @@ export function startGame(
 const CORRECT_GUESS_SCORE = 100;
 
 export type DrawError = "not-found" | "not-drawer";
-export type GuessError = "not-found" | "is-drawer" | "unknown-participant" | "empty";
+export type GuessError =
+  | "not-found"
+  | "is-drawer"
+  | "unknown-participant"
+  | "empty"
+  | "finished";
 
 export function addStroke(
   code: string,
@@ -192,6 +197,10 @@ export function submitGuess(
     return { error: "not-found" };
   }
 
+  if (room.status === "finished") {
+    return { error: "finished" };
+  }
+
   if (room.drawerId === requesterId) {
     return { error: "is-drawer" };
   }
@@ -212,8 +221,10 @@ export function submitGuess(
   const correct = text.toLowerCase() === secretWord.toLowerCase();
 
   if (correct) {
-    // A correct guess is worth a fixed 100 points, awarded once for the round.
+    // A correct guess is worth a fixed 100 points, awarded once for the round,
+    // and ends the single round.
     room.scores[requesterId] = CORRECT_GUESS_SCORE;
+    room.status = "finished";
   }
 
   room.guesses.push({
@@ -229,6 +240,38 @@ export function submitGuess(
   return { room: cloneRoom(room), correct };
 }
 
+export type RestartError = "not-found" | "not-host";
+
+export function restartGame(
+  code: string,
+  requesterId: string
+): { room: Room } | { error: RestartError } {
+  const room = rooms.get(code);
+
+  if (!room) {
+    return { error: "not-found" };
+  }
+
+  if (room.hostId !== requesterId) {
+    return { error: "not-host" };
+  }
+
+  // Reset all round state but keep the participants. Advance the deterministic
+  // word so a replay is not identical (still index-based, no randomness).
+  room.status = "lobby";
+  room.drawerId = undefined;
+  room.strokes = [];
+  room.guesses = [];
+  room.wordIndex = (room.wordIndex + 1) % STARTER_WORDS.length;
+  for (const participant of room.participants) {
+    room.scores[participant.id] = 0;
+  }
+  room.updatedAt = now();
+  rooms.set(room.code, room);
+
+  return { room: cloneRoom(room) };
+}
+
 export function saveRoom(room: Room) {
   room.updatedAt = now();
   rooms.set(room.code, cloneRoom(room));
@@ -237,15 +280,16 @@ export function saveRoom(room: Room) {
 
 export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSnapshot {
   const isDrawer = room.status === "playing" && viewerParticipantId === room.drawerId;
+  // The word is revealed to the drawer while playing, and to everyone once the
+  // round is finished (the secret is now public). It is omitted otherwise.
+  const revealWord = isDrawer || room.status === "finished";
 
   return {
     code: room.code,
     status: room.status,
     hostId: room.hostId,
     drawerId: room.drawerId,
-    // The secret word is revealed ONLY to the drawer while playing; omitted for
-    // everyone else so it cannot leak over the wire.
-    word: isDrawer ? STARTER_WORDS[room.wordIndex] : undefined,
+    word: revealWord ? STARTER_WORDS[room.wordIndex] : undefined,
     participants: room.participants.map((participant) => ({ ...participant })),
     strokes: room.strokes.map((stroke) => stroke.map((point) => ({ ...point }))),
     guesses: room.guesses.map((guess) => ({ ...guess })),

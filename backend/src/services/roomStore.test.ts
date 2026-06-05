@@ -5,6 +5,7 @@ import {
   createRoom,
   getRoom,
   joinRoom,
+  restartGame,
   startGame,
   submitGuess,
   toRoomSnapshot
@@ -169,5 +170,57 @@ describe("roomStore", () => {
     expect(clearCanvas(game.code, game.guestId)).toEqual({ error: "not-drawer" });
     clearCanvas(game.code, game.hostId);
     expect(getRoom(game.code)!.strokes).toHaveLength(0);
+  });
+
+  it("ends the round on the first correct guess and reveals the word to all", () => {
+    const game = startedRoom();
+
+    submitGuess(game.code, game.guestId, game.word);
+
+    const room = getRoom(game.code)!;
+    expect(room.status).toBe("finished");
+    // Once finished, the word is public to every viewer (including a guesser).
+    expect(toRoomSnapshot(room, game.guestId).word).toBe(game.word);
+  });
+
+  it("rejects a guess submitted to a finished room", () => {
+    const game = startedRoom();
+    submitGuess(game.code, game.guestId, game.word);
+
+    const result = submitGuess(game.code, game.guestId, game.word);
+
+    expect(result).toEqual({ error: "finished" });
+  });
+
+  it("restart clears round state, resets scores, and preserves players", () => {
+    const game = startedRoom();
+    addStroke(game.code, game.hostId, [{ x: 0.1, y: 0.1 }]);
+    submitGuess(game.code, game.guestId, game.word);
+
+    const before = getRoom(game.code)!;
+    const wordBefore = before.wordIndex;
+
+    const result = restartGame(game.code, game.hostId);
+    expect("room" in result).toBe(true);
+
+    const after = getRoom(game.code)!;
+    expect(after.status).toBe("lobby");
+    expect(after.strokes).toHaveLength(0);
+    expect(after.guesses).toHaveLength(0);
+    expect(after.drawerId).toBeUndefined();
+    expect(after.scores[game.guestId]).toBe(0);
+    expect(after.scores[game.hostId]).toBe(0);
+    // Players preserved.
+    expect(after.participants.map((p) => p.id)).toEqual(before.participants.map((p) => p.id));
+    // Word advanced deterministically for the next round.
+    expect(after.wordIndex).toBe((wordBefore + 1) % STARTER_WORDS.length);
+  });
+
+  it("restart rejects a non-host requester", () => {
+    const game = startedRoom();
+
+    const result = restartGame(game.code, game.guestId);
+
+    expect(result).toEqual({ error: "not-host" });
   });
 });

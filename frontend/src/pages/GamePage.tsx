@@ -35,12 +35,21 @@ export function GamePage() {
     return () => clearInterval(interval);
   }, [room, roomStore]);
 
+  // On restart the room returns to the lobby; send every player back there.
+  useEffect(() => {
+    if (room?.status === "lobby") {
+      navigate("/lobby");
+    }
+  }, [navigate, room?.status]);
+
   if (!room) {
     return null;
   }
 
   const viewer = room.participants.find((participant) => participant.id === participantId) ?? null;
   const isDrawer = room.drawerId === participantId;
+  const isHost = room.hostId === participantId;
+  const isFinished = room.status === "finished";
 
   function handleStrokeComplete(stroke: Stroke) {
     roomStore.addStroke(stroke).catch(() => undefined);
@@ -52,6 +61,10 @@ export function GamePage() {
 
   async function handleGuess(text: string) {
     await roomStore.submitGuess(text);
+  }
+
+  function handleRestart() {
+    roomStore.restartGame().then(() => navigate("/lobby"), () => undefined);
   }
 
   return (
@@ -67,7 +80,7 @@ export function GamePage() {
       <div className="game-page__layout">
         <aside className="game-page__sidebar game-page__sidebar--left">
           <Scoreboard participants={room.participants} scores={room.scores} />
-          <ResultPanel guesses={room.guesses} />
+          <ResultPanel guesses={room.guesses} finished={isFinished} word={room.word} />
         </aside>
 
         <div className="game-page__main">
@@ -101,7 +114,14 @@ export function GamePage() {
             </dl>
           </Card>
 
-          {isDrawer ? (
+          {isFinished ? (
+            <Card title="Round Over">
+              <p className="secret-word">{room.word ?? "—"}</p>
+              <p className="secret-word__hint">
+                {isHost ? "Restart to play again with the same players." : "Waiting for the host to restart…"}
+              </p>
+            </Card>
+          ) : isDrawer ? (
             <Card title="Your Secret Word">
               <p className="secret-word">{room.word ?? "…"}</p>
               <p className="secret-word__hint">Only you can see this. Draw it!</p>
@@ -115,6 +135,11 @@ export function GamePage() {
       </div>
 
       <div className="button-row">
+        {isFinished && isHost ? (
+          <button className="button button--primary" onClick={handleRestart}>
+            Restart Game
+          </button>
+        ) : null}
         <button className="button button--secondary" onClick={() => navigate("/lobby")}>
           Exit Game
         </button>
