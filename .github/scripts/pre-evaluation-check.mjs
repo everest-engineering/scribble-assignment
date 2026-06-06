@@ -173,8 +173,12 @@ function artifactInventory() {
     : [];
 
   const features = featureDirs.map((dir) => {
-    const files = ["spec.md", "plan.md", "tasks.md"].map((name) => {
-      const rel = path.join(dir, name);
+    const artifactPaths = [
+      { name: "spec.md", rel: path.join(dir, "spec.md") },
+      { name: "plan.md", rel: path.join(dir, "plan.md") },
+      { name: "tasks.md", rel: path.join(dir, "tasks.md") },
+    ];
+    const files = artifactPaths.map(({ name, rel }) => {
       const full = path.join(root, rel);
       return {
         path: toPosix(rel),
