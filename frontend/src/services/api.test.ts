@@ -45,4 +45,70 @@ describe("api service", () => {
       expect.anything()
     );
   });
+
+  it("startRoom POSTs to /rooms/:code/start with the participantId", async () => {
+    const mockResponse = {
+      ok: true,
+      json: () =>
+        Promise.resolve({
+          room: { code: "ABCD", status: "started", hostId: "p1", participants: [] }
+        })
+    };
+    vi.mocked(fetch).mockResolvedValue(mockResponse as unknown as Response);
+
+    await api.startRoom("ABCD", "p1");
+
+    expect(fetch).toHaveBeenCalledWith(
+      expect.stringContaining("/rooms/ABCD/start"),
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({ participantId: "p1" })
+      })
+    );
+  });
+
+  // T023 [US2]
+  it("submitGuess POSTs to /rooms/:code/guess with participantId and guess", async () => {
+    const mockResponse = {
+      ok: true,
+      json: () =>
+        Promise.resolve({
+          room: { code: "ABCD", status: "started", participants: [] },
+          correct: false
+        })
+    };
+    vi.mocked(fetch).mockResolvedValue(mockResponse as unknown as Response);
+
+    await api.submitGuess("ABCD", "p2", "cat");
+
+    expect(fetch).toHaveBeenCalledWith(
+      expect.stringContaining("/rooms/ABCD/guess"),
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({ participantId: "p2", guess: "cat" })
+      })
+    );
+  });
+
+  // T011 [US2]
+  it("restartRoom POSTs to /rooms/:code/restart with the participantId", async () => {
+    const mockResponse = {
+      ok: true,
+      json: () =>
+        Promise.resolve({
+          room: { code: "ABCD", status: "lobby", hostId: "p1", participants: [] }
+        })
+    };
+    vi.mocked(fetch).mockResolvedValue(mockResponse as unknown as Response);
+
+    await api.restartRoom("ABCD", "p1");
+
+    expect(fetch).toHaveBeenCalledWith(
+      expect.stringContaining("/rooms/ABCD/restart"),
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({ participantId: "p1" })
+      })
+    );
+  });
 });
