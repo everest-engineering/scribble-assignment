@@ -15,6 +15,12 @@ export function createRoomsRouter() {
   router.post("/", (request, response, next) => {
     try {
       const { playerName } = createRoomSchema.parse(request.body);
+
+      // Empty / whitespace-only names are rejected, not defaulted (FR-010).
+      if (!playerName) {
+        throw new HttpError(400, "Please enter a name to continue.");
+      }
+
       const result = createRoom(playerName);
 
       response.status(201).json({
@@ -30,6 +36,12 @@ export function createRoomsRouter() {
     try {
       const { code } = roomCodeParamsSchema.parse(request.params);
       const { playerName } = joinRoomSchema.parse(request.body);
+
+      // Empty / whitespace-only names are rejected, not defaulted (FR-010).
+      if (!playerName) {
+        throw new HttpError(400, "Please enter a name to continue.");
+      }
+
       const result = joinRoom(code.toUpperCase(), playerName);
 
       if ("failure" in result) {

@@ -7,12 +7,22 @@ export interface Participant {
   lastSeenAt?: string;
 }
 
+// Viewer-facing round projection. `word` is present ONLY when the viewer is the
+// drawer; guessers receive just `wordLength`/`maskedWord` (FR-006, FR-007, FR-008).
+export interface RoundSnapshot {
+  number: number;
+  drawerId: string;
+  wordLength: number;
+  maskedWord: string;
+  word?: string;
+}
+
 export interface RoomSnapshot {
   code: string;
   status: "lobby" | "playing";
   hostId: string;
   participants: Participant[];
-  availableWords: string[];
+  round: RoundSnapshot | null;
   roles: ParticipantRole[];
 }
 

@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
-import type { Participant, Room, RoomSnapshot } from "../models/game.js";
+import type { Participant, Room, RoomSnapshot, RoundSnapshot } from "../models/game.js";
 import { STARTER_ROLES, STARTER_WORDS } from "../seed/starterData.js";
+import { selectWord } from "./wordSelection.js";
 
 const rooms = new Map<string, Room>();
 
@@ -32,6 +33,9 @@ function generateUniqueCode() {
   return code;
 }
 
+// Names are validated (trimmed + non-empty) at the API layer (FR-010/FR-011),
+// so create/join always pass a real name here. The trim + "Player" fallback
+// remains only as a defensive default for any non-validated caller.
 function displayName(name?: string) {
   const trimmed = (name ?? "").trim();
   return trimmed || "Player";
@@ -99,6 +103,7 @@ export function createRoom(playerName?: string) {
     status: "lobby",
     hostId: participant.id,
     participants: [participant],
+    round: null,
     createdAt: now(),
     updatedAt: now()
   };
@@ -217,7 +222,14 @@ export function startGame(
     return { failure: "too_few" };
   }
 
+  // Begin the first round: the host is the drawer (FR-002) and the secret word
+  // is chosen deterministically from the starter list (FR-004, FR-005).
   room.status = "playing";
+  room.round = {
+    number: 1,
+    drawerId: room.hostId,
+    word: selectWord(room.code, 1)
+  };
   room.updatedAt = now();
   rooms.set(room.code, room);
 
@@ -230,15 +242,39 @@ export function saveRoom(room: Room) {
   return getRoom(room.code);
 }
 
-export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSnapshot {
-  void viewerParticipantId;
+// Project a room for a specific viewer. The secret word is included ONLY when
+// the viewer is the drawer; every other viewer receives just the concealed
+// blanks and the length, so the word never reaches a guesser (FR-006, FR-007).
+function toRoundSnapshot(room: Room, viewerParticipantId?: string): RoundSnapshot | null {
+  if (!room.round) {
+    return null;
+  }
 
+  const { number, drawerId, word } = room.round;
+  const maskedWord = Array.from(word, () => "_").join(" ");
+
+  const snapshot: RoundSnapshot = {
+    number,
+    drawerId,
+    wordLength: word.length,
+    maskedWord
+  };
+
+  // Only the drawer is told the actual word.
+  if (viewerParticipantId && viewerParticipantId === drawerId) {
+    snapshot.word = word;
+  }
+
+  return snapshot;
+}
+
+export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSnapshot {
   return {
     code: room.code,
     status: room.status,
     hostId: room.hostId,
     participants: room.participants.map((participant) => ({ ...participant })),
-    availableWords: listWords(),
+    round: toRoundSnapshot(room, viewerParticipantId),
     roles: [...STARTER_ROLES]
   };
 }

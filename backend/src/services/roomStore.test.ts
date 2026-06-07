@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { createRoom, joinRoom, pollRoom, startGame } from "./roomStore.js";
+import { createRoom, joinRoom, pollRoom, startGame, toRoomSnapshot } from "./roomStore.js";
 
 describe("roomStore", () => {
   it("createRoom returns a 4-character uppercase code and assigns the creator as host", () => {
@@ -100,6 +100,48 @@ describe("roomStore", () => {
       const polled = pollRoom(room.code, guestId);
 
       expect(polled).toBeNull();
+    });
+  });
+
+  describe("round start, drawer and word reveal", () => {
+    it("creates round 1 with the host as the drawer when the game starts", () => {
+      const { room, participantId } = createRoom("Host");
+      joinRoom(room.code, "Second");
+
+      const result = startGame(room.code, participantId);
+
+      expect("room" in result).toBe(true);
+      if ("room" in result) {
+        expect(result.room.round?.number).toBe(1);
+        expect(result.room.round?.drawerId).toBe(participantId);
+      }
+    });
+
+    it("reports round: null while the room is still in the lobby", () => {
+      const { room, participantId } = createRoom("Host");
+
+      const snapshot = toRoomSnapshot(room, participantId);
+
+      expect(snapshot.round).toBeNull();
+    });
+
+    it("reveals the secret word to the drawer but not to guessers", () => {
+      const { room, participantId } = createRoom("Host");
+      const joined = joinRoom(room.code, "Guest");
+      const guestId = "participantId" in joined ? joined.participantId : "";
+      const started = startGame(room.code, participantId);
+      const startedRoom = "room" in started ? started.room : room;
+      const word = startedRoom.round?.word ?? "";
+
+      const drawerView = toRoomSnapshot(startedRoom, participantId);
+      const guesserView = toRoomSnapshot(startedRoom, guestId);
+
+      // Drawer sees the full word (FR-006).
+      expect(drawerView.round?.word).toBe(word);
+      // Guesser never receives the word (FR-007), only the concealed form.
+      expect(guesserView.round?.word).toBeUndefined();
+      expect(guesserView.round?.wordLength).toBe(word.length);
+      expect(guesserView.round?.maskedWord.replace(/\s/g, "")).toBe("_".repeat(word.length));
     });
   });
 

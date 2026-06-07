@@ -14,6 +14,13 @@ export function JoinRoomPage() {
     event.preventDefault();
 
     const normalizedCode = roomCode.trim().toUpperCase();
+    const trimmedName = playerName.trim();
+
+    // Reject empty/whitespace-only names before calling the API. (FR-010)
+    if (!trimmedName) {
+      setError("Please enter a name to continue.");
+      return;
+    }
 
     // Reject empty/whitespace-only codes before calling the API. (FR-005)
     if (!normalizedCode) {
@@ -23,7 +30,7 @@ export function JoinRoomPage() {
 
     try {
       setError(null);
-      await roomStore.joinRoom(normalizedCode, playerName.trim());
+      await roomStore.joinRoom(normalizedCode, trimmedName);
       navigate("/lobby");
     } catch (caughtError) {
       // ApiError carries the server's specific message (e.g. "Room not found",
