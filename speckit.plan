@@ -1,0 +1,118 @@
+# Scribble Lab — Technical Plan
+
+## Findings
+The starter has a working room create/join/fetch flow with in-memory storage but implements zero game logic. The frontend has a complete UI shell with placeholder components for all game features. The API base URL has a typo (`/bug` instead of no path).
+
+## State Model Changes
+
+### Backend — `Room` (src/models/game.ts)
+```typescript
+// New fields to add:
+RoomStatus = "lobby" | "playing" | "roundEnd"
+
+interface Room {
+  // existing...
+  hostId: string;              // participantId of the host
+  status: RoomStatus;
+  currentDrawerId: string | null;
+  currentWord: string | null;
+  guesses: Guess[];            // all guesses this round
+  scores: Record<string, number>;  // participantId -> score
+  canvasData: string;          // serialized drawing strokes (JSON)
+}
+
+interface Guess {
+  participantId: string;
+  text: string;
+  correct: boolean;
+  timestamp: string;
+}
+
+// RoomSnapshot updated to include:
+// - hostId, currentDrawerId, currentWord (null for guessers), scores, guesses, canvasData, status
+```
+
+### Frontend — `RoomSnapshot` (src/services/api.ts)
+```typescript
+// Match backend model additions:
+status: "lobby" | "playing" | "roundEnd";
+hostId: string;
+currentDrawerId: string | null;
+currentWord: string | null;
+scores: Record<string, number>;
+guesses: Array<{ participantId: string; text: string; correct: boolean; timestamp: string }>;
+canvasData: string;
+```
+
+## Data Flow
+
+### Lobby Flow
+1. Frontend polls `GET /rooms/:code?participantId=...` every 2s.
+2. Backend returns room snapshot (participants, hostId, status).
+3. Frontend checks if status changed to `"playing"` → auto-navigate to `/game`.
+
+### Game Start Flow
+1. Host clicks "Start Game" → `POST /rooms/:code/start`.
+2. Backend: sets drawer (first participant), selects word (deterministic index), sets status to `"playing"`.
+3. All clients detect `status === "playing"` on next poll → show GamePage.
+
+### Drawing Flow
+1. Drawer draws on canvas → strokes serialized as JSON array.
+2. On each stroke (debounced) → `POST /rooms/:code/draw` with `{ strokes }`.
+3. Backend stores `canvasData`.
+4. Guessers poll `GET /rooms/:code` and render canvas from `canvasData`.
+
+### Guess Flow
+1. Guesser submits guess → `POST /rooms/:code/guess` with `{ text }`.
+2. Backend trims, case-insensitively compares to `currentWord`.
+3. If correct: sets `correct: true`, awards 100 points, sets status to `"roundEnd"`.
+4. If incorrect: appends guess with `correct: false`, 0 points.
+5. All players see updated guess history and scores via polling.
+
+### Restart Flow
+1. Host clicks "Restart" → `POST /rooms/:code/restart`.
+2. Backend clears `currentDrawerId`, `currentWord`, `guesses`, `scores`, `canvasData`, sets status to `"lobby"`.
+3. All clients detect `status === "lobby"` on next poll → navigate to `/lobby`.
+
+## File-Level Plan
+
+### Backend Changes
+| File | Changes |
+|------|---------|
+| `src/models/game.ts` | Add `hostId`, `Guess` type, new statuses, scores, canvasData to Room |
+| `src/api/schemas.ts` | Add schemas for `startGameParams`, `submitGuessBody`, `drawBody` |
+| `src/services/roomStore.ts` | Add `startGame`, `submitGuess`, `saveDraw`, `restartGame` methods; update `toRoomSnapshot` for viewer context |
+| `src/api/rooms.ts` | Add `POST /:code/start`, `POST /:code/guess`, `POST /:code/draw`, `POST /:code/restart` handlers |
+| `src/api/router.ts` | Register new routes (no changes needed if using router prefix) |
+
+### Frontend Changes
+| File | Changes |
+|------|---------|
+| `src/services/api.ts` | Fix `/bug` typo; add `startGame`, `submitGuess`, `saveDraw`, `restartGame` methods; update types |
+| `src/state/roomStore.ts` | Add `startGame`, `submitGuess`, `restartGame` methods |
+| `src/pages/LobbyPage.tsx` | Add auto-polling (~2s); only host sees Start button; disable if <2 players; navigate on game start |
+| `src/pages/GamePage.tsx` | Add role-aware rendering: drawer sees canvas + word, guessers see canvas + guess form; add polling; handle roundEnd/result state |
+| `src/components/GuessForm.tsx` | Connect to API; add validation; disable for drawer |
+| `src/components/Scoreboard.tsx` | Render dynamic scores from snapshot |
+| `src/components/ResultPanel.tsx` | Show final word, scores, guess history; host sees Restart button |
+
+## Implementation Sequence
+1. Fix `/bug` typo in `api.ts`
+2. Update state model (types, schemas)
+3. Add backend endpoints (start, guess, draw, restart)
+4. Add lobby polling + host controls
+5. Implement canvas drawing (drawer) + canvas display (guessers)
+6. Implement guess submission + validation
+7. Implement scoring + guess history sync
+8. Implement result state + restart
+9. Validation: test with two browser tabs
+
+## Testing Strategy
+- Manual testing with two browser tabs for all four scenarios.
+- Existing unit tests must continue to pass.
+- Run `npm run build` in both frontend and backend after each phase.
+
+## Risks
+- Canvas drawing sync via polling may feel laggy — acceptable per spec (no WebSockets).
+- Determistic word selection means same room always picks first word — acceptable for lab scope.
+- In-memory state means server restart loses all rooms — acceptable per spec.

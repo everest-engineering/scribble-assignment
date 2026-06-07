@@ -1,0 +1,132 @@
+# Scribble Lab — Specification
+
+## Scenario 1 — Room Setup & Lobby
+
+### F1.1 Host Tracking
+- When a player creates a room, they are automatically the host.
+- The host is identified by `participantId` stored on the room.
+- Only the host can start the game.
+
+### F1.2 Room Creation Validation
+- Creating a room with an empty or whitespace-only name returns a clear error message.
+- Room codes are 4-character alphanumeric (auto-generated).
+- Room codes are unique and collision-free.
+
+### F1.3 Join Room Validation
+- Joining a non-existent room code returns a clear error.
+- Joining with an empty or whitespace-only name returns a clear error.
+- Player names are trimmed before storing.
+
+### F1.4 Room Isolation
+- Each room operates independently. Participants in room A cannot see or affect room B.
+
+### F1.5 Lobby Polling
+- The lobby automatically polls `GET /rooms/:code` every ~2 seconds.
+- The participant list updates without manual refresh.
+
+### F1.6 Start Game Preconditions
+- The "Start Game" button is only visible to the host.
+- The "Start Game" button is disabled until at least 2 players are in the room.
+- Starting the game calls `POST /rooms/:code/start` and transitions the room status.
+
+### F1.7 Edge Cases
+- Room code is uppercased consistently for lookup.
+- Max participant limit is 10 (prevent unbounded growth).
+
+### Acceptance Criteria (Scenario 1)
+- [ ] Creator is host; only host sees "Start Game" button.
+- [ ] Empty/whitespace name rejected on create and join.
+- [ ] Invalid room code rejected with clear message.
+- [ ] Lobby refreshes participant list every ~2s automatically.
+- [ ] Start Game requires ≥2 players; hidden from non-host.
+- [ ] Two rooms are fully isolated (different codes, different participants).
+
+## Scenario 2 — Game Start & Drawer Flow
+
+### F2.1 Start Game Transition
+- `POST /rooms/:code/start` transitions room from `"lobby"` to `"playing"`.
+- The first participant (by join order) is assigned as the drawer.
+- A secret word is deterministically selected from `availableWords` (index-based).
+
+### F2.2 Drawer Assignment
+- The drawer is clearly identified on their own screen.
+- Non-drawers are identified as guessers.
+
+### F2.3 Word Visibility
+- The secret word is visible ONLY to the drawer.
+- Guessers see `"???"` or nothing in place of the word.
+
+### F2.4 Player Name Validation
+- Player names are trimmed on submission.
+- Empty or whitespace-only names are rejected with a message.
+
+### Acceptance Criteria (Scenario 2)
+- [ ] Starting the game transitions room status and assigns a drawer.
+- [ ] Drawer sees the secret word; guessers do not.
+- [ ] First-joined participant is the drawer.
+- [ ] Word is deterministic (same room always picks same word).
+
+## Scenario 3 — Gameplay Interaction
+
+### F3.1 Drawing Canvas
+- The drawer sees an interactive `<canvas>` element.
+- The drawer can draw freeform lines on the canvas (mouse/touch).
+- A "Clear Canvas" button resets the canvas to blank.
+
+### F3.2 Canvas Sync
+- Drawing data is sent to the backend and retrieved by guessers via polling.
+- Guessers see the drawer's canvas (read-only).
+
+### F3.3 Guess Submission
+- Guessers can type and submit text guesses.
+- Guesses are trimmed and compared case-insensitively against the secret word.
+
+### F3.4 Guess Validation
+- Empty or whitespace-only guesses are rejected with a message.
+- Correct guesses are scored 100 points.
+- Incorrect guesses add 0 points.
+- The drawer cannot submit guesses.
+
+### F3.5 Guess History Sync
+- All guesses (correct and incorrect) are visible to all players in the guess history.
+- The guess history updates via polling.
+
+### F3.6 Scoring
+- All players start at 0 points.
+- Correct guess: +100 points.
+- Scores are synced to all players via polling.
+
+### Acceptance Criteria (Scenario 3)
+- [ ] Drawer can draw on canvas and clear it.
+- [ ] Guessers see the drawing.
+- [ ] Guesses are validated (trimmed, empty rejected, case-insensitive match).
+- [ ] Correct guess scores 100; incorrect scores 0.
+- [ ] Drawer cannot submit guesses.
+- [ ] All players see the guess history update.
+
+## Scenario 4 — Result, Restart & Final Validation
+
+### F4.1 Round End
+- When a guesser guesses correctly, the round ends.
+- The secret word is revealed to all players.
+
+### F4.2 Result State
+- All players see:
+  - The correct word
+  - Final scores
+  - Full guess history
+
+### F4.3 Host Restart
+- Only the host sees a "Restart" button on the result screen.
+- Clicking restart calls `POST /rooms/:code/restart`.
+- Restart returns all players to the lobby.
+- Player list is preserved; all round state (canvas, guesses, scores) is cleared.
+
+### F4.4 Multi-Room Cleanup
+- Empty rooms (0 participants) are removed after restart if all players leave.
+
+### Acceptance Criteria (Scenario 4)
+- [ ] Correct word revealed after a correct guess.
+- [ ] Final scores and guess history visible to all.
+- [ ] Host can restart; non-host cannot.
+- [ ] Restart preserves participants, clears round state, returns to lobby.
