@@ -1,6 +1,7 @@
-import { useEffect } from "react";
+import { useCallback, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card } from "../components/Card";
+import { GameCanvas } from "../components/GameCanvas";
 import { GuessForm } from "../components/GuessForm";
 import { ResultPanel } from "../components/ResultPanel";
 import { RoomCodeBadge } from "../components/RoomCodeBadge";
@@ -13,6 +14,7 @@ export function GamePage() {
   const { room, participantId } = useRoomState();
 
   const isDrawer = room !== null && participantId === room.currentDrawerId;
+  const isRoundEnd = room !== null && room.status === "roundEnd";
 
   useEffect(() => {
     if (!room) {
@@ -27,11 +29,53 @@ export function GamePage() {
     return () => clearInterval(interval);
   }, [roomStore]);
 
+  const handleSubmitGuess = useCallback(async (text: string) => {
+    await roomStore.submitGuess(text);
+  }, [roomStore]);
+
+  const handleSaveDraw = useCallback(async (strokes: string) => {
+    if (!room || !participantId) return;
+    try {
+      await roomStore.saveDraw?.(strokes);
+    } catch {}
+  }, [room, participantId]);
+
   if (!room) {
     return null;
   }
 
   const viewer = room.participants.find((p) => p.id === participantId) ?? null;
+
+  if (isRoundEnd) {
+    return (
+      <section className="panel game-page">
+        <div className="game-page__header">
+          <div className="game-page__header-left">
+            <span className="section-kicker">Round Over</span>
+            <h1 className="game-page__title">The word was: {room.currentWord ?? "???"}</h1>
+          </div>
+          <RoomCodeBadge code={room.code} />
+        </div>
+        <div className="game-page__layout">
+          <aside className="game-page__sidebar game-page__sidebar--left">
+            <Scoreboard participants={room.participants} scores={room.scores} />
+            <ResultPanel guessedWord={room.currentWord} guesses={room.guesses} participants={room.participants} />
+          </aside>
+          <div className="game-page__main">
+            <Card title="Canvas">
+              <GameCanvas
+                isDrawer={false}
+                canvasData={room.canvasData}
+                roomCode={room.code}
+                participantId={participantId ?? ""}
+                onSave={handleSaveDraw}
+              />
+            </Card>
+          </div>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section className="panel game-page">
@@ -45,8 +89,8 @@ export function GamePage() {
 
       <div className="game-page__layout">
         <aside className="game-page__sidebar game-page__sidebar--left">
-          <Scoreboard />
-          <ResultPanel />
+          <Scoreboard participants={room.participants} scores={room.scores} />
+          <ResultPanel guesses={room.guesses} participants={room.participants} />
         </aside>
 
         <div className="game-page__main">
@@ -56,9 +100,13 @@ export function GamePage() {
             </Card>
           )}
           <Card title="Canvas">
-            <div className="canvas-placeholder" style={{ minHeight: '500px', backgroundColor: '#ffffff', border: '1px solid #e5e7eb' }}>
-              {isDrawer ? "Draw here!" : "Waiting for drawer..."}
-            </div>
+            <GameCanvas
+              isDrawer={isDrawer}
+              canvasData={room.canvasData}
+              roomCode={room.code}
+              participantId={participantId ?? ""}
+              onSave={handleSaveDraw}
+            />
           </Card>
         </div>
 
@@ -76,9 +124,11 @@ export function GamePage() {
             </dl>
           </Card>
 
-          <Card title="Your Guess">
-            <GuessForm />
-          </Card>
+          {!isDrawer && (
+            <Card title="Your Guess">
+              <GuessForm disabled={isRoundEnd} onSubmitGuess={handleSubmitGuess} />
+            </Card>
+          )}
         </aside>
       </div>
 

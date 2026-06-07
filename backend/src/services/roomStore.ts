@@ -127,6 +127,73 @@ export function joinRoom(code: string, playerName?: string) {
   };
 }
 
+export function submitGuess(code: string, participantId: string, text: string) {
+  const room = rooms.get(code);
+  if (!room) {
+    return null;
+  }
+
+  if (room.status !== "playing") {
+    throw new Error("Game is not in progress");
+  }
+
+  if (participantId === room.currentDrawerId) {
+    throw new Error("Drawer cannot submit guesses");
+  }
+
+  const trimmed = text.trim();
+  if (!trimmed) {
+    throw new Error("Guess cannot be empty");
+  }
+
+  const isCorrect = trimmed.toLowerCase() === room.currentWord?.toLowerCase();
+  const guess = {
+    participantId,
+    text: trimmed,
+    correct: isCorrect,
+    timestamp: now()
+  };
+
+  room.guesses.push(guess);
+  room.scores[participantId] = (room.scores[participantId] ?? 0) + (isCorrect ? 100 : 0);
+
+  if (isCorrect) {
+    room.status = "roundEnd";
+  }
+
+  room.updatedAt = now();
+  rooms.set(room.code, room);
+
+  return {
+    room: cloneRoom(room),
+    participantId
+  };
+}
+
+export function saveDraw(code: string, participantId: string, strokes: string) {
+  const room = rooms.get(code);
+  if (!room) {
+    return null;
+  }
+
+  if (room.status !== "playing") {
+    throw new Error("Game is not in progress");
+  }
+
+  if (participantId !== room.currentDrawerId) {
+    throw new Error("Only the drawer can draw");
+  }
+
+  room.canvasData = strokes;
+  room.updatedAt = now();
+  rooms.set(room.code, room);
+
+  return {
+    room: cloneRoom(room),
+    participantId
+  };
+}
+
 export function getRoom(code: string) {
   const room = rooms.get(code);
   return room ? cloneRoom(room) : null;

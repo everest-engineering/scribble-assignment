@@ -75,6 +75,18 @@ export const api = {
       body: JSON.stringify({ participantId })
     });
   },
+  submitGuess(code: string, participantId: string, text: string) {
+    return request<RoomSessionResponse>(`/rooms/${encodeURIComponent(code)}/guess`, {
+      method: "POST",
+      body: JSON.stringify({ participantId, text })
+    });
+  },
+  saveDraw(code: string, participantId: string, strokes: string) {
+    return request<RoomSessionResponse>(`/rooms/${encodeURIComponent(code)}/draw`, {
+      method: "POST",
+      body: JSON.stringify({ participantId, strokes })
+    });
+  },
   fetchRoom(code: string, participantId?: string) {
     const query = participantId ? `?participantId=${encodeURIComponent(participantId)}` : "";
     return request<{ room: RoomSnapshot }>(`/rooms/${encodeURIComponent(code)}${query}`);
