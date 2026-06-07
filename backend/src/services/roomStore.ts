@@ -4,6 +4,9 @@ import { STARTER_ROLES, STARTER_WORDS } from "../seed/starterData.js";
 
 const rooms = new Map<string, Room>();
 
+const MAX_PLAYERS = 8;
+const PRESENCE_TIMEOUT_MS = 10_000;
+
 function now() {
   return new Date().toISOString();
 }
@@ -30,19 +33,59 @@ function generateUniqueCode() {
 }
 
 function displayName(name?: string) {
-  return name || "Player";
+  const trimmed = (name ?? "").trim();
+  return trimmed || "Player";
 }
 
-function createParticipant(name?: string): Participant {
+// Ensure each participant in a room is distinguishable (FR-017).
+// On a case-insensitive collision, append " (2)", " (3)", ...
+function disambiguateName(base: string, existing: Participant[]) {
+  const taken = new Set(existing.map((participant) => participant.name.toLowerCase()));
+
+  if (!taken.has(base.toLowerCase())) {
+    return base;
+  }
+
+  let suffix = 2;
+  while (taken.has(`${base} (${suffix})`.toLowerCase())) {
+    suffix += 1;
+  }
+
+  return `${base} (${suffix})`;
+}
+
+function createParticipant(name: string | undefined, existing: Participant[] = []): Participant {
   return {
     id: randomUUID(),
-    name: displayName(name),
-    joinedAt: now()
+    name: disambiguateName(displayName(name), existing),
+    joinedAt: now(),
+    lastSeenAt: now()
   };
 }
 
 function cloneRoom(room: Room) {
   return structuredClone(room);
+}
+
+// Remove participants who have not polled within the presence window (FR-010a).
+function pruneStaleParticipants(room: Room) {
+  const nowMs = Date.now();
+  room.participants = room.participants.filter(
+    (participant) => nowMs - new Date(participant.lastSeenAt).getTime() <= PRESENCE_TIMEOUT_MS
+  );
+}
+
+// Close a room when it is empty (FR-015a) or its host has departed (FR-015).
+// Returns true if the room was deleted.
+function closeIfEmptyOrHostGone(room: Room) {
+  const hostPresent = room.participants.some((participant) => participant.id === room.hostId);
+
+  if (room.participants.length === 0 || !hostPresent) {
+    rooms.delete(room.code);
+    return true;
+  }
+
+  return false;
 }
 
 export function listWords() {
@@ -54,6 +97,7 @@ export function createRoom(playerName?: string) {
   const room: Room = {
     code: generateUniqueCode(),
     status: "lobby",
+    hostId: participant.id,
     participants: [participant],
     createdAt: now(),
     updatedAt: now()
@@ -67,14 +111,33 @@ export function createRoom(playerName?: string) {
   };
 }
 
-export function joinRoom(code: string, playerName?: string) {
+export type JoinFailure = "not_found" | "started" | "full";
+
+export function joinRoom(
+  code: string,
+  playerName?: string
+): { room: Room; participantId: string } | { failure: JoinFailure } {
   const room = rooms.get(code);
 
   if (!room) {
-    return null;
+    return { failure: "not_found" };
   }
 
-  const participant = createParticipant(playerName);
+  // Free up slots held by departed players before checking capacity.
+  pruneStaleParticipants(room);
+  if (closeIfEmptyOrHostGone(room)) {
+    return { failure: "not_found" };
+  }
+
+  if (room.status === "playing") {
+    return { failure: "started" };
+  }
+
+  if (room.participants.length >= MAX_PLAYERS) {
+    return { failure: "full" };
+  }
+
+  const participant = createParticipant(playerName, room.participants);
   room.participants.push(participant);
   room.updatedAt = now();
   rooms.set(room.code, room);
@@ -90,6 +153,77 @@ export function getRoom(code: string) {
   return room ? cloneRoom(room) : null;
 }
 
+// Polling read used by GET /rooms/:code — the poll doubles as a heartbeat:
+// it refreshes the caller's presence, prunes stale players, and closes the
+// room if the host left or everyone is gone. Returns null when the room is
+// unknown or was closed (FR-010, FR-010a, FR-015, FR-015a).
+export function pollRoom(code: string, viewerParticipantId?: string) {
+  const room = rooms.get(code);
+
+  if (!room) {
+    return null;
+  }
+
+  if (viewerParticipantId) {
+    const viewer = room.participants.find((participant) => participant.id === viewerParticipantId);
+    if (viewer) {
+      viewer.lastSeenAt = now();
+    }
+  }
+
+  pruneStaleParticipants(room);
+  if (closeIfEmptyOrHostGone(room)) {
+    return null;
+  }
+
+  room.updatedAt = now();
+  rooms.set(room.code, room);
+
+  return cloneRoom(room);
+}
+
+export type StartFailure = "not_found" | "not_host" | "already_started" | "too_few";
+
+export function startGame(
+  code: string,
+  participantId: string
+): { room: Room } | { failure: StartFailure } {
+  const room = rooms.get(code);
+
+  if (!room) {
+    return { failure: "not_found" };
+  }
+
+  // The requester is polling too; treat the start call as a heartbeat then prune.
+  const requester = room.participants.find((participant) => participant.id === participantId);
+  if (requester) {
+    requester.lastSeenAt = now();
+  }
+
+  pruneStaleParticipants(room);
+  if (closeIfEmptyOrHostGone(room)) {
+    return { failure: "not_found" };
+  }
+
+  if (room.hostId !== participantId) {
+    return { failure: "not_host" };
+  }
+
+  if (room.status === "playing") {
+    return { failure: "already_started" };
+  }
+
+  if (room.participants.length < 2) {
+    return { failure: "too_few" };
+  }
+
+  room.status = "playing";
+  room.updatedAt = now();
+  rooms.set(room.code, room);
+
+  return { room: cloneRoom(room) };
+}
+
 export function saveRoom(room: Room) {
   room.updatedAt = now();
   rooms.set(room.code, cloneRoom(room));
@@ -102,6 +236,7 @@ export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSn
   return {
     code: room.code,
     status: room.status,
+    hostId: room.hostId,
     participants: room.participants.map((participant) => ({ ...participant })),
     availableWords: listWords(),
     roles: [...STARTER_ROLES]

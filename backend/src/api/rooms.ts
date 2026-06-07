@@ -4,9 +4,10 @@ import {
   HttpError,
   joinRoomSchema,
   roomCodeParamsSchema,
-  roomViewerQuerySchema
+  roomViewerQuerySchema,
+  startRoomSchema
 } from "./schemas.js";
-import { createRoom, getRoom, joinRoom, toRoomSnapshot } from "../services/roomStore.js";
+import { createRoom, joinRoom, pollRoom, startGame, toRoomSnapshot } from "../services/roomStore.js";
 
 export function createRoomsRouter() {
   const router = Router();
@@ -31,8 +32,14 @@ export function createRoomsRouter() {
       const { playerName } = joinRoomSchema.parse(request.body);
       const result = joinRoom(code.toUpperCase(), playerName);
 
-      if (!result) {
-        throw new HttpError(404, "Unable to join room");
+      if ("failure" in result) {
+        if (result.failure === "started") {
+          throw new HttpError(409, "This game has already started");
+        }
+        if (result.failure === "full") {
+          throw new HttpError(409, "This room is full");
+        }
+        throw new HttpError(404, "Room not found");
       }
 
       response.json({
@@ -48,14 +55,41 @@ export function createRoomsRouter() {
     try {
       const { code } = roomCodeParamsSchema.parse(request.params);
       const { participantId } = roomViewerQuerySchema.parse(request.query);
-      const room = getRoom(code.toUpperCase());
+      const room = pollRoom(code.toUpperCase(), participantId);
 
       if (!room) {
-        throw new HttpError(404, "Unable to load room");
+        throw new HttpError(404, "Room not found");
       }
 
       response.json({
         room: toRoomSnapshot(room, participantId)
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/:code/start", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId } = startRoomSchema.parse(request.body);
+      const result = startGame(code.toUpperCase(), participantId);
+
+      if ("failure" in result) {
+        if (result.failure === "not_host") {
+          throw new HttpError(403, "Only the host can start the game");
+        }
+        if (result.failure === "too_few") {
+          throw new HttpError(409, "At least 2 players are required to start");
+        }
+        if (result.failure === "already_started") {
+          throw new HttpError(409, "This game has already started");
+        }
+        throw new HttpError(404, "Room not found");
+      }
+
+      response.json({
+        room: toRoomSnapshot(result.room, participantId)
       });
     } catch (error) {
       next(error);

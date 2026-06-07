@@ -13,11 +13,21 @@ export function JoinRoomPage() {
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
+    const normalizedCode = roomCode.trim().toUpperCase();
+
+    // Reject empty/whitespace-only codes before calling the API. (FR-005)
+    if (!normalizedCode) {
+      setError("Please enter a room code");
+      return;
+    }
+
     try {
       setError(null);
-      await roomStore.joinRoom(roomCode.toUpperCase(), playerName);
+      await roomStore.joinRoom(normalizedCode, playerName.trim());
       navigate("/lobby");
     } catch (caughtError) {
+      // ApiError carries the server's specific message (e.g. "Room not found",
+      // "This room is full", "This game has already started"). (FR-006, FR-014, FR-016)
       setError(caughtError instanceof Error ? caughtError.message : "Unable to join room");
     }
   }

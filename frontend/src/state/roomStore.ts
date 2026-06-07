@@ -7,13 +7,14 @@ import {
   useSyncExternalStore,
   type PropsWithChildren
 } from "react";
-import { api, type RoomSessionResponse, type RoomSnapshot } from "../services/api";
+import { api, ApiError, type RoomSessionResponse, type RoomSnapshot } from "../services/api";
 
 export interface RoomState {
   room: RoomSnapshot | null;
   participantId: string | null;
   error: string | null;
   isLoading: boolean;
+  closed: boolean;
 }
 
 type Listener = () => void;
@@ -23,7 +24,8 @@ class RoomStore {
     room: null,
     participantId: null,
     error: null,
-    isLoading: false
+    isLoading: false,
+    closed: false
   };
 
   private listeners = new Set<Listener>();
@@ -66,7 +68,8 @@ class RoomStore {
     this.setState({
       participantId: response.participantId,
       room: response.room,
-      error: null
+      error: null,
+      closed: false
     });
   }
 
@@ -94,7 +97,37 @@ class RoomStore {
       return null;
     }
 
-    const response = await api.fetchRoom(this.state.room.code, this.state.participantId ?? undefined);
+    try {
+      const response = await api.fetchRoom(
+        this.state.room.code,
+        this.state.participantId ?? undefined
+      );
+      this.setRoomSnapshot(response.room);
+      return response.room;
+    } catch (error) {
+      // A 404 while polling a room we were in means the room was closed
+      // (the host left, or everyone departed). Eject the player. (FR-015)
+      if (error instanceof ApiError && error.status === 404) {
+        this.setState({
+          room: null,
+          closed: true,
+          error: "The host left and the room was closed."
+        });
+        return null;
+      }
+
+      throw error;
+    }
+  }
+
+  async startGame() {
+    if (!this.state.room || !this.state.participantId) {
+      return null;
+    }
+
+    const code = this.state.room.code;
+    const participantId = this.state.participantId;
+    const response = await this.withLoading(() => api.startRoom(code, participantId));
     this.setRoomSnapshot(response.room);
     return response.room;
   }
