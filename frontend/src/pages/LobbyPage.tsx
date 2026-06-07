@@ -27,6 +27,18 @@ export function LobbyPage() {
     return () => clearInterval(interval);
   }, [roomStore]);
 
+  async function handleStartGame() {
+    try {
+      setRefreshError(null);
+      const response = await roomStore.startGame();
+      if (response) {
+        navigate("/game");
+      }
+    } catch (caughtError) {
+      setRefreshError(caughtError instanceof Error ? caughtError.message : "Unable to start game");
+    }
+  }
+
   async function handleRefresh() {
     try {
       setRefreshError(null);
@@ -80,8 +92,8 @@ export function LobbyPage() {
           {isLoading ? "Refreshing..." : "Refresh Room"}
         </button>
         {isHost && (
-          <button className="button button--primary" disabled={!hasEnoughPlayers} onClick={() => navigate("/game")}>
-            {hasEnoughPlayers ? "Start Game" : "Waiting for players..."}
+          <button className="button button--primary" disabled={!hasEnoughPlayers || isLoading} onClick={handleStartGame}>
+            {isLoading ? "Starting..." : hasEnoughPlayers ? "Start Game" : "Waiting for players..."}
           </button>
         )}
       </div>

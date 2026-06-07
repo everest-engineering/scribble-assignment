@@ -56,6 +56,11 @@ export function createRoom(playerName?: string) {
     hostId: participant.id,
     status: "lobby",
     participants: [participant],
+    currentDrawerId: null,
+    currentWord: null,
+    guesses: [],
+    scores: {},
+    canvasData: "",
     createdAt: now(),
     updatedAt: now()
   };
@@ -65,6 +70,42 @@ export function createRoom(playerName?: string) {
   return {
     room: cloneRoom(room),
     participantId: participant.id
+  };
+}
+
+export function startGame(code: string, initiatorId: string) {
+  const room = rooms.get(code);
+  if (!room) {
+    return null;
+  }
+
+  if (room.hostId !== initiatorId) {
+    throw new Error("Only the host can start the game");
+  }
+
+  if (room.status !== "lobby") {
+    throw new Error("Game has already started");
+  }
+
+  if (room.participants.length < 2) {
+    throw new Error("At least 2 players are required to start");
+  }
+
+  const sortedWords = [...STARTER_WORDS].sort();
+  const wordIndex = Math.min(room.participants.length - 1, sortedWords.length - 1);
+
+  room.status = "playing";
+  room.currentDrawerId = room.participants[0].id;
+  room.currentWord = sortedWords[wordIndex];
+  room.guesses = [];
+  room.scores = {};
+  room.canvasData = "";
+  room.updatedAt = now();
+  rooms.set(room.code, room);
+
+  return {
+    room: cloneRoom(room),
+    participantId: initiatorId
   };
 }
 
@@ -92,13 +133,18 @@ export function getRoom(code: string) {
 }
 
 export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSnapshot {
-  void viewerParticipantId;
+  const isDrawer = viewerParticipantId !== undefined && viewerParticipantId === room.currentDrawerId;
 
   return {
     code: room.code,
     hostId: room.hostId,
     status: room.status,
-    participants: room.participants.map((participant) => ({ ...participant })),
+    participants: room.participants.map((p) => ({ ...p })),
+    currentDrawerId: room.currentDrawerId ?? null,
+    currentWord: isDrawer || room.status === "roundEnd" ? (room.currentWord ?? null) : null,
+    guesses: [...room.guesses],
+    scores: { ...room.scores },
+    canvasData: room.canvasData,
     availableWords: listWords(),
     roles: [...STARTER_ROLES]
   };
