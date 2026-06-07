@@ -8,14 +8,24 @@ import { useRoomState, useRoomStore } from "../state/roomStore";
 export function LobbyPage() {
   const navigate = useNavigate();
   const roomStore = useRoomStore();
-  const { room, error, isLoading } = useRoomState();
+  const { room, participantId, error, isLoading } = useRoomState();
   const [refreshError, setRefreshError] = useState<string | null>(null);
+
+  const isHost = room !== null && participantId === room.hostId;
+  const hasEnoughPlayers = room !== null && room.participants.length >= 2;
 
   useEffect(() => {
     if (!room) {
       navigate("/", { replace: true });
     }
   }, [navigate, room]);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      roomStore.fetchRoom().catch(() => {});
+    }, 2000);
+    return () => clearInterval(interval);
+  }, [roomStore]);
 
   async function handleRefresh() {
     try {
@@ -69,9 +79,11 @@ export function LobbyPage() {
         <button className="button button--secondary" disabled={isLoading} onClick={handleRefresh}>
           {isLoading ? "Refreshing..." : "Refresh Room"}
         </button>
-        <button className="button button--primary" onClick={() => navigate("/game")}>
-          Start Game
-        </button>
+        {isHost && (
+          <button className="button button--primary" disabled={!hasEnoughPlayers} onClick={() => navigate("/game")}>
+            {hasEnoughPlayers ? "Start Game" : "Waiting for players..."}
+          </button>
+        )}
       </div>
     </section>
   );
