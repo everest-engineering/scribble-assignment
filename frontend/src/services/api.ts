@@ -6,10 +6,25 @@ export interface Participant {
   joinedAt: string;
 }
 
+export type RoomStatus = "lobby" | "playing" | "roundEnd";
+
+export interface Guess {
+  participantId: string;
+  text: string;
+  correct: boolean;
+  timestamp: string;
+}
+
 export interface RoomSnapshot {
   code: string;
-  status: "lobby";
+  hostId: string;
+  status: RoomStatus;
   participants: Participant[];
+  currentDrawerId: string | null;
+  currentWord: string | null;
+  guesses: Guess[];
+  scores: Record<string, number>;
+  canvasData: string;
   availableWords: string[];
   roles: ParticipantRole[];
 }
@@ -19,7 +34,7 @@ export interface RoomSessionResponse {
   room: RoomSnapshot;
 }
 
-const API_BASE_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3001/bug";
+const API_BASE_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3001";
 
 async function request<T>(path: string, init?: RequestInit) {
   const response = await fetch(`${API_BASE_URL}${path}`, {
@@ -52,6 +67,30 @@ export const api = {
     return request<RoomSessionResponse>(`/rooms/${encodeURIComponent(code)}/join`, {
       method: "POST",
       body: JSON.stringify({ playerName })
+    });
+  },
+  startGame(code: string, participantId: string) {
+    return request<RoomSessionResponse>(`/rooms/${encodeURIComponent(code)}/start`, {
+      method: "POST",
+      body: JSON.stringify({ participantId })
+    });
+  },
+  submitGuess(code: string, participantId: string, text: string) {
+    return request<RoomSessionResponse>(`/rooms/${encodeURIComponent(code)}/guess`, {
+      method: "POST",
+      body: JSON.stringify({ participantId, text })
+    });
+  },
+  restartGame(code: string, participantId: string) {
+    return request<RoomSessionResponse>(`/rooms/${encodeURIComponent(code)}/restart`, {
+      method: "POST",
+      body: JSON.stringify({ participantId })
+    });
+  },
+  saveDraw(code: string, participantId: string, strokes: string) {
+    return request<RoomSessionResponse>(`/rooms/${encodeURIComponent(code)}/draw`, {
+      method: "POST",
+      body: JSON.stringify({ participantId, strokes })
     });
   },
   fetchRoom(code: string, participantId?: string) {

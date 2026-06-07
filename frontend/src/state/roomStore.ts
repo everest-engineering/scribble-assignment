@@ -89,6 +89,51 @@ class RoomStore {
     return response;
   }
 
+  async startGame() {
+    if (!this.state.room || !this.state.participantId) {
+      return null;
+    }
+
+    const response = await this.withLoading(() =>
+      api.startGame(this.state.room!.code, this.state.participantId!)
+    );
+    this.setRoomSession(response);
+    return response;
+  }
+
+  async restartGame() {
+    if (!this.state.room || !this.state.participantId) {
+      return null;
+    }
+
+    const response = await this.withLoading(() =>
+      api.restartGame(this.state.room!.code, this.state.participantId!)
+    );
+    this.setRoomSession(response);
+    return response;
+  }
+
+  async saveDraw(strokes: string) {
+    if (!this.state.room || !this.state.participantId) {
+      return null;
+    }
+
+    await api.saveDraw(this.state.room.code, this.state.participantId, strokes);
+    return null;
+  }
+
+  async submitGuess(text: string) {
+    if (!this.state.room || !this.state.participantId) {
+      return null;
+    }
+
+    const response = await this.withLoading(() =>
+      api.submitGuess(this.state.room!.code, this.state.participantId!, text)
+    );
+    this.setRoomSession(response);
+    return response;
+  }
+
   async fetchRoom() {
     if (!this.state.room) {
       return null;

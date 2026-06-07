@@ -1,0 +1,31 @@
+# Scribble Lab — Constitution
+
+## Engineering Principles
+1. **TypeScript First** — All new code must be fully typed. Avoid `any`; use `unknown` when types are dynamic.
+2. **Match Existing Conventions** — Follow the patterns already established in the starter (file structure, error handling, state management).
+3. **Immutability** — Prefer immutable data patterns. Use `structuredClone` or spread operators rather than direct mutation.
+4. **Fail Fast** — Validate inputs at the boundary (Zod schemas on backend, form validation on frontend). Return clear error messages.
+5. **Minimal Changes** — Make the smallest change that satisfies the acceptance criteria. Do not rewrite existing working code.
+
+## Game Rule Principles
+1. **Deterministic Selections** — Word selection and drawer assignment must use deterministic rules (e.g., index-based from sorted participants), not random.
+2. **No Real-Time Sync** — All state updates must use HTTP polling (~2s interval). No WebSockets, Server-Sent Events, or push protocols.
+3. **In-Memory Only** — All data lives in backend memory (Map). No databases, files, or external storage.
+4. **No Authentication** — No sessions, JWT, OAuth, or user accounts.
+
+## AI Usage Rules
+1. **Review Before Accepting** — Every AI suggestion must be reviewed for correctness, security, and alignment with the spec before committing.
+2. **No Hallucinated APIs** — Do not use libraries or dependencies not already in `package.json`. Verify existence before importing.
+3. **Explicit Instructions** — Provide the AI with relevant file paths and context. Do not assume it knows the codebase.
+4. **Traceability** — Each commit should reference the spec section or task it implements.
+
+## Review Discipline
+1. **Validate Before Commit** — Run `npm run build` in both frontend and backend before committing.
+2. **Manual Testing** — Test each scenario with two browser tabs to verify multi-player behavior.
+3. **Commit Granularity** — Each commit should represent one logical slice of work. No "wip" or "fix" mega-commits.
+4. **PR Diff Awareness** — Every line in the diff should be intentional and explainable.
+
+## Testing Expectations
+1. **Existing Tests Must Pass** — Do not break existing unit tests in `schemas.test.ts` or `roomStore.test.ts`.
+2. **Acceptance Criteria** — Each spec clause must be verifiable by manual testing or inspection.
+3. **Edge Cases** — Empty inputs, whitespace-only names, case-insensitive guesses, room code typos, and multi-room isolation must be handled.
