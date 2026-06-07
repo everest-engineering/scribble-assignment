@@ -15,6 +15,7 @@ export function GamePage() {
 
   const isDrawer = room !== null && participantId === room.currentDrawerId;
   const isRoundEnd = room !== null && room.status === "roundEnd";
+  const isHost = room !== null && participantId === room.hostId;
 
   useEffect(() => {
     if (!room) {
@@ -32,6 +33,15 @@ export function GamePage() {
   const handleSubmitGuess = useCallback(async (text: string) => {
     await roomStore.submitGuess(text);
   }, [roomStore]);
+
+  const handleRestart = useCallback(async () => {
+    try {
+      const response = await roomStore.restartGame();
+      if (response) {
+        navigate("/lobby");
+      }
+    } catch {}
+  }, [roomStore, navigate]);
 
   const handleSaveDraw = useCallback(async (strokes: string) => {
     if (!room || !participantId) return;
@@ -72,6 +82,16 @@ export function GamePage() {
               />
             </Card>
           </div>
+        </div>
+        <div className="button-row">
+          {isHost && (
+            <button className="button button--primary" onClick={handleRestart}>
+              Restart Game
+            </button>
+          )}
+          <button className="button button--secondary" onClick={() => navigate("/lobby")}>
+            Exit to Lobby
+          </button>
         </div>
       </section>
     );

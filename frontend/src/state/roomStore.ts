@@ -101,6 +101,18 @@ class RoomStore {
     return response;
   }
 
+  async restartGame() {
+    if (!this.state.room || !this.state.participantId) {
+      return null;
+    }
+
+    const response = await this.withLoading(() =>
+      api.restartGame(this.state.room!.code, this.state.participantId!)
+    );
+    this.setRoomSession(response);
+    return response;
+  }
+
   async saveDraw(strokes: string) {
     if (!this.state.room || !this.state.participantId) {
       return null;

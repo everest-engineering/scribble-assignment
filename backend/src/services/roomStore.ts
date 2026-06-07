@@ -194,6 +194,31 @@ export function saveDraw(code: string, participantId: string, strokes: string) {
   };
 }
 
+export function restartGame(code: string, initiatorId: string) {
+  const room = rooms.get(code);
+  if (!room) {
+    return null;
+  }
+
+  if (room.hostId !== initiatorId) {
+    throw new Error("Only the host can restart the game");
+  }
+
+  room.status = "lobby";
+  room.currentDrawerId = null;
+  room.currentWord = null;
+  room.guesses = [];
+  room.scores = {};
+  room.canvasData = "";
+  room.updatedAt = now();
+  rooms.set(room.code, room);
+
+  return {
+    room: cloneRoom(room),
+    participantId: initiatorId
+  };
+}
+
 export function getRoom(code: string) {
   const room = rooms.get(code);
   return room ? cloneRoom(room) : null;

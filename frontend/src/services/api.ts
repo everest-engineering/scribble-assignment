@@ -81,6 +81,12 @@ export const api = {
       body: JSON.stringify({ participantId, text })
     });
   },
+  restartGame(code: string, participantId: string) {
+    return request<RoomSessionResponse>(`/rooms/${encodeURIComponent(code)}/restart`, {
+      method: "POST",
+      body: JSON.stringify({ participantId })
+    });
+  },
   saveDraw(code: string, participantId: string, strokes: string) {
     return request<RoomSessionResponse>(`/rooms/${encodeURIComponent(code)}/draw`, {
       method: "POST",
