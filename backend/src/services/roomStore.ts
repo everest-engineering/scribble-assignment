@@ -1,12 +1,14 @@
 import { randomUUID } from "node:crypto";
-import type { Participant, Room, RoomSnapshot, RoundSnapshot } from "../models/game.js";
+import type { Guess, GuessSnapshot, Participant, Room, RoomSnapshot, RoundSnapshot } from "../models/game.js";
 import { STARTER_ROLES, STARTER_WORDS } from "../seed/starterData.js";
 import { selectWord } from "./wordSelection.js";
+import { isCorrect } from "./guessEvaluation.js";
 
 const rooms = new Map<string, Room>();
 
 const MAX_PLAYERS = 8;
 const PRESENCE_TIMEOUT_MS = 10_000;
+const CORRECT_GUESS_POINTS = 100;
 
 function now() {
   return new Date().toISOString();
@@ -63,7 +65,8 @@ function createParticipant(name: string | undefined, existing: Participant[] = [
     id: randomUUID(),
     name: disambiguateName(displayName(name), existing),
     joinedAt: now(),
-    lastSeenAt: now()
+    lastSeenAt: now(),
+    score: 0
   };
 }
 
@@ -228,8 +231,80 @@ export function startGame(
   room.round = {
     number: 1,
     drawerId: room.hostId,
-    word: selectWord(room.code, 1)
+    word: selectWord(room.code, 1),
+    guesses: [],
+    correctPlayerIds: []
   };
+  // Every player starts the round at 0 (FR-006).
+  room.participants.forEach((participant) => {
+    participant.score = 0;
+  });
+  room.updatedAt = now();
+  rooms.set(room.code, room);
+
+  return { room: cloneRoom(room) };
+}
+
+export type GuessFailure = "not_found" | "not_active" | "drawer";
+
+// Record a guesser's submission during the active round. The text is assumed
+// already trimmed (the API layer trims and rejects empty before calling here,
+// FR-002/FR-003). Correct guesses award 100 once per player per round
+// (FR-005, FR-007); every accepted guess is appended to the history (FR-008).
+export function submitGuess(
+  code: string,
+  participantId: string,
+  text: string
+): { room: Room } | { failure: GuessFailure } {
+  const room = rooms.get(code);
+
+  if (!room) {
+    return { failure: "not_found" };
+  }
+
+  // The guess call doubles as a heartbeat; refresh presence, then prune.
+  const guesser = room.participants.find((participant) => participant.id === participantId);
+  if (guesser) {
+    guesser.lastSeenAt = now();
+  }
+
+  pruneStaleParticipants(room);
+  if (closeIfEmptyOrHostGone(room)) {
+    return { failure: "not_found" };
+  }
+
+  if (room.status !== "playing" || !room.round) {
+    return { failure: "not_active" };
+  }
+
+  // The drawer illustrates the word and cannot score (FR-014).
+  if (participantId === room.round.drawerId) {
+    return { failure: "drawer" };
+  }
+
+  // A guesser who was pruned for inactivity is no longer in the room.
+  if (!guesser) {
+    return { failure: "not_found" };
+  }
+
+  const correct = isCorrect(text, room.round.word);
+
+  // Award 100 only on a player's first correct guess this round (FR-005, FR-007).
+  if (correct && !room.round.correctPlayerIds.includes(participantId)) {
+    guesser.score += CORRECT_GUESS_POINTS;
+    room.round.correctPlayerIds.push(participantId);
+  }
+
+  const guess: Guess = {
+    id: randomUUID(),
+    playerId: participantId,
+    playerName: guesser.name,
+    text,
+    correct,
+    createdAt: now()
+  };
+  room.round.guesses.push(guess);
+
   room.updatedAt = now();
   rooms.set(room.code, room);
 
@@ -250,14 +325,33 @@ function toRoundSnapshot(room: Room, viewerParticipantId?: string): RoundSnapsho
     return null;
   }
 
-  const { number, drawerId, word } = room.round;
+  const { number, drawerId, word, guesses } = room.round;
   const maskedWord = Array.from(word, () => "_").join(" ");
+
+  // Correct guesses are masked for EVERY viewer: the `text` (which equals the
+  // secret word) is omitted entirely so the answer never leaks through the feed
+  // (FR-011, SC-008). Incorrect guesses are shown verbatim.
+  const guessSnapshots = guesses.map((guess) => {
+    const base: GuessSnapshot = {
+      id: guess.id,
+      playerId: guess.playerId,
+      playerName: guess.playerName,
+      correct: guess.correct
+    };
+
+    if (!guess.correct) {
+      base.text = guess.text;
+    }
+
+    return base;
+  });
 
   const snapshot: RoundSnapshot = {
     number,
     drawerId,
     wordLength: word.length,
-    maskedWord
+    maskedWord,
+    guesses: guessSnapshots
   };
 
   // Only the drawer is told the actual word.

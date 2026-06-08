@@ -5,9 +5,17 @@ import {
   joinRoomSchema,
   roomCodeParamsSchema,
   roomViewerQuerySchema,
-  startRoomSchema
+  startRoomSchema,
+  submitGuessSchema
 } from "./schemas.js";
-import { createRoom, joinRoom, pollRoom, startGame, toRoomSnapshot } from "../services/roomStore.js";
+import {
+  createRoom,
+  joinRoom,
+  pollRoom,
+  startGame,
+  submitGuess,
+  toRoomSnapshot
+} from "../services/roomStore.js";
 
 export function createRoomsRouter() {
   const router = Router();
@@ -96,6 +104,36 @@ export function createRoomsRouter() {
         }
         if (result.failure === "already_started") {
           throw new HttpError(409, "This game has already started");
+        }
+        throw new HttpError(404, "Room not found");
+      }
+
+      response.json({
+        room: toRoomSnapshot(result.room, participantId)
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/:code/guess", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId, text } = submitGuessSchema.parse(request.body);
+
+      // Empty / whitespace-only guesses are rejected, not recorded (FR-003).
+      if (!text) {
+        throw new HttpError(400, "Please enter a guess.");
+      }
+
+      const result = submitGuess(code.toUpperCase(), participantId, text);
+
+      if ("failure" in result) {
+        if (result.failure === "drawer") {
+          throw new HttpError(403, "The drawer cannot guess.");
+        }
+        if (result.failure === "not_active") {
+          throw new HttpError(409, "The round is not active.");
         }
         throw new HttpError(404, "Room not found");
       }

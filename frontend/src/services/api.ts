@@ -5,6 +5,18 @@ export interface Participant {
   name: string;
   joinedAt: string;
   lastSeenAt?: string;
+  // Points this game (0 at round start; +100 per first correct guess). FR-005, FR-006
+  score: number;
+}
+
+// Viewer-facing guess projection. `text` is present ONLY for incorrect guesses;
+// a correct guess omits it so the word never leaks through the feed (FR-011).
+export interface GuessSnapshot {
+  id: string;
+  playerId: string;
+  playerName: string;
+  correct: boolean;
+  text?: string;
 }
 
 // Viewer-facing round projection. `word` is present ONLY when the viewer is the
@@ -15,6 +27,8 @@ export interface RoundSnapshot {
   wordLength: number;
   maskedWord: string;
   word?: string;
+  // Ordered guess history; correct entries omit `text`. FR-008, FR-010, FR-011
+  guesses: GuessSnapshot[];
 }
 
 export interface RoomSnapshot {
@@ -86,6 +100,12 @@ export const api = {
     return request<{ room: RoomSnapshot }>(`/rooms/${encodeURIComponent(code)}/start`, {
       method: "POST",
       body: JSON.stringify({ participantId })
+    });
+  },
+  submitGuess(code: string, participantId: string, text: string) {
+    return request<{ room: RoomSnapshot }>(`/rooms/${encodeURIComponent(code)}/guess`, {
+      method: "POST",
+      body: JSON.stringify({ participantId, text })
     });
   }
 };

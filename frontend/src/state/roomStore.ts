@@ -131,6 +131,22 @@ class RoomStore {
     this.setRoomSnapshot(response.room);
     return response.room;
   }
+
+  // Submit a guess during the active round. The response carries the updated
+  // snapshot (appended guess + any score change); other players converge on
+  // their next poll. Errors (e.g. the 400 empty-guess message) propagate to the
+  // caller via the rejected promise and the store's `error` state.
+  async submitGuess(text: string) {
+    if (!this.state.room || !this.state.participantId) {
+      return null;
+    }
+
+    const code = this.state.room.code;
+    const participantId = this.state.participantId;
+    const response = await this.withLoading(() => api.submitGuess(code, participantId, text));
+    this.setRoomSnapshot(response.room);
+    return response.room;
+  }
 }
 
 const RoomStoreContext = createContext<RoomStore | null>(null);

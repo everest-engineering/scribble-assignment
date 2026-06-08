@@ -1,14 +1,18 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { Canvas } from "../components/Canvas";
 import { Card } from "../components/Card";
 import { GuessForm } from "../components/GuessForm";
 import { ResultPanel } from "../components/ResultPanel";
 import { RoomCodeBadge } from "../components/RoomCodeBadge";
 import { Scoreboard } from "../components/Scoreboard";
-import { useRoomState } from "../state/roomStore";
+import { useRoomState, useRoomStore } from "../state/roomStore";
+
+const POLL_INTERVAL_MS = 2000;
 
 export function GamePage() {
   const navigate = useNavigate();
+  const roomStore = useRoomStore();
   const { room, participantId } = useRoomState();
 
   useEffect(() => {
@@ -16,6 +20,23 @@ export function GamePage() {
       navigate("/", { replace: true });
     }
   }, [navigate, room]);
+
+  // Poll the room ~every 2s so guesses, scores, and the guess history submitted
+  // by other players stay in sync (FR-009, SC-004). A 404 (host left) ejects the
+  // player via the store's fetchRoom handler.
+  useEffect(() => {
+    if (!room) {
+      return;
+    }
+
+    const interval = window.setInterval(() => {
+      roomStore.fetchRoom().catch(() => {
+        // Errors surface via store state; ignore here to keep polling.
+      });
+    }, POLL_INTERVAL_MS);
+
+    return () => window.clearInterval(interval);
+  }, [roomStore, room?.code]);
 
   if (!room) {
     return null;
@@ -71,9 +92,7 @@ export function GamePage() {
           </Card>
 
           <Card title="Canvas">
-            <div className="canvas-placeholder" style={{ minHeight: '440px', backgroundColor: '#ffffff', border: '1px solid #e5e7eb' }}>
-              {isDrawer ? "Your canvas — start drawing!" : `Waiting for ${drawer?.name ?? "the drawer"}...`}
-            </div>
+            <Canvas isDrawer={isDrawer} drawerName={drawer?.name} />
           </Card>
         </div>
 

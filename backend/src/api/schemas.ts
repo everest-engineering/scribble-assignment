@@ -16,6 +16,13 @@ export const startRoomSchema = z.object({
   participantId: z.string()
 });
 
+// Guess text is trimmed (FR-002); emptiness is checked in the route so it can
+// return a specific message (FR-003).
+export const submitGuessSchema = z.object({
+  participantId: z.string(),
+  text: z.string().trim()
+});
+
 export const roomCodeParamsSchema = z.object({
   code: z.string()
 });
