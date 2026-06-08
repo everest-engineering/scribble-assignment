@@ -33,7 +33,8 @@ export interface RoundSnapshot {
 
 export interface RoomSnapshot {
   code: string;
-  status: "lobby" | "playing";
+  // "ended" is the result state shown after the host ends a round (feature 004).
+  status: "lobby" | "playing" | "ended";
   hostId: string;
   participants: Participant[];
   round: RoundSnapshot | null;
@@ -106,6 +107,18 @@ export const api = {
     return request<{ room: RoomSnapshot }>(`/rooms/${encodeURIComponent(code)}/guess`, {
       method: "POST",
       body: JSON.stringify({ participantId, text })
+    });
+  },
+  endRound(code: string, participantId: string) {
+    return request<{ room: RoomSnapshot }>(`/rooms/${encodeURIComponent(code)}/end`, {
+      method: "POST",
+      body: JSON.stringify({ participantId })
+    });
+  },
+  restartGame(code: string, participantId: string) {
+    return request<{ room: RoomSnapshot }>(`/rooms/${encodeURIComponent(code)}/restart`, {
+      method: "POST",
+      body: JSON.stringify({ participantId })
     });
   }
 };

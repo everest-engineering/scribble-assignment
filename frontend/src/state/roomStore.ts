@@ -147,6 +147,36 @@ class RoomStore {
     this.setRoomSnapshot(response.room);
     return response.room;
   }
+
+  // Host ends the active round → the room moves to "ended" and the snapshot
+  // reveals the word, final scores, and full history. Other players converge on
+  // their next poll. (FR-001, FR-002)
+  async endRound() {
+    if (!this.state.room || !this.state.participantId) {
+      return null;
+    }
+
+    const code = this.state.room.code;
+    const participantId = this.state.participantId;
+    const response = await this.withLoading(() => api.endRound(code, participantId));
+    this.setRoomSnapshot(response.room);
+    return response.room;
+  }
+
+  // Host restarts → the room returns to a fresh "lobby" (round cleared, scores
+  // reset to 0, players preserved). Other players return to the lobby on their
+  // next poll. (FR-008–FR-013)
+  async restartGame() {
+    if (!this.state.room || !this.state.participantId) {
+      return null;
+    }
+
+    const code = this.state.room.code;
+    const participantId = this.state.participantId;
+    const response = await this.withLoading(() => api.restartGame(code, participantId));
+    this.setRoomSnapshot(response.room);
+    return response.room;
+  }
 }
 
 const RoomStoreContext = createContext<RoomStore | null>(null);

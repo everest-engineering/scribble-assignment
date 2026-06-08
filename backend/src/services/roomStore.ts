@@ -311,15 +311,112 @@ export function submitGuess(
   return { room: cloneRoom(room) };
 }
 
+export type EndRoundFailure = "not_found" | "not_host" | "not_active";
+
+// End the active round (host only, FR-001). Transitions the room to "ended"
+// while keeping the round intact so the result (word + full history) can be
+// revealed to everyone (FR-002, FR-003). No timer/auto-end — host-initiated.
+export function endRound(
+  code: string,
+  participantId: string
+): { room: Room } | { failure: EndRoundFailure } {
+  const room = rooms.get(code);
+
+  if (!room) {
+    return { failure: "not_found" };
+  }
+
+  // The end-round call doubles as a heartbeat; refresh presence, then prune.
+  const requester = room.participants.find((participant) => participant.id === participantId);
+  if (requester) {
+    requester.lastSeenAt = now();
+  }
+
+  pruneStaleParticipants(room);
+  if (closeIfEmptyOrHostGone(room)) {
+    return { failure: "not_found" };
+  }
+
+  if (room.hostId !== participantId) {
+    return { failure: "not_host" };
+  }
+
+  if (room.status !== "playing" || !room.round) {
+    return { failure: "not_active" };
+  }
+
+  // Keep the round so the result can reveal the word, scores, and full history.
+  room.status = "ended";
+  room.updatedAt = now();
+  rooms.set(room.code, room);
+
+  return { room: cloneRoom(room) };
+}
+
+export type RestartFailure = "not_found" | "not_host";
+
+// Restart the game (host only, FR-008). Returns the room to a fresh lobby:
+// clears the round and resets every score to 0 (FR-011) while preserving the
+// participants and the host (FR-010). Idempotent — a restart from a room that
+// is already in "lobby" is a no-op success (FR-014).
+export function restartRoom(
+  code: string,
+  participantId: string
+): { room: Room } | { failure: RestartFailure } {
+  const room = rooms.get(code);
+
+  if (!room) {
+    return { failure: "not_found" };
+  }
+
+  // Heartbeat + prune, as with the other action endpoints.
+  const requester = room.participants.find((participant) => participant.id === participantId);
+  if (requester) {
+    requester.lastSeenAt = now();
+  }
+
+  pruneStaleParticipants(room);
+  if (closeIfEmptyOrHostGone(room)) {
+    return { failure: "not_found" };
+  }
+
+  if (room.hostId !== participantId) {
+    return { failure: "not_host" };
+  }
+
+  // Already a fresh lobby — idempotent no-op (FR-014).
+  if (room.status === "lobby") {
+    return { room: cloneRoom(room) };
+  }
+
+  // Return to a pre-game lobby identical to before startGame (FR-009, FR-013):
+  // clear the round and reset all scores; participants + host are untouched.
+  room.status = "lobby";
+  room.round = null;
+  room.participants.forEach((participant) => {
+    participant.score = 0;
+  });
+  room.updatedAt = now();
+  rooms.set(room.code, room);
+
+  return { room: cloneRoom(room) };
+}
+
 export function saveRoom(room: Room) {
   room.updatedAt = now();
   rooms.set(room.code, cloneRoom(room));
   return getRoom(room.code);
 }
 
-// Project a room for a specific viewer. The secret word is included ONLY when
-// the viewer is the drawer; every other viewer receives just the concealed
-// blanks and the length, so the word never reaches a guesser (FR-006, FR-007).
+// Project a round for a specific viewer.
+//
+// While "playing" (features 002/003): the secret word is included ONLY for the
+// drawer, and correct guesses are masked for everyone (their `text` equals the
+// word) so the answer never leaks through the feed (FR-006/FR-007 of 003).
+//
+// Once "ended" (feature 004): the round is over, so the word is public — it is
+// revealed to EVERY viewer and every guess (correct included) carries its
+// `text`, exposing the full history (FR-003, FR-005, FR-006).
 function toRoundSnapshot(room: Room, viewerParticipantId?: string): RoundSnapshot | null {
   if (!room.round) {
     return null;
@@ -327,10 +424,8 @@ function toRoundSnapshot(room: Room, viewerParticipantId?: string): RoundSnapsho
 
   const { number, drawerId, word, guesses } = room.round;
   const maskedWord = Array.from(word, () => "_").join(" ");
+  const revealAll = room.status === "ended";
 
-  // Correct guesses are masked for EVERY viewer: the `text` (which equals the
-  // secret word) is omitted entirely so the answer never leaks through the feed
-  // (FR-011, SC-008). Incorrect guesses are shown verbatim.
   const guessSnapshots = guesses.map((guess) => {
     const base: GuessSnapshot = {
       id: guess.id,
@@ -339,7 +434,9 @@ function toRoundSnapshot(room: Room, viewerParticipantId?: string): RoundSnapsho
       correct: guess.correct
     };
 
-    if (!guess.correct) {
+    // Incorrect guesses are always shown verbatim; correct guesses are revealed
+    // only once the round has ended (otherwise their text is the secret word).
+    if (!guess.correct || revealAll) {
       base.text = guess.text;
     }
 
@@ -354,8 +451,8 @@ function toRoundSnapshot(room: Room, viewerParticipantId?: string): RoundSnapsho
     guesses: guessSnapshots
   };
 
-  // Only the drawer is told the actual word.
-  if (viewerParticipantId && viewerParticipantId === drawerId) {
+  // The drawer always sees the word; everyone else only once the round ended.
+  if (revealAll || (viewerParticipantId && viewerParticipantId === drawerId)) {
     snapshot.word = word;
   }
 

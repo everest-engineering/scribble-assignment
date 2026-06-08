@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Canvas } from "../components/Canvas";
 import { Card } from "../components/Card";
@@ -14,12 +14,21 @@ export function GamePage() {
   const navigate = useNavigate();
   const roomStore = useRoomStore();
   const { room, participantId } = useRoomState();
+  const [actionError, setActionError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!room) {
       navigate("/", { replace: true });
     }
   }, [navigate, room]);
+
+  // When the host ends the round, every player's poll sees "ended" → move to
+  // the result screen. (FR-002)
+  useEffect(() => {
+    if (room?.status === "ended") {
+      navigate("/results");
+    }
+  }, [navigate, room?.status]);
 
   // Poll the room ~every 2s so guesses, scores, and the guess history submitted
   // by other players stay in sync (FR-009, SC-004). A 404 (host left) ejects the
@@ -51,6 +60,17 @@ export function GamePage() {
     ? room.participants.find((participant) => participant.id === round.drawerId) ?? null
     : null;
   const isDrawer = round != null && participantId === round.drawerId;
+  // Only the host may end the round (FR-001); the server enforces this too.
+  const isHost = participantId === room.hostId;
+
+  async function handleEndRound() {
+    try {
+      setActionError(null);
+      await roomStore.endRound();
+    } catch (caughtError) {
+      setActionError(caughtError instanceof Error ? caughtError.message : "Unable to end the round");
+    }
+  }
 
   return (
     <section className="panel game-page">
@@ -120,10 +140,21 @@ export function GamePage() {
         </aside>
       </div>
 
-      <div className="button-row">
+      {actionError ? (
+        <p className="status-line" style={{ backgroundColor: "#fee2e2", color: "#b91c1c" }}>
+          {actionError}
+        </p>
+      ) : null}
+
+      <div className="button-row button-row--spread">
         <button className="button button--secondary" onClick={() => navigate("/lobby")}>
           Exit Game
         </button>
+        {isHost ? (
+          <button className="button button--primary" onClick={handleEndRound}>
+            End Round
+          </button>
+        ) : null}
       </div>
     </section>
   );

@@ -1,5 +1,7 @@
 export type ParticipantRole = "drawer" | "guesser";
-export type RoomStatus = "lobby" | "playing";
+// "ended" is the result/round-over state: the round is revealed to all players
+// and the host can restart back to "lobby" (feature 004).
+export type RoomStatus = "lobby" | "playing" | "ended";
 
 export interface Participant {
   id: string;

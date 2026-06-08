@@ -1,5 +1,14 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { createRoom, joinRoom, pollRoom, startGame, submitGuess, toRoomSnapshot } from "./roomStore.js";
+import {
+  createRoom,
+  endRound,
+  joinRoom,
+  pollRoom,
+  restartRoom,
+  startGame,
+  submitGuess,
+  toRoomSnapshot
+} from "./roomStore.js";
 
 // Start a 2-player room and return ids plus the secret word for guessing tests.
 function startedRoomWithGuesser() {
@@ -254,6 +263,91 @@ describe("roomStore", () => {
 
       expect(correctInDrawer?.text).toBeUndefined();
       expect(correctInGuesser?.text).toBeUndefined();
+    });
+  });
+
+  describe("ending the round (feature 004)", () => {
+    it("moves the room to 'ended' and keeps the round when the host ends it (FR-001, FR-002)", () => {
+      const { code, hostId } = startedRoomWithGuesser();
+
+      const result = endRound(code, hostId);
+
+      expect("room" in result).toBe(true);
+      if ("room" in result) {
+        expect(result.room.status).toBe("ended");
+        expect(result.room.round).not.toBeNull();
+      }
+    });
+
+    it("rejects ending the round for a non-host (FR-001)", () => {
+      const { code, guestId } = startedRoomWithGuesser();
+
+      expect(endRound(code, guestId)).toEqual({ failure: "not_host" });
+    });
+
+    it("rejects ending when there is no active round (FR-001)", () => {
+      const { room, participantId } = createRoom("Host");
+
+      expect(endRound(room.code, participantId)).toEqual({ failure: "not_active" });
+    });
+
+    it("reveals the word and full guess history to every viewer once ended (FR-003, FR-005, FR-006)", () => {
+      const { code, hostId, guestId, word } = startedRoomWithGuesser();
+      submitGuess(code, guestId, "wrong");
+      submitGuess(code, guestId, word); // correct — masked while playing
+      endRound(code, hostId);
+      const polled = pollRoom(code, guestId);
+
+      const guesserView = toRoomSnapshot(polled ?? ({} as never), guestId);
+      // The non-drawer now sees the actual word (FR-003).
+      expect(guesserView.round?.word).toBe(word);
+      // Every guess, including the correct one, now carries its text (FR-005/6).
+      const correct = guesserView.round?.guesses.find((guess) => guess.correct);
+      expect(correct?.text).toBe(word);
+    });
+  });
+
+  describe("restarting the game (feature 004)", () => {
+    it("returns to a fresh lobby, clears the round and resets scores, preserving players + host (FR-009–FR-013)", () => {
+      const { code, hostId, guestId, word } = startedRoomWithGuesser();
+      submitGuess(code, guestId, word); // guest scores 100
+      endRound(code, hostId);
+
+      const result = restartRoom(code, hostId);
+
+      expect("room" in result).toBe(true);
+      if ("room" in result) {
+        expect(result.room.status).toBe("lobby");
+        expect(result.room.round).toBeNull();
+        expect(result.room.participants.every((participant) => participant.score === 0)).toBe(true);
+        expect(result.room.hostId).toBe(hostId);
+        expect(result.room.participants.map((participant) => participant.id).sort()).toEqual(
+          [hostId, guestId].sort()
+        );
+      }
+    });
+
+    it("rejects a restart from a non-host (FR-008)", () => {
+      const { code, guestId, hostId } = startedRoomWithGuesser();
+      endRound(code, hostId);
+
+      expect(restartRoom(code, guestId)).toEqual({ failure: "not_host" });
+    });
+
+    it("is idempotent — restarting an already-lobby room is a no-op success (FR-014)", () => {
+      const { code, hostId, guestId, word } = startedRoomWithGuesser();
+      submitGuess(code, guestId, word);
+      endRound(code, hostId);
+      restartRoom(code, hostId);
+
+      const result = restartRoom(code, hostId);
+
+      expect("room" in result).toBe(true);
+      if ("room" in result) {
+        expect(result.room.status).toBe("lobby");
+        expect(result.room.round).toBeNull();
+        expect(result.room.participants.every((participant) => participant.score === 0)).toBe(true);
+      }
     });
   });
 
