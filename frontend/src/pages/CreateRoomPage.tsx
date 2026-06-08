@@ -12,9 +12,17 @@ export function CreateRoomPage() {
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
+    const trimmedName = playerName.trim();
+
+    // Reject empty/whitespace-only names before calling the API. (FR-010)
+    if (!trimmedName) {
+      setError("Please enter a name to continue.");
+      return;
+    }
+
     try {
       setError(null);
-      await roomStore.createRoom(playerName);
+      await roomStore.createRoom(trimmedName);
       navigate("/lobby");
     } catch (caughtError) {
       setError(caughtError instanceof Error ? caughtError.message : "Unable to create room");
