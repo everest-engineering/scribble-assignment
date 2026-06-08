@@ -1,8 +1,9 @@
 import { randomUUID } from "node:crypto";
-import type { Participant, Room, RoomSnapshot } from "../models/game.js";
+import type { Guess, Participant, Point, Room, RoomSnapshot, Stroke } from "../models/game.js";
 import { STARTER_ROLES, STARTER_WORDS } from "../seed/starterData.js";
 
 const rooms = new Map<string, Room>();
+let wordIndex = 0;
 
 function now() {
   return new Date().toISOString();
@@ -29,14 +30,10 @@ function generateUniqueCode() {
   return code;
 }
 
-function displayName(name?: string) {
-  return name || "Player";
-}
-
-function createParticipant(name?: string): Participant {
+function createParticipant(name: string): Participant {
   return {
     id: randomUUID(),
-    name: displayName(name),
+    name,
     joinedAt: now()
   };
 }
@@ -49,10 +46,16 @@ export function listWords() {
   return [...STARTER_WORDS];
 }
 
-export function createRoom(playerName?: string) {
+export function createRoom(playerName: string) {
   const participant = createParticipant(playerName);
   const room: Room = {
     code: generateUniqueCode(),
+    hostId: participant.id,
+    drawerId: null,
+    secretWord: null,
+    strokes: [],
+    guesses: [],
+    scores: {},
     status: "lobby",
     participants: [participant],
     createdAt: now(),
@@ -67,7 +70,7 @@ export function createRoom(playerName?: string) {
   };
 }
 
-export function joinRoom(code: string, playerName?: string) {
+export function joinRoom(code: string, playerName: string) {
   const room = rooms.get(code);
 
   if (!room) {
@@ -96,11 +99,116 @@ export function saveRoom(room: Room) {
   return getRoom(room.code);
 }
 
-export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSnapshot {
-  void viewerParticipantId;
+export function startRoom(code: string): Room | null {
+  const room = rooms.get(code);
 
+  if (!room) {
+    return null;
+  }
+
+  room.drawerId = room.hostId;
+  room.secretWord = STARTER_WORDS[wordIndex % STARTER_WORDS.length];
+  wordIndex += 1;
+  room.strokes = [];
+  room.guesses = [];
+  room.scores = Object.fromEntries(room.participants.map((p) => [p.id, 0]));
+  room.status = "in-progress";
+  room.updatedAt = now();
+  rooms.set(room.code, room);
+
+  return cloneRoom(room);
+}
+
+export function addStroke(code: string, points: Point[]): Room | null {
+  const room = rooms.get(code);
+
+  if (!room) {
+    return null;
+  }
+
+  room.strokes.push({ points });
+  room.updatedAt = now();
+  rooms.set(room.code, room);
+
+  return cloneRoom(room);
+}
+
+export function clearStrokes(code: string): Room | null {
+  const room = rooms.get(code);
+
+  if (!room) {
+    return null;
+  }
+
+  room.strokes = [];
+  room.updatedAt = now();
+  rooms.set(room.code, room);
+
+  return cloneRoom(room);
+}
+
+export function submitGuess(
+  code: string,
+  participantId: string,
+  text: string
+): { correct: boolean } | null {
+  const room = rooms.get(code);
+
+  if (!room) {
+    return null;
+  }
+
+  const playerName = room.participants.find((p) => p.id === participantId)?.name ?? "Unknown";
+  const guess: Guess = { participantId, playerName, text };
+  room.guesses.push(guess);
+
+  const correct =
+    room.status === "in-progress" &&
+    room.secretWord !== null &&
+    text.toLowerCase() === room.secretWord.toLowerCase();
+
+  if (correct) {
+    room.scores[participantId] = 100;
+    room.status = "round-ended";
+  }
+
+  room.updatedAt = now();
+  rooms.set(room.code, room);
+
+  return { correct };
+}
+
+export function restartRoom(code: string): Room | null {
+  const room = rooms.get(code);
+
+  if (!room) {
+    return null;
+  }
+
+  room.status = "lobby";
+  room.strokes = [];
+  room.guesses = [];
+  room.scores = {};
+  room.drawerId = null;
+  room.secretWord = null;
+  room.updatedAt = now();
+  rooms.set(room.code, room);
+
+  return cloneRoom(room);
+}
+
+export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSnapshot {
+  const isRoundEnded = room.status === "round-ended";
+  const isDrawer = viewerParticipantId !== undefined && viewerParticipantId === room.drawerId;
   return {
     code: room.code,
+    hostId: room.hostId,
+    drawerId: room.drawerId,
+    secretWord: isRoundEnded || isDrawer ? room.secretWord : null,
+    wordLength: !isRoundEnded && !isDrawer && room.secretWord !== null ? room.secretWord.length : null,
+    strokes: room.strokes.map((s: Stroke) => ({ points: [...s.points] })),
+    guesses: room.guesses.map((g: Guess) => ({ ...g })),
+    scores: { ...room.scores },
     status: room.status,
     participants: room.participants.map((participant) => ({ ...participant })),
     availableWords: listWords(),
