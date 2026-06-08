@@ -103,7 +103,7 @@ Web app layout (existing): `backend/src/...`, `frontend/src/...` at repository r
 - [X] T022 [P] Update `frontend/src/services/api.test.ts` if needed: add coverage that `submitGuess` POSTs `{ participantId, text }` to `/rooms/:code/guess`, and adjust any assertion on the `RoomSnapshot`/`RoundSnapshot` shape to include `score`/`guesses`.
 - [X] T023 [P] Confirm scoped-out behaviors require **no code**: a correct guess does **not** end the round (FR-016 — `status` stays `playing`; no timer added), and feature 002's drawer-only `round.word` secrecy still holds for guessers. Note in a comment if helpful.
 - [X] T024 Run the build + test gate: `cd backend && npm run build`, `cd frontend && npm run build`, `cd backend && npm test` — all green before raising a PR (Constitution: Build gate).
-- [ ] T025 Execute the two-browser acceptance script in [quickstart.md](./quickstart.md): US1 guess validation + scoring, US2 cross-browser history/score sync within ~2s + masked correct guess, US3 drawer-local canvas draw/clear with no guesser sync, plus the 001/002 regression checks.
+- [X] T025 Execute the two-browser acceptance script in [quickstart.md](./quickstart.md): US1 guess validation + scoring, US2 cross-browser history/score sync within ~2s + masked correct guess, US3 drawer-local canvas draw/clear with no guesser sync, plus the 001/002 regression checks. ✅ All 12 steps passed (manual two-browser pass, 2026-06-08).
 
 ---
 
