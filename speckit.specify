@@ -1,0 +1,393 @@
+# Spec — Iteration 1 (Scenario 1: Room setup & lobby)
+
+## Scope (in)
+
+Implement the Scenario 1 behavior end-to-end:
+
+- Create room + join room by code
+- Host tracking (creator is host)
+- Invalid/empty code rejection with clear feedback
+- Room isolation
+- Lobby automatic polling (about every 2 seconds)
+- Host-only start game, only allowed when at least 2 players are present
+
+## Scope (out)
+
+- No websockets (polling only)
+- No persistence/database
+- No auth/accounts
+- No gameplay (drawer/word/guesses/scoring/results/restart) beyond transitioning out of lobby
+
+## Definitions
+
+- **Room**: identified by a 4-character code (case-insensitive input; normalized to uppercase).
+- **Participant**: a player instance associated with a room; has an id and display name.
+- **Host**: the participant who created the room. There is exactly one host per room.
+- **Lobby polling**: the Lobby screen refreshes its room snapshot automatically every ~2 seconds.
+- **Start game**: a state transition initiated by host that moves the room from lobby into the next state (details of gameplay are handled in later scenarios).
+
+## Assumptions (to remove ambiguity)
+
+- **Host selection**: the room creator is host; host identity is stable for the lifetime of the room.
+- **Polling cadence**: target interval is **2000ms**; minor drift is acceptable; polling stops when leaving the Lobby route.
+- **Start game semantics (Scenario 1 only)**: starting the game changes room status away from `"lobby"` (exact downstream game state is specified in Scenario 2+).
+
+## Acceptance criteria
+
+### A. Host tracking on create
+
+- When a player creates a room, the returned room snapshot includes enough information to identify the host.
+- In the Lobby UI, the host is determinable (e.g., “You are the host” and/or host badge on participant list).
+- Host identity is consistent across refreshes/polls.
+
+### B. Invalid/empty room codes rejected with clear feedback
+
+- Join flow rejects:
+  - empty string
+  - whitespace-only
+  - wrong length (not 4 chars after trimming)
+  - invalid characters (non-alphanumeric; optionally restrict to the backend’s generation alphabet)
+- The user sees a clear, actionable message (examples):
+  - “Enter a 4‑letter room code.”
+  - “Room not found. Check the code and try again.”
+- Backend returns an appropriate status code:
+  - **400** for invalid input format
+  - **404** when the room code is well-formed but not found
+
+### C. Room isolation
+
+- Two different room codes represent isolated rooms:
+  - participants in room A never appear in room B
+  - host-only actions in room A have no effect on room B
+- Polling for room A cannot leak room B state.
+
+### D. Lobby polling (~2s)
+
+- After joining/creating a room, the Lobby automatically refreshes the participant list without requiring a manual “Refresh” button.
+- With two tabs in the same room:
+  - when tab 2 joins, tab 1’s participant list updates within ~2 seconds
+  - the UI does not flicker or duplicate participants during repeated polls
+- Polling error behavior:
+  - transient network errors show a non-crashing message and continue attempting subsequent polls
+  - if the room is not found (404), the user is redirected out of the Lobby (or shown a clear “room no longer exists” message) and polling stops
+
+### E. Host-only start game, minimum 2 players
+
+- Start is only enabled/allowed when:
+  - viewer is the host
+  - room has **at least 2** participants
+- Non-host behavior:
+  - the “Start game” control is disabled or hidden, and the UI explains “Waiting for host…”
+  - if a non-host attempts to start (e.g., via a direct API call), the backend rejects it with a clear error (e.g., **403**)
+- Minimum players enforcement:
+  - if host attempts to start with <2 players, backend rejects with a clear error (e.g., **409** or **400**) and the UI displays it
+- Once start succeeds:
+  - the room status updates away from lobby
+  - all tabs observe the status change via polling and navigate/transition accordingly
+
+## Edge cases
+
+- **Code normalization**: `abcd`, `ABCD`, and ` a b c d ` (after trimming) should behave consistently (normalize to `ABCD`).
+- **Refreshing as unknown viewer**: if `participantId` is missing/invalid, backend must still return a safe room snapshot (no crash); UI should prompt re-join if needed.
+- **Duplicate names**: allowed in Scenario 1; participants are uniquely identified by id.
+- **Rapid joins**: multiple join requests in quick succession still result in a stable participant list with no duplicates.
+
+## Manual verification checklist (Scenario 1)
+
+- **Create room**:
+  - You land in Lobby and can identify “host” in UI.
+- **Join room (2nd tab)**:
+  - Join succeeds with a valid code; Lobby in tab 1 updates within ~2 seconds without clicking refresh.
+- **Invalid joins**:
+  - Try empty / whitespace / short / long / special characters → see clear validation.
+  - Try well-formed but nonexistent code → see “room not found” style error.
+- **Isolation**:
+  - Create room A and room B; joining A does not change B.
+- **Start game gating**:
+  - With 1 player: host cannot start (clear message).
+  - With 2 players: only host can start; non-host cannot.
+
+---
+
+# Spec — Iteration 2 (Scenario 2: Game start & drawer flow)
+
+## Scope (in)
+
+Implement Scenario 2 behavior (first round start semantics only):
+
+- Player names are trimmed on create/join; empty/whitespace-only is rejected with a clear message.
+- When the first round begins, a drawer is assigned deterministically (host / first player).
+- Secret word is selected deterministically from the starter list.
+- Secret word visibility is restricted: **drawer-only**.
+
+## Scope (out)
+
+- No drawing mechanics (canvas sync) yet.
+- No guess submission, scoring, results, or restart (Scenario 3+).
+- No websockets; polling only.
+
+## Definitions
+
+- **Drawer**: the participant responsible for drawing in the single round.
+- **Guesser**: any non-drawer participant in the room.
+- **Secret word**: the word that guessers attempt to guess; selected from the starter word list.
+- **Deterministic selection**: given the same room code and seed list, selection always yields the same word.
+
+## Assumptions (to remove ambiguity)
+
+- **Drawer assignment**: the **host** is the drawer for the single round. (If host is missing, fall back to the first participant.)
+- **Word selection algorithm**:
+  - Use the starter word list in `backend/src/seed/starterData.ts`.
+  - Compute `index = (sum of ASCII codes of room code characters) % words.length`.
+  - The secret word is `words[index]`.
+- **Visibility rule**:
+  - Room snapshots may include `secretWord` only when the viewer is the drawer.
+  - Non-drawers must not receive `secretWord` in snapshots (not even as masked text).
+
+## Acceptance criteria
+
+### A. Player name validation (trim + reject empty)
+
+- Create room:
+  - leading/trailing whitespace is removed before saving the participant name.
+  - if the submitted name is empty after trimming, the request is rejected with a clear message.
+- Join room:
+  - same trimming + empty rejection applies.
+- Frontend provides immediate feedback (form error message) and backend enforces the same rule (defense in depth).
+
+### B. Drawer assignment at start
+
+- When the host starts the game (transition to `playing`):
+  - a `drawerParticipantId` is set for the room, deterministically based on host/first participant.
+- In the Game UI:
+  - the drawer is clearly identified to all players (e.g., “You are the drawer” vs “You are guessing”).
+
+### C. Deterministic secret word selection
+
+- When the room enters `playing` the first time:
+  - the secret word is chosen deterministically from the starter list using the defined algorithm.
+- Determinism checks:
+  - restarting the backend and repeating the same room code selection method yields the same word for that code.
+  - different room codes can map to different words (not required, but allowed).
+
+### D. Drawer-only secret word visibility
+
+- Drawer sees the secret word in the Game UI.
+- Guessers do not see the secret word anywhere in the UI.
+- API rule:
+  - the server only includes the secret word in snapshots for the drawer viewer.
+  - guessers’ snapshots must omit the field entirely.
+
+## Edge cases
+
+- Names like `"   Alice   "` become `"Alice"`.
+- Names like `"   "` are rejected with a clear message.
+- Two players can use the same display name; uniqueness is by participant id.
+- If a viewer refreshes without a valid `participantId`, the backend must not leak the secret word.
+
+## Manual verification checklist (Scenario 2)
+
+- **Name validation**:
+  - Create with `"   "` → rejected with clear message.
+  - Create with `"  Alice  "` → shows `"Alice"` in lobby/game.
+  - Join with `"   "` → rejected; join with `"  Bob "` → saved as `"Bob"`.
+- **Drawer + word** (two tabs):
+  - Host starts → host is the drawer.
+  - Drawer sees secret word; guesser does not.
+  - Refresh both tabs → visibility rule remains true after polling.
+
+---
+
+# Spec — Iteration 3 (Scenario 3: Gameplay interaction)
+
+## Scope (in)
+
+Implement Scenario 3 behavior for one active round:
+
+- Drawer drawing interaction and clear-canvas action.
+- Guess submission validation (trim input, reject empty).
+- Case-insensitive comparison against the secret word.
+- Guess history synchronized to all players via polling.
+- Scoring rules:
+  - scores start at 0
+  - correct guess = +100
+  - incorrect guess = +0
+
+## Scope (out)
+
+- Round result screen and restart flow (Scenario 4).
+- Timers, countdowns, speed bonuses, drawer bonuses, multiple rounds.
+
+## Definitions
+
+- **Stroke**: one drawn segment on the shared canvas state.
+- **Clear canvas**: action that resets current stroke/path state to empty.
+- **Guess history**: ordered list of guesses with metadata (who guessed, guessed text, correctness, timestamp).
+- **Case-insensitive match**: compare normalized strings using lowercase on both sides after trimming.
+
+## Assumptions (to remove ambiguity)
+
+- **Canvas authority**: only the drawer can mutate canvas state (draw/clear). Guessers are read-only viewers.
+- **Guess normalization**: backend trims guess text before evaluation; empty-after-trim is rejected.
+- **Scoring granularity**: each guess event is evaluated independently; a correct guess awards +100 for that submission.
+- **History ordering**: guess history is displayed oldest-to-newest by server insertion order.
+- **Sync mechanism**: all multiplayer synchronization remains HTTP polling (~2 seconds).
+
+## Acceptance criteria
+
+### A. Drawing interaction + clear canvas
+
+- While room status is `playing`, drawer can:
+  - draw strokes on canvas
+  - clear the canvas explicitly
+- Guesser behavior:
+  - cannot draw or clear
+  - sees synchronized canvas state updates via polling
+- After clear:
+  - canvas state is empty for all players within polling window (~2s)
+
+### B. Guess validation
+
+- Guess submission trims whitespace before processing.
+- Empty/whitespace-only guesses are rejected with a clear message.
+- UI does not crash on rejected guesses.
+
+### C. Case-insensitive correctness
+
+- Guess is compared against secret word case-insensitively and trimmed.
+- Examples (if word is `pizza`):
+  - `Pizza`, `PIZZA`, `  pizza  ` are correct.
+  - `pizz` or `pizza!` are incorrect unless explicitly normalized to remove punctuation (not required in this iteration).
+
+### D. Guess history sync via polling
+
+- Every accepted guess (correct or incorrect) is appended to shared guess history.
+- All players see the same ordered history within ~2 seconds via polling.
+- History entries include enough context to render:
+  - player identity/name
+  - guess text (normalized or original, consistently defined)
+  - correctness flag
+
+### E. Scoring behavior
+
+- Scoreboard initializes all participants at 0 when game enters `playing`.
+- Incorrect guess adds 0 (no change).
+- Correct guess adds +100 to the guessing player.
+- Score updates are visible to all players via polling.
+
+## Edge cases
+
+- Drawer submitting guesses via UI/API should be blocked or ignored consistently (explicitly non-scoring).
+- Repeated correct guesses by same player are allowed in this iteration unless blocked by backend rule; if blocked, backend must return clear message and keep score stable.
+- Guess submitted by unknown/invalid participant id is rejected safely.
+- Clearing an already-empty canvas is a no-op (no crash).
+
+## Manual verification checklist (Scenario 3)
+
+- **Canvas controls**:
+  - Drawer can draw and clear.
+  - Guesser cannot mutate canvas.
+- **Guess validation**:
+  - Submit `"   "` → clear error message.
+  - Submit `"  pizza  "` when word is pizza → evaluated correctly.
+- **Case-insensitive match**:
+  - `PIZZA` equals `pizza`.
+- **History sync** (two tabs):
+  - guesses from one tab appear on the other within ~2 seconds.
+- **Scoring**:
+  - initial scores are 0.
+  - incorrect guess leaves score unchanged.
+  - correct guess increases that player by exactly +100.
+
+---
+
+# Spec — Iteration 4 (Scenario 4: Result, restart & final validation)
+
+## Scope (in)
+
+Implement Scenario 4 behavior for the single-round flow:
+
+- Transition room to a shared **results** state when the round ends.
+- Show results to all players: correct word, final scores, full guess history.
+- Allow **host-only restart** that returns all players to lobby with participants preserved and round state cleared.
+
+## Scope (out)
+
+- Multiple rounds with drawer rotation.
+- Timers, countdowns, bonuses.
+- Persistent storage or auth.
+
+## Definitions
+
+- **Round end**: the room transitions from `playing` to `results` when any guesser submits a **correct** guess.
+- **Results state**: room status is `"results"`; all players can see the revealed word and final round summary.
+- **Restart**: host action that resets round-specific state and sets room status back to `"lobby"`.
+
+## Assumptions (to remove ambiguity)
+
+- **Round-end trigger**: first correct guess ends the round immediately (no further guesses accepted after transition).
+- **Word reveal in results**: during `results`, the secret word is visible to **all** players in snapshots (not drawer-only).
+- **Restart permissions**: only the host can restart; non-host attempts are rejected with clear feedback.
+- **Restart navigation**: all tabs observe `status === "lobby"` via polling and navigate back to `/lobby`.
+
+## Acceptance criteria
+
+### A. Result state shown to all
+
+- When the round ends, room status becomes `"results"`.
+- All players see, via polling/UI:
+  - the correct secret word
+  - final scores for all participants
+  - full guess history from the round (ordered oldest → newest)
+- Result UI is consistent across tabs within ~2 seconds.
+
+### B. Round-end behavior
+
+- After transition to `results`:
+  - no additional guesses are accepted (400/409 with clear message)
+  - drawer cannot draw/clear (403/409 with clear message)
+- Existing guesses/scores/canvas/history remain visible for results display.
+
+### C. Host-only restart
+
+- Host can restart from results state.
+- Non-host restart attempts are rejected (403) with clear message.
+- On successful restart:
+  - room status returns to `"lobby"`
+  - participants and host identity are preserved
+  - round state is cleared:
+    - `drawerParticipantId = null`
+    - `secretWord = null`
+    - `canvasStrokes = []`
+    - `guesses = []`
+    - `scores` reset for all current participants to `0`
+
+### D. Post-restart lobby sync
+
+- All players automatically return to lobby UI via polling (~2s) after restart.
+- Lobby shows preserved participants and host indicator.
+- Host can start a new round once ≥2 players are present (reusing existing start rules).
+
+## Edge cases
+
+- If multiple tabs submit a correct guess nearly simultaneously, room ends once and remains in stable `results` state.
+- Restart while not in `results` is rejected with clear message.
+- Restart with missing/invalid host participant id is rejected safely.
+- Unknown participant id on restart returns clear error without mutating room state.
+
+## Manual verification checklist (Scenario 4)
+
+- **End-to-end round** (two tabs):
+  - create → join → start → play → submit correct guess.
+- **Results visibility**:
+  - both tabs show correct word, final scores, and full guess history.
+- **Post-end restrictions**:
+  - further guess/canvas actions are blocked with clear feedback.
+- **Restart**:
+  - host restart returns both tabs to lobby; players remain.
+  - round fields are cleared (no old word/canvas/guesses/scores leakage).
+- **Final validation**:
+  - `cd backend && npm run build`
+  - `cd frontend && npm run build`
+  - repeat full flow including restart back to lobby.
+

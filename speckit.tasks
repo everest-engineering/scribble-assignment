@@ -1,0 +1,469 @@
+# Tasks — Iteration 1 (Scenario 1: Room setup & lobby)
+
+Goal: implement Scenario 1 behavior from `speckit.specify` using the approach in `speckit.plan`.
+
+## Discovery + alignment (quick)
+
+- [ ] Confirm current starter endpoints still match the plan:
+  - `POST /rooms`, `POST /rooms/:code/join`, `GET /rooms/:code`
+- [ ] Confirm we remain within constitution boundaries (HTTP polling only, in-memory, no auth).
+
+## Backend tasks (do first)
+
+### B1 — Update backend types for Scenario 1
+
+- **Depends on**: none
+- **Change**:
+  - `backend/src/models/game.ts`
+    - extend `RoomStatus` to include `"playing"`
+    - add `Room.hostParticipantId: string`
+    - add `RoomSnapshot.hostParticipantId: string`
+- **Manual check**: `npm run build` (backend) still compiles after type changes.
+
+### B2 — Host tracking on room creation + snapshot field
+
+- **Depends on**: B1
+- **Change**:
+  - `backend/src/services/roomStore.ts`
+    - set `hostParticipantId` when creating a room
+    - include `hostParticipantId` in `toRoomSnapshot`
+- **Manual check**:
+  - Create a room → response includes a host field (via snapshot) and it remains stable on `GET /rooms/:code`.
+
+### B3 — Strengthen room code validation
+
+- **Depends on**: none (can be done before/after B1/B2)
+- **Change**:
+  - `backend/src/api/schemas.ts`:
+    - enforce 4-char trimmed room code
+    - optionally enforce allowed characters
+  - `backend/src/api/rooms.ts`:
+    - ensure invalid format yields 400
+    - ensure missing room yields 404
+- **Manual check**:
+  - Join with empty/whitespace/invalid length/invalid chars → 400 with clear message
+  - Join with well-formed but nonexistent code → 404 with clear message
+
+### B4 — Add start game backend operation + route
+
+- **Depends on**: B1, B2
+- **Change**:
+  - `backend/src/services/roomStore.ts`:
+    - add `startGame(code, requesterParticipantId)` with:
+      - 404 if room missing
+      - 403 if requester not host
+      - 409 (or 400) if participants < 2
+      - set `status = "playing"` on success
+  - `backend/src/api/schemas.ts`:
+    - add request schema for start game body `{ participantId }`
+  - `backend/src/api/rooms.ts`:
+    - add `POST /rooms/:code/start`
+    - return updated snapshot
+- **Manual check** (use REST client or browser devtools):
+  - With 1 participant, host start → rejected with clear message
+  - Non-host start → rejected with clear message
+  - With 2 participants, host start → success; `GET /rooms/:code` shows `status: "playing"`
+
+### B5 — Backend tests (optional but recommended)
+
+- **Depends on**: B2, B3, B4
+- **Change**:
+  - Add/update tests in `backend/src/services/roomStore.test.ts` and `backend/src/api/schemas.test.ts`
+- **Manual check**: `npm test` (backend) passes if tests exist in this repo.
+
+## Frontend tasks (after backend)
+
+### F1 — Update frontend RoomSnapshot types and API base URL if needed
+
+- **Depends on**: B1, B2 (for new snapshot fields), plus “starter runs locally”
+- **Change**:
+  - `frontend/src/services/api.ts`:
+    - extend `RoomSnapshot` to include `hostParticipantId` and `"playing"` status
+    - fix `VITE_API_URL` default if it prevents local usage (remove `/bug`)
+- **Manual check**:
+  - Create room works in browser without console errors; network calls hit the backend correctly.
+
+### F2 — Add start game client API + store method
+
+- **Depends on**: B4, F1
+- **Change**:
+  - `frontend/src/services/api.ts`: add `startGame(code, participantId)`
+  - `frontend/src/state/roomStore.ts`: add `startGame()` which updates stored snapshot
+- **Manual check**:
+  - Clicking “Start Game” (once wired) results in `status` changing in store snapshot.
+
+### F3 — Implement Lobby polling (~2s) + cleanup
+
+- **Depends on**: F1 (for typing), existing `fetchRoom()`
+- **Change**:
+  - `frontend/src/pages/LobbyPage.tsx`:
+    - add `useEffect` interval calling `roomStore.fetchRoom()` every ~2000ms
+    - clear interval on unmount
+    - handle errors without crashing (surface message; stop on 404)
+- **Manual check (two tabs)**:
+  - Tab A creates room and waits in Lobby
+  - Tab B joins → Tab A participant list updates within ~2 seconds without clicking refresh
+
+### F4 — Host UI + host-only start gating
+
+- **Depends on**: B2, F1, F2
+- **Change**:
+  - `frontend/src/pages/LobbyPage.tsx`:
+    - display host indicator and/or “You are the host”
+    - disable/hide start button for non-host
+    - disable start when participants < 2 and show reason
+    - call `roomStore.startGame()` instead of navigation-only
+- **Manual check (two tabs)**:
+  - With 1 player, host cannot start (clear message)
+  - With 2 players, only host can start; non-host sees “waiting for host”
+
+### F5 — Transition all players to Game when status becomes playing
+
+- **Depends on**: B4, F3
+- **Change**:
+  - `frontend/src/pages/LobbyPage.tsx`:
+    - if snapshot becomes `status === "playing"`, navigate to `/game`
+- **Manual check (two tabs)**:
+  - Host starts game → both tabs navigate to `/game` via polling within ~2 seconds
+
+## Scenario 1 completion check (must pass)
+
+- Host tracking works and is stable across polls.
+- Join validation has clear 400 vs 404 behavior.
+- Lobby polls automatically ~2 seconds and updates participants.
+- Rooms are isolated.
+- Host-only start is enforced in backend and reflected in frontend UI.
+
+---
+
+# Tasks — Iteration 2 (Scenario 2: Game start & drawer flow)
+
+Goal: implement Scenario 2 behavior from `speckit.specify` using the approach in `speckit.plan`.
+
+## Backend tasks (do first)
+
+### B1 — Extend room model for round start state
+
+- **Depends on**: Scenario 1 code merged
+- **Change**:
+  - `backend/src/models/game.ts`
+    - add `drawerParticipantId` and `secretWord` to `Room`
+    - add `drawerParticipantId`, `viewerRole`, and conditional `secretWord` to `RoomSnapshot`
+- **Manual check**: `cd backend && npm run build`
+
+### B2 — Enforce player name trim + non-empty on create/join
+
+- **Depends on**: none
+- **Change**:
+  - `backend/src/api/schemas.ts`
+    - require `playerName` as a trimmed non-empty string (clear error message)
+  - `backend/src/services/roomStore.ts`
+    - trim names before storing participant
+- **Manual check**:
+  - Create/join with `"   "` returns 400 + clear message.
+  - Create/join with `"  Alice  "` stores/display `"Alice"`.
+
+### B3 — Deterministic drawer assignment + word selection on start
+
+- **Depends on**: B1
+- **Change**:
+  - `backend/src/services/roomStore.ts`:
+    - on successful `startGame`, set:
+      - `drawerParticipantId` (host, else first participant)
+      - `secretWord` using the defined deterministic algorithm
+    - update `toRoomSnapshot(room, viewerParticipantId)`:
+      - include `drawerParticipantId`
+      - set `viewerRole`
+      - include `secretWord` only for drawer viewer
+- **Manual check**:
+  - Start game, then `GET /rooms/:code?participantId=<drawer>` includes `secretWord`.
+  - Same request for guesser does **not** include `secretWord`.
+
+### B4 — Backend tests (recommended)
+
+- **Depends on**: B2, B3
+- **Change**:
+  - `backend/src/services/roomStore.test.ts`
+- **Manual check**: `cd backend && npm test` (if configured)
+
+## Frontend tasks
+
+### F1 — Update RoomSnapshot types for drawer/word fields
+
+- **Depends on**: B1, B3
+- **Change**:
+  - `frontend/src/services/api.ts`
+    - add `drawerParticipantId`, `viewerRole`, and optional `secretWord`
+- **Manual check**: `cd frontend && npm run build`
+
+### F2 — Enforce player name trim + non-empty in Create/Join UI
+
+- **Depends on**: B2 (backend enforcement), but can be implemented in parallel
+- **Change**:
+  - `frontend/src/pages/CreateRoomPage.tsx`
+  - `frontend/src/pages/JoinRoomPage.tsx`
+- **Manual check**:
+  - Both forms show clear error on whitespace-only names.
+
+### F3 — Game UI: show role and drawer-only secret word
+
+- **Depends on**: F1, B3
+- **Change**:
+  - `frontend/src/pages/GamePage.tsx`
+    - show “You are the drawer” + word when `viewerRole === "drawer"`
+    - show “You are guessing” and no word otherwise
+- **Manual check (2 tabs)**:
+  - Host sees word; guesser does not.
+
+### F4 — Game polling for snapshot refresh (~2s)
+
+- **Depends on**: existing `roomStore.fetchRoom()`
+- **Change**:
+  - `frontend/src/pages/GamePage.tsx`
+    - add ~2s polling to keep snapshot current post-start
+- **Manual check (2 tabs)**:
+  - Refreshing tabs and waiting shows consistent role/word visibility with no manual actions.
+
+## Scenario 2 completion check (must pass)
+
+- Names are trimmed and whitespace-only is rejected (frontend + backend).
+- Drawer assignment is deterministic and visible to all.
+- Secret word selection is deterministic.
+- Secret word is visible only to drawer (no leakage via API snapshot).
+
+---
+
+# Tasks — Iteration 3 (Scenario 3: Gameplay interaction)
+
+Goal: implement Scenario 3 behavior from `speckit.specify` using the approach in `speckit.plan`.
+
+## Backend tasks (do first)
+
+### B1 — Extend room/gameplay state types
+
+- **Depends on**: Scenario 2 complete
+- **Change**:
+  - `backend/src/models/game.ts`
+    - add `CanvasStroke` and `GuessEntry` types
+    - add room fields: `canvasStrokes`, `guesses`, `scores`
+    - expose these in `RoomSnapshot`
+- **Manual check**: `cd backend && npm run build`
+
+### B2 — Initialize/reset gameplay state correctly
+
+- **Depends on**: B1
+- **Change**:
+  - `backend/src/services/roomStore.ts`
+    - initialize new room gameplay state
+    - ensure joining player gets score initialized to 0
+    - reset `canvasStrokes` + `guesses` + `scores` when game starts (Scenario 3 single-round start)
+- **Manual check**:
+  - After start, all participants have score 0 and empty history/canvas.
+
+### B3 — Add canvas mutation endpoints (drawer-only)
+
+- **Depends on**: B1, B2
+- **Change**:
+  - `backend/src/api/schemas.ts`: canvas stroke/clear schemas
+  - `backend/src/services/roomStore.ts`: add stroke/clear operations with role checks
+  - `backend/src/api/rooms.ts`:
+    - `POST /rooms/:code/canvas/strokes`
+    - `POST /rooms/:code/canvas/clear`
+- **Manual check**:
+  - Drawer can add stroke/clear; guesser receives 403.
+
+### B4 — Add guess submission endpoint and scoring
+
+- **Depends on**: B1, B2
+- **Change**:
+  - `backend/src/api/schemas.ts`: guess schema (trim, min 1)
+  - `backend/src/services/roomStore.ts`:
+    - add guess submission operation
+    - case-insensitive compare to secret word
+    - append history entries
+    - apply scoring (+100 correct, +0 incorrect)
+  - `backend/src/api/rooms.ts`:
+    - `POST /rooms/:code/guesses`
+- **Manual check**:
+  - whitespace guess rejected (400)
+  - correct guess increments by 100
+  - incorrect guess leaves score unchanged
+
+### B5 — Backend tests (recommended)
+
+- **Depends on**: B3, B4
+- **Change**:
+  - `backend/src/services/roomStore.test.ts`
+- **Manual check**: `cd backend && npm test` (if configured)
+
+## Frontend tasks
+
+### F1 — Extend API + snapshot types for gameplay state
+
+- **Depends on**: B1-B4 contracts
+- **Change**:
+  - `frontend/src/services/api.ts`
+    - add `canvasStrokes`, `guesses`, `scores` to snapshot typing
+    - add API methods for stroke/clear/guess mutations
+- **Manual check**: `cd frontend && npm run build`
+
+### F2 — Add gameplay actions to room store
+
+- **Depends on**: F1
+- **Change**:
+  - `frontend/src/state/roomStore.ts`
+    - `addCanvasStroke`, `clearCanvas`, `submitGuess`
+    - each action updates local snapshot from API response
+- **Manual check**:
+  - invoking actions updates room snapshot without full-page refresh.
+
+### F3 — Implement interactive canvas + clear behavior
+
+- **Depends on**: F1, F2
+- **Change**:
+  - `frontend/src/pages/GamePage.tsx`
+  - optional helper component(s) if needed
+  - `frontend/src/styles/app.css`
+- **Manual check (two tabs)**:
+  - drawer draws and clears
+  - guesser sees updates via polling
+  - guesser cannot draw/clear
+
+### F4 — Wire guess submission and validation UI
+
+- **Depends on**: F1, F2
+- **Change**:
+  - `frontend/src/components/GuessForm.tsx` and `frontend/src/pages/GamePage.tsx`
+    - trim input
+    - reject empty with clear message
+    - submit valid guesses via store action
+- **Manual check**:
+  - empty guess blocked with message
+  - valid guesses submit and appear in history
+
+### F5 — Render synced guess history + scoring
+
+- **Depends on**: F1, F2, F4
+- **Change**:
+  - `frontend/src/pages/GamePage.tsx`
+  - `frontend/src/components/Scoreboard.tsx`
+  - optional history UI section/component
+- **Manual check (two tabs)**:
+  - guesses appear in same order on both tabs within ~2s
+  - scoreboard starts at 0 for all
+  - correct guess +100, incorrect +0
+
+## Scenario 3 completion check (must pass)
+
+- Drawer-only draw/clear permissions are enforced.
+- Guess input is trimmed and empty rejected with clear feedback.
+- Correctness comparison is case-insensitive.
+- Guess history syncs across players via polling.
+- Scoring rules are deterministic and match +100/+0 with 0 initial scores.
+
+---
+
+# Tasks — Iteration 4 (Scenario 4: Result, restart & final validation)
+
+Goal: implement Scenario 4 behavior from `speckit.specify` using the approach in `speckit.plan`.
+
+## Backend tasks (do first)
+
+### B1 — Extend status model to include results
+
+- **Depends on**: Scenario 3 complete
+- **Change**:
+  - `backend/src/models/game.ts`: add `"results"` to `RoomStatus`
+- **Manual check**: `cd backend && npm run build`
+
+### B2 — End round on first correct guess
+
+- **Depends on**: B1
+- **Change**:
+  - `backend/src/services/roomStore.ts`:
+    - in `submitGuess`, when guess is correct set `status = "results"`
+    - block draw/clear/guess when status !== `"playing"`
+- **Manual check**:
+  - correct guess moves room to `results`
+  - further guess/draw attempts rejected with clear message
+
+### B3 — Reveal secret word to all viewers in results snapshots
+
+- **Depends on**: B1, B2
+- **Change**:
+  - `toRoomSnapshot`: include `secretWord` for all viewers when status is `"results"`
+- **Manual check**:
+  - drawer and guesser snapshots both include word in results state
+
+### B4 — Add host-only restart operation + route
+
+- **Depends on**: B1
+- **Change**:
+  - `backend/src/services/roomStore.ts`: add `restartGame(code, requesterParticipantId)`
+  - `backend/src/api/schemas.ts`: add restart schema
+  - `backend/src/api/rooms.ts`: add `POST /rooms/:code/restart`
+- **Manual check**:
+  - host restart from results succeeds and clears round state
+  - non-host restart returns 403
+  - restart outside results returns 409
+
+### B5 — Backend tests (recommended)
+
+- **Depends on**: B2, B4
+- **Change**:
+  - `backend/src/services/roomStore.test.ts`
+- **Manual check**: `cd backend && npm test` (if configured)
+
+## Frontend tasks
+
+### F1 — Extend API/types + restart store action
+
+- **Depends on**: B4
+- **Change**:
+  - `frontend/src/services/api.ts`: `"results"` status + `restartGame` API
+  - `frontend/src/state/roomStore.ts`: `restartGame()` action
+- **Manual check**: `cd frontend && npm run build`
+
+### F2 — Results UI (word, scores, history)
+
+- **Depends on**: B2, B3, F1
+- **Change**:
+  - `frontend/src/components/ResultPanel.tsx`
+  - `frontend/src/pages/GamePage.tsx` wiring
+- **Manual check (two tabs)**:
+  - after correct guess both tabs show same word/scores/history in results
+
+### F3 — Disable gameplay controls after round end
+
+- **Depends on**: F2
+- **Change**:
+  - `GamePage`, `GuessForm`, `DrawingCanvas` usage
+  - disable guess/canvas interactions when status is `"results"`
+- **Manual check**:
+  - no further draw/guess actions possible in results state
+
+### F4 — Host restart + auto return to lobby via polling
+
+- **Depends on**: F1, B4
+- **Change**:
+  - `GamePage`: host-only restart button + waiting text for guests
+  - `LobbyPage`/`GamePage`: navigate to lobby when snapshot status becomes `"lobby"`
+- **Manual check (two tabs)**:
+  - host restart returns both tabs to lobby within ~2s
+  - participants preserved, round data cleared
+
+### F5 — Final validation pass
+
+- **Depends on**: all above
+- **Manual check**:
+  - full two-tab flow: create → join → start → play → correct guess → results → restart → lobby
+  - `cd backend && npm run build`
+  - `cd frontend && npm run build`
+
+## Scenario 4 completion check (must pass)
+
+- Results state is shared and complete (word, scores, history).
+- Round-end locks gameplay mutations.
+- Host-only restart clears round state and preserves players.
+- All clients converge via polling and can replay start flow.
+

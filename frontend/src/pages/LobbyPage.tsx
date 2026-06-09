@@ -8,7 +8,7 @@ import { useRoomState, useRoomStore } from "../state/roomStore";
 export function LobbyPage() {
   const navigate = useNavigate();
   const roomStore = useRoomStore();
-  const { room, error, isLoading } = useRoomState();
+  const { room, participantId, error, isLoading } = useRoomState();
   const [refreshError, setRefreshError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -16,6 +16,51 @@ export function LobbyPage() {
       navigate("/", { replace: true });
     }
   }, [navigate, room]);
+
+  useEffect(() => {
+    if (room?.status === "playing") {
+      navigate("/game", { replace: true });
+    }
+  }, [navigate, room?.status]);
+
+  useEffect(() => {
+    if (!room?.code) {
+      return;
+    }
+
+    let isActive = true;
+
+    async function tick() {
+      try {
+        await roomStore.fetchRoom();
+        if (isActive) {
+          setRefreshError(null);
+        }
+      } catch (caughtError) {
+        const message = caughtError instanceof Error ? caughtError.message : "Unable to refresh room";
+        if (!isActive) {
+          return;
+        }
+
+        setRefreshError(message);
+
+        if (message.toLowerCase().includes("not found")) {
+          navigate("/", { replace: true });
+        }
+      }
+    }
+
+    void tick();
+
+    const intervalId = window.setInterval(() => {
+      void tick();
+    }, 2000);
+
+    return () => {
+      isActive = false;
+      window.clearInterval(intervalId);
+    };
+  }, [navigate, room?.code, roomStore]);
 
   async function handleRefresh() {
     try {
@@ -28,6 +73,26 @@ export function LobbyPage() {
 
   if (!room) {
     return null;
+  }
+
+  const isHost = participantId === room.hostParticipantId;
+  const canStart = isHost && room.participants.length >= 2;
+  const statusMessage =
+    error ??
+    refreshError ??
+    (isHost
+      ? room.participants.length >= 2
+        ? "You can start the game when you're ready."
+        : "Waiting for at least one more player to join."
+      : "Waiting for the host to start the game.");
+
+  async function handleStartGame() {
+    try {
+      setRefreshError(null);
+      await roomStore.startGame();
+    } catch (caughtError) {
+      setRefreshError(caughtError instanceof Error ? caughtError.message : "Unable to start game");
+    }
   }
 
   return (
@@ -50,7 +115,9 @@ export function LobbyPage() {
               {room.participants.map((participant) => (
                 <li key={participant.id}>
                   <span>{participant.name}</span>
-                  <span className="player-list__meta">joined</span>
+                  <span className="player-list__meta">
+                    {participant.id === room.hostParticipantId ? "host" : "joined"}
+                  </span>
                 </li>
               ))}
             </ul>
@@ -61,7 +128,7 @@ export function LobbyPage() {
           <p className="status-line" style={{ backgroundColor: isLoading ? '#fef3c7' : '#e0e7ff', color: isLoading ? '#b45309' : '#3730a3' }}>
             {isLoading ? "Refreshing players..." : "Ready to play"}
           </p>
-          <p style={{ marginTop: '8px' }}>{error ?? refreshError ?? "Waiting for the host to start the game."}</p>
+          <p style={{ marginTop: '8px' }}>{statusMessage}</p>
         </Card>
       </div>
 
@@ -69,8 +136,12 @@ export function LobbyPage() {
         <button className="button button--secondary" disabled={isLoading} onClick={handleRefresh}>
           {isLoading ? "Refreshing..." : "Refresh Room"}
         </button>
-        <button className="button button--primary" onClick={() => navigate("/game")}>
-          Start Game
+        <button
+          className="button button--primary"
+          disabled={!canStart || isLoading}
+          onClick={handleStartGame}
+        >
+          {isHost ? (canStart ? "Start Game" : "Waiting for players...") : "Waiting for host..."}
         </button>
       </div>
     </section>

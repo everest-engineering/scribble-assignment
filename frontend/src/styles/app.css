@@ -451,6 +451,114 @@ input {
   font-weight: 500;
 }
 
+.drawing-canvas {
+  display: grid;
+  gap: 12px;
+}
+
+.drawing-canvas__surface {
+  width: 100%;
+  height: auto;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #ffffff;
+  display: block;
+}
+
+.drawing-canvas__hint {
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: 0.95rem;
+}
+
+.guess-history {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.guess-history__empty {
+  margin: 0;
+  color: var(--ink-soft);
+}
+
+.guess-history__item {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 8px;
+  align-items: center;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-strong);
+  font-size: 0.95rem;
+}
+
+.guess-history__player {
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.guess-history__guess {
+  color: var(--ink-soft);
+}
+
+.guess-history__result {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+
+.scoreboard__empty {
+  margin: 0;
+  color: var(--ink-soft);
+}
+
+.result-panel {
+  margin-bottom: 16px;
+}
+
+.result-panel__pending {
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: 0.95rem;
+}
+
+.result-panel__heading {
+  margin: 16px 0 8px;
+  font-size: 0.95rem;
+  color: var(--ink);
+}
+
+.result-panel__scores {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.result-panel__scores li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-strong);
+}
+
+.game-page__waiting {
+  margin: 0;
+  color: var(--ink-soft);
+}
+
+.guess-history__result--correct {
+  color: #047857;
+}
+
 /* --- GAME PAGE LAYOUT --- */
 /* Changed layout structure to be much wider and utilize screen space */
 .game-page {
