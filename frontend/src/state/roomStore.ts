@@ -135,6 +135,34 @@ export class RoomStore {
     });
   }
 
+  async endRound() {
+    const room = this.state.room;
+    const participantId = this.state.participantId;
+    if (!room || !participantId) {
+      return null;
+    }
+
+    return this.withLoading(async () => {
+      const response = await api.endRound(room.code, participantId);
+      this.setRoomSnapshot(response.room);
+      return response;
+    });
+  }
+
+  async restartGame() {
+    const room = this.state.room;
+    const participantId = this.state.participantId;
+    if (!room || !participantId) {
+      return null;
+    }
+
+    return this.withLoading(async () => {
+      const response = await api.restartGame(room.code, participantId);
+      this.setRoomSnapshot(response.room);
+      return response;
+    });
+  }
+
   startPolling(intervalMs: number) {
     this.stopPolling();
 

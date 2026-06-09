@@ -8,6 +8,8 @@ vi.mock("../services/api", () => ({
     startGame: vi.fn(),
     fetchRoom: vi.fn(),
     submitGuess: vi.fn(),
+    endRound: vi.fn(),
+    restartGame: vi.fn(),
   },
 }));
 
@@ -103,6 +105,76 @@ describe("RoomStore", () => {
 
     it("returns null when no room or participantId is set", async () => {
       const result = await store.submitGuess("hello");
+      expect(result).toBeNull();
+    });
+  });
+
+  describe("endRound", () => {
+    it("calls API and updates snapshot on success", async () => {
+      const mockRoom = makeMockRoom({ status: "playing" });
+      store.setRoomSession({ participantId: "p1", room: mockRoom });
+
+      const updatedRoom = makeMockRoom({ status: "result", secretWord: "rocket" });
+      vi.mocked(api.endRound).mockResolvedValue({ room: updatedRoom });
+
+      const result = await store.endRound();
+
+      expect(api.endRound).toHaveBeenCalledWith("ABCD", "p1");
+      expect(store.getSnapshot().room?.status).toBe("result");
+      expect(result).toEqual({ room: updatedRoom });
+    });
+
+    it("sets error state on failure", async () => {
+      const mockRoom = makeMockRoom({ status: "playing" });
+      store.setRoomSession({ participantId: "p1", room: mockRoom });
+
+      vi.mocked(api.endRound).mockRejectedValue(
+        new Error("Only the host can end the round")
+      );
+
+      await expect(store.endRound()).rejects.toThrow(
+        "Only the host can end the round"
+      );
+      expect(store.getSnapshot().error).toBe("Only the host can end the round");
+    });
+
+    it("returns null when no room or participantId is set", async () => {
+      const result = await store.endRound();
+      expect(result).toBeNull();
+    });
+  });
+
+  describe("restartGame", () => {
+    it("calls API and updates snapshot on success", async () => {
+      const mockRoom = makeMockRoom({ status: "result" });
+      store.setRoomSession({ participantId: "p1", room: mockRoom });
+
+      const updatedRoom = makeMockRoom({ status: "lobby" });
+      vi.mocked(api.restartGame).mockResolvedValue({ room: updatedRoom });
+
+      const result = await store.restartGame();
+
+      expect(api.restartGame).toHaveBeenCalledWith("ABCD", "p1");
+      expect(store.getSnapshot().room?.status).toBe("lobby");
+      expect(result).toEqual({ room: updatedRoom });
+    });
+
+    it("sets error state on failure", async () => {
+      const mockRoom = makeMockRoom({ status: "result" });
+      store.setRoomSession({ participantId: "p1", room: mockRoom });
+
+      vi.mocked(api.restartGame).mockRejectedValue(
+        new Error("Only the host can restart the game")
+      );
+
+      await expect(store.restartGame()).rejects.toThrow(
+        "Only the host can restart the game"
+      );
+      expect(store.getSnapshot().error).toBe("Only the host can restart the game");
+    });
+
+    it("returns null when no room or participantId is set", async () => {
+      const result = await store.restartGame();
       expect(result).toBeNull();
     });
   });

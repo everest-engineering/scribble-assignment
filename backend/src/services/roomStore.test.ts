@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createRoom, joinRoom, startGame, submitGuess, toRoomSnapshot } from "./roomStore.js";
+import { createRoom, endRound, joinRoom, restartGame, startGame, submitGuess, toRoomSnapshot } from "./roomStore.js";
 import { STARTER_WORDS } from "../seed/starterData.js";
 
 function createRoomWithParticipants(count: number) {
@@ -382,6 +382,242 @@ describe("roomStore", () => {
       if (!result.ok) return;
       expect(result.room.guesses).toHaveLength(1);
       expect(result.room.guesses[0].isCorrect).toBe(false);
+    });
+  });
+
+  describe("endRound", () => {
+    function createPlayingRoom() {
+      const host = createRoomWithParticipants(2);
+      const startResult = startGame(host.room.code, host.participantId);
+      if (!startResult.ok) throw new Error("Failed to start game");
+      return { host, room: startResult.room };
+    }
+
+    it("transitions a playing room to result status", () => {
+      const { host, room } = createPlayingRoom();
+      const result = endRound(room.code, host.participantId);
+
+      expect(result.ok).toBe(true);
+      if (!result.ok) return;
+      expect(result.room.status).toBe("result");
+    });
+
+    it("preserves secretWord after ending round", () => {
+      const { host, room } = createPlayingRoom();
+      const result = endRound(room.code, host.participantId);
+
+      expect(result.ok).toBe(true);
+      if (!result.ok) return;
+      expect(result.room.secretWord).toBe(STARTER_WORDS[0]);
+    });
+
+    it("preserves guesses after ending round", () => {
+      const { host, room } = createPlayingRoom();
+      const joinerId = room.participants.find((p) => p.id !== host.participantId)!.id;
+      submitGuess(room.code, joinerId, "test");
+      const result = endRound(room.code, host.participantId);
+
+      expect(result.ok).toBe(true);
+      if (!result.ok) return;
+      expect(result.room.guesses).toHaveLength(1);
+    });
+
+    it("preserves scores after ending round", () => {
+      const { host, room } = createPlayingRoom();
+      const joinerId = room.participants.find((p) => p.id !== host.participantId)!.id;
+      submitGuess(room.code, joinerId, STARTER_WORDS[0]);
+      const result = endRound(room.code, host.participantId);
+
+      expect(result.ok).toBe(true);
+      if (!result.ok) return;
+      const guesser = result.room.participants.find((p) => p.id === joinerId);
+      expect(guesser!.score).toBe(100);
+    });
+
+    it("returns 403 when non-host tries to end the round", () => {
+      const { host, room } = createPlayingRoom();
+      const joinerId = room.participants.find((p) => p.id !== host.participantId)!.id;
+      const result = endRound(room.code, joinerId);
+
+      expect(result.ok).toBe(false);
+      if (!result.ok) return;
+      expect(result.status).toBe(403);
+    });
+
+    it("returns 400 when room is not in playing state", () => {
+      const host = createRoomWithParticipants(2);
+      const result = endRound(host.room.code, host.participantId);
+
+      expect(result.ok).toBe(false);
+      if (!result.ok) return;
+      expect(result.status).toBe(400);
+    });
+
+    it("returns 404 for unknown room code", () => {
+      const result = endRound("ZZZZ", "some-id");
+
+      expect(result.ok).toBe(false);
+      if (!result.ok) return;
+      expect(result.status).toBe(404);
+    });
+  });
+
+  describe("restartGame", () => {
+    function createResultRoom() {
+      const host = createRoomWithParticipants(2);
+      const startResult = startGame(host.room.code, host.participantId);
+      if (!startResult.ok) throw new Error("Failed to start game");
+      const joinerId = startResult.room.participants.find((p) => p.id !== host.participantId)!.id;
+      submitGuess(host.room.code, joinerId, STARTER_WORDS[0]);
+      const endResult = endRound(host.room.code, host.participantId);
+      if (!endResult.ok) throw new Error("Failed to end round");
+      return { host, joinerId, room: endResult.room };
+    }
+
+    it("transitions a result room back to lobby status", () => {
+      const { host, room } = createResultRoom();
+      const result = restartGame(room.code, host.participantId);
+
+      expect(result.ok).toBe(true);
+      if (!result.ok) return;
+      expect(result.room.status).toBe("lobby");
+    });
+
+    it("clears secretWord on restart", () => {
+      const { host, room } = createResultRoom();
+      const result = restartGame(room.code, host.participantId);
+
+      expect(result.ok).toBe(true);
+      if (!result.ok) return;
+      expect(result.room.secretWord).toBe("");
+    });
+
+    it("clears guesses on restart", () => {
+      const { host, room } = createResultRoom();
+      const result = restartGame(room.code, host.participantId);
+
+      expect(result.ok).toBe(true);
+      if (!result.ok) return;
+      expect(result.room.guesses).toEqual([]);
+    });
+
+    it("clears drawerId on restart", () => {
+      const { host, room } = createResultRoom();
+      const result = restartGame(room.code, host.participantId);
+
+      expect(result.ok).toBe(true);
+      if (!result.ok) return;
+      expect(result.room.drawerId).toBe("");
+    });
+
+    it("resets all participant scores to 0 on restart", () => {
+      const { host, room } = createResultRoom();
+      const result = restartGame(room.code, host.participantId);
+
+      expect(result.ok).toBe(true);
+      if (!result.ok) return;
+      result.room.participants.forEach((p) => {
+        expect(p.score).toBe(0);
+      });
+    });
+
+    it("preserves all participants after restart", () => {
+      const { host, room } = createResultRoom();
+      const participantIds = room.participants.map((p) => p.id).sort();
+      const result = restartGame(room.code, host.participantId);
+
+      expect(result.ok).toBe(true);
+      if (!result.ok) return;
+      const newIds = result.room.participants.map((p) => p.id).sort();
+      expect(newIds).toEqual(participantIds);
+      expect(result.room.participants).toHaveLength(2);
+    });
+
+    it("preserves participant names after restart", () => {
+      const { host, room } = createResultRoom();
+      const names = room.participants.map((p) => p.name).sort();
+      const result = restartGame(room.code, host.participantId);
+
+      expect(result.ok).toBe(true);
+      if (!result.ok) return;
+      const newNames = result.room.participants.map((p) => p.name).sort();
+      expect(newNames).toEqual(names);
+    });
+
+    it("returns 403 when non-host tries to restart", () => {
+      const { host, joinerId } = createResultRoom();
+      const result = restartGame(host.room.code, joinerId);
+
+      expect(result.ok).toBe(false);
+      if (!result.ok) return;
+      expect(result.status).toBe(403);
+    });
+
+    it("returns 400 when room is not in result state", () => {
+      const host = createRoomWithParticipants(2);
+      const result = restartGame(host.room.code, host.participantId);
+
+      expect(result.ok).toBe(false);
+      if (!result.ok) return;
+      expect(result.status).toBe(400);
+    });
+
+    it("returns 404 for unknown room code", () => {
+      const result = restartGame("ZZZZ", "some-id");
+
+      expect(result.ok).toBe(false);
+      if (!result.ok) return;
+      expect(result.status).toBe(404);
+    });
+  });
+
+  describe("toRoomSnapshot result state", () => {
+    function createResultRoom() {
+      const host = createRoomWithParticipants(2);
+      const startResult = startGame(host.room.code, host.participantId);
+      if (!startResult.ok) throw new Error("Failed to start game");
+      const joinerId = startResult.room.participants.find((p) => p.id !== host.participantId)!.id;
+      const endResult = endRound(host.room.code, host.participantId);
+      if (!endResult.ok) throw new Error("Failed to end round");
+      return { host, joinerId, room: endResult.room };
+    }
+
+    it("reveals secretWord to drawer when status is result", () => {
+      const { host, room } = createResultRoom();
+      const snapshot = toRoomSnapshot(room, host.participantId);
+
+      expect(snapshot.secretWord).toBe(STARTER_WORDS[0]);
+    });
+
+    it("reveals secretWord to non-drawer when status is result", () => {
+      const { host, room, joinerId } = createResultRoom();
+      const snapshot = toRoomSnapshot(room, joinerId);
+
+      expect(snapshot.secretWord).toBe(STARTER_WORDS[0]);
+    });
+
+    it("reveals secretWord when no viewerParticipantId in result state", () => {
+      const { host, room } = createResultRoom();
+      const snapshot = toRoomSnapshot(room);
+
+      expect(snapshot.secretWord).toBe(STARTER_WORDS[0]);
+    });
+
+    it("still hides secretWord from non-drawer when status is playing (regression)", () => {
+      const host = createRoomWithParticipants(2);
+      const startResult = startGame(host.room.code, host.participantId);
+      if (!startResult.ok) return;
+      const joinerId = startResult.room.participants.find((p) => p.id !== host.participantId)!.id;
+      const snapshot = toRoomSnapshot(startResult.room, joinerId);
+
+      expect(snapshot.secretWord).toBeUndefined();
+    });
+
+    it("hides secretWord from all when status is lobby (regression)", () => {
+      const host = createRoomWithParticipants(2);
+      const snapshot = toRoomSnapshot(host.room, host.participantId);
+
+      expect(snapshot.secretWord).toBeUndefined();
     });
   });
 });

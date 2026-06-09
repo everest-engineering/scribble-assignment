@@ -175,8 +175,59 @@ export function submitGuess(code: string, participantId: string, text: string) {
   };
 }
 
+export function endRound(code: string, requesterId: string) {
+  const room = rooms.get(code);
+
+  if (!room) {
+    return { ok: false as const, status: 404 as const, message: "Room not found" };
+  }
+
+  if (room.status !== "playing") {
+    return { ok: false as const, status: 400 as const, message: "Round is not in progress" };
+  }
+
+  if (room.hostId !== requesterId) {
+    return { ok: false as const, status: 403 as const, message: "Only the host can end the round" };
+  }
+
+  updateRoomStatus(room, "result");
+
+  return {
+    ok: true as const,
+    room: cloneRoom(room)
+  };
+}
+
+export function restartGame(code: string, requesterId: string) {
+  const room = rooms.get(code);
+
+  if (!room) {
+    return { ok: false as const, status: 404 as const, message: "Room not found" };
+  }
+
+  if (room.status !== "result") {
+    return { ok: false as const, status: 400 as const, message: "Game is not in result state" };
+  }
+
+  if (room.hostId !== requesterId) {
+    return { ok: false as const, status: 403 as const, message: "Only the host can restart the game" };
+  }
+
+  room.secretWord = "";
+  room.guesses = [];
+  room.drawerId = "";
+  room.participants.forEach((p) => { p.score = 0; });
+  updateRoomStatus(room, "lobby");
+
+  return {
+    ok: true as const,
+    room: cloneRoom(room)
+  };
+}
+
 export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSnapshot {
   const isDrawer = room.drawerId !== "" && viewerParticipantId === room.drawerId;
+  const showSecret = isDrawer || room.status === "result";
 
   return {
     code: room.code,
@@ -185,6 +236,6 @@ export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSn
     hostId: room.hostId,
     drawerId: room.drawerId,
     guesses: room.guesses.map((guess) => ({ ...guess })),
-    ...(isDrawer ? { secretWord: room.secretWord } : {})
+    ...(showSecret ? { secretWord: room.secretWord } : {})
   };
 }
