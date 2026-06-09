@@ -2,6 +2,25 @@ export type ParticipantRole = "drawer" | "guesser";
 export type RoomStatus = "lobby" | "in-progress" | "finished";
 export type RoundPhase = "word-selection" | "drawing";
 
+export interface Point {
+  x: number;
+  y: number;
+}
+
+export interface Stroke {
+  points: Point[];
+  color: string;
+  width: number;
+}
+
+export interface Guess {
+  participantId: string;
+  participantName: string;
+  text: string;
+  isCorrect: boolean | null;
+  guessedAt: string;
+}
+
 export interface Participant {
   id: string;
   name: string;
@@ -14,6 +33,8 @@ export interface RoundState {
   wordOptions: string[];
   secretWord: string | null;
   phase: RoundPhase;
+  strokes: Stroke[];
+  guesses: Guess[];
 }
 
 export interface Room {
@@ -37,6 +58,8 @@ export interface RoomSnapshot {
   secretWord: string | null;
   availableWords: string[];
   roles: ParticipantRole[];
+  strokes: Stroke[];
+  guesses: Guess[];
 }
 
 export interface RoomSessionResponse {

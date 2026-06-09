@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import type { Participant, Room, RoomSnapshot, RoundState } from "../models/game.js";
+import type { Participant, Room, RoomSnapshot, RoundState, Stroke } from "../models/game.js";
 import { STARTER_ROLES, STARTER_WORDS } from "../seed/starterData.js";
 import { pickWords } from "./wordBank.js";
 
@@ -125,7 +125,9 @@ export function startGame(code: string, participantId: string) {
     guesserIds,
     wordOptions,
     secretWord: null,
-    phase: "word-selection"
+    phase: "word-selection",
+    strokes: [],
+    guesses: []
   };
   room.updatedAt = now();
   rooms.set(room.code, room);
@@ -165,6 +167,73 @@ export function selectWord(code: string, participantId: string, word: string) {
   return cloneRoom(room);
 }
 
+export function submitGuess(code: string, participantId: string, text: string) {
+  const room = rooms.get(code);
+
+  if (!room) {
+    return null;
+  }
+
+  if (!room.round) {
+    throw new Error("Game has not started yet");
+  }
+
+  if (room.round.drawerId === participantId) {
+    throw new Error("The drawer cannot submit guesses");
+  }
+
+  if (room.round.phase !== "drawing") {
+    throw new Error("Game is not in the drawing phase");
+  }
+
+  if (room.round.guesses.some((g) => g.participantId === participantId && g.isCorrect)) {
+    throw new Error("You have already guessed correctly");
+  }
+
+  const participant = room.participants.find((p) => p.id === participantId);
+  const guessText = text.trim();
+  const isCorrect = guessText.toLowerCase() === (room.round.secretWord ?? "").toLowerCase();
+
+  room.round.guesses.push({
+    participantId,
+    participantName: participant?.name ?? "Unknown",
+    text: guessText,
+    isCorrect,
+    guessedAt: now()
+  });
+
+  room.updatedAt = now();
+  rooms.set(room.code, room);
+
+  return { correct: isCorrect };
+}
+
+export function addStroke(code: string, participantId: string, strokes: Stroke[]) {
+  const room = rooms.get(code);
+
+  if (!room) {
+    return null;
+  }
+
+  if (!room.round) {
+    throw new Error("Game has not started yet");
+  }
+
+  if (room.round.drawerId !== participantId) {
+    throw new Error("Only the drawer can submit strokes");
+  }
+
+  if (room.round.phase !== "drawing") {
+    throw new Error("Round is not in drawing phase");
+  }
+
+  room.round.strokes.push(...strokes);
+  room.updatedAt = now();
+  rooms.set(room.code, room);
+
+  return cloneRoom(room);
+}
+
 export function getRoom(code: string) {
   const room = rooms.get(code);
   return room ? cloneRoom(room) : null;
@@ -179,6 +248,14 @@ export function saveRoom(room: Room) {
 export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSnapshot {
   const isDrawer = room.round !== null && viewerParticipantId === room.round.drawerId;
 
+  const guesses = room.round
+    ? room.round.guesses.map((g) => ({
+        ...g,
+        isCorrect:
+          viewerParticipantId === g.participantId ? g.isCorrect : null
+      }))
+    : [];
+
   return {
     code: room.code,
     status: room.status,
@@ -189,6 +266,8 @@ export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSn
     wordOptions: isDrawer ? room.round!.wordOptions : null,
     secretWord: isDrawer ? room.round!.secretWord : null,
     availableWords: listWords(),
-    roles: [...STARTER_ROLES]
+    roles: [...STARTER_ROLES],
+    strokes: room.round?.strokes ?? [],
+    guesses
   };
 }
