@@ -4,9 +4,14 @@ import {
   HttpError,
   joinRoomSchema,
   roomCodeParamsSchema,
-  roomViewerQuerySchema
+  roomViewerQuerySchema,
 } from "./schemas.js";
-import { createRoom, getRoom, joinRoom, toRoomSnapshot } from "../services/roomStore.js";
+import {
+  createRoom,
+  getRoom,
+  joinRoom,
+  toRoomSnapshot,
+} from "../services/roomStore.js";
 
 export function createRoomsRouter() {
   const router = Router();
@@ -18,7 +23,7 @@ export function createRoomsRouter() {
 
       response.status(201).json({
         participantId: result.participantId,
-        room: toRoomSnapshot(result.room, result.participantId)
+        room: toRoomSnapshot(result.room, result.participantId),
       });
     } catch (error) {
       next(error);
@@ -29,15 +34,28 @@ export function createRoomsRouter() {
     try {
       const { code } = roomCodeParamsSchema.parse(request.params);
       const { playerName } = joinRoomSchema.parse(request.body);
-      const result = joinRoom(code.toUpperCase(), playerName);
+      const normalized = code.toUpperCase();
+
+      // Validate code format: 4 chars, A-Z2-9
+      if (!/^[A-Z2-9]{4}$/.test(normalized)) {
+        throw new HttpError(400, "Malformed room code", {
+          error: "malformed_room_code",
+          message: "Room code is required and must be 4 characters",
+        });
+      }
+
+      const result = joinRoom(normalized, playerName);
 
       if (!result) {
-        throw new HttpError(404, "Unable to join room");
+        throw new HttpError(404, "Room not found", {
+          error: "room_not_found",
+          message: "Room not found",
+        });
       }
 
       response.json({
         participantId: result.participantId,
-        room: toRoomSnapshot(result.room, result.participantId)
+        room: toRoomSnapshot(result.room, result.participantId),
       });
     } catch (error) {
       next(error);
@@ -48,14 +66,26 @@ export function createRoomsRouter() {
     try {
       const { code } = roomCodeParamsSchema.parse(request.params);
       const { participantId } = roomViewerQuerySchema.parse(request.query);
-      const room = getRoom(code.toUpperCase());
+      const normalized = code.toUpperCase();
+
+      if (!/^[A-Z2-9]{4}$/.test(normalized)) {
+        throw new HttpError(400, "Malformed room code", {
+          error: "malformed_room_code",
+          message: "Room code is required and must be 4 characters",
+        });
+      }
+
+      const room = getRoom(normalized);
 
       if (!room) {
-        throw new HttpError(404, "Unable to load room");
+        throw new HttpError(404, "Room not found", {
+          error: "room_not_found",
+          message: "Room not found",
+        });
       }
 
       response.json({
-        room: toRoomSnapshot(room, participantId)
+        room: toRoomSnapshot(room, participantId),
       });
     } catch (error) {
       next(error);

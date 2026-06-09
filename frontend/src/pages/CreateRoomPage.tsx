@@ -12,9 +12,15 @@ export function CreateRoomPage() {
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
+    const trimmedName = playerName.trim();
+    if (!trimmedName) {
+      setError("Player name is required");
+      return;
+    }
+
     try {
       setError(null);
-      await roomStore.createRoom(playerName);
+      await roomStore.createRoom(trimmedName);
       navigate("/lobby");
     } catch (caughtError) {
       setError(caughtError instanceof Error ? caughtError.message : "Unable to create room");
@@ -38,7 +44,7 @@ export function CreateRoomPage() {
             placeholder="Sketch captain"
           />
         </label>
-        {error ? <p className="form__error">{error}</p> : null}
+        {error ? <p className="form__error" role="alert">{error}</p> : null}
         <div className="button-row">
           <button className="button button--primary" type="submit">
             Create and Continue

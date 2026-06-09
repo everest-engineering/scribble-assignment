@@ -1,42 +1,41 @@
-# Copilot Agent Instructions
+# OpenCode Agent Instructions for Scribble
 
-## Project Context
-You are working on a monolithic repository for a multiplayer drawing game ("Scribble") containing an Express backend and a React frontend. Both environments strictly use TypeScript and ES Modules.
+## Project
 
-## Tech Stack
--   **Backend**: Node.js, Express, TypeScript, Zod, `tsx` for execution.
--   **Frontend**: React (v18), React Router (v6), Vite, TypeScript.
-
-## General Coding Guidelines
--   **TypeScript First**: Ensure all new code and refactors are fully typed. Avoid `any`; use `unknown` if a type is truly dynamic.
--   **Imports**: Use standard relative and absolute ES module imports. In the backend, file extensions are omitted or handled via `.js` standard if necessary.
--   **Immutability**: Prefer immutable data structures. Use pure functions where possible.
--   **Error Handling**: Fail fast and gracefully. On the backend, use centralized error handlers. On the frontend, ensure UI does not crash on API exceptions.
-
-## Backend Guidelines (`/backend`)
--   **Validation**: Use `Zod` for all request payload and response validations.
--   **Structure**:
-    -   `src/api`: Routes and request handling.
-    -   `src/services`: Core business logic (e.g., Room management).
-    -   `src/models`: Data types and entity representations.
--   **No Stateful Bloat**: Keep the memory footprint for active game rooms minimal and explicitly remove inactive rooms.
-
-## Frontend Guidelines (`/frontend`)
--   **React Patterns**: Use functional components and strict hooks (`useState`, `useEffect`, etc.).
--   **Routing**: Use `react-router-dom` v6 paradigms.
--   **State Management**: Complex state is held in `src/state` (e.g., via Zustand or Context API). Follow the established pattern in `roomStore.ts`.
--   **Styling**: Classes should reside in `app.css` or CSS modules. Keep components structurally clean.
+Monorepo: Express backend + React frontend, all TypeScript ESM. Multiplayer drawing game ("Scribble"). HTTP polling only — no WebSockets, no database, no auth.
 
 ## Commands
--   **Backend Dev**: `cd backend && npm run dev`
--   **Frontend Dev**: `cd frontend && npm run dev`
 
-## Strictly Forbidden
--   **No WebSockets**: Do not use WebSockets, Socket.io, or any real-time push protocol. All sync must use HTTP polling.
--   **No Databases**: Do not use any database (SQL, NoSQL, SQLite, etc.). All data is stored in-memory only.
--   **No Authentication**: Do not add authentication, sessions, JWT, or OAuth.
+| Package | Dev | Build | Test |
+|---------|-----|-------|------|
+| `backend/` | `npm run dev` (tsx watch) | `npm run build` (tsc) | `npm test` (vitest) |
+| `frontend/` | `npm run dev` (vite) | `npm run build` (tsc -b && vite build) | `npm test` (vitest) |
 
-## Agent Persona
--   Give concise, direct answers.
--   Do not output large blocks of code if a small change suffices.
--   When creating or editing files, ensure consistency with the existing directory structure detailed above.
+Backend: port 3001 (override via `PORT`). Frontend: port 5173. Node 18+ (see `.nvmrc`).
+
+## Architecture
+
+- **Entrypoints**: `backend/src/server.ts` → `app.ts` → `api/`; `frontend/src/main.tsx` → `App.tsx` → `routes/index.tsx`
+- **State**: Custom `RoomStore` class via Context + `useSyncExternalStore` (not Zustand)
+- **Backend routes**: `POST /rooms`, `POST /rooms/:code/join`, `GET /rooms/:code?participantId=`
+- **Room codes**: 4 chars, `^[A-Z2-9]{4}$` (excludes 0,1,I,O)
+- **Seed data**: 5 words (`rocket`, `pizza`, `castle`, `guitar`, `sunflower`), 2 roles (`drawer`, `guesser`)
+- **localStorage keys**: `scribble:lastRoomCode`, `scribble:participant:{code}`
+- **Frontend API base**: `VITE_API_URL` env var (default `http://localhost:3001`)
+
+## Backend Quirks
+
+- `"module": "NodeNext"` + `"type": "module"`: all relative imports MUST use `.js` extension (e.g., `import x from "./foo.js"`)
+- Use Zod (`z.object`) for request validation. Throw `HttpError` for structured error responses.
+- All data in-memory (`Map<string, Room>`). Rooms vanish on restart.
+
+## Testing
+
+- Vitest across both packages. Backend tests live in `src/**/*.test.ts`, frontend in `src/**/*.test.{ts,tsx}` (jsdom).
+- Frontend tests use `@testing-library/react`. API/service tests stub `global.fetch`.
+- CI runs `npm ci → npm run build → npm test` independently per package.
+- Verify both builds and test suites pass before committing.
+
+## Lab Context
+
+Brownfield lab with Spec Kit workflow. Artifacts in `specs/` and `.specify/`. Use `speckit.*` naming for constitution, specify, plan, tasks. See `README.md` for full lab workflow and acceptance criteria.

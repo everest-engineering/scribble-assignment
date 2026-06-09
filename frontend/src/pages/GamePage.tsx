@@ -1,27 +1,80 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card } from "../components/Card";
 import { GuessForm } from "../components/GuessForm";
 import { ResultPanel } from "../components/ResultPanel";
 import { RoomCodeBadge } from "../components/RoomCodeBadge";
 import { Scoreboard } from "../components/Scoreboard";
-import { useRoomState } from "../state/roomStore";
+import { useRoomState, useRoomStore } from "../state/roomStore";
 
 export function GamePage() {
   const navigate = useNavigate();
+  const roomStore = useRoomStore();
   const { room, participantId } = useRoomState();
+  const [isRestoring, setIsRestoring] = useState(true);
 
   useEffect(() => {
-    if (!room) {
+    let mounted = true;
+
+    async function restore() {
+      if (room) {
+        setIsRestoring(false);
+        return;
+      }
+
+      await roomStore.restoreRoomSession();
+
+      if (mounted) {
+        setIsRestoring(false);
+      }
+    }
+
+    restore();
+
+    return () => {
+      mounted = false;
+    };
+  }, [roomStore, room]);
+
+  useEffect(() => {
+    if (!room && !isRestoring) {
       navigate("/", { replace: true });
     }
-  }, [navigate, room]);
+  }, [navigate, room, isRestoring]);
 
-  if (!room) {
+  // Poll for room updates every 2 seconds while mounted
+  useEffect(() => {
+    let mounted = true;
+
+    async function poll() {
+      if (!mounted) return;
+      try {
+        await roomStore.fetchRoom();
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        if (msg.includes("Room not found")) {
+          roomStore.clearStoredParticipantForRoom(room?.code);
+          navigate("/", { replace: true });
+        }
+      }
+    }
+
+    const id = setInterval(poll, 2000);
+    poll();
+
+    return () => {
+      mounted = false;
+      clearInterval(id);
+    };
+  }, [roomStore, navigate, room?.code]);
+
+  if (!room || isRestoring) {
     return null;
   }
 
-  const viewer = room.participants.find((participant) => participant.id === participantId) ?? null;
+  const viewer =
+    room.participants.find((participant) => participant.id === participantId) ??
+    null;
 
   return (
     <section className="panel game-page">
@@ -41,7 +94,14 @@ export function GamePage() {
 
         <div className="game-page__main">
           <Card title="Canvas">
-            <div className="canvas-placeholder" style={{ minHeight: '500px', backgroundColor: '#ffffff', border: '1px solid #e5e7eb' }}>
+            <div
+              className="canvas-placeholder"
+              style={{
+                minHeight: "500px",
+                backgroundColor: "#ffffff",
+                border: "1px solid #e5e7eb",
+              }}
+            >
               Waiting for drawer...
             </div>
           </Card>
@@ -68,7 +128,10 @@ export function GamePage() {
       </div>
 
       <div className="button-row">
-        <button className="button button--secondary" onClick={() => navigate("/lobby")}>
+        <button
+          className="button button--secondary"
+          onClick={() => navigate("/lobby")}
+        >
           Exit Game
         </button>
       </div>

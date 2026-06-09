@@ -1,0 +1,5 @@
+# Path to the coding agent context file managed by this extension
+context_file: AGENTS.md
+context_markers:
+  start: "<!-- SPECKIT START -->"
+  end: "<!-- SPECKIT END -->"

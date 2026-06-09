@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import type { Participant, Room, RoomSnapshot } from "../models/game.js";
+import type { Participant, Room, RoomSnapshot, HostAwareRoomSnapshot } from "../models/game.js";
 import { STARTER_ROLES, STARTER_WORDS } from "../seed/starterData.js";
 
 const rooms = new Map<string, Room>();
@@ -55,6 +55,7 @@ export function createRoom(playerName?: string) {
     code: generateUniqueCode(),
     status: "lobby",
     participants: [participant],
+    hostParticipantId: participant.id,
     createdAt: now(),
     updatedAt: now()
   };
@@ -87,7 +88,20 @@ export function joinRoom(code: string, playerName?: string) {
 
 export function getRoom(code: string) {
   const room = rooms.get(code);
-  return room ? cloneRoom(room) : null;
+  if (!room) return null;
+
+  // Ensure hostParticipantId exists and refers to an existing participant
+  const hostId = room.hostParticipantId;
+  const hostExists = room.participants.some((p) => p.id === hostId);
+
+  if (!hostExists) {
+    if (room.participants.length > 0) {
+      room.hostParticipantId = room.participants[0].id;
+      rooms.set(room.code, cloneRoom(room));
+    }
+  }
+
+  return cloneRoom(room);
 }
 
 export function saveRoom(room: Room) {
@@ -96,14 +110,15 @@ export function saveRoom(room: Room) {
   return getRoom(room.code);
 }
 
-export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSnapshot {
-  void viewerParticipantId;
-
+export function toRoomSnapshot(room: Room, viewerParticipantId?: string): HostAwareRoomSnapshot {
+  const hostParticipantId = (room as any).hostParticipantId;
   return {
     code: room.code,
     status: room.status,
     participants: room.participants.map((participant) => ({ ...participant })),
     availableWords: listWords(),
-    roles: [...STARTER_ROLES]
+    roles: [...STARTER_ROLES],
+    hostParticipantId,
+    viewerIsHost: viewerParticipantId !== undefined && hostParticipantId === viewerParticipantId
   };
 }
