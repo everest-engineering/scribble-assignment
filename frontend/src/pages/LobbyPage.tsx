@@ -19,6 +19,12 @@ export function LobbyPage() {
   }, [navigate, room]);
 
   useEffect(() => {
+    if (room?.status === "in-progress") {
+      navigate("/game", { replace: true });
+    }
+  }, [navigate, room?.status]);
+
+  useEffect(() => {
     if (!room) return;
     const pollId = setInterval(() => {
       roomStore.fetchRoom().catch(() => {});

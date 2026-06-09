@@ -5,9 +5,10 @@ import {
   joinRoomSchema,
   roomCodeParamsSchema,
   roomViewerQuerySchema,
-  startGameSchema
+  startGameSchema,
+  wordSelectionSchema
 } from "./schemas.js";
-import { createRoom, getRoom, joinRoom, startGame, toRoomSnapshot } from "../services/roomStore.js";
+import { createRoom, getRoom, joinRoom, selectWord, startGame, toRoomSnapshot } from "../services/roomStore.js";
 
 export function createRoomsRouter() {
   const router = Router();
@@ -69,6 +70,40 @@ export function createRoomsRouter() {
       }
       if (error instanceof Error && error.message === "Need at least 2 players to start") {
         next(new HttpError(400, "Need at least 2 players to start"));
+        return;
+      }
+      if (error instanceof Error && error.message === "Game has already started") {
+        next(new HttpError(400, "Game has already started"));
+        return;
+      }
+      next(error);
+    }
+  });
+
+  router.post("/:code/select-word", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId, word } = wordSelectionSchema.parse(request.body);
+      const result = selectWord(code, participantId, word);
+
+      if (!result) {
+        throw new HttpError(404, "Unable to load room");
+      }
+
+      response.json({
+        room: toRoomSnapshot(result, participantId)
+      });
+    } catch (error) {
+      if (error instanceof Error && error.message === "Only the drawer can select a word") {
+        next(new HttpError(403, "Only the drawer can select a word"));
+        return;
+      }
+      if (error instanceof Error && error.message === "Invalid word selection") {
+        next(new HttpError(400, "Invalid word selection"));
+        return;
+      }
+      if (error instanceof Error && error.message === "Word already selected") {
+        next(new HttpError(400, "Word already selected"));
         return;
       }
       next(error);

@@ -1,5 +1,6 @@
 export type ParticipantRole = "drawer" | "guesser";
 export type RoomStatus = "lobby" | "in-progress" | "finished";
+export type RoundPhase = "word-selection" | "drawing";
 
 export interface Participant {
   id: string;
@@ -12,6 +13,10 @@ export interface RoomSnapshot {
   status: RoomStatus;
   participants: Participant[];
   hostId: string;
+  drawerId: string | null;
+  phase: RoundPhase | null;
+  wordOptions: string[] | null;
+  secretWord: string | null;
   availableWords: string[];
   roles: ParticipantRole[];
 }
@@ -64,6 +69,12 @@ export const api = {
     return request<{ room: RoomSnapshot }>(`/rooms/${encodeURIComponent(code)}/start`, {
       method: "POST",
       body: JSON.stringify({ participantId })
+    });
+  },
+  selectWord(code: string, participantId: string, word: string) {
+    return request<{ room: RoomSnapshot }>(`/rooms/${encodeURIComponent(code)}/select-word`, {
+      method: "POST",
+      body: JSON.stringify({ participantId, word })
     });
   }
 };
