@@ -21,6 +21,12 @@ export function GamePage() {
     }
   }, [navigate, room]);
 
+  useEffect(() => {
+    if (room?.status === "lobby") {
+      navigate("/lobby", { replace: true });
+    }
+  }, [navigate, room?.status]);
+
   const phase = room?.phase;
   const pollInterval = phase === "drawing" ? 500 : 2000;
 
@@ -37,6 +43,29 @@ export function GamePage() {
   }
 
   const isDrawer = participantId === room.drawerId;
+  const isHost = participantId === room.hostId;
+
+  const standings = room.guesses.reduce<Record<string, { name: string; correct: boolean; guessed: boolean }>>((acc, guess) => {
+    if (!acc[guess.participantId]) {
+      acc[guess.participantId] = { name: guess.participantName, correct: false, guessed: true };
+    }
+    if (guess.isCorrect) {
+      acc[guess.participantId].correct = true;
+    }
+    return acc;
+  }, {});
+
+  room.participants.forEach((p) => {
+    if (!standings[p.id]) {
+      standings[p.id] = { name: p.name, correct: false, guessed: false };
+    }
+  });
+
+  const standingsList = Object.entries(standings);
+  const sortedStandings = [...standingsList].sort((a, b) => {
+    if (a[1].correct !== b[1].correct) return a[1].correct ? -1 : 1;
+    return a[1].name.localeCompare(b[1].name);
+  });
 
   async function handleGuess(text: string) {
     try {
@@ -59,6 +88,14 @@ export function GamePage() {
       await strokesQueueRef.current;
     } catch {
       // Silently handle stroke submission errors
+    }
+  }
+
+  async function handleClear() {
+    try {
+      await roomStore.clearStrokes();
+    } catch {
+      // Silently handle clear errors
     }
   }
 
@@ -111,11 +148,47 @@ export function GamePage() {
                   Draw this word: <strong style={{ fontSize: "18px", color: "#1f2937" }}>{room.secretWord}</strong>
                 </p>
               </div>
-              <DrawingCanvas strokes={room.strokes} onStroke={handleStroke} />
+              <DrawingCanvas strokes={room.strokes} onStroke={handleStroke} onClear={handleClear} />
             </Card>
           ) : phase === "drawing" && !isDrawer ? (
             <Card title="Canvas">
               <DrawingCanvas strokes={room.strokes} />
+            </Card>
+          ) : phase === "finished" ? (
+            <Card title="Round Over!">
+              <div style={{ textAlign: "center", marginBottom: "16px" }}>
+                <p style={{ fontSize: "14px", color: "#6b7280", marginBottom: "4px" }}>The secret word was:</p>
+                <p style={{ fontSize: "24px", fontWeight: "bold", color: "#1f2937" }}>{room.secretWord}</p>
+              </div>
+              <DrawingCanvas strokes={room.strokes} />
+              <div style={{ marginTop: "16px" }}>
+                <h3 style={{ fontSize: "14px", color: "#6b7280", marginBottom: "8px" }}>Standings</h3>
+                <ul className="player-list">
+                  {sortedStandings.map(([id, standing]) => (
+                    <li key={id}>
+                      <span>
+                        <strong>{standing.name}</strong>
+                        {id === room.drawerId ? (
+                          <span className="host-badge"> (Drawer)</span>
+                        ) : standing.correct ? (
+                          <span style={{ color: "#059669", marginLeft: "8px" }}>✓ Correct!</span>
+                        ) : standing.guessed ? (
+                          <span style={{ color: "#dc2626", marginLeft: "8px" }}>✗ Incorrect</span>
+                        ) : (
+                          <span style={{ color: "#6b7280", marginLeft: "8px" }}>No guess submitted</span>
+                        )}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              {isHost && (
+                <div style={{ marginTop: "16px", textAlign: "center" }}>
+                  <button className="button button--primary" onClick={() => roomStore.restartGame()}>
+                    Play Again
+                  </button>
+                </div>
+              )}
             </Card>
           ) : (
             <Card title="Canvas">
@@ -125,9 +198,9 @@ export function GamePage() {
             </Card>
           )}
 
-          {phase === "drawing" && (
+          {(phase === "drawing" || phase === "finished") && (
             <>
-              {!isDrawer && (
+              {phase === "drawing" && !isDrawer && (
                 <Card title="Make a Guess">
                   <GuessForm
                     onSubmit={handleGuess}
@@ -144,6 +217,11 @@ export function GamePage() {
                       <li key={index}>
                         <span>
                           <strong>{guess.participantName}</strong>: {guess.text}
+                          {guess.isCorrect !== null && (
+                            <span style={{ color: guess.isCorrect ? "#059669" : "#dc2626", marginLeft: "4px" }}>
+                              {guess.isCorrect ? "✓" : "✗"}
+                            </span>
+                          )}
                         </span>
                       </li>
                     ))}

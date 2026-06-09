@@ -182,6 +182,10 @@ export function submitGuess(code: string, participantId: string, text: string) {
     throw new Error("The drawer cannot submit guesses");
   }
 
+  if (room.round.phase === "finished") {
+    throw new Error("The round has ended");
+  }
+
   if (room.round.phase !== "drawing") {
     throw new Error("Game is not in the drawing phase");
   }
@@ -201,6 +205,10 @@ export function submitGuess(code: string, participantId: string, text: string) {
     isCorrect,
     guessedAt: now()
   });
+
+  if (isCorrect) {
+    room.round.phase = "finished";
+  }
 
   room.updatedAt = now();
   rooms.set(room.code, room);
@@ -223,11 +231,64 @@ export function addStroke(code: string, participantId: string, strokes: Stroke[]
     throw new Error("Only the drawer can submit strokes");
   }
 
+  if (room.round.phase === "finished") {
+    throw new Error("The round has ended");
+  }
+
   if (room.round.phase !== "drawing") {
     throw new Error("Round is not in drawing phase");
   }
 
   room.round.strokes.push(...strokes);
+  room.updatedAt = now();
+  rooms.set(room.code, room);
+
+  return cloneRoom(room);
+}
+
+export function clearStrokes(code: string, participantId: string) {
+  const room = rooms.get(code);
+
+  if (!room) {
+    return null;
+  }
+
+  if (!room.round) {
+    throw new Error("Game has not started yet");
+  }
+
+  if (room.round.drawerId !== participantId) {
+    throw new Error("Only the drawer can clear strokes");
+  }
+
+  if (room.round.phase !== "drawing") {
+    throw new Error("Round is not in drawing phase");
+  }
+
+  room.round.strokes = [];
+  room.updatedAt = now();
+  rooms.set(room.code, room);
+
+  return cloneRoom(room);
+}
+
+export function restartGame(code: string, participantId: string) {
+  const room = rooms.get(code);
+
+  if (!room) {
+    return null;
+  }
+
+  if (room.hostId !== participantId) {
+    throw new Error("Only the host can restart the game");
+  }
+
+  if (room.round?.phase !== "finished") {
+    throw new Error("Round is not finished yet");
+  }
+
+  room.status = "lobby";
+  room.round = null;
   room.updatedAt = now();
   rooms.set(room.code, room);
 
@@ -247,12 +308,13 @@ export function saveRoom(room: Room) {
 
 export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSnapshot {
   const isDrawer = room.round !== null && viewerParticipantId === room.round.drawerId;
+  const isFinished = room.round?.phase === "finished";
 
   const guesses = room.round
     ? room.round.guesses.map((g) => ({
         ...g,
         isCorrect:
-          viewerParticipantId === g.participantId ? g.isCorrect : null
+          isFinished || viewerParticipantId === g.participantId ? g.isCorrect : null
       }))
     : [];
 
@@ -264,7 +326,7 @@ export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSn
     drawerId: room.round?.drawerId ?? null,
     phase: room.round?.phase ?? null,
     wordOptions: isDrawer ? room.round!.wordOptions : null,
-    secretWord: isDrawer ? room.round!.secretWord : null,
+    secretWord: isDrawer || isFinished ? room.round!.secretWord : null,
     availableWords: listWords(),
     roles: [...STARTER_ROLES],
     strokes: room.round?.strokes ?? [],

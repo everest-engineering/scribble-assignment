@@ -74,6 +74,15 @@ Frontend on `http://localhost:5173`.
 1. On the drawer's tab, attempt to submit a guess
 2. Verify error: "The drawer cannot submit guesses" (or guess input is hidden)
 
+### Verify Canvas Clear
+
+1. On the drawer's tab, draw several strokes on the canvas
+2. Verify strokes are visible on guessers' canvases
+3. On the drawer's tab, click **Clear Canvas**
+4. Verify the drawer's canvas is now blank (all strokes removed)
+5. Wait up to 2 seconds on guessers' tabs
+6. Verify guessers' canvases are also blank (cleared via polling)
+
 ### Verify Strokes Persist Across Polls
 
 1. On a guesser's tab, draw a few strokes on the drawer's tab

@@ -1,6 +1,6 @@
 export type ParticipantRole = "drawer" | "guesser";
 export type RoomStatus = "lobby" | "in-progress" | "finished";
-export type RoundPhase = "word-selection" | "drawing";
+export type RoundPhase = "word-selection" | "drawing" | "finished";
 
 export interface Point {
   x: number;
@@ -104,10 +104,22 @@ export const api = {
       body: JSON.stringify({ participantId, strokes })
     });
   },
+  clearStrokes(code: string, participantId: string) {
+    return request<{ room: RoomSnapshot }>(`/rooms/${encodeURIComponent(code)}/clear-strokes`, {
+      method: "POST",
+      body: JSON.stringify({ participantId })
+    });
+  },
   submitGuess(code: string, participantId: string, text: string) {
     return request<{ correct: boolean }>(`/rooms/${encodeURIComponent(code)}/guess`, {
       method: "POST",
       body: JSON.stringify({ participantId, text })
+    });
+  },
+  restartGame(code: string, participantId: string) {
+    return request<{ room: RoomSnapshot }>(`/rooms/${encodeURIComponent(code)}/restart`, {
+      method: "POST",
+      body: JSON.stringify({ participantId })
     });
   }
 };

@@ -1,6 +1,6 @@
 export type ParticipantRole = "drawer" | "guesser";
 export type RoomStatus = "lobby" | "in-progress" | "finished";
-export type RoundPhase = "word-selection" | "drawing";
+export type RoundPhase = "word-selection" | "drawing" | "finished";
 
 export interface Point {
   x: number;

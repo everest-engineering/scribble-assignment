@@ -6,7 +6,7 @@
 
 **Status**: Draft
 
-**Input**: User description: "The drawer draws on a canvas. These drawings are visible to guessers. Guessers attempt to guess the secret word by submitting text guesses. The system validates guesses against the secret word and provides feedback."
+**Input**: User description: "The drawer draws on a canvas. These drawings are visible to guessers. Guessers attempt to guess the secret word by submitting text guesses. The system validates guesses against the secret word and provides feedback. Convas can be cleared if they draw unintensionally."
 
 ## User Scenarios & Testing
 

@@ -57,7 +57,9 @@ No setup tasks required — project structure is already established from the pr
 - [x] T008 [US1] Add `api.addStroke()` method in `frontend/src/services/api.ts` and `store.addStroke()` method in `frontend/src/state/roomStore.ts`
 - [x] T009 [US1] Update `GamePage.tsx` to render `DrawingCanvas` for the drawer when phase is "drawing", passing the submit callback
 
-**Checkpoint**: At this point, User Story 1 should be fully functional — drawer can draw on canvas, strokes are stored server-side.
+- [x] T009b [US1] Add "Clear Canvas" button in `DrawingCanvas.tsx` that clears local stroke buffer and sends a clear-strokes action to the server, clearing `RoundState.strokes` on the backend
+
+**Checkpoint**: At this point, User Story 1 should be fully functional — drawer can draw on canvas, strokes are stored server-side, and the drawer can clear accidental strokes.
 
 ---
 

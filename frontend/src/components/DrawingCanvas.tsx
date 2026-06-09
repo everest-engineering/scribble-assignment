@@ -14,6 +14,7 @@ export interface Stroke {
 interface DrawingCanvasProps {
   strokes: Stroke[];
   onStroke?: (stroke: Stroke) => void;
+  onClear?: () => void;
   width?: number;
   height?: number;
 }
@@ -73,6 +74,7 @@ function renderAllStrokes(
 export function DrawingCanvas({
   strokes,
   onStroke,
+  onClear,
   width = 800,
   height = 600
 }: DrawingCanvasProps) {
@@ -142,23 +144,37 @@ export function DrawingCanvas({
   }
 
   return (
-    <canvas
-      ref={canvasRef}
-      width={width}
-      height={height}
-      style={{
-        border: "1px solid #e5e7eb",
-        borderRadius: "8px",
-        cursor: onStroke ? "crosshair" : "default",
-        display: "block",
-        width: "100%",
-        height: "auto",
-        aspectRatio: `${width} / ${height}`,
-        touchAction: "none"
-      }}
-      onPointerDown={handlePointerDown}
-      onPointerMove={handlePointerMove}
-      onPointerUp={handlePointerUp}
-    />
+    <div>
+      <div style={{ textAlign: "right", marginBottom: "8px", minHeight: "32px" }}>
+        {onClear && (
+          <button
+            type="button"
+            className="button button--secondary button--small"
+            onClick={onClear}
+            style={{ fontSize: "12px", padding: "4px 12px" }}
+          >
+            Clear Canvas
+          </button>
+        )}
+      </div>
+      <canvas
+        ref={canvasRef}
+        width={width}
+        height={height}
+        style={{
+          border: "1px solid #e5e7eb",
+          borderRadius: "8px",
+          cursor: onStroke ? "crosshair" : "default",
+          display: "block",
+          width: "100%",
+          height: "auto",
+          aspectRatio: `${width} / ${height}`,
+          touchAction: "none"
+        }}
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
+      />
+    </div>
   );
 }

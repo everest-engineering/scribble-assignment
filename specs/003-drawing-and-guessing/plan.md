@@ -8,7 +8,7 @@
 
 ## Summary
 
-Implement the core gameplay loop for Scribble. The drawer draws on an HTML5 Canvas, strokes are synced to guessers via HTTP polling (500ms interval), and guessers submit text guesses validated case-insensitively against the secret word. All game logic lives in the services layer per Constitution V.
+Implement the core gameplay loop for Scribble. The drawer draws on an HTML5 Canvas with the ability to clear accidental strokes, strokes are synced to guessers via HTTP polling (500ms interval), and guessers submit text guesses validated case-insensitively against the secret word. All game logic lives in the services layer per Constitution V.
 
 ## Technical Context
 
@@ -24,7 +24,7 @@ Implement the core gameplay loop for Scribble. The drawer draws on an HTML5 Canv
 
 **Project Type**: Web application (Express backend + React SPA frontend)
 
-**Performance Goals**: Drawer sees strokes locally in <100ms. Guessers see new strokes within 2s of completion (500ms polling target). Guess validation completes in <200ms server-side.
+**Performance Goals**: Drawer sees strokes locally in <100ms. Guessers see new strokes within 2s of completion (500ms polling target). Guess validation completes in <200ms server-side. Canvas clear is instant (frontend-only with backend sync on next stroke).
 
 **Constraints**: HTTP polling only (no WebSockets, per Constitution III). Maximum polling interval 2s. No databases. In-memory state only. No auth.
 
@@ -99,7 +99,7 @@ frontend/
 │       └── roomStore.ts           # addStroke(), submitGuess() methods
 ```
 
-**Structure Decision**: Both backend and frontend already exist. New types and endpoints extend existing files. One new component (`DrawingCanvas.tsx`).
+**Structure Decision**: Both backend and frontend already exist. New types and endpoints extend existing files. One new component (`DrawingCanvas.tsx`) with a "Clear Canvas" button for the drawer to remove accidental strokes (clears local strokes and sends a clear action to the server — server clears stroke array, clients redraw empty canvas).
 
 ## Complexity Tracking
 
