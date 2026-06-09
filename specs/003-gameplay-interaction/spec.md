@@ -1,0 +1,1 @@
+../../.specify/specs/003-gameplay-interaction.md
