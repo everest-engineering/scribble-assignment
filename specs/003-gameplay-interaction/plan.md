@@ -1,0 +1,1 @@
+../../.specify/plans/003-gameplay-interaction.md

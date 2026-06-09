@@ -1,0 +1,1 @@
+../../.specify/tasks/003-gameplay-interaction.md

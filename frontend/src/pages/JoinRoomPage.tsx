@@ -7,15 +7,35 @@ export function JoinRoomPage() {
   const [playerName, setPlayerName] = useState("");
   const [roomCode, setRoomCode] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [validationErrors, setValidationErrors] = useState<{ name?: string; code?: string }>({});
   const navigate = useNavigate();
   const roomStore = useRoomStore();
 
+  function validate(): boolean {
+    const errors: { name?: string; code?: string } = {};
+
+    if (playerName.trim().length === 0) {
+      errors.name = "Player name cannot be empty.";
+    }
+
+    if (roomCode.trim().length === 0) {
+      errors.code = "Room code cannot be empty.";
+    }
+
+    setValidationErrors(errors);
+    return Object.keys(errors).length === 0;
+  }
+
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    setError(null);
+
+    if (!validate()) {
+      return;
+    }
 
     try {
-      setError(null);
-      await roomStore.joinRoom(roomCode.toUpperCase(), playerName);
+      await roomStore.joinRoom(roomCode.trim().toUpperCase(), playerName.trim());
       navigate("/lobby");
     } catch (caughtError) {
       setError(caughtError instanceof Error ? caughtError.message : "Unable to join room");
@@ -35,9 +55,10 @@ export function JoinRoomPage() {
           <input
             className="form__input"
             value={playerName}
-            onChange={(event) => setPlayerName(event.target.value)}
+            onChange={(event) => { setPlayerName(event.target.value); setValidationErrors((prev) => ({ ...prev, name: undefined })); }}
             placeholder="Second pencil"
           />
+          {validationErrors.name ? <p className="form__error">{validationErrors.name}</p> : null}
         </label>
 
         <label className="form__field">
@@ -45,9 +66,10 @@ export function JoinRoomPage() {
           <input
             className="form__input form__input--code"
             value={roomCode}
-            onChange={(event) => setRoomCode(event.target.value.toUpperCase())}
+            onChange={(event) => { setRoomCode(event.target.value.toUpperCase()); setValidationErrors((prev) => ({ ...prev, code: undefined })); }}
             placeholder="ABCD"
           />
+          {validationErrors.code ? <p className="form__error">{validationErrors.code}</p> : null}
         </label>
         {error ? <p className="form__error">{error}</p> : null}
         <div className="button-row">

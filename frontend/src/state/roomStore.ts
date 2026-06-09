@@ -18,7 +18,7 @@ export interface RoomState {
 
 type Listener = () => void;
 
-class RoomStore {
+export class RoomStore {
   private state: RoomState = {
     room: null,
     participantId: null,
@@ -27,6 +27,8 @@ class RoomStore {
   };
 
   private listeners = new Set<Listener>();
+  private pollingIntervalId: ReturnType<typeof setInterval> | null = null;
+  private isPollingInFlight = false;
 
   subscribe = (listener: Listener) => {
     this.listeners.add(listener);
@@ -94,9 +96,96 @@ class RoomStore {
       return null;
     }
 
-    const response = await api.fetchRoom(this.state.room.code, this.state.participantId ?? undefined);
-    this.setRoomSnapshot(response.room);
-    return response.room;
+    try {
+      const response = await api.fetchRoom(this.state.room.code, this.state.participantId ?? undefined);
+      this.setRoomSnapshot(response.room);
+      return response.room;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to fetch room";
+      this.setState({ error: message });
+      return null;
+    }
+  }
+
+  async startGame() {
+    const room = this.state.room;
+    if (!room || !this.state.participantId) {
+      return null;
+    }
+
+    return this.withLoading(async () => {
+      const response = await api.startGame(room.code, this.state.participantId!);
+      this.setRoomSnapshot(response.room);
+      this.stopPolling();
+      return response;
+    });
+  }
+
+  async submitGuess(text: string) {
+    const room = this.state.room;
+    const participantId = this.state.participantId;
+    if (!room || !participantId) {
+      return null;
+    }
+
+    return this.withLoading(async () => {
+      const response = await api.submitGuess(room.code, participantId, text);
+      this.setRoomSnapshot(response.room);
+      return response;
+    });
+  }
+
+  async endRound() {
+    const room = this.state.room;
+    const participantId = this.state.participantId;
+    if (!room || !participantId) {
+      return null;
+    }
+
+    return this.withLoading(async () => {
+      const response = await api.endRound(room.code, participantId);
+      this.setRoomSnapshot(response.room);
+      return response;
+    });
+  }
+
+  async restartGame() {
+    const room = this.state.room;
+    const participantId = this.state.participantId;
+    if (!room || !participantId) {
+      return null;
+    }
+
+    return this.withLoading(async () => {
+      const response = await api.restartGame(room.code, participantId);
+      this.setRoomSnapshot(response.room);
+      return response;
+    });
+  }
+
+  startPolling(intervalMs: number) {
+    this.stopPolling();
+
+    this.pollingIntervalId = setInterval(() => {
+      if (this.isPollingInFlight || !this.state.room) {
+        return;
+      }
+
+      this.isPollingInFlight = true;
+      this.fetchRoom().catch(() => {
+        // Polling errors are handled by fetchRoom setting error state
+      }).finally(() => {
+        this.isPollingInFlight = false;
+      });
+    }, intervalMs);
+  }
+
+  stopPolling() {
+    if (this.pollingIntervalId !== null) {
+      clearInterval(this.pollingIntervalId);
+      this.pollingIntervalId = null;
+    }
+    this.isPollingInFlight = false;
   }
 }
 
