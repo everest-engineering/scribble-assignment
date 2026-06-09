@@ -1,50 +1,194 @@
-# [PROJECT_NAME] Constitution
-<!-- Example: Spec Constitution, TaskFlow Constitution, etc. -->
+# Scribble Constitution
 
 ## Core Principles
 
-### [PRINCIPLE_1_NAME]
-<!-- Example: I. Library-First -->
-[PRINCIPLE_1_DESCRIPTION]
-<!-- Example: Every feature starts as a standalone library; Libraries must be self-contained, independently testable, documented; Clear purpose required - no organizational-only libraries -->
+### I. Spec-Driven Development
 
-### [PRINCIPLE_2_NAME]
-<!-- Example: II. CLI Interface -->
-[PRINCIPLE_2_DESCRIPTION]
-<!-- Example: Every library exposes functionality via CLI; Text in/out protocol: stdin/args → stdout, errors → stderr; Support JSON + human-readable formats -->
+All work MUST follow the Spec Kit workflow:
 
-### [PRINCIPLE_3_NAME]
-<!-- Example: III. Test-First (NON-NEGOTIABLE) -->
-[PRINCIPLE_3_DESCRIPTION]
-<!-- Example: TDD mandatory: Tests written → User approved → Tests fail → Then implement; Red-Green-Refactor cycle strictly enforced -->
+Discovery → Specify → Clarify → Plan → Tasks → Implement → Validate
 
-### [PRINCIPLE_4_NAME]
-<!-- Example: IV. Integration Testing -->
-[PRINCIPLE_4_DESCRIPTION]
-<!-- Example: Focus areas requiring integration tests: New library contract tests, Contract changes, Inter-service communication, Shared schemas -->
+Implementation without an approved specification is prohibited. Every feature, behavior, and code change must be traceable to a documented requirement and acceptance criterion.
 
-### [PRINCIPLE_5_NAME]
-<!-- Example: V. Observability, VI. Versioning & Breaking Changes, VII. Simplicity -->
-[PRINCIPLE_5_DESCRIPTION]
-<!-- Example: Text I/O ensures debuggability; Structured logging required; Or: MAJOR.MINOR.BUILD format; Or: Start simple, YAGNI principles -->
+---
 
-## [SECTION_2_NAME]
-<!-- Example: Additional Constraints, Security Requirements, Performance Standards, etc. -->
+### II. TypeScript Quality & Validation
 
-[SECTION_2_CONTENT]
-<!-- Example: Technology stack requirements, compliance standards, deployment policies, etc. -->
+All source code MUST be written in TypeScript.
 
-## [SECTION_3_NAME]
-<!-- Example: Development Workflow, Review Process, Quality Gates, etc. -->
+Requirements:
 
-[SECTION_3_CONTENT]
-<!-- Example: Code review requirements, testing gates, deployment approval process, etc. -->
+- The `any` type is forbidden.
+- External inputs must be validated.
+- Types must accurately represent application state.
+- Existing project patterns and conventions must be followed.
+- Code should prioritize readability and maintainability over cleverness.
+
+---
+
+### III. Incremental Delivery
+
+Development MUST proceed by feature group.
+
+Each feature group must:
+
+- Have defined acceptance criteria.
+- Be planned before implementation.
+- Be validated before moving to the next feature group.
+
+Large, unreviewable changes are discouraged. Work should be delivered in small, testable increments.
+
+---
+
+### IV. Traceability & Documentation
+
+Every implementation task MUST be traceable to:
+
+- A specification requirement.
+- An acceptance criterion.
+- A planned implementation task.
+
+Discovery notes must include:
+
+- At least 3 identified gaps or incomplete behaviors.
+- At least 2 documented assumptions.
+- A list of relevant files reviewed.
+
+When implementation differs from the original plan, the deviation must be documented.
+
+---
+
+### V. Review Discipline
+
+Every pull request and review MUST verify:
+
+- Specification alignment.
+- Acceptance criteria coverage.
+- Edge-case handling.
+- Multi-room isolation behavior.
+- No out-of-scope work introduced.
+- Consistency between specification, plan, tasks, and implementation.
+
+Code that does not satisfy documented requirements must not be approved.
+
+---
+
+## AI Usage Rules
+
+AI assistance may be used for:
+
+- Discovery and analysis
+- Specification drafting
+- Planning and task generation
+- Implementation assistance
+- Test generation
+- Documentation
+
+Developers remain responsible for:
+
+- Validating AI-generated outputs
+- Verifying correctness
+- Maintaining artifact consistency
+- Updating specifications, plans, and tasks
+- Ensuring implementation matches requirements
+
+AI-generated code MUST be reviewed before being committed.
+
+---
+
+## Additional Constraints
+
+The following items are explicitly out of scope and MUST NOT be built, specified, planned, or implemented:
+
+### Technical
+
+- WebSockets or real-time synchronization
+- Databases or persistent storage
+- Authentication, accounts, or sessions
+- Deployment, hosting, or CI/CD pipelines
+- Docker or containerization
+- New state-management libraries
+- New routing libraries
+- Unjustified top-level dependencies
+
+### Game Features
+
+- Multiple rounds
+- Drawer rotation
+- Round timers or countdowns
+- Speed bonuses
+- Drawer bonuses
+- Custom word packs
+- Random word packs
+- Spectator mode
+- Room moderation (kick, mute)
+- Room passwords
+- Invite links
+
+### Process
+
+- Rewriting the starter project from scratch
+- Refactoring unrelated code
+- Scope expansion beyond documented requirements
+
+---
+
+## Development Workflow
+
+Each feature group MUST follow this process:
+
+1. Discovery
+   - Review relevant files.
+   - Identify gaps and assumptions.
+   - Document findings.
+
+2. Specify
+   - Define requirements.
+   - Define acceptance criteria.
+
+3. Clarify
+   - Resolve ambiguities before planning.
+
+4. Plan
+   - Document state changes.
+   - Document data flow.
+   - Document file-level changes.
+
+5. Tasks
+   - Break work into ordered, testable tasks.
+   - Identify dependencies.
+
+6. Implement
+   - Complete one meaningful slice at a time.
+
+7. Validate
+   - Verify acceptance criteria.
+   - Verify behavior using two browser tabs.
+
+8. Review
+   - Confirm consistency across all artifacts.
+
+Progression to the next feature group is not permitted until the current feature group has been validated.
+
+---
 
 ## Governance
-<!-- Example: Constitution supersedes all other practices; Amendments require documentation, approval, migration plan -->
 
-[GOVERNANCE_RULES]
-<!-- Example: All PRs/reviews must verify compliance; Complexity must be justified; Use [GUIDANCE_FILE] for runtime development guidance -->
+This constitution supersedes all project conventions and practices.
 
-**Version**: [CONSTITUTION_VERSION] | **Ratified**: [RATIFICATION_DATE] | **Last Amended**: [LAST_AMENDED_DATE]
-<!-- Example: Version: 2.1.1 | Ratified: 2025-06-13 | Last Amended: 2025-07-16 -->
+Amendments require:
+
+- Documented rationale
+- Stakeholder approval
+- Impact assessment
+- Migration plan (when applicable)
+
+All project artifacts must remain consistent with this constitution.
+
+Complexity must be justified relative to simpler alternatives.
+
+Runtime development guidance may be maintained separately in AGENTS.md.
+
+**Version:** 1.0.0
+**Ratified:** 2026-06-09
+**Last Amended:** 2026-06-09
