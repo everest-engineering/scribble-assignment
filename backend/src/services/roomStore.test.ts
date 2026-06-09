@@ -275,6 +275,34 @@ describe("roomStore", () => {
       expect(guesser!.score).toBe(100);
     });
 
+    it("matches case-insensitively: UPPERCASE 'ROCKET'", () => {
+      const { joinerId, room } = createPlayingRoom();
+      const result = submitGuess(room.code, joinerId, "ROCKET");
+
+      expect(result.ok).toBe(true);
+      if (!result.ok) return;
+      expect(result.room.guesses[0].isCorrect).toBe(true);
+      expect(result.room.guesses[0].text).toBe("ROCKET");
+    });
+
+    it("matches case-insensitively: Title Case 'Rocket'", () => {
+      const { joinerId, room } = createPlayingRoom();
+      const result = submitGuess(room.code, joinerId, "Rocket");
+
+      expect(result.ok).toBe(true);
+      if (!result.ok) return;
+      expect(result.room.guesses[0].isCorrect).toBe(true);
+    });
+
+    it("matches case-insensitively: Mixed Case 'rOcKeT'", () => {
+      const { joinerId, room } = createPlayingRoom();
+      const result = submitGuess(room.code, joinerId, "rOcKeT");
+
+      expect(result.ok).toBe(true);
+      if (!result.ok) return;
+      expect(result.room.guesses[0].isCorrect).toBe(true);
+    });
+
     it("rejects an incorrect guess and does not award points", () => {
       const { joinerId, room } = createPlayingRoom();
       const result = submitGuess(room.code, joinerId, "wrongword");
