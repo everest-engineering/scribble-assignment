@@ -8,8 +8,9 @@ import { useRoomState, useRoomStore } from "../state/roomStore";
 export function LobbyPage() {
   const navigate = useNavigate();
   const roomStore = useRoomStore();
-  const { room, error, isLoading } = useRoomState();
+  const { room, participantId, error, isLoading } = useRoomState();
   const [refreshError, setRefreshError] = useState<string | null>(null);
+  const [startError, setStartError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!room) {
@@ -17,12 +18,29 @@ export function LobbyPage() {
     }
   }, [navigate, room]);
 
+  useEffect(() => {
+    if (!room) return;
+    const pollId = setInterval(() => {
+      roomStore.fetchRoom().catch(() => {});
+    }, 2000);
+    return () => clearInterval(pollId);
+  }, [room, roomStore]);
+
   async function handleRefresh() {
     try {
       setRefreshError(null);
       await roomStore.fetchRoom();
     } catch (caughtError) {
       setRefreshError(caughtError instanceof Error ? caughtError.message : "Unable to refresh room");
+    }
+  }
+
+  async function handleStartGame() {
+    try {
+      setStartError(null);
+      await roomStore.startGame();
+    } catch (caughtError) {
+      setStartError(caughtError instanceof Error ? caughtError.message : "Unable to start game");
     }
   }
 
@@ -49,7 +67,12 @@ export function LobbyPage() {
             <ul className="player-list">
               {room.participants.map((participant) => (
                 <li key={participant.id}>
-                  <span>{participant.name}</span>
+                  <span>
+                    {participant.name}
+                    {participant.id === room.hostId && (
+                      <span className="host-badge"> (Host)</span>
+                    )}
+                  </span>
                   <span className="player-list__meta">joined</span>
                 </li>
               ))}
@@ -69,10 +92,21 @@ export function LobbyPage() {
         <button className="button button--secondary" disabled={isLoading} onClick={handleRefresh}>
           {isLoading ? "Refreshing..." : "Refresh Room"}
         </button>
-        <button className="button button--primary" onClick={() => navigate("/game")}>
-          Start Game
-        </button>
+        {participantId === room.hostId ? (
+          <button
+            className="button button--primary"
+            disabled={isLoading || room.participants.length < 2}
+            onClick={handleStartGame}
+          >
+            Start Game
+          </button>
+        ) : (
+          <button className="button button--primary" disabled title="Only the host can start the game">
+            Start Game
+          </button>
+        )}
       </div>
+      {startError ? <p className="form__error" style={{ textAlign: "center", marginTop: "8px" }}>{startError}</p> : null}
     </section>
   );
 }
