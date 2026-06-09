@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createRoom, joinRoom, startGame, toRoomSnapshot } from "./roomStore.js";
+import { createRoom, joinRoom, startGame, submitGuess, toRoomSnapshot } from "./roomStore.js";
 import { STARTER_WORDS } from "../seed/starterData.js";
 
 function createRoomWithParticipants(count: number) {
@@ -190,6 +190,170 @@ describe("roomStore", () => {
 
       expect(snapshot).not.toHaveProperty("availableWords");
       expect(snapshot).not.toHaveProperty("roles");
+    });
+  });
+
+  describe("startGame initialization", () => {
+    it("initializes guesses as an empty array", () => {
+      const host = createRoomWithParticipants(2);
+      const result = startGame(host.room.code, host.participantId);
+
+      expect(result.ok).toBe(true);
+      if (!result.ok) return;
+      expect(result.room.guesses).toEqual([]);
+    });
+
+    it("sets all participants' score to 0", () => {
+      const host = createRoomWithParticipants(2);
+      const result = startGame(host.room.code, host.participantId);
+
+      expect(result.ok).toBe(true);
+      if (!result.ok) return;
+      result.room.participants.forEach((p) => {
+        expect(p.score).toBe(0);
+      });
+    });
+  });
+
+  describe("toRoomSnapshot includes new fields", () => {
+    it("includes guesses array in snapshot", () => {
+      const host = createRoomWithParticipants(2);
+      const startResult = startGame(host.room.code, host.participantId);
+
+      expect(startResult.ok).toBe(true);
+      if (!startResult.ok) return;
+
+      const snapshot = toRoomSnapshot(startResult.room, host.participantId);
+
+      expect(snapshot).toHaveProperty("guesses");
+      expect(Array.isArray(snapshot.guesses)).toBe(true);
+    });
+
+    it("includes score on each participant in snapshot", () => {
+      const host = createRoomWithParticipants(2);
+      const snapshot = toRoomSnapshot(host.room, host.participantId);
+
+      snapshot.participants.forEach((p) => {
+        expect(p).toHaveProperty("score");
+        expect(typeof p.score).toBe("number");
+      });
+    });
+  });
+
+  describe("submitGuess", () => {
+    function createPlayingRoom() {
+      const host = createRoomWithParticipants(2);
+      const startResult = startGame(host.room.code, host.participantId);
+      if (!startResult.ok) throw new Error("Failed to start game");
+      const joinerId = startResult.room.participants.find((p) => p.id !== host.participantId)!.id;
+
+      return { host, joinerId, room: startResult.room };
+    }
+
+    it("accepts a correct guess and awards 100 points", () => {
+      const { joinerId, room } = createPlayingRoom();
+      const result = submitGuess(room.code, joinerId, STARTER_WORDS[0]);
+
+      expect(result.ok).toBe(true);
+      if (!result.ok) return;
+      const guess = result.room.guesses[0];
+      expect(guess.isCorrect).toBe(true);
+      expect(guess.text).toBe(STARTER_WORDS[0]);
+      expect(guess.participantId).toBe(joinerId);
+      const guesser = result.room.participants.find((p) => p.id === joinerId);
+      expect(guesser!.score).toBe(100);
+    });
+
+    it("accepts a correct guess with different casing and awards 100 points", () => {
+      const { joinerId, room } = createPlayingRoom();
+      const result = submitGuess(room.code, joinerId, STARTER_WORDS[0].toLowerCase());
+
+      expect(result.ok).toBe(true);
+      if (!result.ok) return;
+      expect(result.room.guesses[0].isCorrect).toBe(true);
+      const guesser = result.room.participants.find((p) => p.id === joinerId);
+      expect(guesser!.score).toBe(100);
+    });
+
+    it("rejects an incorrect guess and does not award points", () => {
+      const { joinerId, room } = createPlayingRoom();
+      const result = submitGuess(room.code, joinerId, "wrongword");
+
+      expect(result.ok).toBe(true);
+      if (!result.ok) return;
+      expect(result.room.guesses[0].isCorrect).toBe(false);
+      const guesser = result.room.participants.find((p) => p.id === joinerId);
+      expect(guesser!.score).toBe(0);
+    });
+
+    it("trims whitespace from guess text before comparison", () => {
+      const { joinerId, room } = createPlayingRoom();
+      const result = submitGuess(room.code, joinerId, `  ${STARTER_WORDS[0]}  `);
+
+      expect(result.ok).toBe(true);
+      if (!result.ok) return;
+      expect(result.room.guesses[0].isCorrect).toBe(true);
+      expect(result.room.guesses[0].text).toBe(STARTER_WORDS[0]);
+    });
+
+    it("rejects empty guess after trim with 400", () => {
+      const { joinerId, room } = createPlayingRoom();
+      const result = submitGuess(room.code, joinerId, "   ");
+
+      expect(result.ok).toBe(false);
+      if (result.ok) return;
+      expect(result.status).toBe(400);
+    });
+
+    it("rejects drawer submitting a guess with 403", () => {
+      const { host, room } = createPlayingRoom();
+      const result = submitGuess(room.code, host.participantId, "guess");
+
+      expect(result.ok).toBe(false);
+      if (result.ok) return;
+      expect(result.status).toBe(403);
+    });
+
+    it("returns 404 for unknown room code", () => {
+      const result = submitGuess("ZZZZ", "some-id", "guess");
+
+      expect(result.ok).toBe(false);
+      if (result.ok) return;
+      expect(result.status).toBe(404);
+    });
+
+    it("returns 400 when room is not in playing state", () => {
+      const host = createRoom("Alice");
+      const joiner = joinRoom(host.room.code, "Bob");
+      const result = submitGuess(host.room.code, joiner!.participantId, "guess");
+
+      expect(result.ok).toBe(false);
+      if (result.ok) return;
+      expect(result.status).toBe(400);
+    });
+
+    it("allows multiple correct guesses by the same guesser (each awards 100)", () => {
+      const { joinerId, room } = createPlayingRoom();
+      submitGuess(room.code, joinerId, STARTER_WORDS[0]);
+      const result = submitGuess(room.code, joinerId, STARTER_WORDS[0]);
+
+      expect(result.ok).toBe(true);
+      if (!result.ok) return;
+      expect(result.room.guesses).toHaveLength(2);
+      const guesser = result.room.participants.find((p) => p.id === joinerId);
+      expect(guesser!.score).toBe(200);
+    });
+
+    it("isolates guesses between different rooms", () => {
+      const room1 = createPlayingRoom();
+      const room2 = createPlayingRoom();
+      submitGuess(room1.room.code, room1.joinerId, STARTER_WORDS[0]);
+      const result = submitGuess(room2.room.code, room2.joinerId, "wrong");
+
+      expect(result.ok).toBe(true);
+      if (!result.ok) return;
+      expect(result.room.guesses).toHaveLength(1);
+      expect(result.room.guesses[0].isCorrect).toBe(false);
     });
   });
 });

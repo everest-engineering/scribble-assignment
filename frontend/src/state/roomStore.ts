@@ -121,6 +121,20 @@ export class RoomStore {
     });
   }
 
+  async submitGuess(text: string) {
+    const room = this.state.room;
+    const participantId = this.state.participantId;
+    if (!room || !participantId) {
+      return null;
+    }
+
+    return this.withLoading(async () => {
+      const response = await api.submitGuess(room.code, participantId, text);
+      this.setRoomSnapshot(response.room);
+      return response;
+    });
+  }
+
   startPolling(intervalMs: number) {
     this.stopPolling();
 

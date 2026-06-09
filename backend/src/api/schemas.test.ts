@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createRoomSchema, joinRoomSchema, roomCodeParamsSchema, startGameBodySchema } from "./schemas.js";
+import { createRoomSchema, joinRoomSchema, roomCodeParamsSchema, startGameBodySchema, submitGuessBodySchema } from "./schemas.js";
 
 describe("schemas", () => {
   describe("createRoomSchema", () => {
@@ -55,6 +55,37 @@ describe("schemas", () => {
   describe("roomCodeParamsSchema", () => {
     it("rejects missing code", () => {
       expect(() => roomCodeParamsSchema.parse({})).toThrow();
+    });
+  });
+
+  describe("submitGuessBodySchema", () => {
+    it("accepts a valid body with participantId and text", () => {
+      const result = submitGuessBodySchema.parse({ participantId: "p1", text: "hello" });
+
+      expect(result.participantId).toBe("p1");
+      expect(result.text).toBe("hello");
+    });
+
+    it("trims whitespace from text", () => {
+      const result = submitGuessBodySchema.parse({ participantId: "p1", text: "  hello  " });
+
+      expect(result.text).toBe("hello");
+    });
+
+    it("rejects empty text", () => {
+      expect(() => submitGuessBodySchema.parse({ participantId: "p1", text: "" })).toThrow();
+    });
+
+    it("rejects whitespace-only text", () => {
+      expect(() => submitGuessBodySchema.parse({ participantId: "p1", text: "   " })).toThrow();
+    });
+
+    it("rejects missing text", () => {
+      expect(() => submitGuessBodySchema.parse({ participantId: "p1" })).toThrow();
+    });
+
+    it("rejects missing participantId", () => {
+      expect(() => submitGuessBodySchema.parse({ text: "hello" })).toThrow();
     });
   });
 });

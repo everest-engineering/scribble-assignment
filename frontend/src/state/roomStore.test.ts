@@ -7,6 +7,7 @@ vi.mock("../services/api", () => ({
   api: {
     startGame: vi.fn(),
     fetchRoom: vi.fn(),
+    submitGuess: vi.fn(),
   },
 }));
 
@@ -17,6 +18,7 @@ function makeMockRoom(overrides?: Partial<RoomSnapshot>): RoomSnapshot {
     participants: [],
     hostId: "p1",
     drawerId: "",
+    guesses: [],
     ...overrides,
   };
 }
@@ -63,6 +65,44 @@ describe("RoomStore", () => {
 
     it("returns null when no room or participantId is set", async () => {
       const result = await store.startGame();
+      expect(result).toBeNull();
+    });
+  });
+
+  describe("submitGuess", () => {
+    it("calls API and updates snapshot on success", async () => {
+      const mockRoom = makeMockRoom({ status: "playing", guesses: [] });
+      store.setRoomSession({ participantId: "p1", room: mockRoom });
+
+      const updatedRoom = makeMockRoom({
+        status: "playing",
+        guesses: [{ id: "g1", participantId: "p1", text: "hello", isCorrect: true, timestamp: new Date().toISOString() }],
+      });
+      vi.mocked(api.submitGuess).mockResolvedValue({ room: updatedRoom });
+
+      const result = await store.submitGuess("hello");
+
+      expect(api.submitGuess).toHaveBeenCalledWith("ABCD", "p1", "hello");
+      expect(store.getSnapshot().room?.guesses).toHaveLength(1);
+      expect(result).toEqual({ room: updatedRoom });
+    });
+
+    it("sets error state on failure", async () => {
+      const mockRoom = makeMockRoom({ status: "playing" });
+      store.setRoomSession({ participantId: "p1", room: mockRoom });
+
+      vi.mocked(api.submitGuess).mockRejectedValue(
+        new Error("Only guessers can submit guesses")
+      );
+
+      await expect(store.submitGuess("hello")).rejects.toThrow(
+        "Only guessers can submit guesses"
+      );
+      expect(store.getSnapshot().error).toBe("Only guessers can submit guesses");
+    });
+
+    it("returns null when no room or participantId is set", async () => {
+      const result = await store.submitGuess("hello");
       expect(result).toBeNull();
     });
   });

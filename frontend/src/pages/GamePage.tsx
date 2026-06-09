@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useCallback, useEffect, useRef, type MouseEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card } from "../components/Card";
 import { GuessForm } from "../components/GuessForm";
@@ -11,6 +11,9 @@ export function GamePage() {
   const navigate = useNavigate();
   const roomStore = useRoomStore();
   const { room, participantId } = useRoomState();
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const isDrawingRef = useRef(false);
+  const lastPosRef = useRef({ x: 0, y: 0 });
 
   useEffect(() => {
     if (!room) {
@@ -26,6 +29,58 @@ export function GamePage() {
       roomStore.stopPolling();
     };
   }, [room, roomStore]);
+
+  const getCanvasPos = useCallback((event: MouseEvent<HTMLCanvasElement>) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return { x: 0, y: 0 };
+    const rect = canvas.getBoundingClientRect();
+    return {
+      x: event.clientX - rect.left,
+      y: event.clientY - rect.top
+    };
+  }, []);
+
+  const handleMouseDown = useCallback((event: MouseEvent<HTMLCanvasElement>) => {
+    const pos = getCanvasPos(event);
+    isDrawingRef.current = true;
+    lastPosRef.current = pos;
+  }, [getCanvasPos]);
+
+  const handleMouseMove = useCallback((event: MouseEvent<HTMLCanvasElement>) => {
+    if (!isDrawingRef.current) return;
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    const pos = getCanvasPos(event);
+
+    ctx.beginPath();
+    ctx.moveTo(lastPosRef.current.x, lastPosRef.current.y);
+    ctx.lineTo(pos.x, pos.y);
+    ctx.strokeStyle = "#000";
+    ctx.lineWidth = 3;
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+    ctx.stroke();
+
+    lastPosRef.current = pos;
+  }, [getCanvasPos]);
+
+  const handleMouseUp = useCallback(() => {
+    isDrawingRef.current = false;
+  }, []);
+
+  const handleMouseLeave = useCallback(() => {
+    isDrawingRef.current = false;
+  }, []);
+
+  const clearCanvas = useCallback(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+  }, []);
 
   if (!room) {
     return null;
@@ -49,8 +104,8 @@ export function GamePage() {
 
       <div className="game-page__layout">
         <aside className="game-page__sidebar game-page__sidebar--left">
-          <Scoreboard />
-          <ResultPanel />
+          <Scoreboard participants={room.participants} drawerId={room.drawerId} />
+          <ResultPanel guesses={room.guesses} participants={room.participants} />
         </aside>
 
         <div className="game-page__main">
@@ -60,9 +115,38 @@ export function GamePage() {
             </Card>
           ) : null}
           <Card title="Canvas">
-            <div className="canvas-placeholder" style={{ minHeight: '500px', backgroundColor: '#ffffff', border: '1px solid #e5e7eb' }}>
-              {isDrawer ? "Draw the word above!" : "Waiting for drawer..."}
-            </div>
+            {isDrawer ? (
+              <>
+                <canvas
+                  ref={canvasRef}
+                  width={600}
+                  height={400}
+                  style={{
+                    display: "block",
+                    width: "100%",
+                    height: "auto",
+                    aspectRatio: "3 / 2",
+                    backgroundColor: "#fff",
+                    border: "1px solid #e5e7eb",
+                    cursor: "crosshair",
+                    touchAction: "none"
+                  }}
+                  onMouseDown={handleMouseDown}
+                  onMouseMove={handleMouseMove}
+                  onMouseUp={handleMouseUp}
+                  onMouseLeave={handleMouseLeave}
+                />
+                <div className="button-row button-row--compact" style={{ marginTop: "0.5rem" }}>
+                  <button className="button button--secondary" type="button" onClick={clearCanvas}>
+                    Clear Canvas
+                  </button>
+                </div>
+              </>
+            ) : (
+              <div className="canvas-placeholder" style={{ minHeight: "400px", backgroundColor: "#fff", border: "1px solid #e5e7eb", display: "flex", alignItems: "center", justifyContent: "center", color: "#9ca3af" }}>
+                Waiting for the drawer to draw...
+              </div>
+            )}
           </Card>
         </div>
 
@@ -85,7 +169,12 @@ export function GamePage() {
           </Card>
 
           <Card title="Your Guess">
-            <GuessForm />
+            <GuessForm
+              disabled={isDrawer}
+              onSubmitGuess={async (text) => {
+                await roomStore.submitGuess(text);
+              }}
+            />
           </Card>
         </aside>
       </div>
