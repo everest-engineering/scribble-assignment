@@ -1,13 +1,19 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
+import { useState } from "react";
 import { Card } from "../components/Card";
+import { DrawingCanvas } from "../components/DrawingCanvas";
+import { GuessForm } from "../components/GuessForm";
 import { RoomCodeBadge } from "../components/RoomCodeBadge";
-import { useRoomState } from "../state/roomStore";
+import { useRoomState, useRoomStore } from "../state/roomStore";
 import { DrawerWordSelect } from "./DrawerWordSelect";
 
 export function GamePage() {
   const navigate = useNavigate();
+  const roomStore = useRoomStore();
   const { room, participantId } = useRoomState();
+  const strokesQueueRef = useRef<ReturnType<typeof roomStore.addStroke> | null>(null);
+  const [guessFeedback, setGuessFeedback] = useState<string | null>(null);
 
   useEffect(() => {
     if (!room) {
@@ -15,12 +21,46 @@ export function GamePage() {
     }
   }, [navigate, room]);
 
+  const phase = room?.phase;
+  const pollInterval = phase === "drawing" ? 500 : 2000;
+
+  useEffect(() => {
+    if (!room) return;
+    const pollId = setInterval(() => {
+      roomStore.fetchRoom().catch(() => {});
+    }, pollInterval);
+    return () => clearInterval(pollId);
+  }, [room, roomStore, pollInterval]);
+
   if (!room) {
     return null;
   }
 
   const isDrawer = participantId === room.drawerId;
-  const phase = room.phase;
+
+  async function handleGuess(text: string) {
+    try {
+      setGuessFeedback(null);
+      const result = await roomStore.submitGuess(text);
+      if (result.correct) {
+        setGuessFeedback("Correct! Well done!");
+      } else {
+        setGuessFeedback("Incorrect. Try again!");
+      }
+    } catch (caughtError) {
+      const message = caughtError instanceof Error ? caughtError.message : "Failed to submit guess";
+      setGuessFeedback(message);
+    }
+  }
+
+  async function handleStroke(stroke: { points: { x: number; y: number }[]; color: string; width: number }) {
+    try {
+      strokesQueueRef.current = roomStore.addStroke([stroke]);
+      await strokesQueueRef.current;
+    } catch {
+      // Silently handle stroke submission errors
+    }
+  }
 
   return (
     <section className="panel game-page">
@@ -60,23 +100,57 @@ export function GamePage() {
             <DrawerWordSelect />
           ) : phase === "word-selection" && !isDrawer ? (
             <Card title="Canvas">
-              <div className="canvas-placeholder" style={{ minHeight: '400px', backgroundColor: '#ffffff', border: '1px solid #e5e7eb', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <div className="canvas-placeholder">
                 <p>The drawer is selecting a word...</p>
               </div>
             </Card>
           ) : phase === "drawing" && isDrawer ? (
-            <Card title="Your Secret Word">
-              <div style={{ padding: '24px', textAlign: 'center' }}>
-                <p style={{ fontSize: '14px', color: '#6b7280', marginBottom: '8px' }}>Draw this word:</p>
-                <p style={{ fontSize: '32px', fontWeight: 'bold', color: '#1f2937' }}>{room.secretWord}</p>
+            <Card title="Your Canvas">
+              <div style={{ marginBottom: "16px", textAlign: "center" }}>
+                <p style={{ fontSize: "14px", color: "#6b7280", marginBottom: "8px" }}>
+                  Draw this word: <strong style={{ fontSize: "18px", color: "#1f2937" }}>{room.secretWord}</strong>
+                </p>
               </div>
+              <DrawingCanvas strokes={room.strokes} onStroke={handleStroke} />
+            </Card>
+          ) : phase === "drawing" && !isDrawer ? (
+            <Card title="Canvas">
+              <DrawingCanvas strokes={room.strokes} />
             </Card>
           ) : (
             <Card title="Canvas">
-              <div className="canvas-placeholder" style={{ minHeight: '400px', backgroundColor: '#ffffff', border: '1px solid #e5e7eb', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <div className="canvas-placeholder">
                 <p>The drawer is drawing...</p>
               </div>
             </Card>
+          )}
+
+          {phase === "drawing" && (
+            <>
+              {!isDrawer && (
+                <Card title="Make a Guess">
+                  <GuessForm
+                    onSubmit={handleGuess}
+                    feedback={guessFeedback}
+                  />
+                </Card>
+              )}
+              <Card title="Guesses">
+                {room.guesses.length === 0 ? (
+                  <p style={{ color: "#6b7280", fontSize: "14px" }}>No guesses yet.</p>
+                ) : (
+                  <ul className="player-list">
+                    {room.guesses.map((guess, index) => (
+                      <li key={index}>
+                        <span>
+                          <strong>{guess.participantName}</strong>: {guess.text}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </Card>
+            </>
           )}
         </div>
 

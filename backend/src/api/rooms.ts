@@ -1,14 +1,16 @@
 import { Router } from "express";
 import {
   createRoomSchema,
+  guessSubmissionSchema,
   HttpError,
   joinRoomSchema,
   roomCodeParamsSchema,
   roomViewerQuerySchema,
   startGameSchema,
+  strokesSubmissionSchema,
   wordSelectionSchema
 } from "./schemas.js";
-import { createRoom, getRoom, joinRoom, selectWord, startGame, toRoomSnapshot } from "../services/roomStore.js";
+import { addStroke, createRoom, getRoom, joinRoom, selectWord, startGame, submitGuess, toRoomSnapshot } from "../services/roomStore.js";
 
 export function createRoomsRouter() {
   const router = Router();
@@ -104,6 +106,60 @@ export function createRoomsRouter() {
       }
       if (error instanceof Error && error.message === "Word already selected") {
         next(new HttpError(400, "Word already selected"));
+        return;
+      }
+      next(error);
+    }
+  });
+
+  router.post("/:code/strokes", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId, strokes } = strokesSubmissionSchema.parse(request.body);
+      const result = addStroke(code, participantId, strokes);
+
+      if (!result) {
+        throw new HttpError(404, "Unable to load room");
+      }
+
+      response.json({
+        room: toRoomSnapshot(result, participantId)
+      });
+    } catch (error) {
+      if (error instanceof Error && error.message === "Only the drawer can submit strokes") {
+        next(new HttpError(403, "Only the drawer can submit strokes"));
+        return;
+      }
+      if (error instanceof Error && error.message === "Round is not in drawing phase") {
+        next(new HttpError(400, "Round is not in drawing phase"));
+        return;
+      }
+      next(error);
+    }
+  });
+
+  router.post("/:code/guess", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId, text } = guessSubmissionSchema.parse(request.body);
+      const result = submitGuess(code, participantId, text);
+
+      if (!result) {
+        throw new HttpError(404, "Unable to load room");
+      }
+
+      response.json({ correct: result.correct });
+    } catch (error) {
+      if (error instanceof Error && error.message === "The drawer cannot submit guesses") {
+        next(new HttpError(403, "The drawer cannot submit guesses"));
+        return;
+      }
+      if (error instanceof Error && error.message === "Game is not in the drawing phase") {
+        next(new HttpError(400, "Game is not in the drawing phase"));
+        return;
+      }
+      if (error instanceof Error && error.message === "You have already guessed correctly") {
+        next(new HttpError(400, "You have already guessed correctly"));
         return;
       }
       next(error);

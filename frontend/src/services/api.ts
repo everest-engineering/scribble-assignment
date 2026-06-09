@@ -2,6 +2,25 @@ export type ParticipantRole = "drawer" | "guesser";
 export type RoomStatus = "lobby" | "in-progress" | "finished";
 export type RoundPhase = "word-selection" | "drawing";
 
+export interface Point {
+  x: number;
+  y: number;
+}
+
+export interface Stroke {
+  points: Point[];
+  color: string;
+  width: number;
+}
+
+export interface Guess {
+  participantId: string;
+  participantName: string;
+  text: string;
+  isCorrect: boolean | null;
+  guessedAt: string;
+}
+
 export interface Participant {
   id: string;
   name: string;
@@ -19,6 +38,8 @@ export interface RoomSnapshot {
   secretWord: string | null;
   availableWords: string[];
   roles: ParticipantRole[];
+  strokes: Stroke[];
+  guesses: Guess[];
 }
 
 export interface RoomSessionResponse {
@@ -75,6 +96,18 @@ export const api = {
     return request<{ room: RoomSnapshot }>(`/rooms/${encodeURIComponent(code)}/select-word`, {
       method: "POST",
       body: JSON.stringify({ participantId, word })
+    });
+  },
+  addStroke(code: string, participantId: string, strokes: Stroke[]) {
+    return request<{ room: RoomSnapshot }>(`/rooms/${encodeURIComponent(code)}/strokes`, {
+      method: "POST",
+      body: JSON.stringify({ participantId, strokes })
+    });
+  },
+  submitGuess(code: string, participantId: string, text: string) {
+    return request<{ correct: boolean }>(`/rooms/${encodeURIComponent(code)}/guess`, {
+      method: "POST",
+      body: JSON.stringify({ participantId, text })
     });
   }
 };
