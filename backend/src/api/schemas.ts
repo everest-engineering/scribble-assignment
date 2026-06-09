@@ -29,6 +29,11 @@ export const startGameSchema = z.object({
   participantId: z.string().min(1, "Participant ID is required")
 });
 
+export const wordSelectionSchema = z.object({
+  participantId: z.string().min(1, "Participant ID is required"),
+  word: z.string().min(1, "Word is required")
+});
+
 export class HttpError extends Error {
   statusCode: number;
 
