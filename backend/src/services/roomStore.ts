@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import type { Participant, Room, RoomSnapshot } from "../models/game.js";
-import { STARTER_ROLES, STARTER_WORDS } from "../seed/starterData.js";
+import { STARTER_WORDS } from "../seed/starterData.js";
 
 const rooms = new Map<string, Room>();
 
@@ -46,10 +46,6 @@ function updateRoomStatus(room: Room, status: Room["status"]) {
   room.updatedAt = now();
 }
 
-export function listWords() {
-  return [...STARTER_WORDS];
-}
-
 export function createRoom(playerName: string) {
   const participant = createParticipant(playerName);
   const room: Room = {
@@ -57,6 +53,8 @@ export function createRoom(playerName: string) {
     status: "lobby",
     participants: [participant],
     hostId: participant.id,
+    drawerId: "",
+    secretWord: "",
     createdAt: now(),
     updatedAt: now()
   };
@@ -114,6 +112,8 @@ export function startGame(code: string, requesterId: string) {
     return { ok: false as const, status: 400 as const, message: "At least 2 players are required to start" };
   }
 
+  room.drawerId = room.hostId;
+  room.secretWord = STARTER_WORDS[0];
   updateRoomStatus(room, "playing");
 
   return {
@@ -123,14 +123,14 @@ export function startGame(code: string, requesterId: string) {
 }
 
 export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSnapshot {
-  void viewerParticipantId;
+  const isDrawer = room.drawerId !== "" && viewerParticipantId === room.drawerId;
 
   return {
     code: room.code,
     status: room.status,
     participants: room.participants.map((participant) => ({ ...participant })),
     hostId: room.hostId,
-    availableWords: listWords(),
-    roles: [...STARTER_ROLES]
+    drawerId: room.drawerId,
+    ...(isDrawer ? { secretWord: room.secretWord } : {})
   };
 }

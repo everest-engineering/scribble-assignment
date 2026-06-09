@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { createRoom, joinRoom, startGame } from "./roomStore.js";
+import { createRoom, joinRoom, startGame, toRoomSnapshot } from "./roomStore.js";
+import { STARTER_WORDS } from "../seed/starterData.js";
 
 function createRoomWithParticipants(count: number) {
   const host = createRoom("Host");
@@ -81,6 +82,26 @@ describe("roomStore", () => {
       }
     });
 
+    it("assigns the host as drawer", () => {
+      const host = createRoomWithParticipants(2);
+      const result = startGame(host.room.code, host.participantId);
+
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.room.drawerId).toBe(host.participantId);
+      }
+    });
+
+    it("selects the first starter word as secret word", () => {
+      const host = createRoomWithParticipants(2);
+      const result = startGame(host.room.code, host.participantId);
+
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.room.secretWord).toBe(STARTER_WORDS[0]);
+      }
+    });
+
     it("fails for non-host participant (403)", () => {
       const host = createRoom("Alice");
       const joiner = joinRoom(host.room.code, "Bob");
@@ -110,6 +131,65 @@ describe("roomStore", () => {
       if (!result.ok) {
         expect(result.status).toBe(404);
       }
+    });
+  });
+
+  describe("toRoomSnapshot", () => {
+    it("includes drawerId in snapshot", () => {
+      const host = createRoomWithParticipants(2);
+      const startResult = startGame(host.room.code, host.participantId);
+
+      expect(startResult.ok).toBe(true);
+      if (!startResult.ok) return;
+
+      const snapshot = toRoomSnapshot(startResult.room, host.participantId);
+
+      expect(snapshot.drawerId).toBe(host.participantId);
+    });
+
+    it("includes secretWord when viewer is the drawer", () => {
+      const host = createRoomWithParticipants(2);
+      const startResult = startGame(host.room.code, host.participantId);
+
+      expect(startResult.ok).toBe(true);
+      if (!startResult.ok) return;
+
+      const snapshot = toRoomSnapshot(startResult.room, host.participantId);
+
+      expect(snapshot.secretWord).toBe(STARTER_WORDS[0]);
+    });
+
+    it("omits secretWord when viewer is not the drawer", () => {
+      const host = createRoomWithParticipants(2);
+      const joiner = joinRoom(host.room.code, "Bob");
+      const startResult = startGame(host.room.code, host.participantId);
+
+      expect(startResult.ok).toBe(true);
+      if (!startResult.ok) return;
+
+      const snapshot = toRoomSnapshot(startResult.room, joiner!.participantId);
+
+      expect(snapshot.secretWord).toBeUndefined();
+    });
+
+    it("omits secretWord when viewerParticipantId is undefined", () => {
+      const host = createRoomWithParticipants(2);
+      const startResult = startGame(host.room.code, host.participantId);
+
+      expect(startResult.ok).toBe(true);
+      if (!startResult.ok) return;
+
+      const snapshot = toRoomSnapshot(startResult.room);
+
+      expect(snapshot.secretWord).toBeUndefined();
+    });
+
+    it("does not include availableWords or roles", () => {
+      const host = createRoom("Alice");
+      const snapshot = toRoomSnapshot(host.room, host.participantId);
+
+      expect(snapshot).not.toHaveProperty("availableWords");
+      expect(snapshot).not.toHaveProperty("roles");
     });
   });
 });

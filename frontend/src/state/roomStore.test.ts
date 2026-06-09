@@ -16,8 +16,7 @@ function makeMockRoom(overrides?: Partial<RoomSnapshot>): RoomSnapshot {
     status: "lobby",
     participants: [],
     hostId: "p1",
-    availableWords: [],
-    roles: [],
+    drawerId: "",
     ...overrides,
   };
 }

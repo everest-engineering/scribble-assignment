@@ -25,6 +25,12 @@ export function LobbyPage() {
     };
   }, [room, roomStore]);
 
+  useEffect(() => {
+    if (room?.status === "playing") {
+      navigate("/game");
+    }
+  }, [navigate, room?.status]);
+
   async function handleStartGame() {
     try {
       const response = await roomStore.startGame();

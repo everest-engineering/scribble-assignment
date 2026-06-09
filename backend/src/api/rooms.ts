@@ -80,7 +80,7 @@ export function createRoomsRouter() {
       }
 
       response.json({
-        room: toRoomSnapshot(result.room, result.room.participants[0].id)
+        room: toRoomSnapshot(result.room, participantId)
       });
     } catch (error) {
       next(error);
