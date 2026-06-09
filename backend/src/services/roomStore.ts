@@ -29,14 +29,10 @@ function generateUniqueCode() {
   return code;
 }
 
-function displayName(name?: string) {
-  return name || "Player";
-}
-
-function createParticipant(name?: string): Participant {
+function createParticipant(name: string): Participant {
   return {
     id: randomUUID(),
-    name: displayName(name),
+    name: name.trim(),
     joinedAt: now()
   };
 }
@@ -45,16 +41,22 @@ function cloneRoom(room: Room) {
   return structuredClone(room);
 }
 
+function updateRoomStatus(room: Room, status: Room["status"]) {
+  room.status = status;
+  room.updatedAt = now();
+}
+
 export function listWords() {
   return [...STARTER_WORDS];
 }
 
-export function createRoom(playerName?: string) {
+export function createRoom(playerName: string) {
   const participant = createParticipant(playerName);
   const room: Room = {
     code: generateUniqueCode(),
     status: "lobby",
     participants: [participant],
+    hostId: participant.id,
     createdAt: now(),
     updatedAt: now()
   };
@@ -67,8 +69,9 @@ export function createRoom(playerName?: string) {
   };
 }
 
-export function joinRoom(code: string, playerName?: string) {
-  const room = rooms.get(code);
+export function joinRoom(code: string, playerName: string) {
+  const trimmedCode = code.trim();
+  const room = rooms.get(trimmedCode);
 
   if (!room) {
     return null;
@@ -96,6 +99,29 @@ export function saveRoom(room: Room) {
   return getRoom(room.code);
 }
 
+export function startGame(code: string, requesterId: string) {
+  const room = rooms.get(code);
+
+  if (!room) {
+    return { ok: false as const, status: 404 as const, message: "Room not found" };
+  }
+
+  if (room.hostId !== requesterId) {
+    return { ok: false as const, status: 403 as const, message: "Only the host can start the game" };
+  }
+
+  if (room.participants.length < 2) {
+    return { ok: false as const, status: 400 as const, message: "At least 2 players are required to start" };
+  }
+
+  updateRoomStatus(room, "playing");
+
+  return {
+    ok: true as const,
+    room: cloneRoom(room)
+  };
+}
+
 export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSnapshot {
   void viewerParticipantId;
 
@@ -103,6 +129,7 @@ export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSn
     code: room.code,
     status: room.status,
     participants: room.participants.map((participant) => ({ ...participant })),
+    hostId: room.hostId,
     availableWords: listWords(),
     roles: [...STARTER_ROLES]
   };
