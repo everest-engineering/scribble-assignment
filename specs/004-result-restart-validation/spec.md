@@ -20,16 +20,16 @@ their next polling cycle (within 2 seconds).
 **Why this priority**: Ending the game is the trigger that causes all other result-screen
 behaviour. Without this action, no one can see the result screen.
 
-**Independent Test**: In a two-tab session (host + guesser), the host clicks "End Game".
-Within 2 seconds, both tabs show the Result screen. The guesser tab does not show the
-"End Game" button.
+**Independent Test**: In a two-tab session (host + non-host player), the host clicks "End
+Game". Within 2 seconds, both tabs show the Result screen. The non-host tab does not show
+the "End Game" button.
 
 **Acceptance Scenarios**:
 
 1. **Given** a room is in playing state and the current player is the host, **When** the
    host triggers the end-game action, **Then** the room state transitions to "result".
 1a. **Given** a room is in playing state, **When** a non-host player attempts to trigger
-   end-game, **Then** the system rejects the action with an appropriate error.
+   end-game, **Then** the system rejects the action with an error.
 2. **Given** the room is in result state, **When** any player's polling cycle completes,
    **Then** the player is navigated to the Result screen.
 3. **Given** the room is in result state, **When** the Result screen is displayed, **Then**
@@ -131,6 +131,10 @@ show correct data throughout.
   They see result state and are navigated to the Result screen on their next polling cycle.
 - What happens to scores after a restart? → Scores reset to zero for all participants;
   they are not carried across rounds.
+- What happens if a guesser submits a guess after the host has clicked "End Game" but
+  before their polling cycle detects the result state? → The guess endpoint guards
+  `status === "playing"` and rejects the submission with a 400 error since the room is
+  no longer in playing state. No guess is stored.
 
 ## Requirements *(mandatory)*
 
@@ -146,9 +150,11 @@ show correct data throughout.
 - **FR-003**: The end-game endpoint MUST reject requests for a non-existent room code.
 - **FR-004**: All clients polling the room MUST detect the "result" state and navigate to
   the Result screen without requiring any manual user action.
-- **FR-005**: The Result screen MUST display the secret word that was used in the round.
+- **FR-005**: The Result screen MUST display the secret word that was used in the round as
+  the first and visually largest text element on the screen (heading level).
 - **FR-006**: The Result screen MUST display the final score for every participant (player
-  name paired with their points total).
+  name paired with their points total); participants who submitted no guesses MUST be
+  shown with a score of 0.
 - **FR-007**: The Result screen MUST display the full guess history in submission order,
   including for each guess: the guesser's name, the guess text, and the points awarded.
 - **FR-008**: The system MUST expose a POST `/rooms/:code/restart` endpoint that transitions
@@ -157,7 +163,7 @@ show correct data throughout.
   and reject requests where `playerName` does not match the room's host (the first
   participant), returning an appropriate error.
 - **FR-009**: The restart endpoint MUST clear the secret word, drawer name, guess history,
-  and player scores from the room when transitioning to lobby.
+  player scores, and drawing strokes from the room when transitioning to lobby.
 - **FR-010**: The restart endpoint MUST preserve the participants list and each player's
   name when transitioning to lobby.
 - **FR-011**: The restart endpoint MUST reject requests when the room is not in "result"
