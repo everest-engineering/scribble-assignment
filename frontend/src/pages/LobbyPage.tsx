@@ -8,12 +8,12 @@ import { useRoomState, useRoomStore } from "../state/roomStore";
 export function LobbyPage() {
   const navigate = useNavigate();
   const roomStore = useRoomStore();
-  const { room, participantId, error, isLoading } = useRoomState();
+  const { room, participantId, error, isLoading, viewerIsHost: stateViewerIsHost } = useRoomState();
   const [refreshError, setRefreshError] = useState<string | null>(null);
   const [isRestoring, setIsRestoring] = useState(true);
 
   const viewerIsHost =
-    !!room && (room.viewerIsHost || room.hostParticipantId === participantId);
+    !!room && (stateViewerIsHost || room.viewerIsHost || room.hostParticipantId === participantId);
 
   useEffect(() => {
     let mounted = true;
@@ -43,6 +43,13 @@ export function LobbyPage() {
       navigate("/", { replace: true });
     }
   }, [navigate, room, isRestoring]);
+
+  // Redirect to game if room is already playing/result
+  useEffect(() => {
+    if (room && (room.status === "playing" || room.status === "result")) {
+      navigate("/game", { replace: true });
+    }
+  }, [navigate, room]);
 
   // Poll for room updates every 2 seconds while mounted
   useEffect(() => {
@@ -87,6 +94,26 @@ export function LobbyPage() {
           ? caughtError.message
           : "Unable to refresh room",
       );
+    }
+  }
+
+  async function handleStartGame() {
+    if (!viewerIsHost) {
+      setRefreshError("Only the host may start the game");
+      return;
+    }
+
+    if (!room || room.participants.length < 2) {
+      setRefreshError("At least 2 players required to start");
+      return;
+    }
+
+    try {
+      await roomStore.startGame();
+      navigate("/game");
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Failed to start game";
+      setRefreshError(msg);
     }
   }
 
@@ -139,7 +166,7 @@ export function LobbyPage() {
               color: isLoading ? "#b45309" : "#3730a3",
             }}
           >
-            {isLoading ? "Refreshing players..." : "Ready to play"}
+            {isLoading ? "Starting game..." : "Ready to play"}
           </p>
           <p style={{ marginTop: "8px" }}>
             {error ?? refreshError ?? "Waiting for the host to start the game."}
@@ -157,22 +184,10 @@ export function LobbyPage() {
         </button>
         <button
           className="button button--primary"
-          onClick={() => {
-            if (!viewerIsHost) {
-              setRefreshError("Only the host may start the game");
-              return;
-            }
-
-            if (room.participants.length < 2) {
-              setRefreshError("At least 2 players required to start");
-              return;
-            }
-
-            navigate("/game");
-          }}
-          disabled={!viewerIsHost || room.participants.length < 2}
+          onClick={handleStartGame}
+          disabled={!viewerIsHost || room.participants.length < 2 || isLoading}
         >
-          Start Game
+          {isLoading ? "Starting..." : "Start Game"}
         </button>
       </div>
     </section>

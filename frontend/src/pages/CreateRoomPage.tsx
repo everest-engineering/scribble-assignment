@@ -42,9 +42,11 @@ export function CreateRoomPage() {
             value={playerName}
             onChange={(event) => setPlayerName(event.target.value)}
             placeholder="Sketch captain"
+            aria-invalid={!!error || undefined}
+            aria-describedby={error ? "create-room-error" : undefined}
           />
         </label>
-        {error ? <p className="form__error" role="alert">{error}</p> : null}
+        {error ? <p id="create-room-error" className="form__error" role="alert" aria-live="assertive" aria-atomic="true">{error}</p> : null}
         <div className="button-row">
           <button className="button button--primary" type="submit">
             Create and Continue

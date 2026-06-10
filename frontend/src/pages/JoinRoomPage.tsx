@@ -54,6 +54,8 @@ export function JoinRoomPage() {
             value={playerName}
             onChange={(event) => setPlayerName(event.target.value)}
             placeholder="Second pencil"
+            aria-invalid={!!error || undefined}
+            aria-describedby={error ? "join-room-error" : undefined}
           />
         </label>
 
@@ -64,9 +66,11 @@ export function JoinRoomPage() {
             value={roomCode}
             onChange={(event) => setRoomCode(event.target.value.toUpperCase())}
             placeholder="ABCD"
+            aria-invalid={!!error || undefined}
+            aria-describedby={error ? "join-room-error" : undefined}
           />
         </label>
-        {error ? <p className="form__error" role="alert">{error}</p> : null}
+        {error ? <p id="join-room-error" className="form__error" role="alert" aria-live="assertive" aria-atomic="true">{error}</p> : null}
         <div className="button-row">
           <button className="button button--primary" type="submit">
             Join Lobby

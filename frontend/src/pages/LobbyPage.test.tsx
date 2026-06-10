@@ -4,7 +4,19 @@ import React from "react";
 import { RoomStoreProvider, useRoomStore } from "../state/roomStore";
 import { MemoryRouter } from "react-router-dom";
 import { LobbyPage } from "./LobbyPage";
-import { api } from "../services/api";
+
+function makeMockRoom(overrides: Record<string, unknown> = {}) {
+  return {
+    code: "TEST",
+    status: "lobby" as const,
+    participants: [] as Array<{ id: string; name: string; joinedAt: string }>,
+    availableWords: [] as string[],
+    roles: [] as Array<"drawer" | "guesser">,
+    hostParticipantId: "",
+    canvasState: { strokes: [] },
+    ...overrides,
+  };
+}
 
 function TestInit({ session }: { session: any }) {
   const store = useRoomStore();
@@ -39,37 +51,31 @@ describe("LobbyPage polling", () => {
 
     // first snapshot: single participant (host)
     const firstSnapshot = {
-      room: {
+      room: makeMockRoom({
         code: roomCode,
-        status: "lobby",
         participants: [
           { id: "p1", name: "Host", joinedAt: new Date().toISOString() },
         ],
-        availableWords: [],
-        roles: [],
         hostParticipantId: "p1",
         viewerIsHost: true,
-      },
+      }),
     };
 
     // second snapshot: two participants
     const secondSnapshot = {
-      room: {
+      room: makeMockRoom({
         code: roomCode,
-        status: "lobby",
         participants: [
           { id: "p1", name: "Host", joinedAt: new Date().toISOString() },
           { id: "p2", name: "Guest", joinedAt: new Date().toISOString() },
         ],
-        availableWords: [],
-        roles: [],
         hostParticipantId: "p1",
         viewerIsHost: true,
-      },
+      }),
     };
 
     // mock fetch responses for api.fetchRoom
-    const fetchMock = global.fetch as unknown as any;
+    const fetchMock = globalThis.fetch as unknown as any;
 
     fetchMock.mockResolvedValueOnce({
       ok: true,
@@ -104,22 +110,19 @@ describe("LobbyPage polling", () => {
     const roomCode = "HOST";
 
     const snapshot = {
-      room: {
+      room: makeMockRoom({
         code: roomCode,
-        status: "lobby",
         participants: [
           { id: "p1", name: "Host", joinedAt: new Date().toISOString() },
           { id: "p2", name: "Guest 1", joinedAt: new Date().toISOString() },
           { id: "p3", name: "Guest 2", joinedAt: new Date().toISOString() },
         ],
-        availableWords: [],
-        roles: [],
         hostParticipantId: "p1",
         viewerIsHost: false,
-      },
+      }),
     };
 
-    const fetchMock = global.fetch as unknown as any;
+    const fetchMock = globalThis.fetch as unknown as any;
     fetchMock.mockResolvedValueOnce({
       ok: true,
       json: () => Promise.resolve({ room: snapshot.room }),
