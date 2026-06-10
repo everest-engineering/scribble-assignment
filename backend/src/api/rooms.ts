@@ -1,12 +1,14 @@
 import { Router } from "express";
 import {
   createRoomSchema,
+  guessSchema,
   HttpError,
   joinRoomSchema,
   roomCodeParamsSchema,
-  roomViewerQuerySchema
+  roomViewerQuerySchema,
+  strokeSchema
 } from "./schemas.js";
-import { createRoom, getRoom, joinRoom, startGame, toRoomSnapshot } from "../services/roomStore.js";
+import { addStroke, clearStrokes, createRoom, getRoom, joinRoom, startGame, submitGuess, toRoomSnapshot } from "../services/roomStore.js";
 
 export function createRoomsRouter() {
   const router = Router();
@@ -52,6 +54,41 @@ export function createRoomsRouter() {
       response.json({
         room: toRoomSnapshot(room)
       });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/:code/guess", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { playerName, guess } = guessSchema.parse(request.body);
+      const result = submitGuess(code.toUpperCase(), playerName, guess);
+
+      response.json({ guess: result });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/:code/stroke", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { points } = strokeSchema.parse(request.body);
+      const strokes = addStroke(code.toUpperCase(), points);
+
+      response.json({ strokes });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/:code/clear", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const strokes = clearStrokes(code.toUpperCase());
+
+      response.json({ strokes });
     } catch (error) {
       next(error);
     }

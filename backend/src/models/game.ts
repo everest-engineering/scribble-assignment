@@ -8,6 +8,19 @@ export interface Participant {
   isHost: boolean;
 }
 
+export interface Point {
+  x: number;
+  y: number;
+}
+
+export interface Guess {
+  playerName: string;
+  text: string;
+  correct: boolean;
+  points: number;
+  submittedAt: string;
+}
+
 export interface Room {
   code: string;
   status: RoomStatus;
@@ -16,6 +29,9 @@ export interface Room {
   updatedAt: string;
   drawerName?: string;
   secretWord?: string;
+  guesses: Guess[];
+  scores: Record<string, number>;
+  strokes: Point[][];
 }
 
 export interface RoomSnapshot {
@@ -26,6 +42,9 @@ export interface RoomSnapshot {
   roles: ParticipantRole[];
   drawerName?: string;
   secretWord?: string;
+  guesses: Guess[];
+  scores: Record<string, number>;
+  strokes: Point[][];
 }
 
 export interface RoomSessionResponse {

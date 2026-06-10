@@ -18,7 +18,7 @@
 
 **Purpose**: Confirm starting state before making any changes
 
-- [ ] T001 Confirm both TypeScript builds pass on the current branch: run `npm run build` in `backend/` and `frontend/`; document any pre-existing errors before proceeding
+- [x] T001 Confirm both TypeScript builds pass on the current branch: run `npm run build` in `backend/` and `frontend/`; document any pre-existing errors before proceeding
 
 ---
 
@@ -28,13 +28,13 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete.
 
-- [ ] T002 [P] Add `Point` and `Guess` interfaces to `backend/src/models/game.ts` (see data-model.md for field definitions)
-- [ ] T003 [P] Add `Point` and `Guess` types to `frontend/src/services/api.ts`; extend the existing `RoomSnapshot` interface with `guesses: Guess[]`, `scores: Record<string, number>`, `strokes: Point[][]`
-- [ ] T004 Extend the `Room` interface in `backend/src/models/game.ts` with `guesses: Guess[]`, `scores: Record<string, number>`, `strokes: Point[][]` (depends on T002)
-- [ ] T005 Extend the `RoomSnapshot` interface in `backend/src/models/game.ts` with `guesses: Guess[]`, `scores: Record<string, number>`, `strokes: Point[][]` (depends on T004)
-- [ ] T006 [P] Add `guessSchema` (`{ playerName, guess }`) and `strokeSchema` (`{ points: [{x,y}] }`) to `backend/src/api/schemas.ts` (parallel with T004–T005; different file)
-- [ ] T007 Update `startGame` in `backend/src/services/roomStore.ts` to initialise `guesses: []`, `scores: {}`, `strokes: []` on the room before saving (depends on T004)
-- [ ] T008 Update `toRoomSnapshot` in `backend/src/services/roomStore.ts` to include `guesses`, `scores`, and `strokes` from the room in the returned snapshot (depends on T005, T007)
+- [x] T002 [P] Add `Point` and `Guess` interfaces to `backend/src/models/game.ts` (see data-model.md for field definitions)
+- [x] T003 [P] Add `Point` and `Guess` types to `frontend/src/services/api.ts`; extend the existing `RoomSnapshot` interface with `guesses: Guess[]`, `scores: Record<string, number>`, `strokes: Point[][]`
+- [x] T004 Extend the `Room` interface in `backend/src/models/game.ts` with `guesses: Guess[]`, `scores: Record<string, number>`, `strokes: Point[][]` (depends on T002)
+- [x] T005 Extend the `RoomSnapshot` interface in `backend/src/models/game.ts` with `guesses: Guess[]`, `scores: Record<string, number>`, `strokes: Point[][]` (depends on T004)
+- [x] T006 [P] Add `guessSchema` (`{ playerName, guess }`) and `strokeSchema` (`{ points: [{x,y}] }`) to `backend/src/api/schemas.ts` (parallel with T004–T005; different file)
+- [x] T007 Update `startGame` in `backend/src/services/roomStore.ts` to initialise `guesses: []`, `scores: {}`, `strokes: []` on the room before saving (depends on T004)
+- [x] T008 Update `toRoomSnapshot` in `backend/src/services/roomStore.ts` to include `guesses`, `scores`, and `strokes` from the room in the returned snapshot (depends on T005, T007)
 
 **Checkpoint**: Both builds must pass with no type errors before proceeding to user story phases.
 
@@ -46,12 +46,12 @@
 
 **Independent Test**: Open the Game screen as the drawer. Press and drag the mouse on the canvas; a freehand line appears. Release and drag again; a new stroke begins. Click "Clear"; all lines disappear. Verify `POST /rooms/:code/stroke` is called after each `mouseup` and `POST /rooms/:code/clear` is called on "Clear" click.
 
-- [ ] T009 [P] [US1] Add `addStroke(code: string, points: Point[])` and `clearStrokes(code: string)` service functions to `backend/src/services/roomStore.ts`; `addStroke` appends to `room.strokes`, `clearStrokes` resets `room.strokes` to `[]`; both reject with `HttpError(404)` if room not found and `HttpError(400)` if room is not in `"playing"` state
-- [ ] T010 [P] [US1] Create `frontend/src/components/DrawingCanvas.tsx`: a `<canvas>` element that handles `mousedown`/`mousemove`/`mouseup` events for freehand drawing, calls `onStrokeComplete(points: Point[])` on `mouseup`, accepts `strokes: Point[][]` prop to redraw the canvas from a server-provided stroke list, and exposes a `readOnly` prop that disables mouse event handling for guessers
-- [ ] T011 [US1] Add `POST /:code/stroke` and `POST /:code/clear` routes to `backend/src/api/rooms.ts`, using `strokeSchema` (from T006) and the `addStroke`/`clearStrokes` service functions (from T009) respectively (depends on T009, T006)
-- [ ] T012 [P] [US1] Add `api.addStroke(code: string, points: Point[])` and `api.clearStrokes(code: string)` to `frontend/src/services/api.ts` (parallel with T009–T011; different file; depends on T003 for types)
-- [ ] T013 [US1] Add `addStroke(points: Point[])` and `clearStrokes()` action methods to `frontend/src/state/roomStore.ts`; each method reads `this.state.room.code` and delegates to `api.addStroke` / `api.clearStrokes` (depends on T012)
-- [ ] T014 [US1] In `frontend/src/pages/GamePage.tsx`, replace the `canvas-placeholder` div with `<DrawingCanvas>`; wire `onStrokeComplete` to `store.addStroke()` and `onClear` to `store.clearStrokes()`; add a "Clear" button below the canvas; compute `isDrawer = viewer?.name === room.drawerName` to pass `readOnly={!isDrawer}` and show the "Clear" button only when `isDrawer` (depends on T010, T013)
+- [x] T009 [P] [US1] Add `addStroke(code: string, points: Point[])` and `clearStrokes(code: string)` service functions to `backend/src/services/roomStore.ts`; `addStroke` appends to `room.strokes`, `clearStrokes` resets `room.strokes` to `[]`; both reject with `HttpError(404)` if room not found and `HttpError(400)` if room is not in `"playing"` state
+- [x] T010 [P] [US1] Create `frontend/src/components/DrawingCanvas.tsx`: a `<canvas>` element that handles `mousedown`/`mousemove`/`mouseup` events for freehand drawing, calls `onStrokeComplete(points: Point[])` on `mouseup`, accepts `strokes: Point[][]` prop to redraw the canvas from a server-provided stroke list, and exposes a `readOnly` prop that disables mouse event handling for guessers
+- [x] T011 [US1] Add `POST /:code/stroke` and `POST /:code/clear` routes to `backend/src/api/rooms.ts`, using `strokeSchema` (from T006) and the `addStroke`/`clearStrokes` service functions (from T009) respectively (depends on T009, T006)
+- [x] T012 [P] [US1] Add `api.addStroke(code: string, points: Point[])` and `api.clearStrokes(code: string)` to `frontend/src/services/api.ts` (parallel with T009–T011; different file; depends on T003 for types)
+- [x] T013 [US1] Add `addStroke(points: Point[])` and `clearStrokes()` action methods to `frontend/src/state/roomStore.ts`; each method reads `this.state.room.code` and delegates to `api.addStroke` / `api.clearStrokes` (depends on T012)
+- [x] T014 [US1] In `frontend/src/pages/GamePage.tsx`, replace the `canvas-placeholder` div with `<DrawingCanvas>`; wire `onStrokeComplete` to `store.addStroke()` and `onClear` to `store.clearStrokes()`; add a "Clear" button below the canvas; compute `isDrawer = viewer?.name === room.drawerName` to pass `readOnly={!isDrawer}` and show the "Clear" button only when `isDrawer` (depends on T010, T013)
 
 **Checkpoint**: Drawer draws and clears; network calls visible in DevTools; both builds pass.
 
@@ -63,11 +63,11 @@
 
 **Independent Test**: In a two-tab session, the guesser types "Rocket" and submits; the API returns `{ guess: { correct: true, points: 100 } }`. Submitting whitespace returns HTTP 400. Submitting "pizza" returns `{ guess: { correct: false, points: 0 } }`.
 
-- [ ] T015 [US2] Add `submitGuess(code: string, playerName: string, guess: string)` to `backend/src/services/roomStore.ts`: trim the guess, reject with `HttpError(400, "Guess cannot be empty")` if blank, compare trimmed guess case-insensitively to `room.secretWord`, compute `correct` and `points` (100 / 0), create a `Guess` record with fields `{ playerName, text: trimmedGuess, correct, points, submittedAt: new Date().toISOString() }`, append to `room.guesses`, update `room.scores[playerName]`, and save the room (depends on T004, T007)
-- [ ] T016 [US2] Add `POST /:code/guess` route to `backend/src/api/rooms.ts` using `guessSchema` (from T006) and `submitGuess` (from T015); respond with `{ guess: Guess }` (depends on T015, T006)
-- [ ] T017 [P] [US2] Add `api.submitGuess(code: string, playerName: string, guess: string)` returning `{ guess: Guess }` to `frontend/src/services/api.ts` (parallel with T015–T016; different file; depends on T003)
-- [ ] T018 [US2] Add `submitGuess(playerName: string, guess: string)` action to `frontend/src/state/roomStore.ts`; delegates to `api.submitGuess` using `this.state.room.code` (depends on T017)
-- [ ] T019 [US2] Update `frontend/src/components/GuessForm.tsx` to accept an `onSubmit(guess: string): void` prop and call it on form submit with the current input value (clearing the field afterwards); in `frontend/src/pages/GamePage.tsx`, render `<GuessForm>` only when `!isDrawer` and pass `onSubmit={(guess) => store.submitGuess(viewer!.name, guess)}` (depends on T014 for `isDrawer`, T018)
+- [x] T015 [US2] Add `submitGuess(code: string, playerName: string, guess: string)` to `backend/src/services/roomStore.ts`: trim the guess, reject with `HttpError(400, "Guess cannot be empty")` if blank, compare trimmed guess case-insensitively to `room.secretWord`, compute `correct` and `points` (100 / 0), create a `Guess` record with fields `{ playerName, text: trimmedGuess, correct, points, submittedAt: new Date().toISOString() }`, append to `room.guesses`, update `room.scores[playerName]`, and save the room (depends on T004, T007)
+- [x] T016 [US2] Add `POST /:code/guess` route to `backend/src/api/rooms.ts` using `guessSchema` (from T006) and `submitGuess` (from T015); respond with `{ guess: Guess }` (depends on T015, T006)
+- [x] T017 [P] [US2] Add `api.submitGuess(code: string, playerName: string, guess: string)` returning `{ guess: Guess }` to `frontend/src/services/api.ts` (parallel with T015–T016; different file; depends on T003)
+- [x] T018 [US2] Add `submitGuess(playerName: string, guess: string)` action to `frontend/src/state/roomStore.ts`; delegates to `api.submitGuess` using `this.state.room.code` (depends on T017)
+- [x] T019 [US2] Update `frontend/src/components/GuessForm.tsx` to accept an `onSubmit(guess: string): void` prop and call it on form submit with the current input value (clearing the field afterwards); in `frontend/src/pages/GamePage.tsx`, render `<GuessForm>` only when `!isDrawer` and pass `onSubmit={(guess) => store.submitGuess(viewer!.name, guess)}` (depends on T014 for `isDrawer`, T018)
 
 **Checkpoint**: Guesser submits guesses; correct/incorrect scoring verified in DevTools; empty guess rejected; both builds pass.
 
@@ -79,10 +79,10 @@
 
 **Independent Test**: Drawer draws a line — within 2 seconds the guesser's canvas shows it. Guesser submits a correct guess — within 2 seconds both tabs show the updated score and guess history entry.
 
-- [ ] T020 [US3] In `frontend/src/pages/GamePage.tsx`, add a `useEffect` that calls `store.pollRoom()` on a 2-second `setInterval` and clears the interval on unmount; verify subsequent renders receive updated `room.guesses`, `room.scores`, and `room.strokes` from the store (depends on T014, T019)
-- [ ] T021 [P] [US3] Update `frontend/src/components/Scoreboard.tsx` to accept `scores: Record<string, number>` and `participants: Participant[]` props; render one row per participant showing their name and current score (0 if absent from scores); pass `room.scores` and `room.participants` from `GamePage.tsx` (parallel with T022; different component file; depends on T003)
-- [ ] T022 [US3] Add a guess history section to `frontend/src/pages/GamePage.tsx` that renders `room.guesses` in submission order, showing guesser name, guess text, and points for each entry; render an empty state message when `room.guesses` is empty; also pass `room.scores` and `room.participants` as props to `<Scoreboard>` so live scores are displayed (depends on T020, T021; same file — do after T020)
-- [ ] T023 [US3] In `frontend/src/pages/GamePage.tsx`, pass `room.strokes` as the `strokes` prop to the guesser's `<DrawingCanvas readOnly>` so the canvas redraws from the latest server stroke list on each polling cycle (depends on T020, T010; same file — do after T022)
+- [x] T020 [US3] In `frontend/src/pages/GamePage.tsx`, add a `useEffect` that calls `store.pollRoom()` on a 2-second `setInterval` and clears the interval on unmount; verify subsequent renders receive updated `room.guesses`, `room.scores`, and `room.strokes` from the store (depends on T014, T019)
+- [x] T021 [P] [US3] Update `frontend/src/components/Scoreboard.tsx` to accept `scores: Record<string, number>` and `participants: Participant[]` props; render one row per participant showing their name and current score (0 if absent from scores); pass `room.scores` and `room.participants` from `GamePage.tsx` (parallel with T022; different component file; depends on T003)
+- [x] T022 [US3] Add a guess history section to `frontend/src/pages/GamePage.tsx` that renders `room.guesses` in submission order, showing guesser name, guess text, and points for each entry; render an empty state message when `room.guesses` is empty; also pass `room.scores` and `room.participants` as props to `<Scoreboard>` so live scores are displayed (depends on T020, T021; same file — do after T020)
+- [x] T023 [US3] In `frontend/src/pages/GamePage.tsx`, pass `room.strokes` as the `strokes` prop to the guesser's `<DrawingCanvas readOnly>` so the canvas redraws from the latest server stroke list on each polling cycle (depends on T020, T010; same file — do after T022)
 
 **Checkpoint**: All four polling-sync scenarios in quickstart.md pass in two browser tabs; both builds pass.
 
@@ -94,7 +94,7 @@
 
 **Independent Test**: Open two tabs after game start. Tab A (drawer): canvas interactive, "Clear" visible, secret word visible, no guess input. Tab B (guesser): canvas read-only (drawing disabled), guess input visible, no secret word.
 
-- [ ] T024 [US4] In `frontend/src/pages/GamePage.tsx`, verify all role gates are in place: `isDrawer = viewer?.name === room.drawerName`; "Clear" button only when `isDrawer`; `DrawingCanvas readOnly={!isDrawer}`; `GuessForm` only when `!isDrawer`; secret word display in the Player Info card only when `room.secretWord` is present (server already omits it for guessers — no additional client guard needed); cross-check all four acceptance scenarios from US4 in quickstart.md (depends on T020, T021, T022, T023)
+- [x] T024 [US4] In `frontend/src/pages/GamePage.tsx`, verify all role gates are in place: `isDrawer = viewer?.name === room.drawerName`; "Clear" button only when `isDrawer`; `DrawingCanvas readOnly={!isDrawer}`; `GuessForm` only when `!isDrawer`; secret word display in the Player Info card only when `room.secretWord` is present (server already omits it for guessers — no additional client guard needed); cross-check all four acceptance scenarios from US4 in quickstart.md (depends on T020, T021, T022, T023)
 
 **Checkpoint**: quickstart.md Scenario 6 passes; both builds pass.
 
@@ -102,9 +102,9 @@
 
 ## Phase 7: Polish & Cross-Cutting Concerns
 
-- [ ] T025 [P] Run `npm run build` in both `backend/` and `frontend/`; confirm zero TypeScript errors and no uses of `any` without documented justification
-- [ ] T026 [P] Run all seven validation scenarios from `specs/003-gameplay-interaction/quickstart.md` in two browser tabs and confirm all pass
-- [ ] T027 Review all new and modified files for out-of-scope additions (no new npm top-level dependencies, no WebSockets, no authentication, no persistence); confirm each commit maps to a task ID
+- [x] T025 [P] Run `npm run build` in both `backend/` and `frontend/`; confirm zero TypeScript errors and no uses of `any` without documented justification
+- [x] T026 [P] Run all seven validation scenarios from `specs/003-gameplay-interaction/quickstart.md` in two browser tabs and confirm all pass
+- [x] T027 Review all new and modified files for out-of-scope additions (no new npm top-level dependencies, no WebSockets, no authentication, no persistence); confirm each commit maps to a task ID
 
 ---
 

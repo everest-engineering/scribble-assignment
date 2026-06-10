@@ -1,14 +1,17 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card } from "../components/Card";
+import { DrawingCanvas } from "../components/DrawingCanvas";
 import { GuessForm } from "../components/GuessForm";
 import { ResultPanel } from "../components/ResultPanel";
 import { RoomCodeBadge } from "../components/RoomCodeBadge";
 import { Scoreboard } from "../components/Scoreboard";
-import { useRoomState } from "../state/roomStore";
+import { useRoomState, useRoomStore } from "../state/roomStore";
+import type { Point } from "../services/api";
 
 export function GamePage() {
   const navigate = useNavigate();
+  const store = useRoomStore();
   const { room, participantId } = useRoomState();
 
   useEffect(() => {
@@ -17,11 +20,37 @@ export function GamePage() {
     }
   }, [navigate, room]);
 
+  // 2-second polling for guess history, scores, and canvas strokes (T020)
+  useEffect(() => {
+    if (!room) return;
+
+    const interval = setInterval(() => {
+      store.pollRoom();
+    }, 2000);
+
+    return () => clearInterval(interval);
+  }, [store, room?.code]);
+
   if (!room) {
     return null;
   }
 
   const viewer = room.participants.find((participant) => participant.id === participantId) ?? null;
+  const isDrawer = viewer?.name === room.drawerName;
+
+  function handleStrokeComplete(points: Point[]) {
+    store.addStroke(points);
+  }
+
+  function handleClear() {
+    store.clearStrokes();
+  }
+
+  function handleGuessSubmit(guess: string) {
+    if (viewer) {
+      store.submitGuess(viewer.name, guess);
+    }
+  }
 
   return (
     <section className="panel game-page">
@@ -35,15 +64,24 @@ export function GamePage() {
 
       <div className="game-page__layout">
         <aside className="game-page__sidebar game-page__sidebar--left">
-          <Scoreboard />
+          <Scoreboard scores={room.scores} participants={room.participants} />
           <ResultPanel />
         </aside>
 
         <div className="game-page__main">
           <Card title="Canvas">
-            <div className="canvas-placeholder" style={{ minHeight: '500px', backgroundColor: '#ffffff', border: '1px solid #e5e7eb' }}>
-              Waiting for drawer...
-            </div>
+            <DrawingCanvas
+              strokes={room.strokes}
+              readOnly={!isDrawer}
+              onStrokeComplete={isDrawer ? handleStrokeComplete : undefined}
+            />
+            {isDrawer && (
+              <div className="button-row button-row--compact">
+                <button className="button button--secondary" onClick={handleClear}>
+                  Clear
+                </button>
+              </div>
+            )}
           </Card>
         </div>
 
@@ -56,7 +94,7 @@ export function GamePage() {
               </div>
               <div>
                 <dt>Status</dt>
-                <dd>Playing</dd>
+                <dd>{isDrawer ? "Drawing" : "Guessing"}</dd>
               </div>
               {room.secretWord && (
                 <div>
@@ -67,8 +105,26 @@ export function GamePage() {
             </dl>
           </Card>
 
-          <Card title="Your Guess">
-            <GuessForm />
+          {!isDrawer && (
+            <Card title="Your Guess">
+              <GuessForm onSubmit={handleGuessSubmit} />
+            </Card>
+          )}
+
+          <Card title="Guess History">
+            {room.guesses.length === 0 ? (
+              <p className="placeholder-block">No guesses yet...</p>
+            ) : (
+              <ul className="detail-list">
+                {room.guesses.map((guess, index) => (
+                  <li key={index}>
+                    <span>{guess.playerName}: </span>
+                    <span>{guess.text}</span>
+                    <strong> ({guess.points} pts)</strong>
+                  </li>
+                ))}
+              </ul>
+            )}
           </Card>
         </aside>
       </div>

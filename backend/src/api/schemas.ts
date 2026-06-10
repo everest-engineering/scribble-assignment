@@ -16,6 +16,15 @@ export const roomViewerQuerySchema = z.object({
   participantId: z.string().optional()
 });
 
+export const guessSchema = z.object({
+  playerName: z.string().trim().min(1, "Player name is required"),
+  guess: z.string()
+});
+
+export const strokeSchema = z.object({
+  points: z.array(z.object({ x: z.number(), y: z.number() })).min(1, "At least one point is required")
+});
+
 export class HttpError extends Error {
   statusCode: number;
 

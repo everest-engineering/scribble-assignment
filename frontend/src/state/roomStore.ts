@@ -7,7 +7,7 @@ import {
   useSyncExternalStore,
   type PropsWithChildren
 } from "react";
-import { api, type RoomSessionResponse, type RoomSnapshot } from "../services/api";
+import { api, type Point, type RoomSessionResponse, type RoomSnapshot } from "../services/api";
 
 export interface RoomState {
   room: RoomSnapshot | null;
@@ -129,6 +129,30 @@ class RoomStore {
       this.setState({ error: message });
       return null;
     }
+  }
+
+  async submitGuess(playerName: string, guess: string) {
+    if (!this.state.room) {
+      throw new Error("No active room");
+    }
+
+    return this.withLoading(() => api.submitGuess(this.state.room!.code, playerName, guess));
+  }
+
+  async addStroke(points: Point[]) {
+    if (!this.state.room) {
+      throw new Error("No active room");
+    }
+
+    return api.addStroke(this.state.room.code, points);
+  }
+
+  async clearStrokes() {
+    if (!this.state.room) {
+      throw new Error("No active room");
+    }
+
+    return api.clearStrokes(this.state.room.code);
   }
 }
 
