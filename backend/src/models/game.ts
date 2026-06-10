@@ -1,5 +1,12 @@
 export type ParticipantRole = "drawer" | "guesser";
-export type RoomStatus = "lobby";
+export type RoomStatus = "lobby" | "active" | "completed";
+
+export interface Guess {
+  participantId: string;
+  text: string;
+  isCorrect: boolean;
+  submittedAt: string;
+}
 
 export interface Participant {
   id: string;
@@ -10,7 +17,12 @@ export interface Participant {
 export interface Room {
   code: string;
   status: RoomStatus;
+  hostId: string;
+  drawerId: string | null;
+  secretWord: string | null;
   participants: Participant[];
+  scores: Record<string, number>;
+  guesses: Guess[];
   createdAt: string;
   updatedAt: string;
 }
@@ -18,9 +30,14 @@ export interface Room {
 export interface RoomSnapshot {
   code: string;
   status: RoomStatus;
+  hostId: string;
+  drawerId: string | null;
+  secretWord: string | null;
   participants: Participant[];
   availableWords: string[];
   roles: ParticipantRole[];
+  scores: Record<string, number>;
+  guesses: Guess[];
 }
 
 export interface RoomSessionResponse {
