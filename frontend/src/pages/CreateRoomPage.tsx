@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { PageHeader } from "../components/PageHeader";
-import { useRoomStore } from "../state/roomStore";
+import { useRoomStore, useRoomState } from "../state/roomStore";
 
 export function CreateRoomPage() {
   const [playerName, setPlayerName] = useState("");
@@ -20,6 +20,8 @@ export function CreateRoomPage() {
       setError(caughtError instanceof Error ? caughtError.message : "Unable to create room");
     }
   }
+
+  const { isLoading } = useRoomState();
 
   return (
     <section className="panel panel--narrow placeholder-page">
@@ -40,8 +42,8 @@ export function CreateRoomPage() {
         </label>
         {error ? <p className="form__error">{error}</p> : null}
         <div className="button-row">
-          <button className="button button--primary" type="submit">
-            Create and Continue
+          <button className="button button--primary" type="submit" disabled={isLoading}>
+            {isLoading ? "Creating Room..." : "Create and Continue"}
           </button>
           <button className="button button--secondary" type="button" onClick={() => navigate("/")}>
             Back

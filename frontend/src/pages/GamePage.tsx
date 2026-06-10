@@ -1,15 +1,21 @@
-import { useEffect } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card } from "../components/Card";
+import { DrawingCanvas } from "../components/DrawingCanvas";
 import { GuessForm } from "../components/GuessForm";
 import { ResultPanel } from "../components/ResultPanel";
 import { RoomCodeBadge } from "../components/RoomCodeBadge";
 import { Scoreboard } from "../components/Scoreboard";
-import { useRoomState } from "../state/roomStore";
+import { useRoomState, useRoomStore } from "../state/roomStore";
+import type { CanvasActionSubmission } from "../services/api";
+
+const POLL_INTERVAL_MS = 2000;
 
 export function GamePage() {
   const navigate = useNavigate();
+  const roomStore = useRoomStore();
   const { room, participantId } = useRoomState();
+  const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
     if (!room) {
@@ -17,11 +23,67 @@ export function GamePage() {
     }
   }, [navigate, room]);
 
+  const doPoll = useCallback(async () => {
+    try {
+      const updatedRoom = await roomStore.fetchRoom();
+      if (updatedRoom) {
+        if (updatedRoom.status === "results") {
+          navigate("/results");
+        } else if (updatedRoom.status !== "playing") {
+          navigate("/lobby");
+        }
+      }
+    } catch {
+      // polling error — continue silently
+    }
+  }, [navigate, roomStore]);
+
+  useEffect(() => {
+    doPoll();
+    pollingRef.current = setInterval(doPoll, POLL_INTERVAL_MS);
+    return () => {
+      if (pollingRef.current) {
+        clearInterval(pollingRef.current);
+      }
+    };
+  }, [doPoll]);
+
   if (!room) {
     return null;
   }
 
+  const drawer = room.participants.find((p) => p.id === room.drawerId) ?? null;
   const viewer = room.participants.find((participant) => participant.id === participantId) ?? null;
+  const isDrawer = participantId === room.drawerId;
+
+  const handleStrokeComplete = useCallback(
+    async (action: CanvasActionSubmission) => {
+      try {
+        await roomStore.submitCanvasAction(action);
+      } catch {
+        // stroke submit failed silently
+      }
+    },
+    [roomStore]
+  );
+
+  const handleClear = useCallback(async () => {
+    try {
+      await roomStore.submitCanvasAction({ type: "clear" });
+    } catch {
+      // clear submit failed silently
+    }
+  }, [roomStore]);
+
+  const handleSubmitGuess = useCallback(
+    async (text: string) => {
+      const result = await roomStore.submitGuess(text);
+      if (!result.correct) {
+        throw new Error("Incorrect guess");
+      }
+    },
+    [roomStore]
+  );
 
   return (
     <section className="panel game-page">
@@ -35,15 +97,18 @@ export function GamePage() {
 
       <div className="game-page__layout">
         <aside className="game-page__sidebar game-page__sidebar--left">
-          <Scoreboard />
-          <ResultPanel />
+          <Scoreboard participants={room.participants} scores={room.scores} drawerId={room.drawerId} />
+          <ResultPanel guessHistory={room.guessHistory} participants={room.participants} />
         </aside>
 
         <div className="game-page__main">
-          <Card title="Canvas">
-            <div className="canvas-placeholder" style={{ minHeight: '500px', backgroundColor: '#ffffff', border: '1px solid #e5e7eb' }}>
-              Waiting for drawer...
-            </div>
+          <Card title={isDrawer ? `Draw: ${room.secretWord}` : "Canvas"}>
+            <DrawingCanvas
+              isDrawer={isDrawer}
+              canvasActions={room.canvasActions}
+              onStrokeComplete={handleStrokeComplete}
+              onClear={handleClear}
+            />
           </Card>
         </div>
 
@@ -58,14 +123,28 @@ export function GamePage() {
                 <dt>Status</dt>
                 <dd>Playing</dd>
               </div>
+              <div>
+                <dt>Drawer</dt>
+                <dd>{drawer?.name ?? "Unknown"}</dd>
+              </div>
             </dl>
           </Card>
 
-          <Card title="Your Guess">
-            <GuessForm />
+          <Card title={isDrawer ? "Your Word" : "Your Guess"}>
+            {isDrawer ? (
+              <p className="secret-word">{room.secretWord}</p>
+            ) : (
+              <GuessForm onSubmitGuess={handleSubmitGuess} />
+            )}
           </Card>
         </aside>
       </div>
+
+      {room.roundOver && (
+        <div className="round-over-banner">
+          <p>The round is over! All guessers have guessed correctly.</p>
+        </div>
+      )}
 
       <div className="button-row">
         <button className="button button--secondary" onClick={() => navigate("/lobby")}>
