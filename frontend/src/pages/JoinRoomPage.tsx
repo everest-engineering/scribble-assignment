@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { PageHeader } from "../components/PageHeader";
-import { useRoomStore } from "../state/roomStore";
+import { useRoomStore, useRoomState } from "../state/roomStore";
 
 export function JoinRoomPage() {
   const [playerName, setPlayerName] = useState("");
@@ -13,14 +13,33 @@ export function JoinRoomPage() {
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
+    if (!roomCode.trim()) {
+      setError("Room code is required");
+      return;
+    }
+
+    if (roomCode.length !== 4 || !/^[A-Z0-9]+$/.test(roomCode)) {
+      setError("Room code must be 4 characters");
+      return;
+    }
+
     try {
       setError(null);
       await roomStore.joinRoom(roomCode.toUpperCase(), playerName);
       navigate("/lobby");
     } catch (caughtError) {
-      setError(caughtError instanceof Error ? caughtError.message : "Unable to join room");
+      const message = caughtError instanceof Error ? caughtError.message : "Unable to join room";
+      if (message.includes("already taken")) {
+        setError("That name is taken, please choose another");
+      } else if (message.includes("Room not found")) {
+        setError("Room not found — check the code and try again");
+      } else {
+        setError(message);
+      }
     }
   }
+
+  const { isLoading } = useRoomState();
 
   return (
     <section className="panel panel--narrow placeholder-page">
@@ -51,8 +70,8 @@ export function JoinRoomPage() {
         </label>
         {error ? <p className="form__error">{error}</p> : null}
         <div className="button-row">
-          <button className="button button--primary" type="submit">
-            Join Lobby
+          <button className="button button--primary" type="submit" disabled={isLoading}>
+            {isLoading ? "Joining..." : "Join Lobby"}
           </button>
           <button className="button button--secondary" type="button" onClick={() => navigate("/")}>
             Back

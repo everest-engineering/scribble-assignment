@@ -9,7 +9,11 @@ export const joinRoomSchema = z.object({
 });
 
 export const roomCodeParamsSchema = z.object({
-  code: z.string()
+  code: z.string().length(4).regex(/^[A-Z0-9]+$/)
+});
+
+export const startGameSchema = z.object({
+  participantId: z.string()
 });
 
 export const roomViewerQuerySchema = z.object({
