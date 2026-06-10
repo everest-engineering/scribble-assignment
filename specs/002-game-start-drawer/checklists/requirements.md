@@ -32,3 +32,4 @@
 ## Notes
 
 - All items passed on first validation iteration. No clarifications required — all requirements were fully specified in the feature description and constitution. Spec is ready for `/speckit-plan`.
+- Clarification session 2026-06-10: 2 questions answered (frontend navigation behaviour; secret word display on GamePage). FR-011, FR-012, FR-013 added; US1 and US2 acceptance scenarios extended. All 16 items remain passing.

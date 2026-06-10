@@ -16,16 +16,19 @@ The host is in the lobby with at least 2 players present. The host clicks "Start
 Game". The system validates that every participant's name is non-empty after
 trimming, transitions the room from the waiting lobby to the active playing
 state, assigns the first participant (by join order) as the drawer, and selects
-the first word in the fixed word list as the secret word. The host sees the game
-transition succeed and is taken to (or can observe) the playing state.
+the first word in the fixed word list as the secret word. On API success the
+host is immediately navigated to the Game screen. Non-host players detect the
+status change via their 2-second polling loop and are automatically navigated to
+the Game screen without any manual action.
 
 **Why this priority**: Game start is the gateway to all gameplay. Without it,
 no game-state screen, no drawer assignment, and no secret-word flow can be
 tested.
 
 **Independent Test**: With two browser tabs (host + one guest) both in the
-lobby, the host clicks "Start Game" and the room status changes to playing in
-both tabs within a 2-second polling cycle.
+lobby, the host clicks "Start Game"; Tab A (host) navigates immediately to the
+Game screen, and Tab B (guest) navigates automatically within the next 2-second
+polling cycle.
 
 **Acceptance Scenarios**:
 
@@ -40,6 +43,12 @@ both tabs within a 2-second polling cycle.
 4. **Given** a room already in "playing" state, **When** any player attempts to
    start the game again, **Then** the system rejects the request and the room
    state is unchanged.
+5. **Given** the host clicks "Start Game" and the API call succeeds, **When** the
+   success response is received, **Then** the host is immediately navigated to
+   the Game screen (no polling wait).
+6. **Given** the room transitions to "playing" state, **When** a non-host
+   player's polling response includes `status: "playing"`, **Then** that player
+   is automatically navigated to the Game screen.
 
 ---
 
@@ -47,14 +56,17 @@ both tabs within a 2-second polling cycle.
 
 After the game starts, the player whose name matches the drawer name requests
 the current room state. The response includes the secret word so the drawer
-knows what to draw.
+knows what to draw. The Game screen displays the secret word visibly to the
+drawer and hides it entirely from all other players.
 
 **Why this priority**: The drawer must know the secret word to participate. This
-is the core information asymmetry that makes the game work.
+is the core information asymmetry that makes the game work, and the GamePage
+must surface it so the feature is verifiable in-browser without inspecting
+network responses.
 
-**Independent Test**: After game start, the drawer's polling response contains
-`secretWord: "rocket"`. A second polling request from the same drawer also
-returns the secret word consistently.
+**Independent Test**: After game start, the drawer's Game screen shows the text
+"rocket". A second browser tab for a non-drawer player shows no secret word on
+their Game screen.
 
 **Acceptance Scenarios**:
 
@@ -64,6 +76,11 @@ returns the secret word consistently.
 2. **Given** the game is in playing state, **When** the drawer requests the room
    state multiple times, **Then** each response consistently includes the same
    secret word.
+3. **Given** the game is in playing state, **When** the drawer views the Game
+   screen, **Then** the secret word ("rocket") is displayed visibly on their
+   screen.
+4. **Given** the game is in playing state, **When** a non-drawer player views the
+   Game screen, **Then** no secret word is displayed on their screen.
 
 ---
 
@@ -152,6 +169,12 @@ endpoint rejects it and the room status remains "lobby".
   response MUST NOT include the secret word.
 - **FR-010**: The system MUST identify the requesting player by name to determine
   whether to include the secret word in the response.
+- **FR-011**: On a successful game-start API response, the host's frontend MUST
+  immediately navigate to the Game screen without waiting for a polling cycle.
+- **FR-012**: When the frontend detects `status: "playing"` in any polling
+  response, non-host players MUST be automatically navigated to the Game screen.
+- **FR-013**: The Game screen MUST display the secret word to the drawer and MUST
+  NOT display it to any other player.
 
 ### Key Entities
 
@@ -203,3 +226,10 @@ endpoint rejects it and the room status remains "lobby".
   necessary.
 - The room code in the start request uniquely identifies the room; code
   collisions are not possible within the in-memory store.
+
+## Clarifications
+
+### Session 2026-06-10
+
+- Q: How does the frontend navigate players to the Game screen after game start? → A: Host navigates immediately on API success; non-hosts auto-navigate via polling when `status === "playing"` is detected.
+- Q: Should the GamePage display the secret word to the drawer? → A: Yes — the Game screen displays the secret word to the drawer only; guessers see no secret word.
