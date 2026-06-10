@@ -5,7 +5,7 @@
 
 ## Phase 1 — Setup
 
-- [ ] T001 Create `specs/001-room-setup-lobby/tasks.md` and confirm feature metadata in `.specify/feature.json` (specs/001-room-setup-lobby/tasks.md)
+- [x] T001 Create `specs/001-room-setup-lobby/tasks.md` and confirm feature metadata in `.specify/feature.json` (specs/001-room-setup-lobby/tasks.md)
 
 ## Phase 2 — Foundational (BLOCKS user stories)
 
@@ -35,18 +35,17 @@
 - [x] T014 [US3] Implement polling in `LobbyPage.tsx` to call `roomStore.fetchRoom()` every 2 seconds while mounted (frontend/src/pages/LobbyPage.tsx)
 - [x] T015 [US3] Display host identity in the participant list and mark host visually (frontend/src/pages/LobbyPage.tsx)
 - [x] T016 [US3] Make Start Game button host-only and enable it only when `room.participants.length >= 2` (frontend/src/pages/LobbyPage.tsx)
-- [x] T017 [US3] Prevent non-hosts from navigating to `/game` from the lobby (frontend/src/pages/LobbyPage.tsx or frontend/src/routes/index.tsx)
+- [x] T017 [US3] Prevent non-hosts from navigating to `/game` from the lobby (frontend/src/pages/LobbyPage.tsx)
 - [x] T018 [US3] Add tests that simulate lobby polling and verify participant list updates within 2s (frontend/src/pages/LobbyPage.test.tsx)
-
 
 ## Final Phase — Polish & Cross-Cutting Concerns
 
-- [ ] T019 Accessibility: Ensure forms and error messages meet WCAG 2.1 AA (frontend/src/pages/CreateRoomPage.tsx, frontend/src/pages/JoinRoomPage.tsx)
-- [ ] T020 Coverage: Add/adjust Vitest tests to reach 80% coverage for modified modules (frontend and backend tests)
-- [ ] T023 Bundle-size: Verify production client build is within the 150KB budget (run `npm run build` in `frontend/` and measure gzipped JS size); add remediation tasks if exceeded. (frontend/ - build verification)
-- [ ] T024 Isolation: Add test to verify cross-room isolation — create two rooms and assert participants from one room are not visible in the other (backend and frontend integration/unit tests as appropriate). (backend/src/services/roomStore.test.ts, frontend/src/pages/LobbyPage.test.tsx)
-- [ ] T021 Documentation: Update `specs/001-room-setup-lobby/plan.md` and `specs/001-room-setup-lobby/spec.md` with implementation notes (specs/001-room-setup-lobby/plan.md)
-- [ ] T022 Commit: Commit completed work and reference spec artifact; run `speckit.git.commit` if auto-commit is configured (repo root)
+- [ ] T019 Accessibility: Ensure forms and error messages meet WCAG 2.1 AA — **GAP: aria-live regions not added to error messages** (frontend/src/pages/CreateRoomPage.tsx, frontend/src/pages/JoinRoomPage.tsx)
+- [x] T020 Coverage: Add/adjust Vitest tests to reach 80% coverage for modified modules (frontend and backend tests)
+- [x] T023 Bundle-size: Verify production client build is within the 150KB budget (run `npm run build` in `frontend/` and measure gzipped JS size); add remediation tasks if exceeded. (frontend/ - build verification) — 59KB ✓
+- [x] T024 Isolation: Add test to verify cross-room isolation — create two rooms and assert participants from one room are not visible in the other (backend and frontend integration/unit tests as appropriate). (backend/src/services/roomStore.test.ts, frontend/src/pages/LobbyPage.test.tsx)
+- [x] T021 Documentation: Update `specs/001-room-setup-lobby/plan.md` and `specs/001-room-setup-lobby/spec.md` with implementation notes (specs/001-room-setup-lobby/plan.md)
+- [x] T022 Commit: Commit completed work and reference spec artifact; run `speckit.git.commit` if auto-commit is configured (repo root)
 
 ## Dependencies
 
