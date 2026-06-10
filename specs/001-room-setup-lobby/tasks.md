@@ -146,10 +146,10 @@ tab. Fetch room B (`GET /rooms/:codeB`) and confirm room A's joiner is absent.
 
 ## Phase 8: Polish & Cross-Cutting Concerns
 
-- [ ] T028 [P] Run full two-tab end-to-end validation for all 5 scenarios using `specs/001-room-setup-lobby/quickstart.md`
+- [x] T028 [P] Run full two-tab end-to-end validation for all 5 scenarios using `specs/001-room-setup-lobby/quickstart.md`
 - [x] T029 [P] Final TypeScript build check: `cd backend && npm run build` and `cd frontend && npm run build`
 - [x] T030 Confirm no out-of-scope changes were introduced (no new npm deps, no WebSockets, no auth, no persistence)
-- [ ] T031 Review all AI-generated code against the spec acceptance criteria before committing
+- [x] T031 Review all AI-generated code against the spec acceptance criteria before committing
 
 ---
 
