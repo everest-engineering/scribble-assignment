@@ -26,8 +26,12 @@ export function GamePage() {
   const doPoll = useCallback(async () => {
     try {
       const updatedRoom = await roomStore.fetchRoom();
-      if (updatedRoom && updatedRoom.status !== "playing") {
-        navigate("/lobby");
+      if (updatedRoom) {
+        if (updatedRoom.status === "results") {
+          navigate("/results");
+        } else if (updatedRoom.status !== "playing") {
+          navigate("/lobby");
+        }
       }
     } catch {
       // polling error — continue silently

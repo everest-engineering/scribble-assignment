@@ -24,7 +24,7 @@ export interface GuessEntry {
 
 export interface RoomSnapshot {
   code: string;
-  status: "lobby" | "playing";
+  status: "lobby" | "playing" | "results";
   hostId: string;
   drawerId: string;
   participants: Participant[];
@@ -103,6 +103,12 @@ export const api = {
     return request<GuessResponse>(`/rooms/${encodeURIComponent(code)}/guess?playerId=${encodeURIComponent(playerId)}`, {
       method: "POST",
       body: JSON.stringify({ text })
+    });
+  },
+  restartRoom(code: string, participantId: string) {
+    return request<{ room: RoomSnapshot }>(`/rooms/${encodeURIComponent(code)}/restart`, {
+      method: "POST",
+      body: JSON.stringify({ participantId })
     });
   }
 };

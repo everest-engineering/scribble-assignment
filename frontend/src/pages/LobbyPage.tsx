@@ -15,6 +15,7 @@ export function LobbyPage() {
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const isHost = participantId !== null && room !== null && participantId === room.hostId;
+  const isResultsPhase = room?.status === "results";
 
   useEffect(() => {
     if (!room) {
@@ -26,8 +27,12 @@ export function LobbyPage() {
     try {
       setRefreshError(null);
       const updatedRoom = await roomStore.fetchRoom();
-      if (updatedRoom && updatedRoom.status !== "lobby") {
-        navigate("/game");
+      if (updatedRoom) {
+        if (updatedRoom.status === "results") {
+          navigate("/results");
+        } else if (updatedRoom.status !== "lobby") {
+          navigate("/game");
+        }
       }
     } catch (caughtError) {
       setRefreshError(caughtError instanceof Error ? caughtError.message : "Unable to refresh room");
@@ -90,10 +95,10 @@ export function LobbyPage() {
         </Card>
 
         <Card title="Status">
-          <p className="status-line" style={{ backgroundColor: isLoading ? '#fef3c7' : '#e0e7ff', color: isLoading ? '#b45309' : '#3730a3' }}>
-            {isLoading ? "Refreshing players..." : "Ready to play"}
+          <p className="status-line" style={{ backgroundColor: isLoading ? '#fef3c7' : isResultsPhase ? '#dbeafe' : '#e0e7ff', color: isLoading ? '#b45309' : isResultsPhase ? '#1e40af' : '#3730a3' }}>
+            {isLoading ? "Refreshing players..." : isResultsPhase ? "Round in results" : "Ready to play"}
           </p>
-          <p style={{ marginTop: '8px' }}>{error ?? refreshError ?? "Waiting for the host to start the game."}</p>
+          <p style={{ marginTop: '8px' }}>{error ?? refreshError ?? (isResultsPhase ? "The round has ended. Wait for the host to restart." : "Waiting for the host to start the game.")}</p>
         </Card>
       </div>
 
@@ -101,7 +106,7 @@ export function LobbyPage() {
         <button className="button button--secondary" disabled={isLoading} onClick={doPoll}>
           {isLoading ? "Refreshing..." : "Refresh Room"}
         </button>
-        {isHost ? (
+        {isHost && !isResultsPhase ? (
           <button className="button button--primary" disabled={!canStart || isLoading} onClick={handleStartGame}>
             {!canStart ? "At least 2 players required" : "Start Game"}
           </button>

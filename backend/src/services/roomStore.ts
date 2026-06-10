@@ -92,6 +92,33 @@ export function createRoom(playerName?: string) {
   };
 }
 
+export function restartGame(code: string, participantId: string) {
+  const room = rooms.get(code);
+
+  if (!room) {
+    throw new HttpError(404, "Room not found");
+  }
+
+  if (room.hostId !== participantId) {
+    throw new HttpError(403, "Only the host can restart the round");
+  }
+
+  if (room.status !== "results") {
+    throw new HttpError(400, "Room is not in results status");
+  }
+
+  room.status = "lobby";
+  room.secretWord = "";
+  room.drawerId = "";
+  room.scores = {};
+  room.guessHistory = [];
+  room.canvasActions = [];
+  room.updatedAt = now();
+  rooms.set(room.code, room);
+
+  return { room: cloneRoom(room) };
+}
+
 export function startGame(code: string, participantId: string) {
   const room = rooms.get(code);
 
@@ -201,6 +228,14 @@ export function submitGuess(room: Room, participantId: string, text: string): Gu
 
   if (correct) {
     room.scores[participantId] = 100;
+
+    const allGuessersScored = room.participants
+      .filter((p) => p.id !== room.drawerId)
+      .every((p) => (room.scores[p.id] ?? 0) >= 100);
+
+    if (allGuessersScored) {
+      room.status = "results";
+    }
   } else if (!room.scores[participantId]) {
     room.scores[participantId] = 0;
   }
@@ -252,10 +287,10 @@ export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSn
     participants: room.participants.map((participant) => ({ ...participant })),
     availableWords: listWords(),
     roles: [...STARTER_ROLES],
-    ...(isDrawer ? { secretWord: room.secretWord } : {}),
+    ...(isDrawer || room.status === "results" ? { secretWord: room.secretWord } : {}),
     canvasActions: [...room.canvasActions],
     guessHistory: [...room.guessHistory],
     scores: { ...room.scores },
-    roundOver: room.status === "playing" && room.participants.length > 1 && allGuessersScored
+    roundOver: room.status === "results" || (room.status === "playing" && room.participants.length > 1 && allGuessersScored)
   };
 }

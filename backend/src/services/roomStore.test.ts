@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { appendCanvasAction, clearCanvas, createRoom, djb2Hash, getRoom, joinRoom, selectSecretWord, startGame, submitGuess, toRoomSnapshot } from "./roomStore.js";
+import { appendCanvasAction, clearCanvas, createRoom, djb2Hash, getRoom, joinRoom, restartGame, selectSecretWord, startGame, submitGuess, toRoomSnapshot } from "./roomStore.js";
 
 describe("roomStore", () => {
   it("createRoom returns a room with a 4-character uppercase code", () => {
@@ -157,6 +157,19 @@ describe("roomStore", () => {
     });
   });
 
+  describe("submitGuess auto-transition to results", () => {
+    it("transitions room status to results when last guesser scores 100", () => {
+      const { room, participantId } = createRoom("Alice");
+      joinRoom(room.code, "Bob");
+      const started = startGame(room.code, participantId);
+      const guesser = started.room.participants.find((p) => p.id !== participantId)!;
+
+      submitGuess(started.room, guesser.id, started.room.secretWord);
+
+      expect(started.room.status).toBe("results");
+    });
+  });
+
   describe("submitGuess", () => {
     function setupGame() {
       const { room, participantId } = createRoom("Alice");
@@ -299,6 +312,86 @@ describe("roomStore", () => {
 
       const snapshot = toRoomSnapshot(started.room);
       expect(snapshot.guessHistory).toEqual([]);
+    });
+  });
+
+  describe("restartGame", () => {
+    function setupResults() {
+      const { room, participantId } = createRoom("Alice");
+      joinRoom(room.code, "Bob");
+      const started = startGame(room.code, participantId);
+      const guesser = started.room.participants.find((p) => p.id !== participantId)!;
+      submitGuess(started.room, guesser.id, started.room.secretWord);
+      return { room: started.room, participantId };
+    }
+
+    it("restarts from results to lobby with participants preserved and round data cleared", () => {
+      const { room, participantId } = setupResults();
+
+      const result = restartGame(room.code, participantId);
+
+      expect(result.room.status).toBe("lobby");
+      expect(result.room.participants).toHaveLength(2);
+      expect(result.room.secretWord).toBe("");
+      expect(result.room.drawerId).toBe("");
+      expect(result.room.scores).toEqual({});
+      expect(result.room.guessHistory).toEqual([]);
+      expect(result.room.canvasActions).toEqual([]);
+    });
+
+    it("throws 403 when non-host tries to restart", () => {
+      const { room } = setupResults();
+
+      expect(() => restartGame(room.code, "wrong-id")).toThrow("Only the host can restart the round");
+    });
+
+    it("throws 400 when room is not in results status", () => {
+      const { room, participantId } = createRoom("Alice");
+      joinRoom(room.code, "Bob");
+
+      expect(() => restartGame(room.code, participantId)).toThrow("Room is not in results status");
+    });
+
+    it("throws 404 for unknown room code", () => {
+      expect(() => restartGame("ZZZZ", "some-id")).toThrow("Room not found");
+    });
+  });
+
+  describe("late joiner", () => {
+    function setupResultsRoom() {
+      const { room, participantId } = createRoom("Alice");
+      joinRoom(room.code, "Bob");
+      const started = startGame(room.code, participantId);
+      const guesser = started.room.participants.find((p) => p.id !== participantId)!;
+      submitGuess(started.room, guesser.id, started.room.secretWord);
+      const roomObj = getRoom(room.code)!;
+      return { room: roomObj, hostId: participantId, guestId: guesser.id, secretWord: started.room.secretWord };
+    }
+
+    it("late joiner during results sees full results state", () => {
+      const { room, secretWord } = setupResultsRoom();
+
+      const snapshot = toRoomSnapshot(room, "new-player-id");
+
+      expect(snapshot.status).toBe("results");
+      expect(snapshot.secretWord).toBe(secretWord);
+      expect(snapshot.participants).toHaveLength(2);
+      expect(snapshot.roundOver).toBe(true);
+    });
+
+    it("late joiner after restart sees lobby state", () => {
+      const { room, hostId } = setupResultsRoom();
+
+      restartGame(room.code, hostId);
+      const afterRestart = getRoom(room.code)!;
+      const snapshot = toRoomSnapshot(afterRestart, "new-player-id");
+
+      expect(snapshot.status).toBe("lobby");
+      expect(snapshot.secretWord).toBeUndefined();
+      expect(snapshot.drawerId).toBe("");
+      expect(snapshot.scores).toEqual({});
+      expect(snapshot.guessHistory).toEqual([]);
+      expect(snapshot.roundOver).toBe(false);
     });
   });
 

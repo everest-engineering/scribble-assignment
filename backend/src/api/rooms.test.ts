@@ -305,6 +305,63 @@ describe("rooms API", () => {
     });
   });
 
+  describe("POST /:code/restart", () => {
+    async function setupResults() {
+      const created = await makeRequest(app, "POST", "/", { playerName: "Alice" });
+      const room = created.body.room as Record<string, string>;
+      const hostId = created.body.participantId as string;
+
+      const joined = await makeRequest(app, "POST", `/${room.code}/join`, { playerName: "Bob" });
+      const guesserId = joined.body.participantId as string;
+      await makeRequest(app, "POST", `/${room.code}/start`, { participantId: hostId });
+
+      const drawerView = await makeRequest(app, "GET", `/${room.code}?participantId=${hostId}`);
+      const secretWord = (drawerView.body.room as Record<string, unknown>).secretWord as string;
+
+      await makeRequest(app, "POST", `/${room.code}/guess?playerId=${guesserId}`, { text: secretWord });
+
+      return { code: room.code, hostId };
+    }
+
+    it("restarts from results to lobby with 200 and cleared round data", async () => {
+      const { code, hostId } = await setupResults();
+
+      const res = await makeRequest(app, "POST", `/${code}/restart`, { participantId: hostId });
+
+      expect(res.status).toBe(200);
+      const room = res.body.room as Record<string, unknown>;
+      expect(room.status).toBe("lobby");
+      expect(room.drawerId).toBe("");
+      expect(room.scores).toEqual({});
+      expect(room.guessHistory).toEqual([]);
+      expect(room.canvasActions).toEqual([]);
+    });
+
+    it("returns 403 when non-host tries to restart", async () => {
+      const { code } = await setupResults();
+
+      const res = await makeRequest(app, "POST", `/${code}/restart`, { participantId: "wrong-id" });
+
+      expect(res.status).toBe(403);
+    });
+
+    it("returns 400 when room is not in results status", async () => {
+      const created = await makeRequest(app, "POST", "/", { playerName: "Alice" });
+      const room = created.body.room as Record<string, string>;
+      const hostId = created.body.participantId as string;
+
+      const res = await makeRequest(app, "POST", `/${room.code}/restart`, { participantId: hostId });
+
+      expect(res.status).toBe(400);
+    });
+
+    it("returns 404 for unknown room", async () => {
+      const res = await makeRequest(app, "POST", "/ZZZZ/restart", { participantId: "some-id" });
+
+      expect(res.status).toBe(404);
+    });
+  });
+
   describe("POST /:code/join", () => {
     it("joins a room and returns 200 with snapshot", async () => {
       const created = await makeRequest(app, "POST", "/", { playerName: "Alice" });

@@ -112,4 +112,23 @@ describe("GamePage", () => {
     expect(container.textContent).toContain("Alice");
     expect(container.textContent).toContain("Canvas");
   });
+
+  it("does not crash when room status is results (triggers navigation to /results)", () => {
+    render({
+      ...baseSnapshot,
+      code: "ABCD",
+      status: "results",
+      hostId: "host-1",
+      drawerId: "host-1",
+      secretWord: "pizza",
+      participants: [
+        { id: "host-1", name: "Alice", joinedAt: new Date().toISOString() }
+      ],
+      availableWords: ["rocket", "pizza"],
+      roundOver: true,
+      roles: ["drawer", "guesser"]
+    }, "host-1");
+
+    expect(container.textContent).toContain("Round 1");
+  });
 });
