@@ -4,7 +4,7 @@
 
 **Created**: 2026-06-10
 
-**Status**: Draft
+**Status**: Implemented
 
 **Input**: User description: "Game start and drawer flow: trim and reject empty or whitespace-only player names before allowing game start, add POST /rooms/:code/start endpoint that transitions room state from lobby to playing, assign the first participant as drawer, select the secret word deterministically as the first entry in the word list (rocket), return the secretWord field only to the player whose name matches the drawerName, all other players receive the room snapshot without the secret word"
 

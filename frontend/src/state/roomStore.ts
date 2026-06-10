@@ -94,9 +94,13 @@ class RoomStore {
       throw new Error("No active room");
     }
 
-    const response = await this.withLoading(() => api.startRoom(this.state.room!.code));
-    this.setRoomSnapshot(response.room);
-    return response.room;
+    await this.withLoading(() => api.startRoom(this.state.room!.code));
+    // Fetch viewer-aware snapshot so the drawer receives secretWord immediately
+    const snap = await this.withLoading(() =>
+      api.fetchRoom(this.state.room!.code, this.state.participantId ?? undefined)
+    );
+    this.setRoomSnapshot(snap.room);
+    return snap.room;
   }
 
   async fetchRoom() {

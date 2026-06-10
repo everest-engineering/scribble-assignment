@@ -79,6 +79,25 @@
 
 ---
 
+## Scenario 7 — 3-Player: Multiple guessers never see the secret word (SC-005)
+
+1. Tab A: Create a room (host = Alice). Note the room code.
+2. Tab B: Join the room with name "Bob".
+3. Tab C: Join the room with name "Carol".
+4. All three tabs should show the Lobby with three participants.
+5. Tab A (host): Click "Start Game".
+6. All three tabs navigate to the Game screen (Tab A immediately; Tabs B and C within 2 s).
+
+**Expected outcomes**:
+- `drawerName` is `"Alice"` (first joiner).
+- Tab A (Alice = drawer): Player Info shows `Secret Word: rocket`.
+- Tab B (Bob = guesser): Player Info has no "Secret Word" row.
+- Tab C (Carol = guesser): Player Info has no "Secret Word" row.
+- API: `GET /rooms/<code>?participantId=<bob's-id>` → no `secretWord` key.
+- API: `GET /rooms/<code>?participantId=<carol's-id>` → no `secretWord` key.
+
+---
+
 ## TypeScript Build Verification
 
 After implementing, run both builds before marking any task done:

@@ -117,7 +117,7 @@ frontend/src/   — Vite + React SPA (TypeScript)
 
 - [x] T014 [P] Verify TypeScript build passes in `backend/` with zero errors (`cd backend && npm run build`)
 - [x] T015 [P] Verify TypeScript build passes in `frontend/` with zero errors (`cd frontend && npm run build`)
-- [x] T016 Run through all scenarios in `specs/002-game-start-drawer/quickstart.md` end-to-end; for Scenario 6 (guesser secret-word display) also open a third tab with a third player to satisfy SC-005's 3-player verification requirement, and confirm all expected outcomes pass
+- [x] T016 Run through all scenarios in `specs/002-game-start-drawer/quickstart.md` end-to-end with two browser tabs; for Scenario 7 (3-player secret-word exclusion) open a third tab and confirm all three players' outcomes; mark complete only after all scenarios pass with human verification
 
 ---
 
