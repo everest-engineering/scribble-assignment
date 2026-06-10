@@ -45,4 +45,52 @@ describe("api service", () => {
       expect.anything()
     );
   });
+
+  it("submitGuess sends POST to /rooms/:code/guess with text", async () => {
+    const mockResponse = {
+      ok: true,
+      json: () => Promise.resolve({ correct: true, score: 100 }),
+    };
+    vi.mocked(fetch).mockResolvedValue(mockResponse as unknown as Response);
+
+    const result = await api.submitGuess("ABCD", "p1", "hello");
+
+    expect(result).toEqual({ correct: true, score: 100 });
+    expect(fetch).toHaveBeenCalledWith(
+      expect.stringContaining("/rooms/ABCD/guess?playerId=p1"),
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({ text: "hello" })
+      })
+    );
+  });
+
+  it("submitCanvasAction sends POST to /rooms/:code/canvas", async () => {
+    const mockResponse = {
+      ok: true,
+      json: () => Promise.resolve({ ok: true }),
+    };
+    vi.mocked(fetch).mockResolvedValue(mockResponse as unknown as Response);
+
+    const result = await api.submitCanvasAction("ABCD", "p1", {
+      type: "stroke",
+      points: [{ x: 10, y: 20 }],
+      color: "#000000",
+      width: 3
+    });
+
+    expect(result).toEqual({ ok: true });
+    expect(fetch).toHaveBeenCalledWith(
+      expect.stringContaining("/rooms/ABCD/canvas?playerId=p1"),
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({
+          type: "stroke",
+          points: [{ x: 10, y: 20 }],
+          color: "#000000",
+          width: 3
+        })
+      })
+    );
+  });
 });

@@ -1,13 +1,16 @@
 import { Router } from "express";
 import {
+  canvasActionSchema,
   createRoomSchema,
+  guessSubmissionSchema,
   HttpError,
   joinRoomSchema,
+  playerIdQuerySchema,
   roomCodeParamsSchema,
   roomViewerQuerySchema,
   startGameSchema
 } from "./schemas.js";
-import { createRoom, getRoom, joinRoom, startGame, toRoomSnapshot } from "../services/roomStore.js";
+import { appendCanvasAction, clearCanvas, createRoom, getRoom, joinRoom, startGame, submitGuess, toRoomSnapshot } from "../services/roomStore.js";
 
 export function createRoomsRouter() {
   const router = Router();
@@ -53,6 +56,74 @@ export function createRoomsRouter() {
 
       response.json({
         room: toRoomSnapshot(result.room, participantId)
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/:code/canvas", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { playerId } = playerIdQuerySchema.parse(request.query);
+      const action = canvasActionSchema.parse(request.body);
+
+      const room = getRoom(code.toUpperCase());
+
+      if (!room) {
+        throw new HttpError(404, "Room not found");
+      }
+
+      if (room.drawerId !== playerId) {
+        throw new HttpError(403, "Only the drawer can submit canvas actions");
+      }
+
+      if (room.status !== "playing") {
+        throw new HttpError(400, "Game is not in progress");
+      }
+
+      const timestamp = new Date().toISOString();
+
+      if (action.type === "clear") {
+        clearCanvas(room, action.timestamp ?? timestamp);
+      } else {
+        appendCanvasAction(room, {
+          type: "stroke",
+          points: action.points,
+          color: action.color,
+          width: action.width,
+          timestamp: action.timestamp ?? timestamp
+        });
+      }
+
+      response.json({ ok: true });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/:code/guess", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { playerId } = playerIdQuerySchema.parse(request.query);
+      const { text } = guessSubmissionSchema.parse(request.body);
+
+      const room = getRoom(code.toUpperCase());
+
+      if (!room) {
+        throw new HttpError(404, "Room not found");
+      }
+
+      if (room.status !== "playing") {
+        throw new HttpError(400, "Game is not in progress");
+      }
+
+      const result = submitGuess(room, playerId, text);
+
+      response.json({
+        correct: result.correct,
+        score: result.score,
+        guessId: result.guessId
       });
     } catch (error) {
       next(error);

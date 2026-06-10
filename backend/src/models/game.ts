@@ -7,6 +7,18 @@ export interface Participant {
   joinedAt: string;
 }
 
+export type CanvasAction =
+  | { type: "stroke"; points: { x: number; y: number }[]; color: string; width: number; timestamp: string }
+  | { type: "clear"; timestamp: string };
+
+export interface GuessEntry {
+  id: string;
+  participantId: string;
+  text: string;
+  correct: boolean;
+  timestamp: string;
+}
+
 export interface Room {
   code: string;
   status: RoomStatus;
@@ -14,6 +26,9 @@ export interface Room {
   drawerId: string;
   secretWord: string;
   participants: Participant[];
+  canvasActions: CanvasAction[];
+  guessHistory: GuessEntry[];
+  scores: Record<string, number>;
   createdAt: string;
   updatedAt: string;
 }
@@ -27,6 +42,10 @@ export interface RoomSnapshot {
   availableWords: string[];
   roles: ParticipantRole[];
   secretWord?: string;
+  canvasActions: CanvasAction[];
+  guessHistory: GuessEntry[];
+  scores: Record<string, number>;
+  roundOver: boolean;
 }
 
 export interface RoomSessionResponse {

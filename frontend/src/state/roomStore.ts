@@ -7,7 +7,7 @@ import {
   useSyncExternalStore,
   type PropsWithChildren
 } from "react";
-import { api, type RoomSessionResponse, type RoomSnapshot } from "../services/api";
+import { api, type CanvasActionSubmission, type GuessResponse, type RoomSessionResponse, type RoomSnapshot } from "../services/api";
 
 export interface RoomState {
   room: RoomSnapshot | null;
@@ -107,6 +107,22 @@ class RoomStore {
     const response = await api.fetchRoom(this.state.room.code, this.state.participantId ?? undefined);
     this.setRoomSnapshot(response.room);
     return response.room;
+  }
+
+  async submitCanvasAction(action: CanvasActionSubmission) {
+    if (!this.state.room || !this.state.participantId) {
+      throw new Error("No active room");
+    }
+
+    await api.submitCanvasAction(this.state.room.code, this.state.participantId, action);
+  }
+
+  async submitGuess(text: string) {
+    if (!this.state.room || !this.state.participantId) {
+      throw new Error("No active room");
+    }
+
+    return api.submitGuess(this.state.room.code, this.state.participantId, text);
   }
 }
 

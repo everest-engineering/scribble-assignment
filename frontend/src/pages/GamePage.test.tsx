@@ -23,7 +23,7 @@ describe("GamePage", () => {
     document.body.appendChild(container);
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
       ok: true,
-      json: () => Promise.resolve({ room: { code: "ABCD", status: "playing", hostId: "host-1", drawerId: "host-1", participants: [], availableWords: [], roles: [] } })
+      json: () => Promise.resolve({ room: { code: "ABCD", status: "playing", hostId: "host-1", drawerId: "host-1", participants: [], availableWords: [], roles: [], canvasActions: [], guessHistory: [], scores: {}, roundOver: false } })
     }));
   });
 
@@ -51,8 +51,16 @@ describe("GamePage", () => {
     });
   }
 
+  const baseSnapshot = {
+    canvasActions: [],
+    guessHistory: [],
+    scores: {},
+    roundOver: false
+  };
+
   it("renders game page with a valid playing room", () => {
     render({
+      ...baseSnapshot,
       code: "ABCD",
       status: "playing",
       hostId: "host-1",
@@ -68,6 +76,7 @@ describe("GamePage", () => {
 
   it("shows drawer indicator for the drawer", () => {
     render({
+      ...baseSnapshot,
       code: "ABCD",
       status: "playing",
       hostId: "host-1",
@@ -87,6 +96,7 @@ describe("GamePage", () => {
 
   it("shows drawer name for guessers without secret word", () => {
     render({
+      ...baseSnapshot,
       code: "ABCD",
       status: "playing",
       hostId: "host-1",
@@ -100,6 +110,6 @@ describe("GamePage", () => {
     }, "guest-1");
 
     expect(container.textContent).toContain("Alice");
-    expect(container.textContent).toContain("Waiting for drawer");
+    expect(container.textContent).toContain("Canvas");
   });
 });

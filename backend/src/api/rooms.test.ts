@@ -137,6 +137,174 @@ describe("rooms API", () => {
     });
   });
 
+  describe("POST /:code/canvas", () => {
+    it("submits a stroke and returns 200", async () => {
+      const created = await makeRequest(app, "POST", "/", { playerName: "Alice" });
+      const room = created.body.room as Record<string, string>;
+      const hostId = created.body.participantId as string;
+
+      await makeRequest(app, "POST", `/${room.code}/join`, { playerName: "Bob" });
+      await makeRequest(app, "POST", `/${room.code}/start`, { participantId: hostId });
+
+      const res = await makeRequest(app, "POST", `/${room.code}/canvas?playerId=${hostId}`, {
+        type: "stroke",
+        points: [{ x: 10, y: 20 }],
+        color: "#000000",
+        width: 3
+      });
+
+      expect(res.status).toBe(200);
+      expect(res.body).toEqual({ ok: true });
+    });
+
+    it("submits a clear and returns 200", async () => {
+      const created = await makeRequest(app, "POST", "/", { playerName: "Alice" });
+      const room = created.body.room as Record<string, string>;
+      const hostId = created.body.participantId as string;
+
+      await makeRequest(app, "POST", `/${room.code}/join`, { playerName: "Bob" });
+      await makeRequest(app, "POST", `/${room.code}/start`, { participantId: hostId });
+
+      const res = await makeRequest(app, "POST", `/${room.code}/canvas?playerId=${hostId}`, {
+        type: "clear"
+      });
+
+      expect(res.status).toBe(200);
+      expect(res.body).toEqual({ ok: true });
+    });
+
+    it("returns 403 when non-drawer submits canvas action", async () => {
+      const created = await makeRequest(app, "POST", "/", { playerName: "Alice" });
+      const room = created.body.room as Record<string, string>;
+      const hostId = created.body.participantId as string;
+
+      const joined = await makeRequest(app, "POST", `/${room.code}/join`, { playerName: "Bob" });
+      const guesserId = joined.body.participantId as string;
+      await makeRequest(app, "POST", `/${room.code}/start`, { participantId: hostId });
+
+      const res = await makeRequest(app, "POST", `/${room.code}/canvas?playerId=${guesserId}`, {
+        type: "stroke",
+        points: [{ x: 10, y: 20 }],
+        color: "#000000",
+        width: 3
+      });
+
+      expect(res.status).toBe(403);
+    });
+
+    it("returns 404 for unknown room", async () => {
+      const res = await makeRequest(app, "POST", "/ZZZZ/canvas?playerId=some-id", {
+        type: "clear"
+      });
+
+      expect(res.status).toBe(404);
+    });
+
+    it("returns 400 for invalid canvas action payload", async () => {
+      const created = await makeRequest(app, "POST", "/", { playerName: "Alice" });
+      const room = created.body.room as Record<string, string>;
+      const hostId = created.body.participantId as string;
+
+      await makeRequest(app, "POST", `/${room.code}/join`, { playerName: "Bob" });
+      await makeRequest(app, "POST", `/${room.code}/start`, { participantId: hostId });
+
+      const res = await makeRequest(app, "POST", `/${room.code}/canvas?playerId=${hostId}`, {
+        type: "stroke",
+        points: [],
+        color: "#000",
+        width: 3
+      });
+
+      expect(res.status).toBe(400);
+    });
+  });
+
+  describe("POST /:code/guess", () => {
+    async function setupGame() {
+      const created = await makeRequest(app, "POST", "/", { playerName: "Alice" });
+      const room = created.body.room as Record<string, string>;
+      const hostId = created.body.participantId as string;
+
+      const joined = await makeRequest(app, "POST", `/${room.code}/join`, { playerName: "Bob" });
+      const guesserId = joined.body.participantId as string;
+      await makeRequest(app, "POST", `/${room.code}/start`, { participantId: hostId });
+
+      const drawerView = await makeRequest(app, "GET", `/${room.code}?participantId=${hostId}`);
+      const secretWord = (drawerView.body.room as Record<string, unknown>).secretWord as string;
+
+      return { code: room.code, hostId, guesserId, secretWord };
+    }
+
+    it("accepts a correct guess and returns correct=true with score 100", async () => {
+      const { code, guesserId, secretWord } = await setupGame();
+
+      const res = await makeRequest(app, "POST", `/${code}/guess?playerId=${guesserId}`, {
+        text: secretWord
+      });
+
+      expect(res.status).toBe(200);
+      expect(res.body).toHaveProperty("correct", true);
+      expect(res.body).toHaveProperty("score", 100);
+    });
+
+    it("accepts an incorrect guess and returns correct=false with score 0", async () => {
+      const created = await makeRequest(app, "POST", "/", { playerName: "Alice" });
+      const room = created.body.room as Record<string, string>;
+      const hostId = created.body.participantId as string;
+
+      const joined = await makeRequest(app, "POST", `/${room.code}/join`, { playerName: "Bob" });
+      const guesserId = joined.body.participantId as string;
+      await makeRequest(app, "POST", `/${room.code}/start`, { participantId: hostId });
+
+      const res = await makeRequest(app, "POST", `/${room.code}/guess?playerId=${guesserId}`, {
+        text: "wrongguess"
+      });
+
+      expect(res.status).toBe(200);
+      expect(res.body).toHaveProperty("correct", false);
+      expect(res.body).toHaveProperty("score", 0);
+    });
+
+    it("returns 403 when drawer tries to guess", async () => {
+      const created = await makeRequest(app, "POST", "/", { playerName: "Alice" });
+      const room = created.body.room as Record<string, string>;
+      const hostId = created.body.participantId as string;
+
+      await makeRequest(app, "POST", `/${room.code}/join`, { playerName: "Bob" });
+      await makeRequest(app, "POST", `/${room.code}/start`, { participantId: hostId });
+
+      const res = await makeRequest(app, "POST", `/${room.code}/guess?playerId=${hostId}`, {
+        text: "pizza"
+      });
+
+      expect(res.status).toBe(403);
+    });
+
+    it("returns 400 for empty guess", async () => {
+      const created = await makeRequest(app, "POST", "/", { playerName: "Alice" });
+      const room = created.body.room as Record<string, string>;
+      const hostId = created.body.participantId as string;
+
+      const joined = await makeRequest(app, "POST", `/${room.code}/join`, { playerName: "Bob" });
+      const guesserId = joined.body.participantId as string;
+      await makeRequest(app, "POST", `/${room.code}/start`, { participantId: hostId });
+
+      const res = await makeRequest(app, "POST", `/${room.code}/guess?playerId=${guesserId}`, {
+        text: ""
+      });
+
+      expect(res.status).toBe(400);
+    });
+
+    it("returns 404 for unknown room", async () => {
+      const res = await makeRequest(app, "POST", "/ZZZZ/guess?playerId=some-id", {
+        text: "hello"
+      });
+
+      expect(res.status).toBe(404);
+    });
+  });
+
   describe("POST /:code/join", () => {
     it("joins a room and returns 200 with snapshot", async () => {
       const created = await makeRequest(app, "POST", "/", { playerName: "Alice" });

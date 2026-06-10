@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createRoomSchema, joinRoomSchema, playerNameSchema, roomCodeParamsSchema } from "./schemas.js";
+import { canvasActionSchema, createRoomSchema, guessSubmissionSchema, joinRoomSchema, playerNameSchema, roomCodeParamsSchema } from "./schemas.js";
 
 describe("schemas", () => {
   describe("playerNameSchema", () => {
@@ -70,6 +70,78 @@ describe("schemas", () => {
 
     it("rejects short code", () => {
       expect(() => roomCodeParamsSchema.parse({ code: "AB" })).toThrow();
+    });
+  });
+
+  describe("canvasActionSchema", () => {
+    it("accepts a valid stroke action", () => {
+      const result = canvasActionSchema.parse({
+        type: "stroke",
+        points: [{ x: 10, y: 20 }, { x: 30, y: 40 }],
+        color: "#000000",
+        width: 3
+      }) as { type: "stroke"; points: { x: number; y: number }[]; color: string; width: number };
+      expect(result.type).toBe("stroke");
+      expect(result.points).toHaveLength(2);
+    });
+
+    it("accepts a valid clear action", () => {
+      const result = canvasActionSchema.parse({ type: "clear" });
+      expect(result.type).toBe("clear");
+    });
+
+    it("rejects stroke with empty points array", () => {
+      expect(() =>
+        canvasActionSchema.parse({ type: "stroke", points: [], color: "#000", width: 3 })
+      ).toThrow();
+    });
+
+    it("rejects stroke with missing color", () => {
+      expect(() =>
+        canvasActionSchema.parse({ type: "stroke", points: [{ x: 1, y: 2 }], width: 3 })
+      ).toThrow();
+    });
+
+    it("rejects stroke with non-positive width", () => {
+      expect(() =>
+        canvasActionSchema.parse({ type: "stroke", points: [{ x: 1, y: 2 }], color: "#000", width: 0 })
+      ).toThrow();
+    });
+
+    it("rejects unknown action type", () => {
+      expect(() =>
+        canvasActionSchema.parse({ type: "erase" })
+      ).toThrow();
+    });
+
+    it("rejects if type is missing", () => {
+      expect(() =>
+        canvasActionSchema.parse({ points: [{ x: 1, y: 2 }] })
+      ).toThrow();
+    });
+  });
+
+  describe("guessSubmissionSchema", () => {
+    it("accepts a valid guess", () => {
+      const result = guessSubmissionSchema.parse({ text: "hello" });
+      expect(result.text).toBe("hello");
+    });
+
+    it("trims whitespace from guess", () => {
+      const result = guessSubmissionSchema.parse({ text: "  hello  " });
+      expect(result.text).toBe("hello");
+    });
+
+    it("rejects empty guess", () => {
+      expect(() => guessSubmissionSchema.parse({ text: "" })).toThrow("Guess cannot be empty");
+    });
+
+    it("rejects whitespace-only guess", () => {
+      expect(() => guessSubmissionSchema.parse({ text: "   " })).toThrow("Guess cannot be empty");
+    });
+
+    it("rejects guess exceeding 100 characters", () => {
+      expect(() => guessSubmissionSchema.parse({ text: "a".repeat(101) })).toThrow("Guess cannot exceed 100 characters");
     });
   });
 });
