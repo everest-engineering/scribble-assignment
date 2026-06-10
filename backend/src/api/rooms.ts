@@ -5,11 +5,19 @@ import {
   joinRoomSchema,
   roomCodeParamsSchema,
   roomViewerQuerySchema,
+  startGameSchema,
+  canvasUpdateSchema,
+  submitGuessSchema,
+  restartGameSchema,
 } from "./schemas.js";
 import {
   createRoom,
   getRoom,
   joinRoom,
+  startRoom,
+  updateCanvas,
+  submitGuess,
+  restartRoom,
   toRoomSnapshot,
 } from "../services/roomStore.js";
 
@@ -83,6 +91,98 @@ export function createRoomsRouter() {
           message: "Room not found",
         });
       }
+
+      response.json({
+        room: toRoomSnapshot(room, participantId),
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/:code/start", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId } = startGameSchema.parse(request.body);
+      const normalized = code.toUpperCase();
+
+      if (!/^[A-Z2-9]{4}$/.test(normalized)) {
+        throw new HttpError(400, "Malformed room code", {
+          error: "malformed_room_code",
+          message: "Room code is required and must be 4 characters",
+        });
+      }
+
+      const room = startRoom(normalized, participantId);
+
+      response.json({
+        room: toRoomSnapshot(room, participantId),
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/:code/canvas", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId, strokes } = canvasUpdateSchema.parse(request.body);
+      const normalized = code.toUpperCase();
+
+      if (!/^[A-Z2-9]{4}$/.test(normalized)) {
+        throw new HttpError(400, "Malformed room code", {
+          error: "malformed_room_code",
+          message: "Room code is required and must be 4 characters",
+        });
+      }
+
+      const room = updateCanvas(normalized, participantId, strokes);
+
+      response.json({
+        room: toRoomSnapshot(room, participantId),
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/:code/guess", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId, text } = submitGuessSchema.parse(request.body);
+      const normalized = code.toUpperCase();
+
+      if (!/^[A-Z2-9]{4}$/.test(normalized)) {
+        throw new HttpError(400, "Malformed room code", {
+          error: "malformed_room_code",
+          message: "Room code is required and must be 4 characters",
+        });
+      }
+
+      const room = submitGuess(normalized, participantId, text);
+
+      response.json({
+        room: toRoomSnapshot(room, participantId),
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/:code/restart", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId } = restartGameSchema.parse(request.body);
+      const normalized = code.toUpperCase();
+
+      if (!/^[A-Z2-9]{4}$/.test(normalized)) {
+        throw new HttpError(400, "Malformed room code", {
+          error: "malformed_room_code",
+          message: "Room code is required and must be 4 characters",
+        });
+      }
+
+      const room = restartRoom(normalized, participantId);
 
       response.json({
         room: toRoomSnapshot(room, participantId),
