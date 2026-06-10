@@ -163,8 +163,9 @@ the room 1 joiner is not present.
 - Player submits a room code in lowercase — code is normalised to uppercase before lookup.
 - Player submits a room code with extra whitespace — code is trimmed before lookup.
 - Host disconnects (navigates away) mid-lobby — other players remain in the room; the host flag stays on the original host's participant record.
-- A poll fires while a previous poll response is still in-flight — only one outstanding fetch should be active; a new one MUST NOT start until the current one resolves.
+- A poll fires while a previous poll response is still in-flight — polling uses `setTimeout`-after-response semantics: the next fetch is scheduled only after the current one resolves, making overlap structurally impossible with no guard flag required.
 - Room code collision during generation — the store already retries; no duplicate codes should be visible to players.
+- Background polls MUST NOT trigger the loading indicator; only the initial room load on mount shows a loading state.
 
 ## Requirements *(mandatory)*
 
@@ -174,8 +175,9 @@ the room 1 joiner is not present.
 - **FR-002**: The system MUST trim all player name inputs before storing or validating them.
 - **FR-003**: The system MUST reject a blank or whitespace-only player name on both Create Room and Join Room, displaying an inline error message on the relevant form field without navigating away.
 - **FR-004**: The system MUST return a 404 response when a join or fetch request references a room code that does not exist, and the frontend MUST surface a user-readable inline error message.
-- **FR-005**: The Lobby screen MUST poll the room state automatically at approximately 2-second intervals.
+- **FR-005**: The Lobby screen MUST poll the room state automatically using `setTimeout`-after-response: the next fetch is scheduled 2 seconds after the previous response completes, ensuring no overlapping requests.
 - **FR-006**: Lobby polling MUST stop and release all timers when the Lobby component unmounts.
+- **FR-012**: The loading indicator MUST be shown only during the initial room load on mount; background polls MUST update the participant list silently without triggering any loading state.
 - **FR-007**: The Start Game button MUST be rendered only for the host participant.
 - **FR-008**: The Start Game button MUST remain disabled when fewer than 2 participants are present in the room.
 - **FR-009**: The Start Game button MUST become enabled once 2 or more participants are present (as reflected by the latest polled snapshot).
@@ -186,7 +188,7 @@ the room 1 joiner is not present.
 
 - **Participant**: A player in a room. Attributes: unique id, trimmed display name, join timestamp, `isHost` boolean flag.
 - **Room**: An isolated game session. Attributes: unique 4-character code, status (`lobby`), ordered list of participants, creation timestamp, last-updated timestamp.
-- **RoomSnapshot**: The read-only view of a room returned to clients. Includes the room's participants (with `isHost` visible), status, and available metadata.
+- **RoomSnapshot**: The read-only view of a room returned to all clients. Includes the room's participants — each with `isHost: boolean` visible to every recipient — status, and available metadata.
 
 ## Success Criteria *(mandatory)*
 
@@ -199,13 +201,21 @@ the room 1 joiner is not present.
 - **SC-005**: After navigating away from the Lobby, zero additional polling requests are made for that room (verified via browser network panel).
 - **SC-006**: Two concurrently running rooms never share participant data as observed through the GET room endpoint.
 
+## Clarifications
+
+### Session 2026-06-10
+
+- Q: Should polling use `setInterval` (fixed cadence) or `setTimeout`-after-response (self-throttling)? → A: `setTimeout` after each response completes — overlap is impossible by design.
+- Q: Should `isHost` be visible to all clients in `RoomSnapshot`, or only derivable by the viewer? → A: `isHost: boolean` on every participant in the snapshot, visible to all.
+- Q: Should the loading indicator appear during every background poll or only on the initial load? → A: Loading indicator only on initial room load; background polls update silently.
+
 ## Assumptions
 
 - The backend runs on `localhost:3001`; the frontend connects via the `VITE_API_URL` environment variable (defaults to that address).
 - Room state is stored in memory only; restarting the backend clears all rooms.
 - A "host" is always the first participant who created the room. There is no host-transfer mechanism in this scope.
-- The `isHost` flag is included in the `Participant` type returned in `RoomSnapshot` so the frontend can determine host status without a separate lookup.
-- Only one outstanding poll request should be in flight at a time; if a request takes longer than 2 seconds, the next poll starts after the previous one completes.
+- The `isHost` flag is included on every participant in `RoomSnapshot` and is visible to all clients; host identity in a party game is not sensitive.
+- Polling uses `setTimeout`-after-response: the next poll is scheduled 2 s after the current response arrives. Overlap is structurally impossible; no in-flight guard flag is needed.
 - The existing `form__error` CSS class is used for inline error messages; no new styles are required for this feature.
 - Player names are not required to be unique within a room.
 - The existing routing to `/game` is used when Start Game is clicked; the game navigation logic is out of scope for this feature.
