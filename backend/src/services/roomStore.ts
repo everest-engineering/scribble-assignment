@@ -46,6 +46,24 @@ function cloneRoom(room: Room) {
   return structuredClone(room);
 }
 
+export function djb2Hash(input: string): number {
+  let hash = 5381;
+  for (let i = 0; i < input.length; i++) {
+    hash = (hash * 33 + input.charCodeAt(i)) >>> 0;
+  }
+  return hash;
+}
+
+export function selectSecretWord(code: string): string {
+  if ((STARTER_WORDS as readonly string[]).length === 0) {
+    throw new HttpError(400, "No words available to start the game");
+  }
+
+  const hash = djb2Hash(code);
+  const index = hash % STARTER_WORDS.length;
+  return STARTER_WORDS[index];
+}
+
 export function listWords() {
   return [...STARTER_WORDS];
 }
@@ -56,6 +74,8 @@ export function createRoom(playerName?: string) {
     code: generateUniqueCode(),
     status: "lobby",
     hostId: participant.id,
+    drawerId: "",
+    secretWord: "",
     participants: [participant],
     createdAt: now(),
     updatedAt: now()
@@ -85,6 +105,8 @@ export function startGame(code: string, participantId: string) {
   }
 
   room.status = "playing";
+  room.drawerId = room.hostId;
+  room.secretWord = selectSecretWord(room.code);
   room.updatedAt = now();
   rooms.set(room.code, room);
 
@@ -155,14 +177,16 @@ export function saveRoom(room: Room) {
 }
 
 export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSnapshot {
-  void viewerParticipantId;
+  const isDrawer = viewerParticipantId !== undefined && viewerParticipantId === room.drawerId;
 
   return {
     code: room.code,
     status: room.status,
     hostId: room.hostId,
+    drawerId: room.drawerId,
     participants: room.participants.map((participant) => ({ ...participant })),
     availableWords: listWords(),
-    roles: [...STARTER_ROLES]
+    roles: [...STARTER_ROLES],
+    ...(isDrawer ? { secretWord: room.secretWord } : {})
   };
 }

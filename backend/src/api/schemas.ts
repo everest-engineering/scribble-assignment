@@ -1,11 +1,21 @@
 import { z } from "zod";
 
+const nameValidationMessage =
+  "Name must be non-empty and 1-15 characters: letters, numbers, spaces, hyphens, underscores";
+
+export const playerNameSchema = z
+  .string()
+  .trim()
+  .min(1, nameValidationMessage)
+  .max(15, nameValidationMessage)
+  .regex(/^[A-Za-z0-9 _-]+$/, nameValidationMessage);
+
 export const createRoomSchema = z.object({
-  playerName: z.string().optional()
+  playerName: playerNameSchema.optional()
 });
 
 export const joinRoomSchema = z.object({
-  playerName: z.string().optional()
+  playerName: playerNameSchema.optional()
 });
 
 export const roomCodeParamsSchema = z.object({
