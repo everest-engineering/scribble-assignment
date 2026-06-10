@@ -5,25 +5,42 @@ import {
   useEffect,
   useRef,
   useSyncExternalStore,
-  type PropsWithChildren
+  type PropsWithChildren,
 } from "react";
-import { api, type RoomSessionResponse, type RoomSnapshot } from "../services/api";
+import {
+  api,
+  type RoomSessionResponse,
+  type RoomSnapshot,
+  type Stroke,
+} from "../services/api";
+
+const ROOM_STORAGE_KEY = "scribble:lastRoomCode";
+
+function participantStorageKey(code: string) {
+  return `scribble:participant:${code}`;
+}
+
+function hostFlagKey(code: string) {
+  return `scribble:isHost:${code}`;
+}
 
 export interface RoomState {
   room: RoomSnapshot | null;
   participantId: string | null;
   error: string | null;
   isLoading: boolean;
+  viewerIsHost: boolean;
 }
 
 type Listener = () => void;
 
-class RoomStore {
+export class RoomStore {
   private state: RoomState = {
     room: null,
     participantId: null,
     error: null,
-    isLoading: false
+    isLoading: false,
+    viewerIsHost: false,
   };
 
   private listeners = new Set<Listener>();
@@ -40,7 +57,7 @@ class RoomStore {
   private setState(nextState: Partial<RoomState>) {
     this.state = {
       ...this.state,
-      ...nextState
+      ...nextState,
     };
     this.listeners.forEach((listener) => listener());
   }
@@ -48,13 +65,14 @@ class RoomStore {
   private async withLoading<T>(operation: () => Promise<T>) {
     this.setState({
       isLoading: true,
-      error: null
+      error: null,
     });
 
     try {
       return await operation();
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Unexpected request failure";
+      const message =
+        error instanceof Error ? error.message : "Unexpected request failure";
       this.setState({ error: message });
       throw error;
     } finally {
@@ -63,18 +81,41 @@ class RoomStore {
   }
 
   setRoomSession(response: RoomSessionResponse) {
+    const isHost = response.room.hostParticipantId === response.participantId;
+
     this.setState({
       participantId: response.participantId,
       room: response.room,
-      error: null
+      error: null,
+      viewerIsHost: isHost,
     });
+
+    try {
+      if (response.room && response.room.code && response.participantId) {
+        localStorage.setItem(ROOM_STORAGE_KEY, response.room.code);
+        localStorage.setItem(
+          participantStorageKey(response.room.code),
+          response.participantId,
+        );
+        localStorage.setItem(
+          hostFlagKey(response.room.code),
+          String(isHost),
+        );
+      }
+    } catch {
+      // ignore storage errors
+    }
   }
 
   setRoomSnapshot(room: RoomSnapshot) {
     this.setState({
       room,
-      error: null
+      error: null,
     });
+  }
+
+  setError(message: string) {
+    this.setState({ error: message });
   }
 
   async createRoom(playerName: string) {
@@ -84,9 +125,40 @@ class RoomStore {
   }
 
   async joinRoom(code: string, playerName: string) {
-    const response = await this.withLoading(() => api.joinRoom(code, playerName));
+    const response = await this.withLoading(() =>
+      api.joinRoom(code, playerName),
+    );
     this.setRoomSession(response);
     return response;
+  }
+
+  async restoreRoomSession() {
+    const code = this.getStoredRoomCode();
+    const participantId = code ? this.getStoredParticipantId(code) : null;
+
+    if (!code || !participantId) {
+      return null;
+    }
+
+    try {
+      const response = await api.fetchRoom(code, participantId);
+      const storedIsHost = localStorage.getItem(hostFlagKey(code)) === "true";
+      const apiIsHost = response.room.viewerIsHost ?? false;
+
+      this.setState({
+        participantId,
+        room: response.room,
+        error: null,
+        viewerIsHost: storedIsHost || apiIsHost,
+      });
+      return response;
+    } catch (error) {
+      this.clearStoredParticipantForRoom(code);
+      const message =
+        error instanceof Error ? error.message : "Unable to restore room";
+      this.setState({ error: message });
+      return null;
+    }
   }
 
   async fetchRoom() {
@@ -94,9 +166,119 @@ class RoomStore {
       return null;
     }
 
-    const response = await api.fetchRoom(this.state.room.code, this.state.participantId ?? undefined);
+    // Attempt to hydrate participantId from localStorage if missing
+    if (!this.state.participantId && this.state.room.code) {
+      try {
+        const stored = localStorage.getItem(
+          participantStorageKey(this.state.room.code),
+        );
+        if (stored) {
+          this.setState({ participantId: stored });
+        }
+      } catch {
+        // ignore storage errors
+      }
+    }
+
+    if (!this.state.participantId) {
+      return null;
+    }
+
+    const response = await api.fetchRoom(
+      this.state.room.code,
+      this.state.participantId,
+    );
     this.setRoomSnapshot(response.room);
     return response.room;
+  }
+
+  async startGame() {
+    if (!this.state.room || !this.state.participantId) {
+      throw new Error("No room session");
+    }
+
+    const response = await this.withLoading(() =>
+      api.startGame(this.state.room!.code, this.state.participantId!),
+    );
+    this.setRoomSnapshot(response.room);
+    return response;
+  }
+
+  async updateCanvas(strokes: Stroke[]) {
+    if (!this.state.room || !this.state.participantId) return;
+
+    try {
+      const response = await api.updateCanvas(
+        this.state.room.code,
+        this.state.participantId,
+        strokes,
+      );
+      this.setRoomSnapshot(response.room);
+    } catch {
+      // Silently fail on canvas sync errors — the drawer will retry on next poll
+    }
+  }
+
+  async submitGuess(text: string) {
+    if (!this.state.room || !this.state.participantId) {
+      throw new Error("No room session");
+    }
+
+    const response = await this.withLoading(() =>
+      api.submitGuess(this.state.room!.code, this.state.participantId!, text),
+    );
+    this.setRoomSnapshot(response.room);
+    return response;
+  }
+
+  async restartGame() {
+    if (!this.state.room || !this.state.participantId) {
+      throw new Error("No room session");
+    }
+
+    const response = await this.withLoading(() =>
+      api.restartGame(this.state.room!.code, this.state.participantId!),
+    );
+    this.setRoomSnapshot(response.room);
+    return response;
+  }
+
+  clearStoredParticipantForRoom(code?: string) {
+    try {
+      const roomCode = code ?? this.getStoredRoomCode();
+
+      if (roomCode) {
+        localStorage.removeItem(participantStorageKey(roomCode));
+        localStorage.removeItem(hostFlagKey(roomCode));
+      }
+
+      if (!code) {
+        localStorage.removeItem(ROOM_STORAGE_KEY);
+      } else {
+        const currentKey = this.getStoredRoomCode();
+        if (!currentKey || currentKey === roomCode) {
+          localStorage.removeItem(ROOM_STORAGE_KEY);
+        }
+      }
+    } catch {}
+
+    this.setState({ participantId: null, viewerIsHost: false });
+  }
+
+  private getStoredRoomCode() {
+    try {
+      return localStorage.getItem(ROOM_STORAGE_KEY);
+    } catch {
+      return null;
+    }
+  }
+
+  private getStoredParticipantId(code: string) {
+    try {
+      return localStorage.getItem(participantStorageKey(code));
+    } catch {
+      return null;
+    }
   }
 }
 
@@ -111,7 +293,11 @@ export function RoomStoreProvider({ children }: PropsWithChildren) {
 
   useEffect(() => undefined, []);
 
-  return createElement(RoomStoreContext.Provider, { value: storeRef.current }, children);
+  return createElement(
+    RoomStoreContext.Provider,
+    { value: storeRef.current },
+    children,
+  );
 }
 
 export function useRoomStore() {
@@ -126,5 +312,9 @@ export function useRoomStore() {
 
 export function useRoomState() {
   const store = useRoomStore();
-  return useSyncExternalStore(store.subscribe, store.getSnapshot, store.getSnapshot);
+  return useSyncExternalStore(
+    store.subscribe,
+    store.getSnapshot,
+    store.getSnapshot,
+  );
 }
