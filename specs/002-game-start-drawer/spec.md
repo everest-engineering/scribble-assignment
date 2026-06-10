@@ -167,8 +167,10 @@ endpoint rejects it and the room status remains "lobby".
   include the secret word.
 - **FR-009**: When any player other than the drawer retrieves the room state, the
   response MUST NOT include the secret word.
-- **FR-010**: The system MUST identify the requesting player by name to determine
-  whether to include the secret word in the response.
+- **FR-010**: The system MUST identify the requesting player via their participant
+  ID, resolve their name from the participant list, and compare that name to the
+  stored drawer name to determine whether to include the secret word in the
+  response.
 - **FR-011**: On a successful game-start API response, the host's frontend MUST
   immediately navigate to the Game screen without waiting for a polling cycle.
 - **FR-012**: When the frontend detects `status: "playing"` in any polling

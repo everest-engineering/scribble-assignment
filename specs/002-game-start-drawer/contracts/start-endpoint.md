@@ -50,6 +50,7 @@ Content-Type: application/json
 |-------------|--------------------------------------------------------|---------------------------------------------------|
 | 404         | Room code does not exist                               | `{ "message": "Room not found" }`                 |
 | 409         | Room is already in playing state                       | `{ "message": "Game has already started" }`       |
+| 400         | Fewer than 2 participants in the room                  | `{ "message": "At least 2 players are required to start" }` |
 | 400         | Any participant name is empty or whitespace-only       | `{ "message": "All player names must be non-empty" }` |
 
 ---
