@@ -41,7 +41,7 @@
 
 ## Phase 7 — Testing
 
-- [ ] T219 Add frontend tests: canvas renders, GuessForm validates, GamePage wires correctly — **GAP: not implemented** (frontend/src/components/Canvas.test.tsx, frontend/src/components/GuessForm.test.tsx)
+- [x] T219 Add frontend tests: canvas renders, GuessForm validates, GamePage wires correctly (frontend/src/components/Canvas.test.tsx, frontend/src/components/GuessForm.test.tsx)
 - [x] T220 Manual verification: two browser tabs — drawer draws, guesser sees drawing, guess submits, all see history + scores
 
 ## Phase 8 — Polish
