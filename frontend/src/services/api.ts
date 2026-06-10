@@ -1,4 +1,28 @@
 export type ParticipantRole = "drawer" | "guesser";
+export type RoomStatus = "lobby" | "playing" | "result";
+
+export interface Point {
+  x: number;
+  y: number;
+}
+
+export type Stroke = Point[];
+
+export interface Guess {
+  participantId: string;
+  text: string;
+  isCorrect: boolean;
+  timestamp: string;
+}
+
+export interface Round {
+  roundNumber: number;
+  drawerParticipantId: string;
+  secretWord: string | null;
+  scores: Record<string, number>;
+  guesses: Guess[];
+  isComplete: boolean;
+}
 
 export interface Participant {
   id: string;
@@ -8,12 +32,14 @@ export interface Participant {
 
 export interface RoomSnapshot {
   code: string;
-  status: "lobby";
+  status: RoomStatus;
   participants: Participant[];
   availableWords: string[];
   roles: ParticipantRole[];
-  hostParticipantId?: string;
+  hostParticipantId: string;
   viewerIsHost?: boolean;
+  currentRound?: Round;
+  canvasState: { strokes: Stroke[] };
 }
 
 export interface RoomSessionResponse {
@@ -67,6 +93,42 @@ export const api = {
       : "";
     return request<{ room: RoomSnapshot }>(
       `/rooms/${encodeURIComponent(code)}${query}`,
+    );
+  },
+  startGame(code: string, participantId: string) {
+    return request<{ room: RoomSnapshot }>(
+      `/rooms/${encodeURIComponent(code)}/start`,
+      {
+        method: "POST",
+        body: JSON.stringify({ participantId }),
+      },
+    );
+  },
+  updateCanvas(code: string, participantId: string, strokes: Stroke[]) {
+    return request<{ room: RoomSnapshot }>(
+      `/rooms/${encodeURIComponent(code)}/canvas`,
+      {
+        method: "POST",
+        body: JSON.stringify({ participantId, strokes }),
+      },
+    );
+  },
+  submitGuess(code: string, participantId: string, text: string) {
+    return request<{ room: RoomSnapshot }>(
+      `/rooms/${encodeURIComponent(code)}/guess`,
+      {
+        method: "POST",
+        body: JSON.stringify({ participantId, text }),
+      },
+    );
+  },
+  restartGame(code: string, participantId: string) {
+    return request<{ room: RoomSnapshot }>(
+      `/rooms/${encodeURIComponent(code)}/restart`,
+      {
+        method: "POST",
+        body: JSON.stringify({ participantId }),
+      },
     );
   },
 };

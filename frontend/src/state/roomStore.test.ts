@@ -1,6 +1,19 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { RoomStore } from "./roomStore";
 
+function makeMockRoom(overrides: Record<string, unknown> = {}) {
+  return {
+    code: "ABCD",
+    status: "lobby" as const,
+    participants: [] as Array<{ id: string; name: string; joinedAt: string }>,
+    availableWords: [] as string[],
+    roles: [] as Array<"drawer" | "guesser">,
+    hostParticipantId: "",
+    canvasState: { strokes: [] },
+    ...overrides,
+  };
+}
+
 describe("RoomStore session persistence", () => {
   beforeEach(() => {
     localStorage.clear();
@@ -14,17 +27,13 @@ describe("RoomStore session persistence", () => {
   it("persists the current room session and restores it after refresh", async () => {
     const session = {
       participantId: "p1",
-      room: {
-        code: "ABCD",
-        status: "lobby" as const,
+      room: makeMockRoom({
         participants: [
           { id: "p1", name: "Host", joinedAt: new Date().toISOString() },
         ],
-        availableWords: [],
-        roles: [],
         hostParticipantId: "p1",
         viewerIsHost: true,
-      },
+      }),
     };
 
     const store = new RoomStore();
@@ -47,4 +56,3 @@ describe("RoomStore session persistence", () => {
     expect(refreshedStore.getSnapshot().participantId).toBe("p1");
   });
 });
-

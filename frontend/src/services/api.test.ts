@@ -1,6 +1,19 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { api } from "./api";
 
+function makeMockRoom(overrides: Record<string, unknown> = {}) {
+  return {
+    code: "ABCD",
+    status: "lobby" as const,
+    participants: [] as Array<{ id: string; name: string; joinedAt: string }>,
+    availableWords: [] as string[],
+    roles: [] as Array<"drawer" | "guesser">,
+    hostParticipantId: "",
+    canvasState: { strokes: [] },
+    ...overrides,
+  };
+}
+
 describe("api service", () => {
   beforeEach(() => {
     vi.stubGlobal("fetch", vi.fn());
@@ -12,7 +25,7 @@ describe("api service", () => {
       json: () =>
         Promise.resolve({
           participantId: "p1",
-          room: { code: "ABCD", status: "lobby", participants: [] },
+          room: makeMockRoom(),
         }),
     };
     vi.mocked(fetch).mockResolvedValue(mockResponse as unknown as Response);
@@ -34,7 +47,7 @@ describe("api service", () => {
       json: () =>
         Promise.resolve({
           participantId: "p2",
-          room: { code: "ABCD", status: "lobby", participants: [] },
+          room: makeMockRoom(),
         }),
     };
     vi.mocked(fetch).mockResolvedValue(mockResponse as unknown as Response);
@@ -65,7 +78,7 @@ describe("api service", () => {
       ok: true,
       json: () =>
         Promise.resolve({
-          room: { code: "XYZW", status: "lobby", participants: [] },
+          room: makeMockRoom({ code: "XYZW" }),
         }),
     };
     vi.mocked(fetch).mockResolvedValue(mockResponse as unknown as Response);
@@ -78,4 +91,3 @@ describe("api service", () => {
     );
   });
 });
-

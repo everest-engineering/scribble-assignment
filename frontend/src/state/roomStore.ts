@@ -11,6 +11,7 @@ import {
   api,
   type RoomSessionResponse,
   type RoomSnapshot,
+  type Stroke,
 } from "../services/api";
 
 const ROOM_STORAGE_KEY = "scribble:lastRoomCode";
@@ -19,11 +20,16 @@ function participantStorageKey(code: string) {
   return `scribble:participant:${code}`;
 }
 
+function hostFlagKey(code: string) {
+  return `scribble:isHost:${code}`;
+}
+
 export interface RoomState {
   room: RoomSnapshot | null;
   participantId: string | null;
   error: string | null;
   isLoading: boolean;
+  viewerIsHost: boolean;
 }
 
 type Listener = () => void;
@@ -34,6 +40,7 @@ export class RoomStore {
     participantId: null,
     error: null,
     isLoading: false,
+    viewerIsHost: false,
   };
 
   private listeners = new Set<Listener>();
@@ -74,10 +81,13 @@ export class RoomStore {
   }
 
   setRoomSession(response: RoomSessionResponse) {
+    const isHost = response.room.hostParticipantId === response.participantId;
+
     this.setState({
       participantId: response.participantId,
       room: response.room,
       error: null,
+      viewerIsHost: isHost,
     });
 
     try {
@@ -86,6 +96,10 @@ export class RoomStore {
         localStorage.setItem(
           participantStorageKey(response.room.code),
           response.participantId,
+        );
+        localStorage.setItem(
+          hostFlagKey(response.room.code),
+          String(isHost),
         );
       }
     } catch {
@@ -98,6 +112,10 @@ export class RoomStore {
       room,
       error: null,
     });
+  }
+
+  setError(message: string) {
+    this.setState({ error: message });
   }
 
   async createRoom(playerName: string) {
@@ -124,10 +142,14 @@ export class RoomStore {
 
     try {
       const response = await api.fetchRoom(code, participantId);
+      const storedIsHost = localStorage.getItem(hostFlagKey(code)) === "true";
+      const apiIsHost = response.room.viewerIsHost ?? false;
+
       this.setState({
         participantId,
         room: response.room,
         error: null,
+        viewerIsHost: storedIsHost || apiIsHost,
       });
       return response;
     } catch (error) {
@@ -170,12 +192,64 @@ export class RoomStore {
     return response.room;
   }
 
+  async startGame() {
+    if (!this.state.room || !this.state.participantId) {
+      throw new Error("No room session");
+    }
+
+    const response = await this.withLoading(() =>
+      api.startGame(this.state.room!.code, this.state.participantId!),
+    );
+    this.setRoomSnapshot(response.room);
+    return response;
+  }
+
+  async updateCanvas(strokes: Stroke[]) {
+    if (!this.state.room || !this.state.participantId) return;
+
+    try {
+      const response = await api.updateCanvas(
+        this.state.room.code,
+        this.state.participantId,
+        strokes,
+      );
+      this.setRoomSnapshot(response.room);
+    } catch {
+      // Silently fail on canvas sync errors — the drawer will retry on next poll
+    }
+  }
+
+  async submitGuess(text: string) {
+    if (!this.state.room || !this.state.participantId) {
+      throw new Error("No room session");
+    }
+
+    const response = await this.withLoading(() =>
+      api.submitGuess(this.state.room!.code, this.state.participantId!, text),
+    );
+    this.setRoomSnapshot(response.room);
+    return response;
+  }
+
+  async restartGame() {
+    if (!this.state.room || !this.state.participantId) {
+      throw new Error("No room session");
+    }
+
+    const response = await this.withLoading(() =>
+      api.restartGame(this.state.room!.code, this.state.participantId!),
+    );
+    this.setRoomSnapshot(response.room);
+    return response;
+  }
+
   clearStoredParticipantForRoom(code?: string) {
     try {
       const roomCode = code ?? this.getStoredRoomCode();
 
       if (roomCode) {
         localStorage.removeItem(participantStorageKey(roomCode));
+        localStorage.removeItem(hostFlagKey(roomCode));
       }
 
       if (!code) {
@@ -188,7 +262,7 @@ export class RoomStore {
       }
     } catch {}
 
-    this.setState({ participantId: null });
+    this.setState({ participantId: null, viewerIsHost: false });
   }
 
   private getStoredRoomCode() {
