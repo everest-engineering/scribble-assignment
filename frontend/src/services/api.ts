@@ -22,7 +22,7 @@ export interface Guess {
 
 export interface RoomSnapshot {
   code: string;
-  status: "lobby" | "playing";
+  status: "lobby" | "playing" | "result";
   participants: Participant[];
   availableWords: string[];
   roles: ParticipantRole[];
@@ -97,6 +97,18 @@ export const api = {
   clearStrokes(code: string) {
     return request<{ strokes: Point[][] }>(`/rooms/${encodeURIComponent(code)}/clear`, {
       method: "POST"
+    });
+  },
+  endGame(code: string, playerName: string) {
+    return request<{ room: RoomSnapshot }>(`/rooms/${encodeURIComponent(code)}/end`, {
+      method: "POST",
+      body: JSON.stringify({ playerName })
+    });
+  },
+  restartGame(code: string, playerName: string) {
+    return request<{ room: RoomSnapshot }>(`/rooms/${encodeURIComponent(code)}/restart`, {
+      method: "POST",
+      body: JSON.stringify({ playerName })
     });
   }
 };

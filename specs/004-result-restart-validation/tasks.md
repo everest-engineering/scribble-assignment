@@ -17,7 +17,7 @@
 
 **Purpose**: Confirm the codebase is in a clean, buildable state before any changes.
 
-- [ ] T001 Confirm both TypeScript builds pass clean: run `npm run build` in `backend/` and `frontend/` with zero errors (baseline for constitution gate V)
+- [x] T001 Confirm both TypeScript builds pass clean: run `npm run build` in `backend/` and `frontend/` with zero errors (baseline for constitution gate V)
 
 ---
 
@@ -27,8 +27,8 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete.
 
-- [ ] T002 Extend `RoomStatus` union type from `"lobby" | "playing"` to `"lobby" | "playing" | "result"` in `backend/src/models/game.ts`
-- [ ] T003 [P] Extend `RoomSnapshot.status` union from `"lobby" | "playing"` to `"lobby" | "playing" | "result"` in `frontend/src/services/api.ts`
+- [x] T002 Extend `RoomStatus` union type from `"lobby" | "playing"` to `"lobby" | "playing" | "result"` in `backend/src/models/game.ts`
+- [x] T003 [P] Extend `RoomSnapshot.status` union from `"lobby" | "playing"` to `"lobby" | "playing" | "result"` in `frontend/src/services/api.ts`
 
 **Checkpoint**: Type system reflects the new state — backend and frontend compile with the extended union.
 
@@ -42,19 +42,19 @@
 
 ### Backend — US1
 
-- [ ] T004 [US1] Add `endGameSchema` (validates `playerName` string, trimmed, non-empty) to `backend/src/api/schemas.ts` (depends on T002)
-- [ ] T005 [US1] Add `endGame(code: string, playerName: string)` function to `backend/src/services/roomStore.ts`: look up room (404 if missing), assert `status === "playing"` (409 if not), assert `playerName === room.participants[0].name` (403 if not host), set `room.status = "result"`, call `saveRoom()`, return snapshot (depends on T002, T004)
-- [ ] T006 [US1] Update `toRoomSnapshot()` in `backend/src/services/roomStore.ts`: when `room.status === "result"` always include `secretWord` and `drawerName` in the snapshot (no viewer filtering — round is over) (depends on T002)
-- [ ] T007 [US1] Add `POST /:code/end` route to `backend/src/api/rooms.ts`: parse params with `roomCodeParamsSchema`, parse body with `endGameSchema`, call `endGame()`, respond with `{ room: toRoomSnapshot(room) }` (depends on T005, T006)
+- [x] T004 [US1] Add `endGameSchema` (validates `playerName` string, trimmed, non-empty) to `backend/src/api/schemas.ts` (depends on T002)
+- [x] T005 [US1] Add `endGame(code: string, playerName: string)` function to `backend/src/services/roomStore.ts`: look up room (404 if missing), assert `status === "playing"` (409 if not), assert `playerName === room.participants[0].name` (403 if not host), set `room.status = "result"`, call `saveRoom()`, return snapshot (depends on T002, T004)
+- [x] T006 [US1] Update `toRoomSnapshot()` in `backend/src/services/roomStore.ts`: when `room.status === "result"` always include `secretWord` and `drawerName` in the snapshot (no viewer filtering — round is over) (depends on T002)
+- [x] T007 [US1] Add `POST /:code/end` route to `backend/src/api/rooms.ts`: parse params with `roomCodeParamsSchema`, parse body with `endGameSchema`, call `endGame()`, respond with `{ room: toRoomSnapshot(room) }` (depends on T005, T006)
 
 ### Frontend — US1
 
-- [ ] T008 [P] [US1] Add `api.endGame(code, playerName)` method to `frontend/src/services/api.ts`: POST to `/rooms/:code/end` with `{ playerName }` body, return `{ room: RoomSnapshot }` (depends on T003)
-- [ ] T009 [P] [US1] Create stub `ResultPage` component in `frontend/src/pages/ResultPage.tsx`: renders a placeholder `<section>` with heading "Results" so the `/result` route resolves without error (no dependencies — can start immediately after T001)
-- [ ] T010 [US1] Add `/result` route pointing to `ResultPage` in `frontend/src/routes/index.tsx` (depends on T009)
-- [ ] T011 [US1] Add `endGame()` action to `frontend/src/state/roomStore.ts`: call `api.endGame(room.code, viewerName)`, update room snapshot in store (depends on T008)
-- [ ] T012 [US1] Update `GamePage` polling loop in `frontend/src/pages/GamePage.tsx` to detect `room.status === "result"` and `navigate("/result")` (depends on T003, T010, T011)
-- [ ] T013 [US1] Add "End Game" button (visible only when `isHost === true`) to `frontend/src/pages/GamePage.tsx`: on click calls `store.endGame()` (depends on T011, T012)
+- [x] T008 [P] [US1] Add `api.endGame(code, playerName)` method to `frontend/src/services/api.ts`: POST to `/rooms/:code/end` with `{ playerName }` body, return `{ room: RoomSnapshot }` (depends on T003)
+- [x] T009 [P] [US1] Create stub `ResultPage` component in `frontend/src/pages/ResultPage.tsx`: renders a placeholder `<section>` with heading "Results" so the `/result` route resolves without error (no dependencies — can start immediately after T001)
+- [x] T010 [US1] Add `/result` route pointing to `ResultPage` in `frontend/src/routes/index.tsx` (depends on T009)
+- [x] T011 [US1] Add `endGame()` action to `frontend/src/state/roomStore.ts`: call `api.endGame(room.code, viewerName)`, update room snapshot in store (depends on T008)
+- [x] T012 [US1] Update `GamePage` polling loop in `frontend/src/pages/GamePage.tsx` to detect `room.status === "result"` and `navigate("/result")` (depends on T003, T010, T011)
+- [x] T013 [US1] Add "End Game" button (visible only when `isHost === true`) to `frontend/src/pages/GamePage.tsx`: on click calls `store.endGame()` (depends on T011, T012)
 
 **Checkpoint**: Host clicks "End Game" → room transitions to `"result"` → all polling clients navigate to `/result` stub. Non-host `curl` returns 403. Both builds pass.
 
@@ -66,9 +66,9 @@
 
 **Independent Test**: After ending a game, every tab shows the secret word, each participant's score, and the ordered guess history. A game with zero guesses shows an empty-state message in the guess history section.
 
-- [ ] T014 [P] [US2] Build out `ResultPage` in `frontend/src/pages/ResultPage.tsx`: read `room` from store, display secret word (`room.secretWord`) prominently (depends on T010)
-- [ ] T015 [P] [US2] Add scores section to `ResultPage` in `frontend/src/pages/ResultPage.tsx`: list every participant's name and their score from `room.scores`; show 0 for participants absent from the scores map (depends on T014)
-- [ ] T016 [US2] Add guess history section to `ResultPage` in `frontend/src/pages/ResultPage.tsx`: render `room.guesses` in submission order showing guesser name, guess text, and points; show "No guesses yet" empty-state message when `room.guesses` is empty (depends on T014)
+- [x] T014 [P] [US2] Build out `ResultPage` in `frontend/src/pages/ResultPage.tsx`: read `room` from store, display secret word (`room.secretWord`) prominently (depends on T010)
+- [x] T015 [P] [US2] Add scores section to `ResultPage` in `frontend/src/pages/ResultPage.tsx`: list every participant's name and their score from `room.scores`; show 0 for participants absent from the scores map (depends on T014)
+- [x] T016 [US2] Add guess history section to `ResultPage` in `frontend/src/pages/ResultPage.tsx`: render `room.guesses` in submission order showing guesser name, guess text, and points; show "No guesses yet" empty-state message when `room.guesses` is empty (depends on T014)
 
 **Checkpoint**: All tabs show complete, correct result data. Empty-state and populated-state both render correctly. Both builds pass.
 
@@ -82,17 +82,17 @@
 
 ### Backend — US3
 
-- [ ] T017 [P] [US3] Add `restartSchema` (validates `playerName` string, trimmed, non-empty) to `backend/src/api/schemas.ts` (depends on T002)
-- [ ] T018 [US3] Add `restartGame(code: string, playerName: string)` function to `backend/src/services/roomStore.ts`: look up room (404 if missing), assert `status === "result"` (409 if not), assert `playerName === room.participants[0].name` (403 if not host), clear `secretWord`, `drawerName`, `guesses`, `scores`, `strokes`, set `status = "lobby"`, call `saveRoom()`, return snapshot (depends on T002, T017)
-- [ ] T019 [US3] Add `POST /:code/restart` route to `backend/src/api/rooms.ts`: parse params with `roomCodeParamsSchema`, parse body with `restartSchema`, call `restartGame()`, respond with `{ room: toRoomSnapshot(room) }` (depends on T018)
+- [x] T017 [P] [US3] Add `restartSchema` (validates `playerName` string, trimmed, non-empty) to `backend/src/api/schemas.ts` (depends on T002)
+- [x] T018 [US3] Add `restartGame(code: string, playerName: string)` function to `backend/src/services/roomStore.ts`: look up room (404 if missing), assert `status === "result"` (409 if not), assert `playerName === room.participants[0].name` (403 if not host), clear `secretWord`, `drawerName`, `guesses`, `scores`, `strokes`, set `status = "lobby"`, call `saveRoom()`, return snapshot (depends on T002, T017)
+- [x] T019 [US3] Add `POST /:code/restart` route to `backend/src/api/rooms.ts`: parse params with `roomCodeParamsSchema`, parse body with `restartSchema`, call `restartGame()`, respond with `{ room: toRoomSnapshot(room) }` (depends on T018)
 
 ### Frontend — US3
 
-- [ ] T020 [P] [US3] Add `api.restartGame(code, playerName)` method to `frontend/src/services/api.ts`: POST to `/rooms/:code/restart` with `{ playerName }` body, return `{ room: RoomSnapshot }` (depends on T003)
-- [ ] T021 [US3] Add `restartGame()` action to `frontend/src/state/roomStore.ts`: call `api.restartGame(room.code, viewerName)`, update room snapshot in store (depends on T020)
-- [ ] T022 [US3] Add polling loop to `ResultPage` in `frontend/src/pages/ResultPage.tsx`: poll `store.pollRoom()` every 2 seconds; when `room.status === "lobby"` navigate to `/lobby` (mirrors `LobbyPage` polling pattern) (depends on T016, T021)
-- [ ] T023 [US3] Add "Play Again" button (visible only when viewer `isHost === true`) to `ResultPage` in `frontend/src/pages/ResultPage.tsx`: on click calls `store.restartGame()` (depends on T021, T022)
-- [ ] T024 [US3] Update `LobbyPage` polling in `frontend/src/pages/LobbyPage.tsx` to handle `"result"` state: if `polled.status === "result"` navigate to `/result` (covers edge case where player is in lobby when host ends game) (depends on T010)
+- [x] T020 [P] [US3] Add `api.restartGame(code, playerName)` method to `frontend/src/services/api.ts`: POST to `/rooms/:code/restart` with `{ playerName }` body, return `{ room: RoomSnapshot }` (depends on T003)
+- [x] T021 [US3] Add `restartGame()` action to `frontend/src/state/roomStore.ts`: call `api.restartGame(room.code, viewerName)`, update room snapshot in store (depends on T020)
+- [x] T022 [US3] Add polling loop to `ResultPage` in `frontend/src/pages/ResultPage.tsx`: poll `store.pollRoom()` every 2 seconds; when `room.status === "lobby"` navigate to `/lobby` (mirrors `LobbyPage` polling pattern) (depends on T016, T021)
+- [x] T023 [US3] Add "Play Again" button (visible only when viewer `isHost === true`) to `ResultPage` in `frontend/src/pages/ResultPage.tsx`: on click calls `store.restartGame()` (depends on T021, T022)
+- [x] T024 [US3] Update `LobbyPage` polling in `frontend/src/pages/LobbyPage.tsx` to handle `"result"` state: if `polled.status === "result"` navigate to `/result` (covers edge case where player is in lobby when host ends game) (depends on T010)
 
 **Checkpoint**: Full restart flow works end-to-end. Host clicks "Play Again" → room returns to lobby → all tabs navigate back to `/lobby` with original participants. Both builds pass.
 
@@ -104,7 +104,7 @@
 
 **Independent Test**: Two-tab session completes a full round: lobby → start game → draw → guess → end game → result screen (correct data) → restart → lobby (same players) → start again → end → result screen (fresh data only from second round).
 
-- [ ] T025 [US4] Run all 7 validation scenarios from `specs/004-result-restart-validation/quickstart.md` with two browser tabs; confirm all acceptance criteria from spec.md US1–US4 pass (depends on T024)
+- [x] T025 [US4] Run all 7 validation scenarios from `specs/004-result-restart-validation/quickstart.md` with two browser tabs; confirm all acceptance criteria from spec.md US1–US4 pass (depends on T024)
 
 **Checkpoint**: Full round-trip validated end-to-end. All four features work together with no regressions.
 
@@ -112,9 +112,9 @@
 
 ## Phase 7: Polish & Cross-Cutting Concerns
 
-- [ ] T026 [P] Remove the `ResultPanel` placeholder component import and usage from `frontend/src/pages/GamePage.tsx` sidebar (the dedicated `ResultPage` replaces it)
-- [ ] T027 [P] Verify TypeScript build passes in `backend/` with zero errors: `npm run build`
-- [ ] T028 [P] Verify TypeScript build passes in `frontend/` with zero errors: `npm run build`
+- [x] T026 [P] Remove the `ResultPanel` placeholder component import and usage from `frontend/src/pages/GamePage.tsx` sidebar (the dedicated `ResultPage` replaces it)
+- [x] T027 [P] Verify TypeScript build passes in `backend/` with zero errors: `npm run build`
+- [x] T028 [P] Verify TypeScript build passes in `frontend/` with zero errors: `npm run build`
 
 ---
 

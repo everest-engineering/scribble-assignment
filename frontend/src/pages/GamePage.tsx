@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import { Card } from "../components/Card";
 import { DrawingCanvas } from "../components/DrawingCanvas";
 import { GuessForm } from "../components/GuessForm";
-import { ResultPanel } from "../components/ResultPanel";
 import { RoomCodeBadge } from "../components/RoomCodeBadge";
 import { Scoreboard } from "../components/Scoreboard";
 import { useRoomState, useRoomStore } from "../state/roomStore";
@@ -20,16 +19,19 @@ export function GamePage() {
     }
   }, [navigate, room]);
 
-  // 2-second polling for guess history, scores, and canvas strokes (T020)
+  // 2-second polling for guess history, scores, canvas strokes, and state transitions
   useEffect(() => {
     if (!room) return;
 
-    const interval = setInterval(() => {
-      store.pollRoom();
+    const interval = setInterval(async () => {
+      const polled = await store.pollRoom();
+      if (polled?.status === "result") {
+        navigate("/result");
+      }
     }, 2000);
 
     return () => clearInterval(interval);
-  }, [store, room?.code]);
+  }, [store, navigate, room?.code]);
 
   if (!room) {
     return null;
@@ -37,6 +39,7 @@ export function GamePage() {
 
   const viewer = room.participants.find((participant) => participant.id === participantId) ?? null;
   const isDrawer = viewer?.name === room.drawerName;
+  const isHost = viewer?.isHost ?? false;
 
   function handleStrokeComplete(points: Point[]) {
     store.addStroke(points);
@@ -65,7 +68,6 @@ export function GamePage() {
       <div className="game-page__layout">
         <aside className="game-page__sidebar game-page__sidebar--left">
           <Scoreboard scores={room.scores} participants={room.participants} />
-          <ResultPanel />
         </aside>
 
         <div className="game-page__main">
@@ -130,6 +132,19 @@ export function GamePage() {
       </div>
 
       <div className="button-row">
+        {isHost && (
+          <button
+            className="button button--primary"
+            onClick={async () => {
+              if (viewer) {
+                await store.endGame(viewer.name);
+                navigate("/result");
+              }
+            }}
+          >
+            End Game
+          </button>
+        )}
         <button className="button button--secondary" onClick={() => navigate("/lobby")}>
           Exit Game
         </button>

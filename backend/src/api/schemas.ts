@@ -25,6 +25,14 @@ export const strokeSchema = z.object({
   points: z.array(z.object({ x: z.number(), y: z.number() })).min(1, "At least one point is required")
 });
 
+export const endGameSchema = z.object({
+  playerName: z.string().trim().min(1, "Player name is required")
+});
+
+export const restartSchema = z.object({
+  playerName: z.string().trim().min(1, "Player name is required")
+});
+
 export class HttpError extends Error {
   statusCode: number;
 

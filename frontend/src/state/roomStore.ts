@@ -154,6 +154,30 @@ class RoomStore {
 
     return api.clearStrokes(this.state.room.code);
   }
+
+  async endGame(playerName: string) {
+    if (!this.state.room) {
+      throw new Error("No active room");
+    }
+
+    const response = await this.withLoading(() =>
+      api.endGame(this.state.room!.code, playerName)
+    );
+    this.setRoomSnapshot(response.room);
+    return response.room;
+  }
+
+  async restartGame(playerName: string) {
+    if (!this.state.room) {
+      throw new Error("No active room");
+    }
+
+    const response = await this.withLoading(() =>
+      api.restartGame(this.state.room!.code, playerName)
+    );
+    this.setRoomSnapshot(response.room);
+    return response.room;
+  }
 }
 
 const RoomStoreContext = createContext<RoomStore | null>(null);

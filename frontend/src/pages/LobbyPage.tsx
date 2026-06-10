@@ -23,6 +23,10 @@ export function LobbyPage() {
         navigate("/game");
         return;
       }
+      if (polled !== null && polled.status === "result") {
+        navigate("/result");
+        return;
+      }
       scheduleNextPoll();
     }, POLL_INTERVAL_MS);
   }, [roomStore, navigate]);

@@ -152,7 +152,57 @@ export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSn
     }
   }
 
+  if (room.status === "result") {
+    snapshot.drawerName = room.drawerName;
+    snapshot.secretWord = room.secretWord;
+  }
+
   return snapshot;
+}
+
+export function endGame(code: string, playerName: string): Room {
+  const room = rooms.get(code);
+
+  if (!room) {
+    throw new HttpError(404, "Room not found");
+  }
+
+  if (room.status !== "playing") {
+    throw new HttpError(409, "Room is not in playing state");
+  }
+
+  if (playerName !== room.participants[0].name) {
+    throw new HttpError(403, "Only the host can end the game");
+  }
+
+  room.status = "result";
+
+  return saveRoom(room)!;
+}
+
+export function restartGame(code: string, playerName: string): Room {
+  const room = rooms.get(code);
+
+  if (!room) {
+    throw new HttpError(404, "Room not found");
+  }
+
+  if (room.status !== "result") {
+    throw new HttpError(409, "Room is not in result state");
+  }
+
+  if (playerName !== room.participants[0].name) {
+    throw new HttpError(403, "Only the host can restart the game");
+  }
+
+  room.status = "lobby";
+  room.secretWord = undefined;
+  room.drawerName = undefined;
+  room.guesses = [];
+  room.scores = {};
+  room.strokes = [];
+
+  return saveRoom(room)!;
 }
 
 export function submitGuess(code: string, playerName: string, guessText: string): Guess {

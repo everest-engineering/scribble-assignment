@@ -1,14 +1,16 @@
 import { Router } from "express";
 import {
   createRoomSchema,
+  endGameSchema,
   guessSchema,
   HttpError,
   joinRoomSchema,
+  restartSchema,
   roomCodeParamsSchema,
   roomViewerQuerySchema,
   strokeSchema
 } from "./schemas.js";
-import { addStroke, clearStrokes, createRoom, getRoom, joinRoom, startGame, submitGuess, toRoomSnapshot } from "../services/roomStore.js";
+import { addStroke, clearStrokes, createRoom, endGame, getRoom, joinRoom, restartGame, startGame, submitGuess, toRoomSnapshot } from "../services/roomStore.js";
 
 export function createRoomsRouter() {
   const router = Router();
@@ -89,6 +91,30 @@ export function createRoomsRouter() {
       const strokes = clearStrokes(code.toUpperCase());
 
       response.json({ strokes });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/:code/end", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { playerName } = endGameSchema.parse(request.body);
+      const room = endGame(code.toUpperCase(), playerName);
+
+      response.json({ room: toRoomSnapshot(room) });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/:code/restart", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { playerName } = restartSchema.parse(request.body);
+      const room = restartGame(code.toUpperCase(), playerName);
+
+      response.json({ room: toRoomSnapshot(room) });
     } catch (error) {
       next(error);
     }
