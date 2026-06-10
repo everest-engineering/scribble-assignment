@@ -89,6 +89,16 @@ class RoomStore {
     return response;
   }
 
+  async startRoom() {
+    if (!this.state.room) {
+      throw new Error("No active room");
+    }
+
+    const response = await this.withLoading(() => api.startRoom(this.state.room!.code));
+    this.setRoomSnapshot(response.room);
+    return response.room;
+  }
+
   async fetchRoom() {
     if (!this.state.room) {
       return null;

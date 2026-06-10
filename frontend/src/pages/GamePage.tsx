@@ -58,6 +58,12 @@ export function GamePage() {
                 <dt>Status</dt>
                 <dd>Playing</dd>
               </div>
+              {room.secretWord && (
+                <div>
+                  <dt>Secret Word</dt>
+                  <dd>{room.secretWord}</dd>
+                </div>
+              )}
             </dl>
           </Card>
 

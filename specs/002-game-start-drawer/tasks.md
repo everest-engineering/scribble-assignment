@@ -30,7 +30,7 @@ frontend/src/   — Vite + React SPA (TypeScript)
 
 **Purpose**: Confirm the current codebase builds cleanly before any changes are made.
 
-- [ ] T001 Verify TypeScript build passes in backend/ (`cd backend && npm run build`) and frontend/ (`cd frontend && npm run build`) with zero errors as a pre-change baseline
+- [x] T001 Verify TypeScript build passes in backend/ (`cd backend && npm run build`) and frontend/ (`cd frontend && npm run build`) with zero errors as a pre-change baseline
 
 **Checkpoint**: Baseline green — no pre-existing build errors.
 
@@ -42,8 +42,8 @@ frontend/src/   — Vite + React SPA (TypeScript)
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete.
 
-- [ ] T002 [P] In `backend/src/models/game.ts`: change `RoomStatus` from `"lobby"` to `"lobby" | "playing"`, add optional fields `drawerName?: string` and `secretWord?: string` to `Room`, and add optional fields `drawerName?: string` and `secretWord?: string` to `RoomSnapshot`
-- [ ] T003 [P] In `frontend/src/services/api.ts`: change the `status` field type in `RoomSnapshot` from `"lobby"` to `"lobby" | "playing"` and add optional fields `drawerName?: string` and `secretWord?: string` to `RoomSnapshot`
+- [x] T002 [P] In `backend/src/models/game.ts`: change `RoomStatus` from `"lobby"` to `"lobby" | "playing"`, add optional fields `drawerName?: string` and `secretWord?: string` to `Room`, and add optional fields `drawerName?: string` and `secretWord?: string` to `RoomSnapshot`
+- [x] T003 [P] In `frontend/src/services/api.ts`: change the `status` field type in `RoomSnapshot` from `"lobby"` to `"lobby" | "playing"` and add optional fields `drawerName?: string` and `secretWord?: string` to `RoomSnapshot`
 
 **Checkpoint**: Both projects build cleanly with the expanded types before proceeding.
 
@@ -57,11 +57,11 @@ frontend/src/   — Vite + React SPA (TypeScript)
 
 ### Implementation for User Story 1
 
-- [ ] T004 [US1] In `backend/src/services/roomStore.ts`: add `export function startGame(code: string)` that (a) looks up the room and throws `HttpError(404)` if not found, (b) throws `HttpError(409, "Game has already started")` if `room.status === "playing"`, (c) throws `HttpError(400, "At least 2 players are required to start")` if `room.participants.length < 2`, (d) sets `room.drawerName = room.participants[0].name`, (e) sets `room.secretWord = STARTER_WORDS[0]`, (f) sets `room.status = "playing"`, and (g) saves and returns the updated room via `saveRoom`
-- [ ] T005 [P] [US1] In `frontend/src/services/api.ts`: add `startRoom(code: string)` method to the `api` object that sends `POST /rooms/${encodeURIComponent(code)}/start` and returns `Promise<{ room: RoomSnapshot }>`
-- [ ] T006 [US1] In `backend/src/api/rooms.ts`: add `router.post("/:code/start", ...)` route that calls `startGame(code.toUpperCase())`, catches `HttpError`, and responds with `200 { room: toRoomSnapshot(room) }` on success — import `startGame` from `roomStore.js`
-- [ ] T007 [US1] In `frontend/src/state/roomStore.ts`: add `async startRoom()` method to the `RoomStore` class that calls `api.startRoom(this.state.room.code)` via `withLoading`, then calls `this.setRoomSnapshot(response.room)` on success; throw if room state is null
-- [ ] T008 [US1] In `frontend/src/pages/LobbyPage.tsx`: replace the `onClick={() => navigate("/game")}` on the Start Game button with a handler that calls `await roomStore.startRoom()` then `navigate("/game")`; in the polling effect (`scheduleNextPoll`), after `roomStore.pollRoom()` resolves, guard against null — only call `navigate("/game")` if `room !== null && room.status === "playing"`
+- [x] T004 [US1] In `backend/src/services/roomStore.ts`: add `export function startGame(code: string)` that (a) looks up the room and throws `HttpError(404)` if not found, (b) throws `HttpError(409, "Game has already started")` if `room.status === "playing"`, (c) throws `HttpError(400, "At least 2 players are required to start")` if `room.participants.length < 2`, (d) sets `room.drawerName = room.participants[0].name`, (e) sets `room.secretWord = STARTER_WORDS[0]`, (f) sets `room.status = "playing"`, and (g) saves and returns the updated room via `saveRoom`
+- [x] T005 [P] [US1] In `frontend/src/services/api.ts`: add `startRoom(code: string)` method to the `api` object that sends `POST /rooms/${encodeURIComponent(code)}/start` and returns `Promise<{ room: RoomSnapshot }>`
+- [x] T006 [US1] In `backend/src/api/rooms.ts`: add `router.post("/:code/start", ...)` route that calls `startGame(code.toUpperCase())`, catches `HttpError`, and responds with `200 { room: toRoomSnapshot(room) }` on success — import `startGame` from `roomStore.js`
+- [x] T007 [US1] In `frontend/src/state/roomStore.ts`: add `async startRoom()` method to the `RoomStore` class that calls `api.startRoom(this.state.room.code)` via `withLoading`, then calls `this.setRoomSnapshot(response.room)` on success; throw if room state is null
+- [x] T008 [US1] In `frontend/src/pages/LobbyPage.tsx`: replace the `onClick={() => navigate("/game")}` on the Start Game button with a handler that calls `await roomStore.startRoom()` then `navigate("/game")`; in the polling effect (`scheduleNextPoll`), after `roomStore.pollRoom()` resolves, guard against null — only call `navigate("/game")` if `room !== null && room.status === "playing"`
 
 **Checkpoint**: US1 fully functional. Host clicks "Start Game" → immediate navigation. Guest tab auto-navigates within 2 s. Both TypeScript builds pass. Verify with two browser tabs before moving to US2.
 
@@ -75,8 +75,8 @@ frontend/src/   — Vite + React SPA (TypeScript)
 
 ### Implementation for User Story 2
 
-- [ ] T009 [US2] In `backend/src/services/roomStore.ts`: update `toRoomSnapshot()` to (a) look up the viewer participant by `viewerParticipantId` in `room.participants`, (b) include `drawerName: room.drawerName` in the snapshot whenever `room.status === "playing"`, and (c) include `secretWord: room.secretWord` only when the viewer's `name === room.drawerName`; remove the `void viewerParticipantId` stub
-- [ ] T010 [P] [US2] In `frontend/src/pages/GamePage.tsx`: in the Player Info `<dl>`, add a conditional row that renders `<dt>Secret Word</dt><dd>{room.secretWord}</dd>` only when `room.secretWord` is defined; use a truthy check (`{room.secretWord && ...}`) so the row is absent entirely when the field is missing — this also covers the guesser case (US2 acceptance scenario 4)
+- [x] T009 [US2] In `backend/src/services/roomStore.ts`: update `toRoomSnapshot()` to (a) look up the viewer participant by `viewerParticipantId` in `room.participants`, (b) include `drawerName: room.drawerName` in the snapshot whenever `room.status === "playing"`, and (c) include `secretWord: room.secretWord` only when the viewer's `name === room.drawerName`; remove the `void viewerParticipantId` stub
+- [x] T010 [P] [US2] In `frontend/src/pages/GamePage.tsx`: in the Player Info `<dl>`, add a conditional row that renders `<dt>Secret Word</dt><dd>{room.secretWord}</dd>` only when `room.secretWord` is defined; use a truthy check (`{room.secretWord && ...}`) so the row is absent entirely when the field is missing — this also covers the guesser case (US2 acceptance scenario 4)
 
 **Checkpoint**: Drawer's Game screen shows "rocket"; guesser's Game screen has no "Secret Word" row. Alice's API snapshot contains `secretWord`; Bob's does not. Both TypeScript builds pass. Verify with two tabs (drawer tab + guesser tab) before moving to US3.
 
@@ -90,8 +90,8 @@ frontend/src/   — Vite + React SPA (TypeScript)
 
 ### Verification for User Story 3
 
-- [ ] T011 [US3] Verify `toRoomSnapshot()` (updated in T009): using the two-tab setup, call `GET /rooms/<code>?participantId=<bob's-id>` and confirm the response JSON has no `secretWord` key — the field must be absent from the object, not `null` or `undefined`; if the field is present, fix the condition in `backend/src/services/roomStore.ts` until it is absent
-- [ ] T012 [P] [US3] Verify `GamePage.tsx` (updated in T010): on Bob's (guesser) Game screen confirm the Player Info section has no "Secret Word" row and no empty label; if the row appears for guessers, fix the truthy check in `frontend/src/pages/GamePage.tsx` until it is absent
+- [x] T011 [US3] Verify `toRoomSnapshot()` (updated in T009): using the two-tab setup, call `GET /rooms/<code>?participantId=<bob's-id>` and confirm the response JSON has no `secretWord` key — the field must be absent from the object, not `null` or `undefined`; if the field is present, fix the condition in `backend/src/services/roomStore.ts` until it is absent
+- [x] T012 [P] [US3] Verify `GamePage.tsx` (updated in T010): on Bob's (guesser) Game screen confirm the Player Info section has no "Secret Word" row and no empty label; if the row appears for guessers, fix the truthy check in `frontend/src/pages/GamePage.tsx` until it is absent
 
 **Checkpoint**: Bob's API snapshot has no `secretWord` key. Bob's Game screen has no "Secret Word" row. Both TypeScript builds pass. Verify with two tabs.
 
@@ -105,7 +105,7 @@ frontend/src/   — Vite + React SPA (TypeScript)
 
 ### Implementation for User Story 4
 
-- [ ] T013 [US4] In `backend/src/services/roomStore.ts`: in `startGame()` (created in T004), add a validation loop before the state transition that iterates `room.participants` and throws `HttpError(400, "All player names must be non-empty")` if any `participant.name.trim() === ""`; this guard runs after the 404/409/min-players checks already in T004
+- [x] T013 [US4] In `backend/src/services/roomStore.ts`: in `startGame()` (created in T004), add a validation loop before the state transition that iterates `room.participants` and throws `HttpError(400, "All player names must be non-empty")` if any `participant.name.trim() === ""`; this guard runs after the 404/409/min-players checks already in T004
 
 **Checkpoint**: `POST /rooms/:code/start` with a whitespace-name participant returns HTTP 400 and the room stays in `"lobby"`. Both TypeScript builds pass.
 
@@ -115,9 +115,9 @@ frontend/src/   — Vite + React SPA (TypeScript)
 
 **Purpose**: End-to-end validation and build confirmation before marking the feature complete.
 
-- [ ] T014 [P] Verify TypeScript build passes in `backend/` with zero errors (`cd backend && npm run build`)
-- [ ] T015 [P] Verify TypeScript build passes in `frontend/` with zero errors (`cd frontend && npm run build`)
-- [ ] T016 Run through all scenarios in `specs/002-game-start-drawer/quickstart.md` end-to-end; for Scenario 6 (guesser secret-word display) also open a third tab with a third player to satisfy SC-005's 3-player verification requirement, and confirm all expected outcomes pass
+- [x] T014 [P] Verify TypeScript build passes in `backend/` with zero errors (`cd backend && npm run build`)
+- [x] T015 [P] Verify TypeScript build passes in `frontend/` with zero errors (`cd frontend && npm run build`)
+- [x] T016 Run through all scenarios in `specs/002-game-start-drawer/quickstart.md` end-to-end; for Scenario 6 (guesser secret-word display) also open a third tab with a third player to satisfy SC-005's 3-player verification requirement, and confirm all expected outcomes pass
 
 ---
 

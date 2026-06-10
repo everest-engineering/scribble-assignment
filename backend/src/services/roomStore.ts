@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import type { Participant, Room, RoomSnapshot } from "../models/game.js";
+import { HttpError } from "../api/schemas.js";
 import { STARTER_ROLES, STARTER_WORDS } from "../seed/starterData.js";
 
 const rooms = new Map<string, Room>();
@@ -93,14 +94,54 @@ export function saveRoom(room: Room) {
   return getRoom(room.code);
 }
 
-export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSnapshot {
-  void viewerParticipantId;
+export function startGame(code: string) {
+  const room = rooms.get(code);
 
-  return {
+  if (!room) {
+    throw new HttpError(404, "Room not found");
+  }
+
+  if (room.status === "playing") {
+    throw new HttpError(409, "Game has already started");
+  }
+
+  if (room.participants.length < 2) {
+    throw new HttpError(400, "At least 2 players are required to start");
+  }
+
+  for (const participant of room.participants) {
+    if (participant.name.trim() === "") {
+      throw new HttpError(400, "All player names must be non-empty");
+    }
+  }
+
+  room.drawerName = room.participants[0].name;
+  room.secretWord = STARTER_WORDS[0];
+  room.status = "playing";
+
+  return saveRoom(room)!;
+}
+
+export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSnapshot {
+  const snapshot: RoomSnapshot = {
     code: room.code,
     status: room.status,
     participants: room.participants.map((participant) => ({ ...participant })),
     availableWords: listWords(),
     roles: [...STARTER_ROLES]
   };
+
+  if (room.status === "playing" && room.drawerName !== undefined) {
+    snapshot.drawerName = room.drawerName;
+
+    const viewer = viewerParticipantId
+      ? room.participants.find((p) => p.id === viewerParticipantId)
+      : undefined;
+
+    if (viewer?.name === room.drawerName) {
+      snapshot.secretWord = room.secretWord;
+    }
+  }
+
+  return snapshot;
 }

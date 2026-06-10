@@ -18,10 +18,14 @@ export function LobbyPage() {
 
   const scheduleNextPoll = useCallback(() => {
     timeoutRef.current = setTimeout(async () => {
-      await roomStore.pollRoom();
+      const polled = await roomStore.pollRoom();
+      if (polled !== null && polled.status === "playing") {
+        navigate("/game");
+        return;
+      }
       scheduleNextPoll();
     }, POLL_INTERVAL_MS);
-  }, [roomStore]);
+  }, [roomStore, navigate]);
 
   useEffect(() => {
     if (!room) {
@@ -98,7 +102,10 @@ export function LobbyPage() {
           <button
             className="button button--primary"
             disabled={!canStart}
-            onClick={() => navigate("/game")}
+            onClick={async () => {
+              await roomStore.startRoom();
+              navigate("/game");
+            }}
           >
             Start Game
           </button>
