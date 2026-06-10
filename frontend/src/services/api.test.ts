@@ -28,6 +28,28 @@ describe("api service", () => {
     );
   });
 
+  it("joinRoom sends POST to /rooms/:code/join with playerName in body", async () => {
+    const mockResponse = {
+      ok: true,
+      json: () =>
+        Promise.resolve({
+          participantId: "p2",
+          room: { code: "ABCD", status: "lobby", participants: [] },
+        }),
+    };
+    vi.mocked(fetch).mockResolvedValue(mockResponse as unknown as Response);
+
+    await api.joinRoom("ABCD", "Bob");
+
+    expect(fetch).toHaveBeenCalledWith(
+      expect.stringContaining("/rooms/ABCD/join"),
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({ playerName: "Bob" }),
+      })
+    );
+  });
+
   it("fetchRoom sends GET to /rooms/:code with participantId query param", async () => {
     const mockResponse = {
       ok: true,
