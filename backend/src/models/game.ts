@@ -5,6 +5,7 @@ export interface Participant {
   id: string;
   name: string;
   joinedAt: string;
+  isHost: boolean;
 }
 
 export interface Room {

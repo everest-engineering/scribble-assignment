@@ -13,12 +13,25 @@ export function JoinRoomPage() {
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
+    const trimmedName = playerName.trim();
+    if (!trimmedName) {
+      setError("Player name is required");
+      return;
+    }
+
+    const trimmedCode = roomCode.trim().toUpperCase();
+
     try {
       setError(null);
-      await roomStore.joinRoom(roomCode.toUpperCase(), playerName);
+      await roomStore.joinRoom(trimmedCode, trimmedName);
       navigate("/lobby");
     } catch (caughtError) {
-      setError(caughtError instanceof Error ? caughtError.message : "Unable to join room");
+      const message = caughtError instanceof Error ? caughtError.message : "Unable to join room";
+      if (message.toLowerCase().includes("unable to join room") || message.toLowerCase().includes("404")) {
+        setError("Room not found. Check the code and try again.");
+      } else {
+        setError(message);
+      }
     }
   }
 

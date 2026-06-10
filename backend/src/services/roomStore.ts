@@ -29,15 +29,12 @@ function generateUniqueCode() {
   return code;
 }
 
-function displayName(name?: string) {
-  return name || "Player";
-}
-
-function createParticipant(name?: string): Participant {
+function createParticipant(name: string, isHost: boolean): Participant {
   return {
     id: randomUUID(),
-    name: displayName(name),
-    joinedAt: now()
+    name,
+    joinedAt: now(),
+    isHost
   };
 }
 
@@ -49,8 +46,8 @@ export function listWords() {
   return [...STARTER_WORDS];
 }
 
-export function createRoom(playerName?: string) {
-  const participant = createParticipant(playerName);
+export function createRoom(playerName: string) {
+  const participant = createParticipant(playerName, true);
   const room: Room = {
     code: generateUniqueCode(),
     status: "lobby",
@@ -67,14 +64,14 @@ export function createRoom(playerName?: string) {
   };
 }
 
-export function joinRoom(code: string, playerName?: string) {
+export function joinRoom(code: string, playerName: string) {
   const room = rooms.get(code);
 
   if (!room) {
     return null;
   }
 
-  const participant = createParticipant(playerName);
+  const participant = createParticipant(playerName, false);
   room.participants.push(participant);
   room.updatedAt = now();
   rooms.set(room.code, room);
