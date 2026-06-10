@@ -83,10 +83,17 @@ Implemented today:
 - game screen placeholders for canvas, guess input, scoreboard, and results
 - basic light UI styling
 
+Implemented today (Scenario 1 — Room Setup & Lobby):
+
+- host designation tied to the room creator's `participantId`
+- automatic lobby polling at ~2s with visibility-aware pause/resume
+- host-only Start Game with a ≥2-player gate enforced server-side
+- empty/invalid name and code rejection with clear inline feedback
+- case-insensitive, whitespace-tolerant room code lookup
+- 404 → "Room no longer available" lobby state and `sessionStorage` rehydration on refresh
+
 Not implemented yet:
 
-- host behavior or host-only permissions
-- automatic lobby polling
 - start game flow
 - drawer assignment
 - secret word visibility rules

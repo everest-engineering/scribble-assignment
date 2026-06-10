@@ -7,10 +7,15 @@ export interface Participant {
   joinedAt: string;
 }
 
+export interface ParticipantView extends Participant {
+  isHost: boolean;
+}
+
 export interface Room {
   code: string;
   status: RoomStatus;
   participants: Participant[];
+  hostParticipantId: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -18,7 +23,10 @@ export interface Room {
 export interface RoomSnapshot {
   code: string;
   status: RoomStatus;
-  participants: Participant[];
+  participants: ParticipantView[];
+  hostParticipantId: string;
+  viewerIsHost: boolean;
+  canStart: boolean;
   availableWords: string[];
   roles: ParticipantRole[];
 }
