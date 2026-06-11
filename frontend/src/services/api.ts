@@ -8,6 +8,13 @@ export interface Participant {
   role?: ParticipantRole;
 }
 
+export interface Guess {
+  participantId: string;
+  text: string;
+  correct: boolean;
+  timestamp: string;
+}
+
 export interface RoomSnapshot {
   code: string;
   status: RoomStatus;
@@ -16,6 +23,9 @@ export interface RoomSnapshot {
   availableWords: string[];
   roles: ParticipantRole[];
   secretWord?: string;
+  scores?: Record<string, number>;
+  guessLog?: Guess[];
+  roundEnded?: boolean;
 }
 
 export interface RoomSessionResponse {
@@ -45,6 +55,17 @@ async function request<T>(path: string, init?: RequestInit) {
   return (await response.json()) as T;
 }
 
+export interface StrokeData {
+  color: string;
+  points: { x: number; y: number }[];
+}
+
+export interface GuessResult {
+  correct: boolean;
+  points: number;
+  alreadyGuessed: boolean;
+}
+
 export const api = {
   createRoom(playerName: string) {
     return request<RoomSessionResponse>("/rooms", {
@@ -70,6 +91,34 @@ export const api = {
   },
   leaveRoom(code: string, participantId: string) {
     return request<{ success: boolean }>(`/rooms/${encodeURIComponent(code)}/leave`, {
+      method: "POST",
+      body: JSON.stringify({ participantId })
+    });
+  },
+  submitDraw(code: string, participantId: string, color: string, points: { x: number; y: number }[]) {
+    return request<{ strokeCount: number }>(`/rooms/${encodeURIComponent(code)}/draw`, {
+      method: "POST",
+      body: JSON.stringify({ participantId, color, points })
+    });
+  },
+  clearCanvas(code: string, participantId: string) {
+    return request<{ cleared: boolean }>(`/rooms/${encodeURIComponent(code)}/draw`, {
+      method: "DELETE",
+      body: JSON.stringify({ participantId })
+    });
+  },
+  fetchCanvas(code: string, participantId: string) {
+    const query = `?participantId=${encodeURIComponent(participantId)}`;
+    return request<{ strokes: StrokeData[] }>(`/rooms/${encodeURIComponent(code)}/canvas${query}`);
+  },
+  submitGuess(code: string, participantId: string, text: string) {
+    return request<GuessResult>(`/rooms/${encodeURIComponent(code)}/guess`, {
+      method: "POST",
+      body: JSON.stringify({ participantId, text })
+    });
+  },
+  endRound(code: string, participantId: string) {
+    return request<{ ended: boolean }>(`/rooms/${encodeURIComponent(code)}/end-round`, {
       method: "POST",
       body: JSON.stringify({ participantId })
     });

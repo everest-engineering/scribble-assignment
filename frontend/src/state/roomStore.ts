@@ -7,13 +7,17 @@ import {
   useSyncExternalStore,
   type PropsWithChildren
 } from "react";
-import { api, type RoomSessionResponse, type RoomSnapshot } from "../services/api";
+import { api, type RoomSessionResponse, type RoomSnapshot, type StrokeData } from "../services/api";
 
 export interface RoomState {
   room: RoomSnapshot | null;
   participantId: string | null;
   error: string | null;
   isLoading: boolean;
+  canvasStrokes: StrokeData[];
+  localStrokes: StrokeData[];
+  guessFeedback: { type: "correct" | "incorrect" | "error" | "already-guessed"; message: string } | null;
+  guessError: string | null;
 }
 
 type Listener = () => void;
@@ -25,11 +29,16 @@ class RoomStore {
     room: null,
     participantId: null,
     error: null,
-    isLoading: false
+    isLoading: false,
+    canvasStrokes: [],
+    localStrokes: [],
+    guessFeedback: null,
+    guessError: null
   };
 
   private listeners = new Set<Listener>();
   private pollTimer: ReturnType<typeof setInterval> | null = null;
+  private canvasPollTimer: ReturnType<typeof setInterval> | null = null;
 
   subscribe = (listener: Listener) => {
     this.listeners.add(listener);
@@ -79,13 +88,53 @@ class RoomStore {
     }
   }
 
+  startCanvasPolling() {
+    this.stopCanvasPolling();
+    this.canvasPollTimer = setInterval(() => {
+      this.fetchCanvas().catch(() => {});
+    }, POLL_INTERVAL);
+  }
+
+  stopCanvasPolling() {
+    if (this.canvasPollTimer !== null) {
+      clearInterval(this.canvasPollTimer);
+      this.canvasPollTimer = null;
+    }
+  }
+
+  async fetchCanvas() {
+    if (!this.state.room || !this.state.participantId) {
+      return;
+    }
+
+    try {
+      const response = await api.fetchCanvas(this.state.room.code, this.state.participantId);
+      this.setState({ canvasStrokes: response.strokes });
+    } catch {
+      // silent — polling errors are expected on network blips
+    }
+  }
+
+  addLocalStroke(stroke: StrokeData) {
+    this.setState({ localStrokes: [...this.state.localStrokes, stroke] });
+  }
+
+  clearLocalStrokes() {
+    this.setState({ localStrokes: [] });
+  }
+
   reset() {
     this.stopPolling();
+    this.stopCanvasPolling();
     this.setState({
       room: null,
       participantId: null,
       error: null,
-      isLoading: false
+      isLoading: false,
+      canvasStrokes: [],
+      localStrokes: [],
+      guessFeedback: null,
+      guessError: null
     });
   }
 
@@ -145,6 +194,44 @@ class RoomStore {
 
     await api.leaveRoom(this.state.room.code, this.state.participantId);
     this.reset();
+  }
+
+  setGuessFeedback(feedback: RoomState["guessFeedback"]) {
+    this.setState({ guessFeedback: feedback });
+  }
+
+  async submitGuess(text: string) {
+    if (!this.state.room || !this.state.participantId) {
+      return null;
+    }
+
+    try {
+      this.setState({ guessError: null });
+      const result = await api.submitGuess(this.state.room.code, this.state.participantId, text);
+
+      if (result.alreadyGuessed) {
+        this.setGuessFeedback({ type: "already-guessed", message: "Already guessed correctly!" });
+      } else if (result.correct) {
+        this.setGuessFeedback({ type: "correct", message: "Correct!" });
+      } else {
+        this.setGuessFeedback({ type: "incorrect", message: "Incorrect guess" });
+      }
+
+      return result;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to submit guess";
+      this.setState({ guessError: message });
+      return null;
+    }
+  }
+
+  async endRound() {
+    if (!this.state.room || !this.state.participantId) {
+      return;
+    }
+
+    await api.endRound(this.state.room.code, this.state.participantId);
+    await this.fetchRoom();
   }
 }
 

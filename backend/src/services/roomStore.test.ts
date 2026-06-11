@@ -1,9 +1,28 @@
 import { describe, expect, it } from "vitest";
-import { createRoom, joinRoom, leaveRoom, startRoom } from "./roomStore.js";
+import {
+  appendStroke,
+  clearCanvas,
+  createRoom,
+  endRound,
+  getCanvasState,
+  getRoom,
+  joinRoom,
+  leaveRoom,
+  startRoom,
+  submitGuess,
+  toRoomSnapshot
+} from "./roomStore.js";
 import { STARTER_WORDS } from "../seed/starterData.js";
 
 function wordIndex(code: string): number {
   return code.split("").reduce((sum, c) => sum + c.charCodeAt(0), 0) % 5;
+}
+
+function setupGame() {
+  const { room, participantId: hostId } = createRoom("Alice");
+  const { participantId: bobId } = joinRoom(room.code, "Bob")!;
+  const started = startRoom(room.code, hostId)!;
+  return { room: started, hostId, bobId, code: room.code };
 }
 
 describe("roomStore", () => {
@@ -104,6 +123,249 @@ describe("roomStore", () => {
 
       const guest = started!.participants.find((p) => p.id === guestId);
       expect(guest?.role).toBe("guesser");
+    });
+  });
+
+  describe("submitGuess", () => {
+    it("returns null for a non-existent room", () => {
+      const result = submitGuess("ZZZZ", "any-id", "word");
+      expect(result).toBeNull();
+    });
+
+    it("rejects guess from drawer", () => {
+      const { room, hostId } = setupGame();
+
+      const result = submitGuess(room.code, hostId, "guess");
+
+      expect(result).not.toBeNull();
+      expect(result).toHaveProperty("rejected", true);
+    });
+
+    it("returns correct:true for matching word (case-insensitive)", () => {
+      const { room, bobId } = setupGame();
+      const word = room.secretWord!;
+
+      const result = submitGuess(room.code, bobId, word.toUpperCase());
+
+      expect(result).not.toBeNull();
+      expect(result!.correct).toBe(true);
+      expect(result!.points).toBe(100);
+    });
+
+    it("returns correct:false for wrong word", () => {
+      const { room, bobId } = setupGame();
+
+      const result = submitGuess(room.code, bobId, "wrongword");
+
+      expect(result).not.toBeNull();
+      expect(result!.correct).toBe(false);
+      expect(result!.points).toBe(0);
+    });
+
+    it("rejects empty whitespace guess", () => {
+      const { room, bobId } = setupGame();
+
+      const result = submitGuess(room.code, bobId, "   ");
+
+      expect(result).not.toBeNull();
+      expect(result).toHaveProperty("rejected", true);
+    });
+
+    it("detects already-guessed correctly", () => {
+      const { room: room1, participantId: hostId } = createRoom("Alice");
+      const bobId = joinRoom(room1.code, "Bob")!.participantId;
+      const carolId = joinRoom(room1.code, "Carol")!.participantId;
+      const started = startRoom(room1.code, hostId)!;
+
+      submitGuess(room1.code, bobId, started.secretWord!);
+      const result = submitGuess(room1.code, bobId, "anything");
+
+      expect(result).not.toBeNull();
+      expect(result!.alreadyGuessed).toBe(true);
+    });
+
+    it("detects duplicate incorrect guess", () => {
+      const { room, bobId } = setupGame();
+
+      submitGuess(room.code, bobId, "wrong");
+      const result = submitGuess(room.code, bobId, "wrong");
+
+      expect(result).not.toBeNull();
+      expect(result).toHaveProperty("duplicate", true);
+    });
+
+    it("records guess in guessLog via toRoomSnapshot when round ends", () => {
+      const { room: room1, participantId: hostId } = createRoom("Alice");
+      const bobId = joinRoom(room1.code, "Bob")!.participantId;
+      startRoom(room1.code, hostId)!;
+
+      submitGuess(room1.code, bobId, "testguess");
+
+      const freshRoom = getRoom(room1.code)!;
+      const snapshot = toRoomSnapshot(freshRoom, bobId);
+      expect(snapshot.guessLog).toBeDefined();
+      expect(snapshot.guessLog!.length).toBeGreaterThanOrEqual(1);
+      expect(snapshot.guessLog![0].correct).toBe(false);
+    });
+  });
+
+  describe("scoring", () => {
+    it("awards 100 points to guesser on correct guess", () => {
+      const { room: room1, participantId: hostId } = createRoom("Alice");
+      const bobId = joinRoom(room1.code, "Bob")!.participantId;
+      const started = startRoom(room1.code, hostId)!;
+
+      submitGuess(room1.code, bobId, started.secretWord!);
+
+      const freshRoom = getRoom(room1.code)!;
+      const snapshot = toRoomSnapshot(freshRoom, bobId);
+      expect(snapshot.scores![bobId]).toBe(100);
+    });
+
+    it("does not award points for incorrect guess", () => {
+      const { room: room1, participantId: hostId } = createRoom("Alice");
+      const bobId = joinRoom(room1.code, "Bob")!.participantId;
+      startRoom(room1.code, hostId)!;
+
+      submitGuess(room1.code, bobId, "wrong");
+
+      const freshRoom = getRoom(room1.code)!;
+      const snapshot = toRoomSnapshot(freshRoom, bobId);
+      expect(snapshot.scores![bobId]).toBeUndefined();
+    });
+
+    it("auto-ends round when all guessers guess correctly", () => {
+      const { room: room1, participantId: hostId } = createRoom("Alice");
+      const { participantId: bobId } = joinRoom(room1.code, "Bob")!;
+      const { participantId: carolId } = joinRoom(room1.code, "Carol")!;
+      const started = startRoom(room1.code, hostId)!;
+
+      submitGuess(room1.code, bobId, started.secretWord!);
+      const result = submitGuess(room1.code, carolId, started.secretWord!);
+
+      expect(result!.correct).toBe(true);
+      const freshRoom = getRoom(room1.code)!;
+      const snapshot = toRoomSnapshot(freshRoom, bobId);
+      expect(snapshot.roundEnded).toBe(true);
+      expect(snapshot.status).toBe("finished");
+    });
+
+    it("awards drawer 100 pts per guesser who did not guess correctly on endRound", () => {
+      const { room: room1, participantId: hostId } = createRoom("Alice");
+      const bobId = joinRoom(room1.code, "Bob")!.participantId;
+      const carolId = joinRoom(room1.code, "Carol")!.participantId;
+      const started = startRoom(room1.code, hostId)!;
+
+      submitGuess(room1.code, bobId, started.secretWord!);
+      endRound(room1.code, hostId);
+
+      const freshRoom = getRoom(room1.code)!;
+      const snapshot = toRoomSnapshot(freshRoom, hostId);
+      // Carol didn't guess correctly → drawer gets 100
+      expect(snapshot.scores![hostId]).toBe(100);
+    });
+  });
+
+  describe("endRound", () => {
+    it("returns null for non-existent room", () => {
+      const result = endRound("ZZZZ");
+      expect(result).toBeNull();
+    });
+
+    it("returns null if room is not in playing status", () => {
+      const result = createRoom("Alice");
+      const roomResult = endRound(result.room.code);
+      expect(roomResult).toBeNull();
+    });
+
+    it("refuses end round from non-host participant", () => {
+      const { room, bobId } = setupGame();
+      const result = endRound(room.code, bobId);
+      expect(result).toBeNull();
+    });
+
+    it("ends round when called by host", () => {
+      const { room, hostId } = setupGame();
+
+      const result = endRound(room.code, hostId);
+
+      expect(result).not.toBeNull();
+      expect(result!.status).toBe("finished");
+      expect(result!.roundEnded).toBe(true);
+    });
+
+    it("exposes secretWord to all after round ends", () => {
+      const { room: room1, hostId, bobId } = setupGame();
+
+      endRound(room1.code, hostId);
+
+      const freshRoom = getRoom(room1.code)!;
+      const snapshot = toRoomSnapshot(freshRoom, bobId);
+      expect(snapshot.secretWord).toBeDefined();
+      expect(snapshot.roundEnded).toBe(true);
+    });
+  });
+
+  describe("canvas operations", () => {
+    it("appendStroke stores a stroke and returns count", () => {
+      const { room, hostId } = setupGame();
+
+      const result = appendStroke(room.code, hostId, {
+        color: "#000",
+        points: [{ x: 0, y: 0 }, { x: 10, y: 10 }]
+      });
+
+      expect(result).toEqual({ strokeCount: 1 });
+    });
+
+    it("getCanvasState returns stored strokes", () => {
+      const { room, hostId } = setupGame();
+      appendStroke(room.code, hostId, {
+        color: "#000",
+        points: [{ x: 0, y: 0 }]
+      });
+
+      const strokes = getCanvasState(room.code);
+      expect(strokes).toHaveLength(1);
+      expect(strokes[0].color).toBe("#000");
+    });
+
+    it("clearCanvas removes all strokes", () => {
+      const { room, hostId } = setupGame();
+      appendStroke(room.code, hostId, {
+        color: "#000",
+        points: [{ x: 0, y: 0 }]
+      });
+
+      clearCanvas(room.code, hostId);
+      const strokes = getCanvasState(room.code);
+      expect(strokes).toHaveLength(0);
+    });
+
+    it("clearCanvas is a no-op on empty canvas (no error)", () => {
+      const { room, hostId } = setupGame();
+
+      const result = clearCanvas(room.code, hostId);
+      expect(result).toEqual({ cleared: true });
+    });
+
+    it("appendStroke returns null for non-drawer", () => {
+      const { room, bobId } = setupGame();
+
+      const result = appendStroke(room.code, bobId, {
+        color: "#000",
+        points: [{ x: 0, y: 0 }]
+      });
+
+      expect(result).toBeNull();
+    });
+
+    it("appendStroke returns null for non-existent room", () => {
+      const result = appendStroke("ZZZZ", "any-id", {
+        color: "#000",
+        points: [{ x: 0, y: 0 }]
+      });
+      expect(result).toBeNull();
     });
   });
 
