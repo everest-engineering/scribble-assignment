@@ -36,7 +36,22 @@ You are working on a monolithic repository for a multiplayer drawing game ("Scri
 -   **No Databases**: Do not use any database (SQL, NoSQL, SQLite, etc.). All data is stored in-memory only.
 -   **No Authentication**: Do not add authentication, sessions, JWT, or OAuth.
 
+## Git & Commit Convention
+- All commits MUST follow [Conventional Commits](https://www.conventionalcommits.org/):
+  - `feat:` — new user-facing feature
+  - `fix:` — bug or regression fix
+  - `docs:` — documentation, specs, or comments only
+  - `refactor:` — code restructuring with no behavior change
+  - `test:` — adding or updating tests
+  - `chore:` — tooling, dependencies, config, CI
+- Scope is optional but encouraged (e.g., `feat(api):`, `docs(spec):`)
+- Keep the summary line under 72 characters. Add a blank line then bullet details in the body.
+
 ## Agent Persona
 -   Give concise, direct answers.
 -   Do not output large blocks of code if a small change suffices.
 -   When creating or editing files, ensure consistency with the existing directory structure detailed above.
+
+<!-- SPECKIT START -->
+Current plan: specs/004-result-restart-validation/plan.md
+<!-- SPECKIT END -->

@@ -1,23 +1,31 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { PageHeader } from "../components/PageHeader";
-import { useRoomStore } from "../state/roomStore";
+import { useRoomState, useRoomStore } from "../state/roomStore";
 
 export function CreateRoomPage() {
   const [playerName, setPlayerName] = useState("");
-  const [error, setError] = useState<string | null>(null);
+  const [validationError, setValidationError] = useState<string | null>(null);
   const navigate = useNavigate();
   const roomStore = useRoomStore();
+  const { isLoading } = useRoomState();
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
+    const trimmed = playerName.trim();
+    if (!trimmed) {
+      setValidationError("Display name is required");
+      return;
+    }
+
+    setValidationError(null);
+
     try {
-      setError(null);
-      await roomStore.createRoom(playerName);
+      await roomStore.createRoom(trimmed);
       navigate("/lobby");
     } catch (caughtError) {
-      setError(caughtError instanceof Error ? caughtError.message : "Unable to create room");
+      setValidationError(caughtError instanceof Error ? caughtError.message : "Unable to create room");
     }
   }
 
@@ -36,14 +44,15 @@ export function CreateRoomPage() {
             value={playerName}
             onChange={(event) => setPlayerName(event.target.value)}
             placeholder="Sketch captain"
+            disabled={isLoading}
           />
         </label>
-        {error ? <p className="form__error">{error}</p> : null}
+        {validationError ? <p className="form__error">{validationError}</p> : null}
         <div className="button-row">
-          <button className="button button--primary" type="submit">
-            Create and Continue
+          <button className="button button--primary" type="submit" disabled={isLoading}>
+            {isLoading ? "Creating room..." : "Create and Continue"}
           </button>
-          <button className="button button--secondary" type="button" onClick={() => navigate("/")}>
+          <button className="button button--secondary" type="button" onClick={() => navigate("/")} disabled={isLoading}>
             Back
           </button>
         </div>
