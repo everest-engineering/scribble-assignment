@@ -98,6 +98,26 @@ class RoomStore {
     this.setRoomSnapshot(response.room);
     return response.room;
   }
+
+  async startGame() {
+    if (!this.state.room || !this.state.participantId) {
+      throw new Error("Missing room or participant information");
+    }
+
+    const response = await this.withLoading(() => api.startGame(this.state.room!.code, this.state.participantId!));
+    this.setRoomSession(response);
+    return response;
+  }
+
+  async restartGame() {
+    if (!this.state.room || !this.state.participantId) {
+      throw new Error("Missing room or participant information");
+    }
+
+    const response = await this.withLoading(() => api.restartRoom(this.state.room!.code, this.state.participantId!));
+    this.setRoomSession(response);
+    return response;
+  }
 }
 
 const RoomStoreContext = createContext<RoomStore | null>(null);

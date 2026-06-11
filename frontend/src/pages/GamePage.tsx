@@ -23,6 +23,8 @@ export function GamePage() {
 
   const viewer = room.participants.find((participant) => participant.id === participantId) ?? null;
 
+  const isDrawer = viewer?.id === room.drawerId;
+
   return (
     <section className="panel game-page">
       <div className="game-page__header">
@@ -45,6 +47,12 @@ export function GamePage() {
               Waiting for drawer...
             </div>
           </Card>
+          <Card title="Secret Word">
+            <p style={{ fontSize: '1.5rem', letterSpacing: '0.2em' }}>{room.word}</p>
+            <p style={{ marginTop: '8px' }}>
+              {isDrawer ? "You are the drawer. Sketch this word for others to guess." : "Guessers see a placeholder until they win."}
+            </p>
+          </Card>
         </div>
 
         <aside className="game-page__sidebar game-page__sidebar--right">
@@ -56,19 +64,21 @@ export function GamePage() {
               </div>
               <div>
                 <dt>Status</dt>
-                <dd>Playing</dd>
+                <dd>{isDrawer ? "Drawer" : "Guesser"}</dd>
               </div>
             </dl>
           </Card>
 
-          <Card title="Your Guess">
-            <GuessForm />
-          </Card>
+          {!isDrawer ? (
+            <Card title="Your Guess">
+              <GuessForm />
+            </Card>
+          ) : null}
         </aside>
       </div>
 
       <div className="button-row">
-        <button className="button button--secondary" onClick={() => navigate("/lobby")}>
+        <button className="button button--secondary" onClick={() => navigate("/lobby") }>
           Exit Game
         </button>
       </div>
