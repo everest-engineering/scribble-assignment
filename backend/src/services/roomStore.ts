@@ -1,6 +1,8 @@
 import { randomUUID } from "node:crypto";
 import type { Participant, Room, RoomSnapshot } from "../models/game.js";
+import type { Round } from "../models/game.js";
 import { STARTER_ROLES, STARTER_WORDS } from "../seed/starterData.js";
+import { selectWord } from "./wordService.js";
 
 const rooms = new Map<string, Room>();
 
@@ -56,6 +58,7 @@ export function createRoom(playerName?: string) {
     status: "lobby",
     hostId: participant.id,
     participants: [participant],
+    rounds: [],
     createdAt: now(),
     updatedAt: now()
   };
@@ -101,7 +104,14 @@ export function startGame(code: string, participantId: string) {
     return null;
   }
 
+  const round: Round = {
+    roundNumber: 1,
+    drawerId: room.hostId,
+    secretWord: selectWord(room.code, 1)
+  };
+
   room.status = "playing";
+  room.rounds.push(round);
   room.updatedAt = now();
   rooms.set(room.code, room);
 
@@ -122,13 +132,19 @@ export function saveRoom(room: Room) {
 }
 
 export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSnapshot {
-  void viewerParticipantId;
+  const currentRound = room.rounds.length > 0 ? room.rounds[room.rounds.length - 1] : null;
+  const isDrawer = currentRound !== null && viewerParticipantId === currentRound.drawerId;
 
   return {
     code: room.code,
     status: room.status,
     hostId: room.hostId,
     participants: room.participants.map((participant) => ({ ...participant })),
+    roundNumber: currentRound?.roundNumber ?? null,
+    drawerId: currentRound?.drawerId ?? null,
+    yourRole: currentRound !== null ? (isDrawer ? "drawer" : "guesser") : null,
+    wordForDrawer: isDrawer ? currentRound!.secretWord : undefined,
+    wordLength: currentRound?.secretWord.length ?? null,
     availableWords: listWords(),
     roles: [...STARTER_ROLES]
   };

@@ -104,4 +104,68 @@ describe("roomStore", () => {
 
     expect(result).toBeNull();
   });
+
+  it("startGame creates first round with host as drawer", () => {
+    const created = createRoom("Alice");
+    const code = created.room.code;
+    joinRoom(code, "Bob");
+    const result = startGame(code, created.participantId);
+
+    expect(result).not.toBeNull();
+    const room = getRoom(code);
+    expect(room?.rounds).toHaveLength(1);
+    expect(room?.rounds[0].roundNumber).toBe(1);
+    expect(room?.rounds[0].drawerId).toBe(created.participantId);
+    expect(room?.rounds[0].secretWord).toBeDefined();
+  });
+
+  it("toRoomSnapshot returns drawerId visible to all participants", () => {
+    const created = createRoom("Alice");
+    const code = created.room.code;
+    joinRoom(code, "Bob");
+    startGame(code, created.participantId);
+
+    const snapshotHost = toRoomSnapshot(getRoom(code)!, created.participantId);
+    expect(snapshotHost.drawerId).toBe(created.participantId);
+    expect(snapshotHost.drawerId).not.toBeNull();
+  });
+
+  it("toRoomSnapshot returns yourRole correctly per participant", () => {
+    const created = createRoom("Alice");
+    const code = created.room.code;
+    const joined = joinRoom(code, "Bob");
+    startGame(code, created.participantId);
+
+    const snapshotHost = toRoomSnapshot(getRoom(code)!, created.participantId);
+    expect(snapshotHost.yourRole).toBe("drawer");
+
+    const snapshotGuesser = toRoomSnapshot(getRoom(code)!, joined!.participantId);
+    expect(snapshotGuesser.yourRole).toBe("guesser");
+  });
+
+  it("wordForDrawer present for drawer, absent for guessers", () => {
+    const created = createRoom("Alice");
+    const code = created.room.code;
+    const joined = joinRoom(code, "Bob");
+    startGame(code, created.participantId);
+
+    const snapshotHost = toRoomSnapshot(getRoom(code)!, created.participantId);
+    expect(snapshotHost.wordForDrawer).toBeDefined();
+    expect(snapshotHost.wordForDrawer!.length).toBeGreaterThan(0);
+
+    const snapshotGuesser = toRoomSnapshot(getRoom(code)!, joined!.participantId);
+    expect(snapshotGuesser.wordForDrawer).toBeUndefined();
+  });
+
+  it("wordLength equals secretWord.length", () => {
+    const created = createRoom("Alice");
+    const code = created.room.code;
+    joinRoom(code, "Bob");
+    startGame(code, created.participantId);
+
+    const room = getRoom(code)!;
+    const snapshot = toRoomSnapshot(room, created.participantId);
+
+    expect(snapshot.wordLength).toBe(room.rounds[0].secretWord.length);
+  });
 });

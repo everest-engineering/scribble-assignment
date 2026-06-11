@@ -11,6 +11,11 @@ export interface RoomSnapshot {
   status: "lobby" | "playing";
   hostId: string;
   participants: Participant[];
+  roundNumber: number | null;
+  drawerId: string | null;
+  yourRole: "drawer" | "guesser" | null;
+  wordForDrawer: string | undefined;
+  wordLength: number | null;
   availableWords: string[];
   roles: ParticipantRole[];
 }
