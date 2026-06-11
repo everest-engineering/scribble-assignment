@@ -53,5 +53,5 @@ You are working on a monolithic repository for a multiplayer drawing game ("Scri
 -   When creating or editing files, ensure consistency with the existing directory structure detailed above.
 
 <!-- SPECKIT START -->
-Current plan: specs/002-game-start-drawer/plan.md
+Current plan: specs/003-gameplay-interaction/plan.md
 <!-- SPECKIT END -->
