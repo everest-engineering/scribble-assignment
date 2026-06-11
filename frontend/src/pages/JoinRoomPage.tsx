@@ -1,24 +1,38 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { PageHeader } from "../components/PageHeader";
-import { useRoomStore } from "../state/roomStore";
+import { useRoomState, useRoomStore } from "../state/roomStore";
 
 export function JoinRoomPage() {
   const [playerName, setPlayerName] = useState("");
   const [roomCode, setRoomCode] = useState("");
-  const [error, setError] = useState<string | null>(null);
+  const [validationError, setValidationError] = useState<string | null>(null);
   const navigate = useNavigate();
   const roomStore = useRoomStore();
+  const { isLoading } = useRoomState();
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
+    const trimmedName = playerName.trim();
+    if (!trimmedName) {
+      setValidationError("Display name is required");
+      return;
+    }
+
+    const trimmedCode = roomCode.trim();
+    if (!trimmedCode) {
+      setValidationError("Room code is required");
+      return;
+    }
+
+    setValidationError(null);
+
     try {
-      setError(null);
-      await roomStore.joinRoom(roomCode.toUpperCase(), playerName);
+      await roomStore.joinRoom(trimmedCode.toUpperCase(), trimmedName);
       navigate("/lobby");
     } catch (caughtError) {
-      setError(caughtError instanceof Error ? caughtError.message : "Unable to join room");
+      setValidationError(caughtError instanceof Error ? caughtError.message : "Unable to join room");
     }
   }
 
@@ -37,6 +51,7 @@ export function JoinRoomPage() {
             value={playerName}
             onChange={(event) => setPlayerName(event.target.value)}
             placeholder="Second pencil"
+            disabled={isLoading}
           />
         </label>
 
@@ -47,14 +62,15 @@ export function JoinRoomPage() {
             value={roomCode}
             onChange={(event) => setRoomCode(event.target.value.toUpperCase())}
             placeholder="ABCD"
+            disabled={isLoading}
           />
         </label>
-        {error ? <p className="form__error">{error}</p> : null}
+        {validationError ? <p className="form__error">{validationError}</p> : null}
         <div className="button-row">
-          <button className="button button--primary" type="submit">
-            Join Lobby
+          <button className="button button--primary" type="submit" disabled={isLoading}>
+            {isLoading ? "Joining..." : "Join Lobby"}
           </button>
-          <button className="button button--secondary" type="button" onClick={() => navigate("/")}>
+          <button className="button button--secondary" type="button" onClick={() => navigate("/")} disabled={isLoading}>
             Back
           </button>
         </div>

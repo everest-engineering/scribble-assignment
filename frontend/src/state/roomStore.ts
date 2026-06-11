@@ -18,6 +18,8 @@ export interface RoomState {
 
 type Listener = () => void;
 
+const POLL_INTERVAL = 2000;
+
 class RoomStore {
   private state: RoomState = {
     room: null,
@@ -27,6 +29,7 @@ class RoomStore {
   };
 
   private listeners = new Set<Listener>();
+  private pollTimer: ReturnType<typeof setInterval> | null = null;
 
   subscribe = (listener: Listener) => {
     this.listeners.add(listener);
@@ -60,6 +63,30 @@ class RoomStore {
     } finally {
       this.setState({ isLoading: false });
     }
+  }
+
+  startPolling() {
+    this.stopPolling();
+    this.pollTimer = setInterval(() => {
+      this.fetchRoom().catch(() => {});
+    }, POLL_INTERVAL);
+  }
+
+  stopPolling() {
+    if (this.pollTimer !== null) {
+      clearInterval(this.pollTimer);
+      this.pollTimer = null;
+    }
+  }
+
+  reset() {
+    this.stopPolling();
+    this.setState({
+      room: null,
+      participantId: null,
+      error: null,
+      isLoading: false
+    });
   }
 
   setRoomSession(response: RoomSessionResponse) {
@@ -97,6 +124,27 @@ class RoomStore {
     const response = await api.fetchRoom(this.state.room.code, this.state.participantId ?? undefined);
     this.setRoomSnapshot(response.room);
     return response.room;
+  }
+
+  async startGame() {
+    if (!this.state.room || !this.state.participantId) {
+      return null;
+    }
+
+    const response = await this.withLoading(() =>
+      api.startGame(this.state.room!.code, this.state.participantId!)
+    );
+    this.setRoomSnapshot(response.room);
+    return response.room;
+  }
+
+  async leaveRoom() {
+    if (!this.state.room || !this.state.participantId) {
+      return;
+    }
+
+    await api.leaveRoom(this.state.room.code, this.state.participantId);
+    this.reset();
   }
 }
 

@@ -1,15 +1,24 @@
 import { z } from "zod";
 
+const nonEmptyName = z.string().min(1, "Display name is required").refine(
+  (value) => value.trim().length > 0,
+  "Display name cannot be only whitespace"
+);
+
 export const createRoomSchema = z.object({
-  playerName: z.string().optional()
+  playerName: nonEmptyName
 });
 
 export const joinRoomSchema = z.object({
-  playerName: z.string().optional()
+  playerName: nonEmptyName
 });
 
 export const roomCodeParamsSchema = z.object({
-  code: z.string()
+  code: z.string().max(4, "Room code must be at most 4 characters")
+});
+
+export const startGameParamsSchema = z.object({
+  code: z.string().max(4, "Room code must be at most 4 characters")
 });
 
 export const roomViewerQuerySchema = z.object({
