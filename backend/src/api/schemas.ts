@@ -5,11 +5,15 @@ export const createRoomSchema = z.object({
 });
 
 export const joinRoomSchema = z.object({
-  playerName: z.string().optional()
+  playerName: z.string().trim().min(1, "Player name is required")
 });
 
 export const roomCodeParamsSchema = z.object({
   code: z.string()
+});
+
+export const startGameQuerySchema = z.object({
+  participantId: z.string().min(1, "participantId is required")
 });
 
 export const roomViewerQuerySchema = z.object({

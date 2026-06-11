@@ -9,6 +9,8 @@ import {
 } from "react";
 import { api, type RoomSessionResponse, type RoomSnapshot } from "../services/api";
 
+const POLL_INTERVAL_MS = 2000;
+
 export interface RoomState {
   room: RoomSnapshot | null;
   participantId: string | null;
@@ -27,6 +29,7 @@ class RoomStore {
   };
 
   private listeners = new Set<Listener>();
+  private pollTimer: ReturnType<typeof setInterval> | null = null;
 
   subscribe = (listener: Listener) => {
     this.listeners.add(listener);
@@ -97,6 +100,45 @@ class RoomStore {
     const response = await api.fetchRoom(this.state.room.code, this.state.participantId ?? undefined);
     this.setRoomSnapshot(response.room);
     return response.room;
+  }
+
+  async startGame() {
+    if (!this.state.room || !this.state.participantId) {
+      return;
+    }
+
+    const response = await this.withLoading(() =>
+      api.startGame(this.state.room!.code, this.state.participantId!)
+    );
+    this.setRoomSnapshot(response.room);
+    return response.room;
+  }
+
+  startPolling() {
+    this.stopPolling();
+    this.pollTimer = setInterval(() => {
+      this.pollOnce();
+    }, POLL_INTERVAL_MS);
+  }
+
+  stopPolling() {
+    if (this.pollTimer !== null) {
+      clearInterval(this.pollTimer);
+      this.pollTimer = null;
+    }
+  }
+
+  private async pollOnce() {
+    if (!this.state.room) {
+      return;
+    }
+
+    try {
+      const response = await api.fetchRoom(this.state.room.code, this.state.participantId ?? undefined);
+      this.setRoomSnapshot(response.room);
+    } catch {
+      // silent retry – no state mutation
+    }
   }
 }
 

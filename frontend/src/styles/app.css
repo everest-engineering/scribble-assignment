@@ -404,6 +404,16 @@ input {
   font-weight: 400;
 }
 
+.host-badge {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.host-badge--self {
+  color: var(--brand);
+  font-weight: 700;
+}
+
 .status-line,
 .placeholder-note {
   width: max-content;
