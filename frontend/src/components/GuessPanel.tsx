@@ -13,13 +13,15 @@ interface GuessPanelProps {
   viewerParticipantId: string | null;
   onSubmit?: (text: string) => Promise<unknown> | unknown;
   errorMessage?: string | null;
+  readOnly?: boolean;
 }
 
 export function GuessPanel({
   room,
   viewerParticipantId,
   onSubmit,
-  errorMessage
+  errorMessage,
+  readOnly = false
 }: GuessPanelProps) {
   const [value, setValue] = useState("");
 
@@ -56,7 +58,7 @@ export function GuessPanel({
         </ul>
       </section>
 
-      {!viewerIsDrawer && (
+      {!viewerIsDrawer && !readOnly && (
         <div className="guess-panel__input-area">
           {viewerIsLocked ? (
             <p className="guess-panel__locked" data-testid="guess-locked">

@@ -177,7 +177,7 @@ export function submitGuess(
     return { ok: false, reason: "not_found" };
   }
 
-  if (room.round === null) {
+  if (room.status !== "round" || room.round === null) {
     return { ok: false, reason: "no_round" };
   }
 
@@ -219,6 +219,65 @@ export function submitGuess(
   return { ok: true, room: cloneRoom(room), guess: { ...guess } };
 }
 
+export type EndRoundOutcome =
+  | { ok: true; room: Room }
+  | { ok: false; reason: "not_found" | "not_host" | "not_active" };
+
+export function endRound(code: string, requesterId: string): EndRoundOutcome {
+  const room = rooms.get(normalizeCode(code));
+
+  if (!room) {
+    return { ok: false, reason: "not_found" };
+  }
+
+  if (room.hostParticipantId !== requesterId) {
+    return { ok: false, reason: "not_host" };
+  }
+
+  if (room.status === "result") {
+    // Idempotent re-call: same body, no updatedAt bump.
+    return { ok: true, room: cloneRoom(room) };
+  }
+
+  if (room.status !== "round") {
+    return { ok: false, reason: "not_active" };
+  }
+
+  room.status = "result";
+  room.updatedAt = now();
+  return { ok: true, room: cloneRoom(room) };
+}
+
+export type RestartRoomOutcome =
+  | { ok: true; room: Room }
+  | { ok: false; reason: "not_found" | "not_host" | "not_ended" };
+
+export function restartRoom(code: string, requesterId: string): RestartRoomOutcome {
+  const room = rooms.get(normalizeCode(code));
+
+  if (!room) {
+    return { ok: false, reason: "not_found" };
+  }
+
+  if (room.hostParticipantId !== requesterId) {
+    return { ok: false, reason: "not_host" };
+  }
+
+  if (room.status === "lobby") {
+    // Idempotent re-call: same body, no updatedAt bump.
+    return { ok: true, room: cloneRoom(room) };
+  }
+
+  if (room.status !== "result") {
+    return { ok: false, reason: "not_ended" };
+  }
+
+  room.round = null;
+  room.status = "lobby";
+  room.updatedAt = now();
+  return { ok: true, room: cloneRoom(room) };
+}
+
 export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSnapshot {
   const viewerIsHost =
     Boolean(viewerParticipantId) && viewerParticipantId === room.hostParticipantId;
@@ -247,7 +306,7 @@ export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSn
       lockedParticipantIds: [...activeRound.lockedParticipantIds]
     };
 
-    if (viewerIsDrawer) {
+    if (viewerIsDrawer || room.status === "result") {
       round.secretWord = activeRound.secretWord;
     }
   }

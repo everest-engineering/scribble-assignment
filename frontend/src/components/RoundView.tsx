@@ -58,6 +58,7 @@ interface RoundViewProps {
   viewerParticipantId: string | null;
   onGuessSubmit?: (text: string) => Promise<unknown> | unknown;
   guessError?: string | null;
+  onEndRound?: () => Promise<unknown> | unknown;
 }
 
 function renderMaskTiles(maskedWord: string) {
@@ -76,7 +77,8 @@ export function RoundView({
   room,
   viewerParticipantId,
   onGuessSubmit,
-  guessError
+  guessError,
+  onEndRound
 }: RoundViewProps) {
   const state = getRoundViewState(room, viewerParticipantId);
 
@@ -85,6 +87,7 @@ export function RoundView({
   }
 
   const viewerIsDrawer = state.mode === "drawer";
+  const showEndRound = viewerIsDrawer && room.viewerIsHost && onEndRound !== undefined;
 
   return (
     <section className="round-view">
@@ -115,6 +118,17 @@ export function RoundView({
       )}
 
       <DrawerCanvas viewerIsDrawer={viewerIsDrawer} />
+
+      {showEndRound && (
+        <button
+          type="button"
+          className="round-view__end-round"
+          onClick={() => onEndRound?.()}
+          data-testid="end-round-button"
+        >
+          End round
+        </button>
+      )}
 
       <GuessPanel
         room={room}

@@ -1,8 +1,10 @@
 import { Router } from "express";
 import {
   createRoomSchema,
+  endRoundSchema,
   HttpError,
   joinRoomSchema,
+  restartRoomSchema,
   roomCodeParamsSchema,
   roomViewerQuerySchema,
   startRoomSchema,
@@ -10,8 +12,10 @@ import {
 } from "./schemas.js";
 import {
   createRoom,
+  endRound,
   getRoom,
   joinRoom,
+  restartRoom,
   startRoom,
   submitGuess,
   toRoomSnapshot
@@ -115,6 +119,54 @@ export function createRoomsRouter() {
           throw new HttpError(403, "Drawers cannot guess in their own round");
         }
         throw new HttpError(409, "You have already guessed correctly this round");
+      }
+
+      response.json({
+        room: toRoomSnapshot(outcome.room, participantId)
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/:code/end", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId } = endRoundSchema.parse(request.body);
+      const outcome = endRound(code, participantId);
+
+      if (!outcome.ok) {
+        if (outcome.reason === "not_found") {
+          throw new HttpError(404, "Room not found");
+        }
+        if (outcome.reason === "not_host") {
+          throw new HttpError(403, "Only the host can end the round");
+        }
+        throw new HttpError(409, "No active round to end");
+      }
+
+      response.json({
+        room: toRoomSnapshot(outcome.room, participantId)
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/:code/restart", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId } = restartRoomSchema.parse(request.body);
+      const outcome = restartRoom(code, participantId);
+
+      if (!outcome.ok) {
+        if (outcome.reason === "not_found") {
+          throw new HttpError(404, "Room not found");
+        }
+        if (outcome.reason === "not_host") {
+          throw new HttpError(403, "Only the host can restart the room");
+        }
+        throw new HttpError(409, "End the active round before restarting");
       }
 
       response.json({

@@ -29,7 +29,7 @@ export interface RoundView {
 
 export interface RoomSnapshot {
   code: string;
-  status: "lobby" | "round";
+  status: "lobby" | "round" | "result";
   participants: Participant[];
   hostParticipantId: string;
   viewerIsHost: boolean;
@@ -103,6 +103,18 @@ export const api = {
     return request<{ room: RoomSnapshot }>(`/rooms/${encodeURIComponent(code)}/guesses`, {
       method: "POST",
       body: JSON.stringify({ participantId, text })
+    });
+  },
+  endRound(code: string, participantId: string) {
+    return request<{ room: RoomSnapshot }>(`/rooms/${encodeURIComponent(code)}/end`, {
+      method: "POST",
+      body: JSON.stringify({ participantId })
+    });
+  },
+  restartRoom(code: string, participantId: string) {
+    return request<{ room: RoomSnapshot }>(`/rooms/${encodeURIComponent(code)}/restart`, {
+      method: "POST",
+      body: JSON.stringify({ participantId })
     });
   }
 };
