@@ -142,6 +142,10 @@ input {
   box-shadow: var(--shadow);
 }
 
+.result-view {
+  overflow: visible;
+}
+
 .panel--narrow {
   max-width: 640px;
   margin-inline: auto;

@@ -4,6 +4,7 @@ import { DrawingCanvas } from "../components/DrawingCanvas";
 import { GuessForm } from "../components/GuessForm";
 import { GuessHistory } from "../components/GuessHistory";
 import { GuessingCanvas } from "../components/GuessingCanvas";
+import { ResultView } from "../components/ResultView";
 import { RoomCodeBadge } from "../components/RoomCodeBadge";
 import { useRoomState, useRoomStore } from "../state/roomStore";
 
@@ -25,7 +26,28 @@ export function GamePage() {
     };
   }, [roomStore]);
 
+  useEffect(() => {
+    if (room && room.status === "lobby") {
+      navigate("/lobby", { replace: true });
+    }
+  }, [navigate, room]);
+
   if (!room) {
+    return null;
+  }
+
+  if (room.status === "result") {
+    return (
+      <ResultView
+        room={room}
+        participantId={participantId}
+        onRestart={() => roomStore.restartGame()}
+      />
+    );
+  }
+
+  if (room.status === "lobby") {
+    navigate("/lobby", { replace: true });
     return null;
   }
 
@@ -125,6 +147,11 @@ export function GamePage() {
       </div>
 
       <div className="button-row">
+        {room.hostId === participantId && (
+          <button className="button button--primary" onClick={() => roomStore.revealRound()}>
+            Reveal & End Round
+          </button>
+        )}
         <button className="button button--secondary" onClick={() => navigate("/lobby")}>
           Exit Game
         </button>

@@ -5,12 +5,14 @@ import {
   guessBodySchema,
   HttpError,
   joinRoomSchema,
+  restartQuerySchema,
+  revealQuerySchema,
   roomCodeParamsSchema,
   roomViewerQuerySchema,
   startGameQuerySchema,
   strokeBodySchema
 } from "./schemas.js";
-import { addStroke, clearCanvas, createRoom, getRoom, joinRoom, startGame, submitGuess, toRoomSnapshot } from "../services/roomStore.js";
+import { addStroke, clearCanvas, createRoom, getRoom, joinRoom, restartGame, revealRound, startGame, submitGuess, toRoomSnapshot } from "../services/roomStore.js";
 
 export function createRoomsRouter() {
   const router = Router();
@@ -66,6 +68,42 @@ export function createRoomsRouter() {
     }
   });
 
+  router.post("/:code/reveal", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId } = revealQuerySchema.parse(request.query);
+      const result = revealRound(code.toUpperCase(), participantId);
+
+      if (!result) {
+        throw new HttpError(403, "Unable to reveal round");
+      }
+
+      response.json({
+        room: toRoomSnapshot(result.room, participantId)
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/:code/restart", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId } = restartQuerySchema.parse(request.query);
+      const result = restartGame(code.toUpperCase(), participantId);
+
+      if (!result) {
+        throw new HttpError(403, "Unable to restart game");
+      }
+
+      response.json({
+        room: toRoomSnapshot(result.room, participantId)
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
+
   router.post("/:code/stroke", (request, response, next) => {
     try {
       const { code } = roomCodeParamsSchema.parse(request.params);
@@ -106,7 +144,7 @@ export function createRoomsRouter() {
 
       if ("error" in result) {
         const status = result.error === "Only guessers can submit guesses" ? 403 : 400;
-        throw new HttpError(status, result.error);
+        throw new HttpError(status, result.error as string);
       }
 
       response.json(result);

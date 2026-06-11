@@ -26,7 +26,7 @@ export interface Guess {
 
 export interface RoomSnapshot {
   code: string;
-  status: "lobby" | "playing";
+  status: "lobby" | "playing" | "result";
   hostId: string;
   participants: Participant[];
   roundNumber: number | null;
@@ -34,6 +34,7 @@ export interface RoomSnapshot {
   yourRole: "drawer" | "guesser" | null;
   wordForDrawer: string | undefined;
   wordLength: number | null;
+  correctWord: string | undefined;
   strokes: Stroke[];
   guesses: Guess[];
   scores: Record<string, number>;
@@ -110,6 +111,20 @@ export const api = {
   },
   startGame(code: string, participantId: string) {
     return request<{ room: RoomSnapshot }>(`/rooms/${encodeURIComponent(code)}/start?participantId=${encodeURIComponent(participantId)}`, {
+      method: "POST",
+      body: "{}"
+    });
+  },
+
+  revealRound(code: string, participantId: string) {
+    return request<{ room: RoomSnapshot }>(`/rooms/${encodeURIComponent(code)}/reveal?participantId=${encodeURIComponent(participantId)}`, {
+      method: "POST",
+      body: "{}"
+    });
+  },
+
+  restartGame(code: string, participantId: string) {
+    return request<{ room: RoomSnapshot }>(`/rooms/${encodeURIComponent(code)}/restart?participantId=${encodeURIComponent(participantId)}`, {
       method: "POST",
       body: "{}"
     });

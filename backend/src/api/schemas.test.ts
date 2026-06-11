@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createRoomSchema, joinRoomSchema, roomCodeParamsSchema, startGameQuerySchema } from "./schemas.js";
+import { createRoomSchema, joinRoomSchema, restartQuerySchema, revealQuerySchema, roomCodeParamsSchema, startGameQuerySchema } from "./schemas.js";
 
 describe("schemas", () => {
   it("createRoomSchema accepts a valid body with playerName", () => {
@@ -32,6 +32,26 @@ describe("schemas", () => {
 
   it("startGameQuerySchema accepts a valid participantId", () => {
     const result = startGameQuerySchema.parse({ participantId: "uuid-string" });
+
+    expect(result.participantId).toBe("uuid-string");
+  });
+
+  it("revealQuerySchema rejects missing participantId", () => {
+    expect(() => revealQuerySchema.parse({})).toThrow();
+  });
+
+  it("revealQuerySchema accepts a valid participantId", () => {
+    const result = revealQuerySchema.parse({ participantId: "uuid-string" });
+
+    expect(result.participantId).toBe("uuid-string");
+  });
+
+  it("restartQuerySchema rejects missing participantId", () => {
+    expect(() => restartQuerySchema.parse({})).toThrow();
+  });
+
+  it("restartQuerySchema accepts a valid participantId", () => {
+    const result = restartQuerySchema.parse({ participantId: "uuid-string" });
 
     expect(result.participantId).toBe("uuid-string");
   });

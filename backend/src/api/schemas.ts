@@ -34,6 +34,14 @@ export const clearBodySchema = z.object({
   participantId: z.string().min(1, "participantId is required")
 });
 
+export const revealQuerySchema = z.object({
+  participantId: z.string().min(1, "participantId is required")
+});
+
+export const restartQuerySchema = z.object({
+  participantId: z.string().min(1, "participantId is required")
+});
+
 export class HttpError extends Error {
   statusCode: number;
 

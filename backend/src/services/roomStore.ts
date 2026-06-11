@@ -184,6 +184,32 @@ export function submitGuess(code: string, participantId: string, text: string) {
   return { result: "incorrect" as const, message: "Incorrect guess. Try again!" };
 }
 
+export function isRoundComplete(room: Room): boolean {
+  const currentRound = room.rounds[room.rounds.length - 1];
+  if (!currentRound || room.status !== "playing") return false;
+
+  const guessers = room.participants.filter((p) => p.id !== currentRound.drawerId);
+  if (guessers.length === 0) return false;
+
+  return guessers.every((guesser) =>
+    currentRound.guesses.some((g) => g.participantId === guesser.id && g.result === "correct")
+  );
+}
+
+export function revealRound(code: string, participantId: string) {
+  const room = rooms.get(code);
+
+  if (!room) return null;
+  if (room.hostId !== participantId) return null;
+  if (room.status !== "playing") return null;
+
+  room.status = "result";
+  room.updatedAt = now();
+  rooms.set(room.code, room);
+
+  return { room: cloneRoom(room) };
+}
+
 export function addStroke(code: string, participantId: string, points: { x: number; y: number }[]) {
   const room = rooms.get(code);
 
@@ -232,6 +258,21 @@ export function clearCanvas(code: string, participantId: string) {
   return { ok: true as const };
 }
 
+export function restartGame(code: string, participantId: string) {
+  const room = rooms.get(code);
+
+  if (!room) return null;
+  if (room.hostId !== participantId) return null;
+  if (room.status !== "result") return null;
+
+  room.status = "lobby";
+  room.rounds = [];
+  room.updatedAt = now();
+  rooms.set(room.code, room);
+
+  return { room: cloneRoom(room) };
+}
+
 export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSnapshot {
   const currentRound = room.rounds.length > 0 ? room.rounds[room.rounds.length - 1] : null;
   const isDrawer = currentRound !== null && viewerParticipantId === currentRound.drawerId;
@@ -246,6 +287,7 @@ export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSn
     yourRole: currentRound !== null ? (isDrawer ? "drawer" : "guesser") : null,
     wordForDrawer: isDrawer ? currentRound!.secretWord : undefined,
     wordLength: currentRound?.secretWord.length ?? null,
+    correctWord: room.status === "result" && currentRound ? currentRound.secretWord : undefined,
     strokes: currentRound ? [...currentRound.strokes.map((stroke) => ({ points: [...stroke.points] }))] : [],
     guesses: currentRound ? [...currentRound.guesses.map((guess) => ({ ...guess }))] : [],
     scores: currentRound
