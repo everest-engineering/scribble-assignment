@@ -1,13 +1,14 @@
 import {
   createElement,
   createContext,
+  useCallback,
   useContext,
   useEffect,
   useRef,
   useSyncExternalStore,
   type PropsWithChildren
 } from "react";
-import { api, type RoomSessionResponse, type RoomSnapshot } from "../services/api";
+import { api, type RoomSnapshot } from "../services/api";
 
 export interface RoomState {
   room: RoomSnapshot | null;
@@ -27,6 +28,8 @@ class RoomStore {
   };
 
   private listeners = new Set<Listener>();
+  private pollingTimer: ReturnType<typeof setTimeout> | null = null;
+  private pollingIntervalMs = 2000;
 
   subscribe = (listener: Listener) => {
     this.listeners.add(listener);
@@ -62,7 +65,7 @@ class RoomStore {
     }
   }
 
-  setRoomSession(response: RoomSessionResponse) {
+  setRoomSession(response: { participantId: string; room: RoomSnapshot }) {
     this.setState({
       participantId: response.participantId,
       room: response.room,
@@ -98,6 +101,89 @@ class RoomStore {
     this.setRoomSnapshot(response.room);
     return response.room;
   }
+
+  async startGame() {
+    if (!this.state.room || !this.state.participantId) {
+      return;
+    }
+
+    const response = await this.withLoading(() =>
+      api.startGame(this.state.room!.code, this.state.participantId!)
+    );
+    this.setRoomSnapshot(response.room);
+  }
+
+  async submitGuess(text: string) {
+    if (!this.state.room || !this.state.participantId) {
+      return;
+    }
+
+    const response = await this.withLoading(() =>
+      api.submitGuess(this.state.room!.code, this.state.participantId!, text)
+    );
+    this.setRoomSnapshot(response.room);
+  }
+
+  async saveDrawing(drawingData: string) {
+    if (!this.state.room || !this.state.participantId) {
+      return;
+    }
+
+    await api.saveDrawing(this.state.room.code, this.state.participantId, drawingData);
+  }
+
+  async clearCanvas() {
+    if (!this.state.room || !this.state.participantId) {
+      return;
+    }
+
+    const response = await this.withLoading(() =>
+      api.clearDrawing(this.state.room!.code, this.state.participantId!)
+    );
+    this.setRoomSnapshot(response.room);
+  }
+
+  async endRound() {
+    if (!this.state.room || !this.state.participantId) {
+      return;
+    }
+
+    const response = await this.withLoading(() =>
+      api.endRound(this.state.room!.code, this.state.participantId!)
+    );
+    this.setRoomSnapshot(response.room);
+  }
+
+  async restartGame() {
+    if (!this.state.room || !this.state.participantId) {
+      return;
+    }
+
+    const response = await this.withLoading(() =>
+      api.restartGame(this.state.room!.code, this.state.participantId!)
+    );
+    this.setRoomSnapshot(response.room);
+  }
+
+  startPolling = () => {
+    this.stopPolling();
+    this.pollingTimer = setInterval(async () => {
+      try {
+        const room = await this.fetchRoom();
+        if (room) {
+          this.setRoomSnapshot(room);
+        }
+      } catch {
+      }
+    }, this.pollingIntervalMs);
+  };
+
+  stopPolling = () => {
+    if (this.pollingTimer !== null) {
+      clearInterval(this.pollingTimer);
+      this.pollingTimer = null;
+    }
+  };
 }
 
 const RoomStoreContext = createContext<RoomStore | null>(null);
@@ -108,8 +194,6 @@ export function RoomStoreProvider({ children }: PropsWithChildren) {
   if (!storeRef.current) {
     storeRef.current = new RoomStore();
   }
-
-  useEffect(() => undefined, []);
 
   return createElement(RoomStoreContext.Provider, { value: storeRef.current }, children);
 }
@@ -127,4 +211,17 @@ export function useRoomStore() {
 export function useRoomState() {
   const store = useRoomStore();
   return useSyncExternalStore(store.subscribe, store.getSnapshot, store.getSnapshot);
+}
+
+export function usePolling(isActive: boolean) {
+  const store = useRoomStore();
+
+  useEffect(() => {
+    if (isActive) {
+      store.startPolling();
+    }
+    return () => {
+      store.stopPolling();
+    };
+  }, [store, isActive]);
 }
