@@ -1,0 +1,236 @@
+openapi: 3.0.3
+info:
+  title: Scribble Room Setup and Lobby API
+  version: 1.0.0
+  description: REST contract for creating rooms, joining rooms, polling lobby state, and starting a game.
+servers:
+  - url: http://localhost:3001
+paths:
+  /rooms:
+    post:
+      summary: Create a new room
+      operationId: createRoom
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateRoomRequest"
+      responses:
+        "201":
+          description: Room created and creator assigned as Host
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RoomSessionResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+  /rooms/{code}/join:
+    post:
+      summary: Join an existing room
+      operationId: joinRoom
+      parameters:
+        - $ref: "#/components/parameters/RoomCode"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/JoinRoomRequest"
+      responses:
+        "200":
+          description: Player joined the room as a non-host participant
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RoomSessionResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /rooms/{code}:
+    get:
+      summary: Fetch current room snapshot
+      operationId: getRoom
+      parameters:
+        - $ref: "#/components/parameters/RoomCode"
+        - name: participantId
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Viewer participant id used to calculate start-game eligibility.
+      responses:
+        "200":
+          description: Current room snapshot
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - room
+                properties:
+                  room:
+                    $ref: "#/components/schemas/RoomSnapshot"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /rooms/{code}/start:
+    post:
+      summary: Start the game for a room
+      operationId: startGame
+      parameters:
+        - $ref: "#/components/parameters/RoomCode"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StartGameRequest"
+      responses:
+        "200":
+          description: Room transitioned into playing state
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - room
+                properties:
+                  room:
+                    $ref: "#/components/schemas/RoomSnapshot"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "403":
+          description: Viewer is not allowed to start this room
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          $ref: "#/components/responses/NotFound"
+components:
+  parameters:
+    RoomCode:
+      name: code
+      in: path
+      required: true
+      schema:
+        type: string
+        minLength: 4
+        maxLength: 4
+        pattern: "^[A-Z0-9]{4}$"
+      description: Case-insensitive room code. Clients may submit lowercase; server normalizes to uppercase.
+  responses:
+    BadRequest:
+      description: Invalid request input
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    NotFound:
+      description: Room not found
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+  schemas:
+    CreateRoomRequest:
+      type: object
+      required:
+        - playerName
+      properties:
+        playerName:
+          type: string
+          minLength: 1
+          description: Player display name after trimming.
+    JoinRoomRequest:
+      type: object
+      required:
+        - playerName
+      properties:
+        playerName:
+          type: string
+          minLength: 1
+          description: Player display name after trimming.
+    StartGameRequest:
+      type: object
+      required:
+        - participantId
+      properties:
+        participantId:
+          type: string
+    RoomSessionResponse:
+      type: object
+      required:
+        - participantId
+        - room
+      properties:
+        participantId:
+          type: string
+        room:
+          $ref: "#/components/schemas/RoomSnapshot"
+    RoomSnapshot:
+      type: object
+      required:
+        - code
+        - status
+        - hostParticipantId
+        - participants
+        - canStartGame
+        - availableWords
+        - roles
+      properties:
+        code:
+          type: string
+          minLength: 4
+          maxLength: 4
+        status:
+          type: string
+          enum:
+            - lobby
+            - playing
+        hostParticipantId:
+          type: string
+        participants:
+          type: array
+          items:
+            $ref: "#/components/schemas/ParticipantSnapshot"
+        canStartGame:
+          type: boolean
+        availableWords:
+          type: array
+          items:
+            type: string
+        roles:
+          type: array
+          items:
+            type: string
+            enum:
+              - drawer
+              - guesser
+    ParticipantSnapshot:
+      type: object
+      required:
+        - id
+        - name
+        - joinedAt
+        - isHost
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        joinedAt:
+          type: string
+          format: date-time
+        isHost:
+          type: boolean
+    ErrorResponse:
+      type: object
+      required:
+        - message
+      properties:
+        message:
+          type: string

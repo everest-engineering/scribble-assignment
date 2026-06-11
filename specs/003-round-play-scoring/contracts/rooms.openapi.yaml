@@ -1,0 +1,410 @@
+openapi: 3.0.3
+info:
+  title: Scribble Round Play and Scoring API
+  version: 1.0.0
+  description: REST contract for active-round canvas updates, guesses, scoring, and polling snapshots.
+servers:
+  - url: http://localhost:3001
+paths:
+  /rooms/{code}:
+    get:
+      summary: Fetch current viewer-specific room snapshot
+      operationId: getRoom
+      parameters:
+        - $ref: "#/components/parameters/RoomCode"
+        - name: participantId
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Viewer participant id used for drawer state and secret-word visibility.
+      responses:
+        "200":
+          description: Current room snapshot including active-round canvas, scores, and guess history when playing
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - room
+                properties:
+                  room:
+                    $ref: "#/components/schemas/RoomSnapshot"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /rooms/{code}/join:
+    post:
+      summary: Join an existing room before active round play begins
+      operationId: joinRoom
+      parameters:
+        - $ref: "#/components/parameters/RoomCode"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/JoinRoomRequest"
+      responses:
+        "200":
+          description: Player joined before the round became active
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RoomSessionResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          description: Round is already active and the roster is locked
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /rooms/{code}/round/draw:
+    post:
+      summary: Add a freehand drawing mark to the active round
+      operationId: addDrawingMark
+      parameters:
+        - $ref: "#/components/parameters/RoomCode"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AddDrawingMarkRequest"
+      responses:
+        "200":
+          description: Drawing mark accepted and room snapshot updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RoomCommandResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /rooms/{code}/round/clear:
+    post:
+      summary: Clear the active round canvas
+      operationId: clearCanvas
+      parameters:
+        - $ref: "#/components/parameters/RoomCode"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ClearCanvasRequest"
+      responses:
+        "200":
+          description: Canvas cleared and room snapshot updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RoomCommandResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /rooms/{code}/round/guess:
+    post:
+      summary: Submit a guess for the active round
+      operationId: submitGuess
+      parameters:
+        - $ref: "#/components/parameters/RoomCode"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SubmitGuessRequest"
+      responses:
+        "200":
+          description: Guess recorded and room snapshot updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RoomCommandResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+components:
+  parameters:
+    RoomCode:
+      name: code
+      in: path
+      required: true
+      schema:
+        type: string
+        minLength: 4
+        maxLength: 4
+        pattern: "^[A-Z0-9]{4}$"
+      description: Case-insensitive room code. Clients may submit lowercase; server normalizes to uppercase.
+  responses:
+    BadRequest:
+      description: Invalid request input
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    Forbidden:
+      description: Participant is not allowed to perform this active-round action
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    NotFound:
+      description: Room or participant not found
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+  schemas:
+    JoinRoomRequest:
+      type: object
+      required:
+        - playerName
+      properties:
+        playerName:
+          type: string
+          minLength: 1
+          description: Player display name after trimming.
+    AddDrawingMarkRequest:
+      type: object
+      required:
+        - participantId
+        - points
+        - color
+        - strokeSize
+      properties:
+        participantId:
+          type: string
+        points:
+          type: array
+          minItems: 1
+          items:
+            $ref: "#/components/schemas/DrawingPoint"
+        color:
+          type: string
+          description: Supported drawing color value.
+        strokeSize:
+          type: number
+          minimum: 1
+          maximum: 32
+    ClearCanvasRequest:
+      type: object
+      required:
+        - participantId
+      properties:
+        participantId:
+          type: string
+    SubmitGuessRequest:
+      type: object
+      required:
+        - participantId
+        - guess
+      properties:
+        participantId:
+          type: string
+        guess:
+          type: string
+          minLength: 1
+          description: Guess text after trimming; empty or whitespace-only values are rejected.
+    RoomSessionResponse:
+      type: object
+      required:
+        - participantId
+        - room
+      properties:
+        participantId:
+          type: string
+        room:
+          $ref: "#/components/schemas/RoomSnapshot"
+    RoomCommandResponse:
+      type: object
+      required:
+        - room
+      properties:
+        room:
+          $ref: "#/components/schemas/RoomSnapshot"
+        message:
+          type: string
+    RoomSnapshot:
+      type: object
+      required:
+        - code
+        - status
+        - participants
+        - currentRound
+      properties:
+        code:
+          type: string
+          minLength: 4
+          maxLength: 4
+        status:
+          type: string
+          enum:
+            - lobby
+            - playing
+        participants:
+          type: array
+          items:
+            $ref: "#/components/schemas/ParticipantSnapshot"
+        currentRound:
+          nullable: true
+          allOf:
+            - $ref: "#/components/schemas/ActiveRoundSnapshot"
+    ParticipantSnapshot:
+      type: object
+      required:
+        - id
+        - name
+        - joinedAt
+        - isDrawer
+        - score
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        joinedAt:
+          type: string
+          format: date-time
+        isDrawer:
+          type: boolean
+        score:
+          type: number
+    ActiveRoundSnapshot:
+      type: object
+      required:
+        - number
+        - drawerParticipantId
+        - canvas
+        - scores
+        - guessHistory
+      properties:
+        number:
+          type: integer
+          minimum: 1
+        drawerParticipantId:
+          type: string
+        secretWord:
+          type: string
+          description: Present only when the viewer is the assigned drawer.
+        canvas:
+          $ref: "#/components/schemas/CanvasState"
+        scores:
+          type: array
+          items:
+            $ref: "#/components/schemas/PlayerScore"
+        guessHistory:
+          type: array
+          items:
+            $ref: "#/components/schemas/Guess"
+    CanvasState:
+      type: object
+      required:
+        - marks
+      properties:
+        marks:
+          type: array
+          items:
+            $ref: "#/components/schemas/DrawingMark"
+        clearedAt:
+          type: string
+          format: date-time
+    DrawingMark:
+      type: object
+      required:
+        - id
+        - drawerParticipantId
+        - points
+        - color
+        - strokeSize
+        - createdAt
+      properties:
+        id:
+          type: string
+        drawerParticipantId:
+          type: string
+        points:
+          type: array
+          minItems: 1
+          items:
+            $ref: "#/components/schemas/DrawingPoint"
+        color:
+          type: string
+        strokeSize:
+          type: number
+        createdAt:
+          type: string
+          format: date-time
+    DrawingPoint:
+      type: object
+      required:
+        - x
+        - y
+      properties:
+        x:
+          type: number
+        y:
+          type: number
+    PlayerScore:
+      type: object
+      required:
+        - participantId
+        - name
+        - score
+      properties:
+        participantId:
+          type: string
+        name:
+          type: string
+        score:
+          type: number
+    Guess:
+      type: object
+      required:
+        - id
+        - participantId
+        - participantName
+        - text
+        - isCorrect
+        - pointsAwarded
+        - submittedAt
+      properties:
+        id:
+          type: string
+        participantId:
+          type: string
+        participantName:
+          type: string
+        text:
+          type: string
+        isCorrect:
+          type: boolean
+        pointsAwarded:
+          type: number
+          enum:
+            - 0
+            - 100
+        submittedAt:
+          type: string
+          format: date-time
+    ErrorResponse:
+      type: object
+      required:
+        - message
+      properties:
+        message:
+          type: string
