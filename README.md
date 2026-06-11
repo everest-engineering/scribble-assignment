@@ -92,11 +92,15 @@ Implemented today (Scenario 1 — Room Setup & Lobby):
 - case-insensitive, whitespace-tolerant room code lookup
 - 404 → "Room no longer available" lobby state and `sessionStorage` rehydration on refresh
 
+Implemented today (Scenario 2 — Game Start & Drawer):
+
+- start game flow: room transitions from `lobby` to `round` on host action; idempotent retries
+- drawer assignment: host is the drawer for round 1; `participants[].isDrawer` exposed in the snapshot
+- secret word visibility rules: cleartext `secretWord` returned only to the drawer; everyone else receives a length-only `maskedWord` (server-side filter, no client-side hiding)
+- deterministic word selection: round 1 always picks `STARTER_WORDS[0]` (currently `"rocket"`) via `selectWordForRound`
+
 Not implemented yet:
 
-- start game flow
-- drawer assignment
-- secret word visibility rules
 - drawing interaction
 - clear canvas action
 - guess submission and synced history

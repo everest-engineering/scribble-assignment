@@ -4,9 +4,11 @@ import {
   createRoom,
   getRoom,
   joinRoom,
+  selectWordForRound,
   startRoom,
   toRoomSnapshot
 } from "./roomStore.js";
+import { STARTER_WORDS } from "../seed/starterData.js";
 
 describe("roomStore", () => {
   beforeEach(() => {
@@ -138,6 +140,126 @@ describe("roomStore", () => {
     it("returns not_found for unknown codes", () => {
       const outcome = startRoom("ZZZZ", "anything");
       expect(outcome).toEqual({ ok: false, reason: "not_found" });
+    });
+
+    // FR-001, FR-002 (US1)
+    it("assigns the host as the drawer of round 1 on a successful start", () => {
+      const host = createRoom("Alice");
+      joinRoom(host.room.code, "Bob");
+      const outcome = startRoom(host.room.code, host.participantId);
+      if (!outcome.ok) throw new Error("expected ok start");
+
+      expect(outcome.room.status).toBe("round");
+      expect(outcome.room.round).not.toBeNull();
+      expect(outcome.room.round?.roundNumber).toBe(1);
+      expect(outcome.room.round?.drawerParticipantId).toBe(host.participantId);
+      expect(outcome.room.round?.drawerParticipantId).toBe(outcome.room.hostParticipantId);
+    });
+
+    // FR-007 (US1) — idempotent during a round
+    it("is idempotent for the host once a round exists", () => {
+      const host = createRoom("Alice");
+      joinRoom(host.room.code, "Bob");
+      const first = startRoom(host.room.code, host.participantId);
+      const second = startRoom(host.room.code, host.participantId);
+      if (!first.ok || !second.ok) throw new Error("expected both starts to succeed");
+
+      expect(second.room.round).toEqual(first.room.round);
+      expect(second.room.status).toBe("round");
+    });
+
+    it("still returns not_host for a non-host caller during an active round", () => {
+      const host = createRoom("Alice");
+      const joined = joinRoom(host.room.code, "Bob");
+      if (!joined) throw new Error("expected join to succeed");
+      startRoom(host.room.code, host.participantId);
+
+      const outcome = startRoom(host.room.code, joined.participantId);
+      expect(outcome).toEqual({ ok: false, reason: "not_host" });
+    });
+
+    // FR-004 (US3) — two independent rooms share the same round-1 word
+    it("picks the same round-1 word for two independent rooms", () => {
+      const a = createRoom("Alice");
+      joinRoom(a.room.code, "Bob");
+      const b = createRoom("Beth");
+      joinRoom(b.room.code, "Carol");
+
+      const oa = startRoom(a.room.code, a.participantId);
+      const ob = startRoom(b.room.code, b.participantId);
+      if (!oa.ok || !ob.ok) throw new Error("expected both starts to succeed");
+
+      expect(oa.room.round?.secretWord).toBe(STARTER_WORDS[0]);
+      expect(ob.room.round?.secretWord).toBe(STARTER_WORDS[0]);
+    });
+  });
+
+  // FR-005, FR-006 (US2)
+  describe("toRoomSnapshot — in-round viewer-aware filtering", () => {
+    it("exposes secretWord only to the drawer; emits maskedWord with correct length to all", () => {
+      const host = createRoom("Alice");
+      const joined = joinRoom(host.room.code, "Bob");
+      if (!joined) throw new Error("expected join to succeed");
+      startRoom(host.room.code, host.participantId);
+      const room = getRoom(host.room.code);
+      if (!room) throw new Error("expected room to exist");
+
+      const drawerView = toRoomSnapshot(room, host.participantId);
+      const guesserView = toRoomSnapshot(room, joined.participantId);
+      const anonView = toRoomSnapshot(room);
+
+      expect(drawerView.round?.secretWord).toBe(STARTER_WORDS[0]);
+      expect(drawerView.round?.maskedWord).toBe("_".repeat(STARTER_WORDS[0].length));
+      expect(guesserView.round?.secretWord).toBeUndefined();
+      expect(guesserView.round?.maskedWord.length).toBe(STARTER_WORDS[0].length);
+      expect(anonView.round?.secretWord).toBeUndefined();
+    });
+
+    it("reports isDrawer=true only on the drawer's participant entry across all viewer perspectives", () => {
+      const host = createRoom("Alice");
+      const joined = joinRoom(host.room.code, "Bob");
+      if (!joined) throw new Error("expected join to succeed");
+      startRoom(host.room.code, host.participantId);
+      const room = getRoom(host.room.code);
+      if (!room) throw new Error("expected room to exist");
+
+      for (const viewer of [host.participantId, joined.participantId, undefined]) {
+        const snap = toRoomSnapshot(room, viewer);
+        const drawer = snap.participants.find((p) => p.id === host.participantId);
+        const guesser = snap.participants.find((p) => p.id === joined.participantId);
+        expect(drawer?.isDrawer).toBe(true);
+        expect(guesser?.isDrawer).toBe(false);
+      }
+    });
+
+    it("returns round=null and isDrawer=false everywhere while in the lobby", () => {
+      const host = createRoom("Alice");
+      const room = getRoom(host.room.code);
+      if (!room) throw new Error("expected room to exist");
+      const snap = toRoomSnapshot(room, host.participantId);
+      expect(snap.round).toBeNull();
+      expect(snap.participants.every((p) => p.isDrawer === false)).toBe(true);
+      expect(snap.status).toBe("lobby");
+    });
+  });
+
+  // FR-004, FR-010 (US3)
+  describe("selectWordForRound", () => {
+    it("returns the word at index (n-1) mod len for various rounds", () => {
+      expect(selectWordForRound(["a", "b", "c"], 1)).toBe("a");
+      expect(selectWordForRound(["a", "b", "c"], 2)).toBe("b");
+      expect(selectWordForRound(["a", "b", "c"], 3)).toBe("c");
+      expect(selectWordForRound(["a", "b", "c"], 4)).toBe("a");
+      expect(selectWordForRound(["a", "b", "c"], 100)).toBe("a");
+    });
+
+    it("throws when the list is empty", () => {
+      expect(() => selectWordForRound([], 1)).toThrow("No words available");
+    });
+
+    it("picks 'rocket' (the first STARTER_WORDS entry) for round 1", () => {
+      expect(selectWordForRound(STARTER_WORDS, 1)).toBe(STARTER_WORDS[0]);
+      expect(STARTER_WORDS[0]).toBe("rocket");
     });
   });
 });

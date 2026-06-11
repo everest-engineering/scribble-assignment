@@ -13,7 +13,7 @@ describe("getStartButtonState", () => {
       getStartButtonState({
         viewerIsHost: true,
         canStart: false,
-        participants: [{ id: "p1", name: "A", joinedAt: "", isHost: true }]
+        participants: [{ id: "p1", name: "A", joinedAt: "", isHost: true, isDrawer: false }]
       })
     ).toEqual({ visible: true, disabled: true });
   });
@@ -24,8 +24,8 @@ describe("getStartButtonState", () => {
         viewerIsHost: true,
         canStart: true,
         participants: [
-          { id: "p1", name: "A", joinedAt: "", isHost: true },
-          { id: "p2", name: "B", joinedAt: "", isHost: false }
+          { id: "p1", name: "A", joinedAt: "", isHost: true, isDrawer: false },
+          { id: "p2", name: "B", joinedAt: "", isHost: false, isDrawer: false }
         ]
       })
     ).toEqual({ visible: true, disabled: false });

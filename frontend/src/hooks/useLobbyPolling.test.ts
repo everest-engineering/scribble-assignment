@@ -54,7 +54,8 @@ function freshShellSnapshot(code: string) {
       viewerIsHost: false,
       canStart: false,
       availableWords: [],
-      roles: []
+      roles: [],
+      round: null
     }
   };
 }

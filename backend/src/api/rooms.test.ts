@@ -53,9 +53,13 @@ describe("POST /rooms/:code/start", () => {
     const { code, hostId } = await createAndJoin();
     const res = await postJson(`/rooms/${code}/start`, { participantId: hostId });
     expect(res.status).toBe(200);
-    const body = (await res.json()) as { room: { canStart: boolean; viewerIsHost: boolean } };
+    const body = (await res.json()) as {
+      room: { canStart: boolean; viewerIsHost: boolean; status: string };
+    };
     expect(body.room.viewerIsHost).toBe(true);
-    expect(body.room.canStart).toBe(true);
+    expect(body.room.status).toBe("round");
+    // Once the round has started, there is nothing else to start — canStart turns off.
+    expect(body.room.canStart).toBe(false);
   });
 
   it("returns 403 when a non-host requests", async () => {
@@ -106,5 +110,74 @@ describe("POST /rooms/:code/join (case-insensitive + 404 message)", () => {
     expect(res.status).toBe(404);
     const body = (await res.json()) as { message: string };
     expect(body.message).toBe("Room not found");
+  });
+});
+
+// FR-001, FR-002, FR-003 (US1) + FR-007 (idempotency)
+describe("POST /rooms/:code/start — round transition", () => {
+  it("transitions the room to status='round' with round 1 and host as drawer", async () => {
+    const { code, hostId } = await createAndJoin();
+    const res = await postJson(`/rooms/${code}/start`, { participantId: hostId });
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as {
+      room: {
+        status: string;
+        hostParticipantId: string;
+        participants: Array<{ id: string; isDrawer: boolean }>;
+        round: { roundNumber: number; drawerParticipantId: string } | null;
+      };
+    };
+    expect(body.room.status).toBe("round");
+    expect(body.room.round).not.toBeNull();
+    expect(body.room.round?.roundNumber).toBe(1);
+    expect(body.room.round?.drawerParticipantId).toBe(body.room.hostParticipantId);
+    expect(body.room.participants.filter((p) => p.isDrawer).map((p) => p.id)).toEqual([
+      body.room.hostParticipantId
+    ]);
+  });
+
+  it("returns the same round payload on a repeat start (idempotent)", async () => {
+    const { code, hostId } = await createAndJoin();
+    const first = await postJson(`/rooms/${code}/start`, { participantId: hostId });
+    const firstBody = await first.json();
+    const second = await postJson(`/rooms/${code}/start`, { participantId: hostId });
+    const secondBody = await second.json();
+    expect(second.status).toBe(200);
+    expect(secondBody.room.round).toEqual(firstBody.room.round);
+    expect(secondBody.room.status).toBe("round");
+  });
+});
+
+// FR-005, FR-006 (US2) — visibility leakage guard
+describe("GET /rooms/:code — drawer vs guesser word visibility", () => {
+  it("returns the cleartext secretWord ONLY to the drawer; guesser response contains no 'secretWord' substring", async () => {
+    const { code, hostId, guestId } = await createAndJoin();
+    await postJson(`/rooms/${code}/start`, { participantId: hostId });
+
+    const drawerRes = await fetch(`${baseUrl}/rooms/${code}?participantId=${hostId}`);
+    const drawerText = await drawerRes.text();
+    const guesserRes = await fetch(`${baseUrl}/rooms/${code}?participantId=${guestId}`);
+    const guesserText = await guesserRes.text();
+
+    expect(drawerText).toContain('"secretWord":"rocket"');
+    expect(guesserText).not.toContain("secretWord");
+    expect(guesserText).not.toContain("rocket");
+
+    // Both views still carry the masked word.
+    const drawerBody = JSON.parse(drawerText) as { room: { round: { maskedWord: string } } };
+    const guesserBody = JSON.parse(guesserText) as { room: { round: { maskedWord: string } } };
+    expect(drawerBody.room.round.maskedWord).toBe("______");
+    expect(guesserBody.room.round.maskedWord).toBe("______");
+  });
+
+  it("returns round=null while still in the lobby for any viewer", async () => {
+    const createRes = await postJson("/rooms", { playerName: "Alice" });
+    const created = (await createRes.json()) as { participantId: string; room: { code: string } };
+    const res = await fetch(
+      `${baseUrl}/rooms/${created.room.code}?participantId=${created.participantId}`
+    );
+    const body = (await res.json()) as { room: { round: unknown; status: string } };
+    expect(body.room.round).toBeNull();
+    expect(body.room.status).toBe("lobby");
   });
 });

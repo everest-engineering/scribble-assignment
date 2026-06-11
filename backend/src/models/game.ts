@@ -1,5 +1,5 @@
 export type ParticipantRole = "drawer" | "guesser";
-export type RoomStatus = "lobby";
+export type RoomStatus = "lobby" | "round";
 
 export interface Participant {
   id: string;
@@ -9,6 +9,13 @@ export interface Participant {
 
 export interface ParticipantView extends Participant {
   isHost: boolean;
+  isDrawer: boolean;
+}
+
+export interface Round {
+  roundNumber: number;
+  drawerParticipantId: string;
+  secretWord: string;
 }
 
 export interface Room {
@@ -16,8 +23,16 @@ export interface Room {
   status: RoomStatus;
   participants: Participant[];
   hostParticipantId: string;
+  round: Round | null;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface RoundView {
+  roundNumber: number;
+  drawerParticipantId: string;
+  maskedWord: string;
+  secretWord?: string;
 }
 
 export interface RoomSnapshot {
@@ -29,6 +44,7 @@ export interface RoomSnapshot {
   canStart: boolean;
   availableWords: string[];
   roles: ParticipantRole[];
+  round: RoundView | null;
 }
 
 export interface RoomSessionResponse {

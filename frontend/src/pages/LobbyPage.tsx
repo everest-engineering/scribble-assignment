@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Card } from "../components/Card";
 import { PageHeader } from "../components/PageHeader";
 import { RoomCodeBadge } from "../components/RoomCodeBadge";
+import { RoundView } from "../components/RoundView";
 import { useLobbyPolling } from "../hooks/useLobbyPolling";
 import type { RoomSnapshot } from "../services/api";
 import { useRoomState, useRoomStore } from "../state/roomStore";
@@ -12,8 +13,14 @@ export interface StartButtonState {
   disabled: boolean;
 }
 
-export function getStartButtonState(room: Pick<RoomSnapshot, "viewerIsHost" | "canStart" | "participants">): StartButtonState {
+export function getStartButtonState(
+  room: Pick<RoomSnapshot, "viewerIsHost" | "canStart" | "participants"> & {
+    round?: RoomSnapshot["round"];
+  }
+): StartButtonState {
   if (!room.viewerIsHost) return { visible: false, disabled: true };
+  // Hide the Start button once a round is active — there's nothing else to start.
+  if (room.round) return { visible: false, disabled: true };
   return { visible: true, disabled: !room.canStart };
 }
 
@@ -98,6 +105,11 @@ export function LobbyPage() {
                         HOST
                       </span>
                     ) : null}
+                    {participant.isDrawer ? (
+                      <span className="player-list__badge" style={{ marginLeft: 8, fontSize: "0.75em", padding: "2px 6px", borderRadius: 4, background: "#15803d", color: "#fff" }}>
+                        DRAWER
+                      </span>
+                    ) : null}
                   </span>
                   <span className="player-list__meta">joined</span>
                 </li>
@@ -106,19 +118,25 @@ export function LobbyPage() {
           )}
         </Card>
 
-        <Card title="Status">
-          <p
-            className="status-line"
-            style={{
-              backgroundColor: isLoading ? "#fef3c7" : "#e0e7ff",
-              color: isLoading ? "#b45309" : "#3730a3"
-            }}
-          >
-            {isLoading ? "Working…" : "Polling lobby every ~2s"}
-          </p>
-          <p style={{ marginTop: 8 }}>
-            {startError ?? error ?? "Waiting for the host to start the game."}
-          </p>
+        <Card title={room.round ? "Round" : "Status"}>
+          {room.round ? (
+            <RoundView room={room} viewerParticipantId={participantId} />
+          ) : (
+            <>
+              <p
+                className="status-line"
+                style={{
+                  backgroundColor: isLoading ? "#fef3c7" : "#e0e7ff",
+                  color: isLoading ? "#b45309" : "#3730a3"
+                }}
+              >
+                {isLoading ? "Working…" : "Polling lobby every ~2s"}
+              </p>
+              <p style={{ marginTop: 8 }}>
+                {startError ?? error ?? "Waiting for the host to start the game."}
+              </p>
+            </>
+          )}
         </Card>
       </div>
 

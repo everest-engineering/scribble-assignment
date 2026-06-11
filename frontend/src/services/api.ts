@@ -5,17 +5,26 @@ export interface Participant {
   name: string;
   joinedAt: string;
   isHost: boolean;
+  isDrawer: boolean;
+}
+
+export interface RoundView {
+  roundNumber: number;
+  drawerParticipantId: string;
+  maskedWord: string;
+  secretWord?: string;
 }
 
 export interface RoomSnapshot {
   code: string;
-  status: "lobby";
+  status: "lobby" | "round";
   participants: Participant[];
   hostParticipantId: string;
   viewerIsHost: boolean;
   canStart: boolean;
   availableWords: string[];
   roles: ParticipantRole[];
+  round: RoundView | null;
 }
 
 export interface RoomSessionResponse {

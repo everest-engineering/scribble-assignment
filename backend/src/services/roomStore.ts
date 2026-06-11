@@ -1,6 +1,26 @@
 import { randomUUID } from "node:crypto";
-import type { Participant, ParticipantView, Room, RoomSnapshot } from "../models/game.js";
+import type {
+  Participant,
+  ParticipantView,
+  Room,
+  RoomSnapshot,
+  RoundView
+} from "../models/game.js";
 import { STARTER_ROLES, STARTER_WORDS } from "../seed/starterData.js";
+
+export function selectWordForRound(
+  words: readonly string[],
+  roundNumber: number
+): string {
+  if (words.length === 0) {
+    throw new Error("No words available");
+  }
+  return words[(roundNumber - 1) % words.length];
+}
+
+function buildMaskedWord(secretWord: string): string {
+  return secretWord.replace(/[^ ]/g, "_");
+}
 
 const rooms = new Map<string, Room>();
 
@@ -56,6 +76,7 @@ export function createRoom(playerName: string) {
     status: "lobby",
     participants: [participant],
     hostParticipantId: participant.id,
+    round: null,
     createdAt: now(),
     updatedAt: now()
   };
@@ -105,11 +126,23 @@ export function startRoom(code: string, requesterId: string): StartRoomOutcome {
     return { ok: false, reason: "not_host" };
   }
 
+  // Idempotency: if a round already exists, return the existing room unchanged.
+  if (room.round !== null) {
+    return { ok: true, room: cloneRoom(room) };
+  }
+
   if (room.participants.length < 2) {
     return { ok: false, reason: "not_enough_players" };
   }
 
+  room.round = {
+    roundNumber: 1,
+    drawerParticipantId: room.hostParticipantId,
+    secretWord: selectWordForRound(STARTER_WORDS, 1)
+  };
+  room.status = "round";
   room.updatedAt = now();
+
   return { ok: true, room: cloneRoom(room) };
 }
 
@@ -117,10 +150,30 @@ export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSn
   const viewerIsHost =
     Boolean(viewerParticipantId) && viewerParticipantId === room.hostParticipantId;
 
+  const drawerId = room.round?.drawerParticipantId ?? null;
+
   const participants: ParticipantView[] = room.participants.map((participant) => ({
     ...participant,
-    isHost: participant.id === room.hostParticipantId
+    isHost: participant.id === room.hostParticipantId,
+    isDrawer: drawerId !== null && participant.id === drawerId
   }));
+
+  let round: RoundView | null = null;
+  if (room.round !== null) {
+    const viewerIsDrawer =
+      viewerParticipantId !== undefined &&
+      viewerParticipantId === room.round.drawerParticipantId;
+
+    round = {
+      roundNumber: room.round.roundNumber,
+      drawerParticipantId: room.round.drawerParticipantId,
+      maskedWord: buildMaskedWord(room.round.secretWord)
+    };
+
+    if (viewerIsDrawer) {
+      round.secretWord = room.round.secretWord;
+    }
+  }
 
   return {
     code: room.code,
@@ -128,9 +181,12 @@ export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSn
     participants,
     hostParticipantId: room.hostParticipantId,
     viewerIsHost,
-    canStart: viewerIsHost && room.participants.length >= 2,
-    availableWords: listWords(),
-    roles: [...STARTER_ROLES]
+    canStart: viewerIsHost && room.round === null && room.participants.length >= 2,
+    // In-round, hide the cleartext word list from non-drawer payloads (FR-005).
+    // Drawers already see the secret word; we still empty the list to keep the wire shape uniform across viewers.
+    availableWords: room.round === null ? listWords() : [],
+    roles: [...STARTER_ROLES],
+    round
   };
 }
 

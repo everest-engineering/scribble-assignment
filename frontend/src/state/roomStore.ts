@@ -50,7 +50,8 @@ function buildShellRoom(code: string): RoomSnapshot {
     viewerIsHost: false,
     canStart: false,
     availableWords: [],
-    roles: []
+    roles: [],
+    round: null
   };
 }
 
