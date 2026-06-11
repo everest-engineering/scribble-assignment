@@ -1,4 +1,6 @@
 import type { Participant, RoomSnapshot } from "../services/api";
+import { DrawerCanvas } from "./DrawerCanvas";
+import { GuessPanel } from "./GuessPanel";
 
 export type RoundViewState =
   | { mode: "lobby" }
@@ -54,6 +56,8 @@ export function getRoundViewState(
 interface RoundViewProps {
   room: RoomSnapshot;
   viewerParticipantId: string | null;
+  onGuessSubmit?: (text: string) => Promise<unknown> | unknown;
+  guessError?: string | null;
 }
 
 function renderMaskTiles(maskedWord: string) {
@@ -68,12 +72,19 @@ function renderMaskTiles(maskedWord: string) {
   );
 }
 
-export function RoundView({ room, viewerParticipantId }: RoundViewProps) {
+export function RoundView({
+  room,
+  viewerParticipantId,
+  onGuessSubmit,
+  guessError
+}: RoundViewProps) {
   const state = getRoundViewState(room, viewerParticipantId);
 
   if (state.mode === "lobby") {
     return null;
   }
+
+  const viewerIsDrawer = state.mode === "drawer";
 
   return (
     <section className="round-view">
@@ -84,7 +95,7 @@ export function RoundView({ room, viewerParticipantId }: RoundViewProps) {
         </h2>
       </header>
 
-      {state.mode === "drawer" ? (
+      {viewerIsDrawer ? (
         <div className="round-view__panel round-view__panel--drawer">
           <p className="round-view__label">Your word</p>
           <p className="round-view__word" data-testid="drawer-word">
@@ -100,9 +111,17 @@ export function RoundView({ room, viewerParticipantId }: RoundViewProps) {
           <p className="round-view__mask-row" data-testid="guesser-mask">
             {renderMaskTiles(state.maskedWord)}
           </p>
-          <p className="round-view__hint">Waiting for the drawer…</p>
         </div>
       )}
+
+      <DrawerCanvas viewerIsDrawer={viewerIsDrawer} />
+
+      <GuessPanel
+        room={room}
+        viewerParticipantId={viewerParticipantId}
+        onSubmit={onGuessSubmit}
+        errorMessage={guessError ?? null}
+      />
     </section>
   );
 }

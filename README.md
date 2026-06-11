@@ -99,12 +99,17 @@ Implemented today (Scenario 2 — Game Start & Drawer):
 - secret word visibility rules: cleartext `secretWord` returned only to the drawer; everyone else receives a length-only `maskedWord` (server-side filter, no client-side hiding)
 - deterministic word selection: round 1 always picks `STARTER_WORDS[0]` (currently `"rocket"`) via `selectWordForRound`
 
+Implemented today (Scenario 3 — Gameplay Interaction):
+
+- guess submission: `POST /rooms/:code/guesses` accepts `{ participantId, text }`, server-side trims and case-insensitively compares against the round's secret word
+- input validation: empty / whitespace-only / >50-char guesses → `400`; drawer-as-guesser → `403`; unknown participant → `403`; unknown room → `404`; lobby-state room → `409`; already-correct guesser → `409` (lockout, no double-score)
+- per-round scoring: correct guesses score exactly `+100`, incorrect guesses score `+0`; scores start at `0` for every participant at round start
+- guess history sync: ordered `guesses[]` feed and `scores{}` map exposed in every viewer's `RoomSnapshot.round`, propagated to all participants via the existing ~2s polling channel
+- frontend guess panel: input + ordered feed + scoreboard, drawer's tab has no input, locked-out players see a static "already guessed correctly" line
+- drawer canvas: drawer-local freehand `<canvas>` with pointer events + Clear button; non-drawers see a "Waiting for the drawer…" placeholder (canvas content is intentionally **not** transmitted)
+
 Not implemented yet:
 
-- drawing interaction
-- clear canvas action
-- guess submission and synced history
-- scoring
 - result state
 - restart flow
 
@@ -116,6 +121,8 @@ Backend endpoints currently available:
 - `POST /rooms`
 - `POST /rooms/:code/join`
 - `GET /rooms/:code`
+- `POST /rooms/:code/start`
+- `POST /rooms/:code/guesses`
 
 The backend stores all room data in memory only. Restarting the backend clears all rooms.
 

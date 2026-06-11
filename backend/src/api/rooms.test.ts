@@ -148,6 +148,155 @@ describe("POST /rooms/:code/start — round transition", () => {
   });
 });
 
+// FR-001, FR-002, FR-004, FR-005, FR-006 (US1 + US2) — guess flow over HTTP
+describe("POST /rooms/:code/guesses — guess submission, validation, scoring, idempotency", () => {
+  async function setupActiveRound() {
+    const ids = await createAndJoin();
+    await postJson(`/rooms/${ids.code}/start`, { participantId: ids.hostId });
+    return ids;
+  }
+
+  it("200 on a wrong guess: appends to the feed, scores unchanged, lockout empty", async () => {
+    const { code, hostId, guestId } = await setupActiveRound();
+    const res = await postJson(`/rooms/${code}/guesses`, { participantId: guestId, text: "cat" });
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as {
+      room: {
+        round: {
+          guesses: Array<{ text: string; isCorrect: boolean; displayName: string }>;
+          scores: Record<string, number>;
+          lockedParticipantIds: string[];
+        };
+      };
+    };
+    expect(body.room.round.guesses).toHaveLength(1);
+    expect(body.room.round.guesses[0]).toMatchObject({
+      text: "cat",
+      isCorrect: false,
+      displayName: "Bob"
+    });
+    expect(body.room.round.scores).toEqual({ [hostId]: 0, [guestId]: 0 });
+    expect(body.room.round.lockedParticipantIds).toEqual([]);
+  });
+
+  it("200 on a correct guess: trims, +100 to guesser, locks them out, leaves drawer score at 0", async () => {
+    const { code, hostId, guestId } = await setupActiveRound();
+    const res = await postJson(`/rooms/${code}/guesses`, {
+      participantId: guestId,
+      text: "  RoCkEt  "
+    });
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as {
+      room: {
+        round: {
+          guesses: Array<{ text: string; isCorrect: boolean }>;
+          scores: Record<string, number>;
+          lockedParticipantIds: string[];
+        };
+      };
+    };
+    expect(body.room.round.guesses[0]).toMatchObject({ text: "RoCkEt", isCorrect: true });
+    expect(body.room.round.scores).toEqual({ [hostId]: 0, [guestId]: 100 });
+    expect(body.room.round.lockedParticipantIds).toEqual([guestId]);
+  });
+
+  it.each([
+    { label: "empty text", body: { text: "" } },
+    { label: "whitespace-only text", body: { text: "    " } },
+    { label: "51-char text", body: { text: "x".repeat(51) } },
+    { label: "missing text", body: {} }
+  ])("400 for invalid body ($label)", async ({ body: partialBody }) => {
+    const { code, guestId } = await setupActiveRound();
+    const res = await postJson(`/rooms/${code}/guesses`, {
+      participantId: guestId,
+      ...partialBody
+    });
+    expect(res.status).toBe(400);
+  });
+
+  it("400 when participantId is missing", async () => {
+    const { code } = await setupActiveRound();
+    const res = await postJson(`/rooms/${code}/guesses`, { text: "rocket" });
+    expect(res.status).toBe(400);
+  });
+
+  it("403 'Drawers cannot guess in their own round' when the drawer submits", async () => {
+    const { code, hostId } = await setupActiveRound();
+    const res = await postJson(`/rooms/${code}/guesses`, { participantId: hostId, text: "rocket" });
+    expect(res.status).toBe(403);
+    const body = (await res.json()) as { message: string };
+    expect(body.message).toBe("Drawers cannot guess in their own round");
+  });
+
+  it("403 'Participant is not in the room' for unknown participantId", async () => {
+    const { code } = await setupActiveRound();
+    const res = await postJson(`/rooms/${code}/guesses`, {
+      participantId: "ghost-uuid",
+      text: "rocket"
+    });
+    expect(res.status).toBe(403);
+    const body = (await res.json()) as { message: string };
+    expect(body.message).toBe("Participant is not in the room");
+  });
+
+  it("404 'Room not found' for an unknown code", async () => {
+    const res = await postJson("/rooms/ZZZZ/guesses", {
+      participantId: "anyone",
+      text: "rocket"
+    });
+    expect(res.status).toBe(404);
+    const body = (await res.json()) as { message: string };
+    expect(body.message).toBe("Room not found");
+  });
+
+  it("409 'No round in progress' when the room is in lobby", async () => {
+    const { code, hostId } = await createAndJoin();
+    // skip start
+    const res = await postJson(`/rooms/${code}/guesses`, { participantId: hostId, text: "rocket" });
+    expect(res.status).toBe(409);
+    const body = (await res.json()) as { message: string };
+    expect(body.message).toBe("No round in progress");
+  });
+
+  // FR-005 (US2) — lockout
+  it("409 'You have already guessed correctly this round' on a second correct guess; scoreboard unchanged", async () => {
+    const { code, guestId } = await setupActiveRound();
+    await postJson(`/rooms/${code}/guesses`, { participantId: guestId, text: "rocket" });
+    const second = await postJson(`/rooms/${code}/guesses`, {
+      participantId: guestId,
+      text: "rocket"
+    });
+    expect(second.status).toBe(409);
+    const body = (await second.json()) as { message: string };
+    expect(body.message).toBe("You have already guessed correctly this round");
+
+    // Re-poll and confirm the scoreboard is stable.
+    const pollRes = await fetch(`${baseUrl}/rooms/${code}?participantId=${guestId}`);
+    const pollBody = (await pollRes.json()) as {
+      room: { round: { scores: Record<string, number>; guesses: unknown[] } };
+    };
+    expect(pollBody.room.round.scores[guestId]).toBe(100);
+    expect(pollBody.room.round.guesses).toHaveLength(1);
+  });
+
+  // FR-005 carry-over: even after multiple wrong guesses, secret word must not leak to non-drawers.
+  it("guesser poll body never contains the literal 'secretWord' substring (raw JSON guard)", async () => {
+    const { code, hostId, guestId } = await setupActiveRound();
+    for (const w of ["cat", "dog", "sun", "mug", "pen"]) {
+      await postJson(`/rooms/${code}/guesses`, { participantId: guestId, text: w });
+    }
+    const guesserRes = await fetch(`${baseUrl}/rooms/${code}?participantId=${guestId}`);
+    const guesserText = await guesserRes.text();
+    expect(guesserText).not.toContain('"secretWord"');
+    expect(guesserText).not.toContain("rocket");
+
+    // Drawer still sees the word.
+    const drawerRes = await fetch(`${baseUrl}/rooms/${code}?participantId=${hostId}`);
+    const drawerText = await drawerRes.text();
+    expect(drawerText).toContain('"secretWord":"rocket"');
+  });
+});
+
 // FR-005, FR-006 (US2) — visibility leakage guard
 describe("GET /rooms/:code — drawer vs guesser word visibility", () => {
   it("returns the cleartext secretWord ONLY to the drawer; guesser response contains no 'secretWord' substring", async () => {

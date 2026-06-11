@@ -26,6 +26,11 @@ export const startRoomSchema = z.object({
   participantId: z.string().min(1)
 });
 
+export const submitGuessSchema = z.object({
+  participantId: z.string().min(1),
+  text: z.string().trim().min(1).max(50)
+});
+
 export class HttpError extends Error {
   statusCode: number;
 

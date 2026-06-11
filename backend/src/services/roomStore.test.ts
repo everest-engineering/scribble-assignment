@@ -3,9 +3,11 @@ import {
   __resetRoomsForTests,
   createRoom,
   getRoom,
+  isGuessCorrect,
   joinRoom,
   selectWordForRound,
   startRoom,
+  submitGuess,
   toRoomSnapshot
 } from "./roomStore.js";
 import { STARTER_WORDS } from "../seed/starterData.js";
@@ -240,6 +242,164 @@ describe("roomStore", () => {
       expect(snap.round).toBeNull();
       expect(snap.participants.every((p) => p.isDrawer === false)).toBe(true);
       expect(snap.status).toBe("lobby");
+    });
+  });
+
+  // FR-003 (US1)
+  describe("isGuessCorrect", () => {
+    it.each([
+      ["Rocket", "rocket", true],
+      ["ROCKET", "rocket", true],
+      ["  rocket  ", "rocket", true],
+      ["rockets", "rocket", false],
+      ["rock et", "rocket", false],
+      ["", "rocket", false]
+    ] as const)("isGuessCorrect(%j, %j) === %s", (input, secret, expected) => {
+      expect(isGuessCorrect(input, secret)).toBe(expected);
+    });
+  });
+
+  // FR-001..005, FR-009 (US1 + US2)
+  describe("submitGuess", () => {
+    function freshRound() {
+      const host = createRoom("Alice");
+      const joined = joinRoom(host.room.code, "Bob");
+      if (!joined) throw new Error("expected join to succeed");
+      const start = startRoom(host.room.code, host.participantId);
+      if (!start.ok) throw new Error("expected start to succeed");
+      return { code: host.room.code, hostId: host.participantId, guestId: joined.participantId };
+    }
+
+    it("returns not_found for an unknown room code", () => {
+      expect(submitGuess("ZZZZ", "anyone", "rocket")).toEqual({
+        ok: false,
+        reason: "not_found"
+      });
+    });
+
+    it("returns no_round when called against a lobby-state room", () => {
+      const host = createRoom("Alice");
+      expect(submitGuess(host.room.code, host.participantId, "rocket")).toEqual({
+        ok: false,
+        reason: "no_round"
+      });
+    });
+
+    it("returns not_in_room for an unknown participantId", () => {
+      const { code } = freshRound();
+      expect(submitGuess(code, "fake-uuid", "rocket")).toEqual({
+        ok: false,
+        reason: "not_in_room"
+      });
+    });
+
+    it("returns is_drawer when the caller is the active drawer", () => {
+      const { code, hostId } = freshRound();
+      expect(submitGuess(code, hostId, "rocket")).toEqual({ ok: false, reason: "is_drawer" });
+    });
+
+    it("appends a wrong guess to the round's chronological feed and leaves scores at 0", () => {
+      const { code, hostId, guestId } = freshRound();
+      const r = submitGuess(code, guestId, "cat");
+      if (!r.ok) throw new Error("expected ok");
+      expect(r.guess.isCorrect).toBe(false);
+      expect(r.guess.text).toBe("cat");
+      expect(r.guess.displayName).toBe("Bob");
+      expect(r.room.round?.guesses).toHaveLength(1);
+      expect(r.room.round?.scores).toEqual({ [hostId]: 0, [guestId]: 0 });
+      expect(r.room.round?.lockedParticipantIds).toEqual([]);
+    });
+
+    it("on a correct guess: appends, increments score by exactly 100, locks the guesser out", () => {
+      const { code, hostId, guestId } = freshRound();
+      const r = submitGuess(code, guestId, "  RoCkEt  ");
+      if (!r.ok) throw new Error("expected ok");
+      expect(r.guess.isCorrect).toBe(true);
+      expect(r.guess.text).toBe("RoCkEt"); // trimmed but original case preserved
+      expect(r.room.round?.scores).toEqual({ [hostId]: 0, [guestId]: 100 });
+      expect(r.room.round?.lockedParticipantIds).toEqual([guestId]);
+    });
+
+    it("a second guess from an already-correct guesser is rejected with already_correct (no double score)", () => {
+      const { code, guestId } = freshRound();
+      submitGuess(code, guestId, "rocket");
+      const second = submitGuess(code, guestId, "rocket");
+      expect(second).toEqual({ ok: false, reason: "already_correct" });
+      const room = getRoom(code);
+      expect(room?.round?.scores[guestId]).toBe(100);
+      expect(room?.round?.guesses).toHaveLength(1);
+    });
+
+    it("preserves chronological ordering across multiple guessers", () => {
+      const host = createRoom("Alice");
+      const bob = joinRoom(host.room.code, "Bob");
+      const carol = joinRoom(host.room.code, "Carol");
+      if (!bob || !carol) throw new Error("join failed");
+      startRoom(host.room.code, host.participantId);
+
+      submitGuess(host.room.code, bob.participantId, "cat");
+      submitGuess(host.room.code, carol.participantId, "rocket");
+      submitGuess(host.room.code, bob.participantId, "rocket");
+
+      const room = getRoom(host.room.code);
+      expect(room?.round?.guesses.map((g) => `${g.displayName}:${g.isCorrect}`)).toEqual([
+        "Bob:false",
+        "Carol:true",
+        "Bob:true"
+      ]);
+      expect(room?.round?.scores).toEqual({
+        [host.participantId]: 0,
+        [bob.participantId]: 100,
+        [carol.participantId]: 100
+      });
+    });
+  });
+
+  // FR-006: snapshot exposes the round-scoped fields uniformly to every viewer
+  describe("toRoomSnapshot — guess/score fields", () => {
+    it("returns empty guesses/scores/locked arrays at round start for every viewer", () => {
+      const host = createRoom("Alice");
+      const bob = joinRoom(host.room.code, "Bob");
+      if (!bob) throw new Error("join failed");
+      startRoom(host.room.code, host.participantId);
+      const room = getRoom(host.room.code);
+      if (!room) throw new Error("expected room");
+
+      for (const viewer of [host.participantId, bob.participantId, undefined]) {
+        const snap = toRoomSnapshot(room, viewer);
+        expect(snap.round?.guesses).toEqual([]);
+        expect(snap.round?.lockedParticipantIds).toEqual([]);
+        expect(snap.round?.scores).toEqual({
+          [host.participantId]: 0,
+          [bob.participantId]: 0
+        });
+      }
+    });
+
+    it("reflects guesses and scores identically to drawer / guesser / anonymous viewers", () => {
+      const host = createRoom("Alice");
+      const bob = joinRoom(host.room.code, "Bob");
+      if (!bob) throw new Error("join failed");
+      startRoom(host.room.code, host.participantId);
+      submitGuess(host.room.code, bob.participantId, "rocket");
+      const room = getRoom(host.room.code);
+      if (!room) throw new Error("expected room");
+
+      const drawerSnap = toRoomSnapshot(room, host.participantId);
+      const guesserSnap = toRoomSnapshot(room, bob.participantId);
+      const anonSnap = toRoomSnapshot(room);
+
+      for (const snap of [drawerSnap, guesserSnap, anonSnap]) {
+        expect(snap.round?.guesses).toHaveLength(1);
+        expect(snap.round?.guesses[0].isCorrect).toBe(true);
+        expect(snap.round?.scores[bob.participantId]).toBe(100);
+        expect(snap.round?.lockedParticipantIds).toEqual([bob.participantId]);
+      }
+
+      // FR-005 carry-over: secretWord still drawer-only.
+      expect(drawerSnap.round?.secretWord).toBe("rocket");
+      expect(guesserSnap.round?.secretWord).toBeUndefined();
+      expect(anonSnap.round?.secretWord).toBeUndefined();
     });
   });
 

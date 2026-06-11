@@ -162,6 +162,21 @@ class RoomStore {
     this.setRoomSnapshot(response.room);
     return response.room;
   }
+
+  async submitGuess(text: string) {
+    const code = this.state.room?.code;
+    const participantId = this.state.participantId;
+    if (!code || !participantId) return null;
+    try {
+      const response = await api.submitGuess(code, participantId, text);
+      this.setRoomSnapshot(response.room);
+      return response.room;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Guess submission failed";
+      this.setState({ error: message });
+      return null;
+    }
+  }
 }
 
 const RoomStoreContext = createContext<RoomStore | null>(null);

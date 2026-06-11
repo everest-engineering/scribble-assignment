@@ -5,13 +5,15 @@ import {
   joinRoomSchema,
   roomCodeParamsSchema,
   roomViewerQuerySchema,
-  startRoomSchema
+  startRoomSchema,
+  submitGuessSchema
 } from "./schemas.js";
 import {
   createRoom,
   getRoom,
   joinRoom,
   startRoom,
+  submitGuess,
   toRoomSnapshot
 } from "../services/roomStore.js";
 
@@ -83,6 +85,36 @@ export function createRoomsRouter() {
           throw new HttpError(403, "Only the host can start the game");
         }
         throw new HttpError(409, "Need at least 2 players to start");
+      }
+
+      response.json({
+        room: toRoomSnapshot(outcome.room, participantId)
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/:code/guesses", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId, text } = submitGuessSchema.parse(request.body);
+      const outcome = submitGuess(code, participantId, text);
+
+      if (!outcome.ok) {
+        if (outcome.reason === "not_found") {
+          throw new HttpError(404, "Room not found");
+        }
+        if (outcome.reason === "no_round") {
+          throw new HttpError(409, "No round in progress");
+        }
+        if (outcome.reason === "not_in_room") {
+          throw new HttpError(403, "Participant is not in the room");
+        }
+        if (outcome.reason === "is_drawer") {
+          throw new HttpError(403, "Drawers cannot guess in their own round");
+        }
+        throw new HttpError(409, "You have already guessed correctly this round");
       }
 
       response.json({

@@ -12,10 +12,24 @@ export interface ParticipantView extends Participant {
   isDrawer: boolean;
 }
 
+export interface Guess {
+  id: string;
+  participantId: string;
+  displayName: string;
+  text: string;
+  isCorrect: boolean;
+  submittedAt: string;
+}
+
+export type GuessView = Guess;
+
 export interface Round {
   roundNumber: number;
   drawerParticipantId: string;
   secretWord: string;
+  guesses: Guess[];
+  scores: Record<string, number>;
+  lockedParticipantIds: string[];
 }
 
 export interface Room {
@@ -33,6 +47,9 @@ export interface RoundView {
   drawerParticipantId: string;
   maskedWord: string;
   secretWord?: string;
+  guesses: GuessView[];
+  scores: Record<string, number>;
+  lockedParticipantIds: string[];
 }
 
 export interface RoomSnapshot {

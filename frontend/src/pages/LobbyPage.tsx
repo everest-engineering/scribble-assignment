@@ -120,7 +120,12 @@ export function LobbyPage() {
 
         <Card title={room.round ? "Round" : "Status"}>
           {room.round ? (
-            <RoundView room={room} viewerParticipantId={participantId} />
+            <RoundView
+              room={room}
+              viewerParticipantId={participantId}
+              onGuessSubmit={(text) => roomStore.submitGuess(text)}
+              guessError={error}
+            />
           ) : (
             <>
               <p

@@ -8,11 +8,23 @@ export interface Participant {
   isDrawer: boolean;
 }
 
+export interface GuessView {
+  id: string;
+  participantId: string;
+  displayName: string;
+  text: string;
+  isCorrect: boolean;
+  submittedAt: string;
+}
+
 export interface RoundView {
   roundNumber: number;
   drawerParticipantId: string;
   maskedWord: string;
   secretWord?: string;
+  guesses: GuessView[];
+  scores: Record<string, number>;
+  lockedParticipantIds: string[];
 }
 
 export interface RoomSnapshot {
@@ -85,6 +97,12 @@ export const api = {
     return request<{ room: RoomSnapshot }>(`/rooms/${encodeURIComponent(code)}/start`, {
       method: "POST",
       body: JSON.stringify({ participantId })
+    });
+  },
+  submitGuess(code: string, participantId: string, text: string) {
+    return request<{ room: RoomSnapshot }>(`/rooms/${encodeURIComponent(code)}/guesses`, {
+      method: "POST",
+      body: JSON.stringify({ participantId, text })
     });
   }
 };

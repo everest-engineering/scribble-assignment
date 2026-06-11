@@ -80,6 +80,40 @@ describe("api service", () => {
     await expect(api.joinRoom("ZZZZ", "Bob")).rejects.toBeInstanceOf(ApiError);
   });
 
+  it("submitGuess POSTs participantId + text to /rooms/:code/guesses", async () => {
+    const mockResponse = {
+      ok: true,
+      json: () =>
+        Promise.resolve({ room: { code: "ABCD", status: "round", participants: [] } }),
+    };
+    vi.mocked(fetch).mockResolvedValue(mockResponse as unknown as Response);
+
+    await api.submitGuess("ABCD", "p-bob", "  Rocket  ");
+
+    expect(fetch).toHaveBeenCalledWith(
+      expect.stringContaining("/rooms/ABCD/guesses"),
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({ participantId: "p-bob", text: "  Rocket  " }),
+      })
+    );
+  });
+
+  it("submitGuess maps a 409 lockout to ApiError with the server message", async () => {
+    const mockResponse = {
+      ok: false,
+      status: 409,
+      json: () =>
+        Promise.resolve({ message: "You have already guessed correctly this round" }),
+    };
+    vi.mocked(fetch).mockResolvedValue(mockResponse as unknown as Response);
+
+    await expect(api.submitGuess("ABCD", "p-bob", "rocket")).rejects.toMatchObject({
+      message: "You have already guessed correctly this round",
+      status: 409,
+    });
+  });
+
   it("startRoom POSTs participantId to /rooms/:code/start", async () => {
     const mockResponse = {
       ok: true,

@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import type {
+  Guess,
   Participant,
   ParticipantView,
   Room,
@@ -7,6 +8,10 @@ import type {
   RoundView
 } from "../models/game.js";
 import { STARTER_ROLES, STARTER_WORDS } from "../seed/starterData.js";
+
+export function isGuessCorrect(text: string, secretWord: string): boolean {
+  return text.trim().toLowerCase() === secretWord.trim().toLowerCase();
+}
 
 export function selectWordForRound(
   words: readonly string[],
@@ -138,12 +143,80 @@ export function startRoom(code: string, requesterId: string): StartRoomOutcome {
   room.round = {
     roundNumber: 1,
     drawerParticipantId: room.hostParticipantId,
-    secretWord: selectWordForRound(STARTER_WORDS, 1)
+    secretWord: selectWordForRound(STARTER_WORDS, 1),
+    guesses: [],
+    scores: Object.fromEntries(room.participants.map((p) => [p.id, 0])),
+    lockedParticipantIds: []
   };
   room.status = "round";
   room.updatedAt = now();
 
   return { ok: true, room: cloneRoom(room) };
+}
+
+export type SubmitGuessOutcome =
+  | { ok: true; room: Room; guess: Guess }
+  | {
+      ok: false;
+      reason:
+        | "not_found"
+        | "no_round"
+        | "not_in_room"
+        | "is_drawer"
+        | "already_correct";
+    };
+
+export function submitGuess(
+  code: string,
+  requesterId: string,
+  text: string
+): SubmitGuessOutcome {
+  const room = rooms.get(normalizeCode(code));
+
+  if (!room) {
+    return { ok: false, reason: "not_found" };
+  }
+
+  if (room.round === null) {
+    return { ok: false, reason: "no_round" };
+  }
+
+  const participant = room.participants.find((p) => p.id === requesterId);
+  if (!participant) {
+    return { ok: false, reason: "not_in_room" };
+  }
+
+  if (requesterId === room.round.drawerParticipantId) {
+    return { ok: false, reason: "is_drawer" };
+  }
+
+  if (room.round.lockedParticipantIds.includes(requesterId)) {
+    return { ok: false, reason: "already_correct" };
+  }
+
+  const trimmed = text.trim();
+  const correct = isGuessCorrect(trimmed, room.round.secretWord);
+
+  const guess: Guess = {
+    id: randomUUID(),
+    participantId: requesterId,
+    displayName: participant.name,
+    text: trimmed,
+    isCorrect: correct,
+    submittedAt: now()
+  };
+
+  room.round.guesses.push(guess);
+
+  if (correct) {
+    const current = room.round.scores[requesterId] ?? 0;
+    room.round.scores[requesterId] = current + 100;
+    room.round.lockedParticipantIds.push(requesterId);
+  }
+
+  room.updatedAt = now();
+
+  return { ok: true, room: cloneRoom(room), guess: { ...guess } };
 }
 
 export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSnapshot {
@@ -160,18 +233,22 @@ export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSn
 
   let round: RoundView | null = null;
   if (room.round !== null) {
+    const activeRound = room.round;
     const viewerIsDrawer =
       viewerParticipantId !== undefined &&
-      viewerParticipantId === room.round.drawerParticipantId;
+      viewerParticipantId === activeRound.drawerParticipantId;
 
     round = {
-      roundNumber: room.round.roundNumber,
-      drawerParticipantId: room.round.drawerParticipantId,
-      maskedWord: buildMaskedWord(room.round.secretWord)
+      roundNumber: activeRound.roundNumber,
+      drawerParticipantId: activeRound.drawerParticipantId,
+      maskedWord: buildMaskedWord(activeRound.secretWord),
+      guesses: activeRound.guesses.map((g) => ({ ...g })),
+      scores: { ...activeRound.scores },
+      lockedParticipantIds: [...activeRound.lockedParticipantIds]
     };
 
     if (viewerIsDrawer) {
-      round.secretWord = room.round.secretWord;
+      round.secretWord = activeRound.secretWord;
     }
   }
 

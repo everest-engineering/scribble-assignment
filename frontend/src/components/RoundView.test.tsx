@@ -21,7 +21,10 @@ function makeRoom(overrides: Partial<RoomSnapshot> = {}): RoomSnapshot {
     round: {
       roundNumber: 1,
       drawerParticipantId: "p-alice",
-      maskedWord: "______"
+      maskedWord: "______",
+      guesses: [],
+      scores: { "p-alice": 0, "p-bob": 0 },
+      lockedParticipantIds: []
     },
     ...overrides
   };
@@ -39,7 +42,10 @@ describe("getRoundViewState", () => {
         roundNumber: 1,
         drawerParticipantId: "p-alice",
         maskedWord: "______",
-        secretWord: "rocket"
+        secretWord: "rocket",
+        guesses: [],
+        scores: { "p-alice": 0, "p-bob": 0 },
+        lockedParticipantIds: []
       }
     });
     const state = getRoundViewState(room, "p-alice");
@@ -102,7 +108,10 @@ describe("<RoundView /> rendering", () => {
         roundNumber: 1,
         drawerParticipantId: "p-alice",
         maskedWord: "______",
-        secretWord: "rocket"
+        secretWord: "rocket",
+        guesses: [],
+        scores: { "p-alice": 0, "p-bob": 0 },
+        lockedParticipantIds: []
       }
     });
     render(createElement(RoundView, { room, viewerParticipantId: "p-alice" }));
@@ -116,7 +125,10 @@ describe("<RoundView /> rendering", () => {
         roundNumber: 1,
         drawerParticipantId: "p-alice",
         maskedWord: "______",
-        secretWord: "rocket"
+        secretWord: "rocket",
+        guesses: [],
+        scores: { "p-alice": 0, "p-bob": 0 },
+        lockedParticipantIds: []
       }
     });
     render(createElement(RoundView, { room, viewerParticipantId: "p-alice" }));

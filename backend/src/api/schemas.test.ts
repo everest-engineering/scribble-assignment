@@ -3,7 +3,8 @@ import {
   createRoomSchema,
   joinRoomSchema,
   roomCodeParamsSchema,
-  startRoomSchema
+  startRoomSchema,
+  submitGuessSchema
 } from "./schemas.js";
 
 describe("schemas", () => {
@@ -46,6 +47,35 @@ describe("schemas", () => {
       expect(startRoomSchema.parse({ participantId: "p1" })).toEqual({ participantId: "p1" });
       expect(() => startRoomSchema.parse({})).toThrow();
       expect(() => startRoomSchema.parse({ participantId: "" })).toThrow();
+    });
+  });
+
+  // FR-002 (US1)
+  describe("submitGuessSchema", () => {
+    it("parses a valid body and TRIMS the text", () => {
+      expect(submitGuessSchema.parse({ participantId: "p1", text: "  Rocket  " })).toEqual({
+        participantId: "p1",
+        text: "Rocket"
+      });
+    });
+
+    it.each([
+      { participantId: "p1", text: "" },
+      { participantId: "p1", text: "    " },
+      { participantId: "p1", text: "x".repeat(51) },
+      { participantId: "", text: "rocket" },
+      { text: "rocket" },
+      { participantId: "p1" }
+    ])("rejects invalid body: %j", (body) => {
+      expect(() => submitGuessSchema.parse(body)).toThrow();
+    });
+
+    it("accepts exactly 50 characters after trim", () => {
+      const text = "a".repeat(50);
+      expect(submitGuessSchema.parse({ participantId: "p1", text })).toEqual({
+        participantId: "p1",
+        text
+      });
     });
   });
 });
