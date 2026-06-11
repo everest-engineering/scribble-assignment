@@ -5,6 +5,7 @@ export interface Participant {
   id: string;
   name: string;
   joinedAt: string;
+  role?: ParticipantRole;
 }
 
 export interface RoomSnapshot {

@@ -124,12 +124,13 @@ export function startRoom(code: string, participantId: string) {
 
   room.status = "playing";
 
-  const drawerIndex = room.participants.findIndex((p) => p.id !== room.hostId);
+  const hostDrawerIndex = room.participants.findIndex((p) => p.id === room.hostId);
   room.participants.forEach((p, index) => {
-    p.role = index === drawerIndex ? "drawer" : "guesser";
+    p.role = index === hostDrawerIndex ? "drawer" : "guesser";
   });
 
-  room.secretWord = STARTER_WORDS[0];
+  const wordIndex = room.code.split("").reduce((sum, c) => sum + c.charCodeAt(0), 0) % STARTER_WORDS.length;
+  room.secretWord = STARTER_WORDS[wordIndex];
   room.updatedAt = now();
   rooms.set(room.code, cloneRoom(room));
 

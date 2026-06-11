@@ -23,6 +23,12 @@ export function LobbyPage() {
     };
   }, [navigate, room, roomStore]);
 
+  useEffect(() => {
+    if (room?.status === "playing") {
+      navigate("/game");
+    }
+  }, [navigate, room?.status]);
+
   const isHost = room ? participantId !== null && room.hostId === participantId : false;
 
   const handleStartGame = useCallback(async () => {

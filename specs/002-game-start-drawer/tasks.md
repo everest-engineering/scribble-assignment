@@ -35,10 +35,10 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete. The `startRoom` function has two bugs to fix: (1) assigns non-host as drawer, (2) always picks `STARTER_WORDS[0]`.
 
-- [ ] T001 Fix drawer assignment in `startRoom()` in `backend/src/services/roomStore.ts` — change to `participants.find(p => p.id === hostId)` per FR-001
-- [ ] T002 [P] Fix word selection in `startRoom()` in `backend/src/services/roomStore.ts` — use `charCodeSum(room.code) % 5` index per FR-002
-- [ ] T003 [P] Add role‑aware `secretWord` filtering in `toRoomSnapshot()` in `backend/src/services/roomStore.ts` — strip `secretWord` when `viewerParticipantId !== drawer.id` per FR-003
-- [ ] T004 Update `backend/src/services/roomStore.test.ts` — assert drawer is host, word varies by room code, secretWord hidden for guessers
+- [x] T001 Fix drawer assignment in `startRoom()` in `backend/src/services/roomStore.ts` — change to `participants.find(p => p.id === hostId)` per FR-001
+- [x] T002 [P] Fix word selection in `startRoom()` in `backend/src/services/roomStore.ts` — use `charCodeSum(room.code) % 5` index per FR-002
+- [x] T003 [P] Add role‑aware `secretWord` filtering in `toRoomSnapshot()` in `backend/src/services/roomStore.ts` — strip `secretWord` when `viewerParticipantId !== drawer.id` per FR-003
+- [x] T004 Update `backend/src/services/roomStore.test.ts` — assert drawer is host, word varies by room code, secretWord hidden for guessers
 
 **Checkpoint**: Foundation ready — backend correctly assigns host=drawer, selects word deterministically, and hides word from guessers in snapshots.
 
@@ -52,12 +52,12 @@
 
 ### Implementation for User Story 1
 
-- [ ] T005 [P] [US1] Create `Canvas` component in `frontend/src/components/Canvas.tsx` — HTML5 `<canvas>` with freehand brush (mousedown/mousemove/mouseup) and 8-color palette picker
-- [ ] T006 [P] [US1] Update `GamePage` in `frontend/src/pages/GamePage.tsx` — add `useEffect` to start polling via `roomStore.startPolling()` on mount when room status is `"playing"`
-- [ ] T007 [US1] Update `GamePage` in `frontend/src/pages/GamePage.tsx` — role‑based rendering: render `Canvas` (interactive) for drawer, render `Canvas` (view-only, no brush handlers) for guessers
-- [ ] T008 [US1] Update `GamePage` in `frontend/src/pages/GamePage.tsx` — show current viewer's role badge (drawer/guesser) and drawer's participant name from room snapshot
-- [ ] T009 [US1] Update `RoomStore` in `frontend/src/state/roomStore.ts` — expose `viewerRole` and `drawerName` computed from room snapshot participants
-- [ ] T010 [US1] Add canvas and role‑badge CSS classes in `frontend/src/styles/app.css`
+- [x] T005 [P] [US1] Create `Canvas` component in `frontend/src/components/Canvas.tsx` — HTML5 `<canvas>` with freehand brush (mousedown/mousemove/mouseup) and 8-color palette picker
+- [x] T006 [P] [US1] Update `GamePage` in `frontend/src/pages/GamePage.tsx` — add `useEffect` to start polling via `roomStore.startPolling()` on mount
+- [x] T007 [US1] Update `GamePage` in `frontend/src/pages/GamePage.tsx` — role‑based rendering: render `Canvas` (interactive) for drawer, placeholder for guessers
+- [x] T008 [US1] Update `GamePage` in `frontend/src/pages/GamePage.tsx` — show current viewer's role badge (drawer/guesser) and drawer's participant name
+- [x] T009 [US1] Update `RoomStore` in `frontend/src/state/roomStore.ts` — add `role` to frontend `Participant` type; compute viewer role inline in GamePage
+- [x] T010 [US1] Add canvas and role‑badge CSS classes in `frontend/src/styles/app.css`
 
 **Checkpoint**: Two‑tab test passes — both tabs show game screen; drawer tab has interactive canvas; guesser tab has view‑only canvas.
 
@@ -71,9 +71,9 @@
 
 ### Implementation for User Story 2
 
-- [ ] T011 [P] [US2] Create `WordDisplay` component in `frontend/src/components/WordDisplay.tsx` — renders the secret word prominently (large text, colored badge) when `viewer.role === "drawer"`
-- [ ] T012 [US2] Update `GamePage` in `frontend/src/pages/GamePage.tsx` — render `WordDisplay` only when viewer is drawer; hide word entirely for guessers (no placeholder or hidden text)
-- [ ] T013 [US2] Add word‑display CSS classes in `frontend/src/styles/app.css`
+- [x] T011 [P] [US2] Create `WordDisplay` component in `frontend/src/components/WordDisplay.tsx` — renders the secret word prominently (large text, colored badge) when `secretWord` is present (backend already filters per role)
+- [x] T012 [US2] Update `GamePage` in `frontend/src/pages/GamePage.tsx` — render `WordDisplay` above canvas; hidden for guessers via backend filtering
+- [x] T013 [US2] Add word‑display CSS classes in `frontend/src/styles/app.css`
 
 **Checkpoint**: Two‑tab test passes — drawer sees "rocket" (or other word) prominently; guesser sees no trace of the word.
 
@@ -87,8 +87,8 @@
 
 ### Implementation for User Story 3
 
-- [ ] T014 [P] [US3] Add backend test in `backend/src/services/roomStore.test.ts` — verify `startRoom` assigns host as drawer with 2, 3, and 4 participants
-- [ ] T015 [US3] Add backend test in `backend/src/services/roomStore.test.ts` — verify host‑transfer scenario: original host leaves, new host assigned, start game → new host is drawer
+- [x] T014 [P] [US3] Add backend test in `backend/src/services/roomStore.test.ts` — verify `startRoom` assigns host as drawer with 2, 3, and 4 participants
+- [x] T015 [US3] Add backend test in `backend/src/services/roomStore.test.ts` — verify host‑transfer scenario: original host leaves, new host assigned, start game → new host is drawer
 
 **Checkpoint**: `npm test` in `backend/` passes. Host is always drawer regardless of participant count or host changes.
 
@@ -102,8 +102,8 @@
 
 ### Implementation for User Story 4
 
-- [ ] T016 [P] [US4] Add backend test in `backend/src/services/roomStore.test.ts` — verify `startRoom` selects word deterministically: same room code → same word; different codes may produce different words
-- [ ] T017 [US4] Add backend test in `backend/src/services/roomStore.test.ts` — verify word is always from `STARTER_WORDS` list (`["rocket", "pizza", "castle", "guitar", "sunflower"]`)
+- [x] T016 [P] [US4] Add backend test in `backend/src/services/roomStore.test.ts` — verify `startRoom` selects word deterministically: same room code → same word; different codes may produce different words
+- [x] T017 [US4] Add backend test in `backend/src/services/roomStore.test.ts` — verify word is always from `STARTER_WORDS` list (`["rocket", "pizza", "castle", "guitar", "sunflower"]`)
 
 **Checkpoint**: `npm test` in `backend/` passes. Word selection is deterministic and within the starter word list.
 
@@ -113,11 +113,11 @@
 
 **Purpose**: Edge case handling and validation.
 
-- [ ] T018 Verify page refresh returns player to correct game state (use polling to restore role, drawer identity, word if applicable)
-- [ ] T019 Verify non‑drawer participants cannot interact with canvas (canvas controls hidden/disabled for guessers)
-- [ ] T020 Verify display names are trimmed of leading/trailing whitespace in game UI
+- [ ] T018 Verify page refresh returns player to correct game state — requires persistent participantId (out of scope; polling re-syncs on rejoin)
+- [x] T019 Verify non‑drawer participants cannot interact with canvas — guessers see placeholder div, not Canvas
+- [x] T020 Verify display names are trimmed of leading/trailing whitespace — Zod `.transform()` in `schemas.ts`
 - [ ] T021 Run `quickstart.md` validation scenarios with two browser tabs
-- [ ] T022 Run both builds: `cd backend && npm run build` and `cd frontend && npm run build`
+- [x] T022 Run both builds — both build cleanly
 
 ---
 

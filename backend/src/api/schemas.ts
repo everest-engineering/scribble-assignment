@@ -1,7 +1,9 @@
 import { z } from "zod";
 
-const nonEmptyName = z.string().min(1, "Display name is required").refine(
-  (value) => value.trim().length > 0,
+const nonEmptyName = z.string().min(1, "Display name is required").transform(
+  (value) => value.trim()
+).refine(
+  (value) => value.length > 0,
   "Display name cannot be only whitespace"
 );
 

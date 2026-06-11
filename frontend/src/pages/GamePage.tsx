@@ -1,27 +1,40 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { Canvas } from "../components/Canvas";
 import { Card } from "../components/Card";
 import { GuessForm } from "../components/GuessForm";
 import { ResultPanel } from "../components/ResultPanel";
+import { RoleBadge } from "../components/RoleBadge";
 import { RoomCodeBadge } from "../components/RoomCodeBadge";
 import { Scoreboard } from "../components/Scoreboard";
-import { useRoomState } from "../state/roomStore";
+import { WordDisplay } from "../components/WordDisplay";
+import { useRoomState, useRoomStore } from "../state/roomStore";
 
 export function GamePage() {
   const navigate = useNavigate();
+  const roomStore = useRoomStore();
   const { room, participantId } = useRoomState();
 
   useEffect(() => {
     if (!room) {
       navigate("/", { replace: true });
+      return;
     }
-  }, [navigate, room]);
+
+    roomStore.startPolling();
+
+    return () => {
+      roomStore.stopPolling();
+    };
+  }, [navigate, room, roomStore]);
 
   if (!room) {
     return null;
   }
 
   const viewer = room.participants.find((participant) => participant.id === participantId) ?? null;
+  const isDrawer = viewer?.role === "drawer";
+  const drawer = room.participants.find((p) => p.role === "drawer");
 
   return (
     <section className="panel game-page">
@@ -41,9 +54,14 @@ export function GamePage() {
 
         <div className="game-page__main">
           <Card title="Canvas">
-            <div className="canvas-placeholder" style={{ minHeight: '500px', backgroundColor: '#ffffff', border: '1px solid #e5e7eb' }}>
-              Waiting for drawer...
-            </div>
+            <WordDisplay secretWord={room.secretWord} />
+            {isDrawer ? (
+              <Canvas />
+            ) : (
+              <div className="canvas-placeholder">
+                {drawer ? `${drawer.name} is drawing...` : "Waiting for drawer..."}
+              </div>
+            )}
           </Card>
         </div>
 
@@ -55,8 +73,8 @@ export function GamePage() {
                 <dd>{viewer?.name ?? "Unknown player"}</dd>
               </div>
               <div>
-                <dt>Status</dt>
-                <dd>Playing</dd>
+                <dt>Role</dt>
+                <dd><RoleBadge role={viewer?.role} /></dd>
               </div>
             </dl>
           </Card>
