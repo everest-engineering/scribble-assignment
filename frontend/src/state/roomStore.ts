@@ -7,7 +7,7 @@ import {
   useSyncExternalStore,
   type PropsWithChildren
 } from "react";
-import { api, type RoomSessionResponse, type RoomSnapshot } from "../services/api";
+import { api, type RoomSessionResponse, type RoomSnapshot, type StrokePoint } from "../services/api";
 
 const POLL_INTERVAL_MS = 2000;
 
@@ -112,6 +112,36 @@ class RoomStore {
     );
     this.setRoomSnapshot(response.room);
     return response.room;
+  }
+
+  async submitGuess(text: string) {
+    if (!this.state.room || !this.state.participantId) {
+      return null;
+    }
+
+    return this.withLoading(() =>
+      api.submitGuess(this.state.room!.code, this.state.participantId!, text)
+    );
+  }
+
+  async addStroke(points: StrokePoint[]) {
+    if (!this.state.room || !this.state.participantId) {
+      return;
+    }
+
+    await this.withLoading(() =>
+      api.addStroke(this.state.room!.code, this.state.participantId!, points)
+    );
+  }
+
+  async clearCanvas() {
+    if (!this.state.room || !this.state.participantId) {
+      return;
+    }
+
+    await this.withLoading(() =>
+      api.clearCanvas(this.state.room!.code, this.state.participantId!)
+    );
   }
 
   startPolling() {

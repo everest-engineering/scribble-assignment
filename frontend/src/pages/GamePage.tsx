@@ -1,5 +1,9 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { DrawingCanvas } from "../components/DrawingCanvas";
+import { GuessForm } from "../components/GuessForm";
+import { GuessHistory } from "../components/GuessHistory";
+import { GuessingCanvas } from "../components/GuessingCanvas";
 import { RoomCodeBadge } from "../components/RoomCodeBadge";
 import { useRoomState, useRoomStore } from "../state/roomStore";
 
@@ -41,14 +45,24 @@ export function GamePage() {
 
       <div className="game-page__layout">
         <div className="game-page__main">
-          <div className="card">
-            <div className="card__body">
-              {isDrawer ? (
+          {isDrawer ? (
+            <div className="card">
+              <div className="card__body">
                 <div className="game-role-display">
                   <p className="game-role-label">You are the drawer!</p>
                   <p className="game-word-display">{room.wordForDrawer}</p>
                 </div>
-              ) : (
+              </div>
+              <div className="card__body">
+                <DrawingCanvas
+                  onStroke={(points) => roomStore.addStroke(points)}
+                  onClear={() => roomStore.clearCanvas()}
+                />
+              </div>
+            </div>
+          ) : (
+            <div className="card">
+              <div className="card__body">
                 <div className="game-role-display">
                   <p className="game-role-label">
                     {drawer ? `${drawer.name} is drawing` : "Waiting for drawer..."}
@@ -57,12 +71,27 @@ export function GamePage() {
                     Word length: <strong>{room.wordLength ?? "?"}</strong>
                   </p>
                 </div>
-              )}
+              </div>
+              <div className="card__body">
+                <GuessingCanvas strokes={room.strokes} />
+              </div>
             </div>
-          </div>
+          )}
         </div>
 
         <aside className="game-page__sidebar game-page__sidebar--right">
+          {!isDrawer && (
+            <div className="card">
+              <div className="card__header">
+                <h2>Your Guess</h2>
+              </div>
+              <div className="card__body">
+                <GuessForm
+                  onSubmit={(text) => roomStore.submitGuess(text)}
+                />
+              </div>
+            </div>
+          )}
           <div className="card">
             <div className="card__header">
               <h2>Players</h2>
@@ -87,6 +116,11 @@ export function GamePage() {
               </ul>
             </div>
           </div>
+          <GuessHistory
+            guesses={room.guesses}
+            participants={room.participants}
+            scores={room.scores}
+          />
         </aside>
       </div>
 

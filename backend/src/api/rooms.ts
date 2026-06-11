@@ -1,13 +1,16 @@
 import { Router } from "express";
 import {
+  clearBodySchema,
   createRoomSchema,
+  guessBodySchema,
   HttpError,
   joinRoomSchema,
   roomCodeParamsSchema,
   roomViewerQuerySchema,
-  startGameQuerySchema
+  startGameQuerySchema,
+  strokeBodySchema
 } from "./schemas.js";
-import { createRoom, getRoom, joinRoom, startGame, toRoomSnapshot } from "../services/roomStore.js";
+import { addStroke, clearCanvas, createRoom, getRoom, joinRoom, startGame, submitGuess, toRoomSnapshot } from "../services/roomStore.js";
 
 export function createRoomsRouter() {
   const router = Router();
@@ -58,6 +61,55 @@ export function createRoomsRouter() {
       response.json({
         room: toRoomSnapshot(result.room, participantId)
       });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/:code/stroke", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId, points } = strokeBodySchema.parse(request.body);
+      const result = addStroke(code.toUpperCase(), participantId, points);
+
+      if (!result.ok) {
+        throw new HttpError(result.status, result.message);
+      }
+
+      response.json({ ok: true });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/:code/clear", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId } = clearBodySchema.parse(request.body);
+      const result = clearCanvas(code.toUpperCase(), participantId);
+
+      if (!result.ok) {
+        throw new HttpError(result.status, result.message);
+      }
+
+      response.json({ ok: true });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/:code/guess", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId, text } = guessBodySchema.parse(request.body);
+      const result = submitGuess(code.toUpperCase(), participantId, text);
+
+      if ("error" in result) {
+        const status = result.error === "Only guessers can submit guesses" ? 403 : 400;
+        throw new HttpError(status, result.error);
+      }
+
+      response.json(result);
     } catch (error) {
       next(error);
     }

@@ -20,6 +20,20 @@ export const roomViewerQuerySchema = z.object({
   participantId: z.string().optional()
 });
 
+export const guessBodySchema = z.object({
+  participantId: z.string().min(1, "participantId is required"),
+  text: z.string().min(1, "Guess cannot be empty")
+});
+
+export const strokeBodySchema = z.object({
+  participantId: z.string().min(1, "participantId is required"),
+  points: z.array(z.object({ x: z.number(), y: z.number() })).min(1, "points array must not be empty")
+});
+
+export const clearBodySchema = z.object({
+  participantId: z.string().min(1, "participantId is required")
+});
+
 export class HttpError extends Error {
   statusCode: number;
 
