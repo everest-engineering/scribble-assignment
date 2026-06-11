@@ -35,11 +35,11 @@ No setup tasks required. Existing project structure already established.
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T001 [P] Extend Room status enum to include `"round_end"` and `"game_over"` in `backend/src/models/game.ts`; remove `"finished"` (replace with `"round_end"`)
-- [ ] T002 [P] Add `RoundResult` and `FinalStanding` TypeScript interfaces in `backend/src/models/game.ts`
-- [ ] T003 [P] Add `roundCounter`, `maxRounds`, `currentDrawerIndex`, `wordIndex` fields to Room model in `backend/src/models/game.ts`
-- [ ] T004 Add Zod schemas for return-to-lobby, start-round, and leave request bodies in `backend/src/api/schemas.ts`
-- [ ] T005 Update room snapshot to include new fields (`roundCounter`, `maxRounds`, `roundResult`, `finalStandings`) in `backend/src/api/rooms.ts`; update status type references from `"finished"` to `"round_end"` / `"game_over"`
+- [x] T001 [P] Extend Room status enum to include `"round_end"` and `"game_over"` in `backend/src/models/game.ts`; remove `"finished"` (replace with `"round_end"`)
+- [x] T002 [P] Add `RoundResult` and `FinalStanding` TypeScript interfaces in `backend/src/models/game.ts`
+- [x] T003 [P] Add `roundCounter`, `maxRounds`, `currentDrawerIndex`, `wordIndex` fields to Room model in `backend/src/models/game.ts`
+- [x] T004 Add Zod schemas for return-to-lobby, start-round, and leave request bodies in `backend/src/api/schemas.ts`
+- [x] T005 Update room snapshot to include new fields (`roundCounter`, `maxRounds`, `roundResult`, `finalStandings`) in `backend/src/api/rooms.ts`; update status type references from `"finished"` to `"round_end"` / `"game_over"`
 
 **Checkpoint**: Foundation ready — user story implementation can now begin
 
@@ -53,10 +53,10 @@ No setup tasks required. Existing project structure already established.
 
 ### Implementation for User Story 1
 
-- [ ] T006 [US1] Implement round-end logic in `backend/src/services/roomStore.ts`: on round end, compute `RoundResult`, set `status = "round_end"`, include `roundResult` in next snapshot
-- [ ] T007 [US1] Adapt `ResultPanel.tsx` in `frontend/src/components/ResultPanel.tsx` to display `roundResult` data (secret word, scores, correct guessers, endedEarly indicator, allCorrect indicator)
-- [ ] T008 [US1] Update `GamePage.tsx` in `frontend/src/pages/GamePage.tsx` to handle `status === "round_end"` by rendering `ResultPanel` instead of the game screen
-- [ ] T009 [US1] Update `roomStore.ts` in `frontend/src/state/roomStore.ts` to capture and expose `roundResult` from the room snapshot
+- [x] T006 [US1] Implement round-end logic in `backend/src/services/roomStore.ts`: on round end, compute `RoundResult`, set `status = "round_end"`, include `roundResult` in next snapshot
+- [x] T007 [US1] Adapt `ResultPanel.tsx` in `frontend/src/components/ResultPanel.tsx` to display `roundResult` data (secret word, scores, correct guessers, endedEarly indicator, allCorrect indicator)
+- [x] T008 [US1] Update `GamePage.tsx` in `frontend/src/pages/GamePage.tsx` to handle `status === "round_end"` by rendering `ResultPanel` instead of the game screen
+- [x] T009 [US1] Update `roomStore.ts` in `frontend/src/state/roomStore.ts` to capture and expose `roundResult` from the room snapshot
 
 **Checkpoint**: After a round ends, all participants see a results screen within 2 seconds
 
@@ -70,12 +70,12 @@ No setup tasks required. Existing project structure already established.
 
 ### Implementation for User Story 2
 
-- [ ] T010 [P] [US2] Implement `return-to-lobby` route in `backend/src/api/router.ts` — `POST /rooms/:code/return-to-lobby`
-- [ ] T011 [P] [US2] Implement `returnToLobby` logic in `backend/src/services/roomStore.ts`: validate host, validate `round_end` state, transition to `lobby`, validate `roundCounter < maxRounds`
-- [ ] T012 [P] [US2] Add `returnToLobby` API function in `frontend/src/services/api.ts`
-- [ ] T013 [US2] Add "Back to Lobby" button to `ResultPanel.tsx` in `frontend/src/components/ResultPanel.tsx` — visible only for host
-- [ ] T014 [US2] Add waiting message in `ResultPanel.tsx` for non-host participants ("Waiting for host to return to lobby...")
-- [ ] T015 [US2] Update `roomStore.ts` in `frontend/src/state/roomStore.ts` to handle transition from `round_end` to `lobby` on poll
+- [x] T010 [P] [US2] Implement `return-to-lobby` route in `backend/src/api/router.ts` — `POST /rooms/:code/return-to-lobby`
+- [x] T011 [P] [US2] Implement `returnToLobby` logic in `backend/src/services/roomStore.ts`: validate host, validate `round_end` state, transition to `lobby`, validate `roundCounter < maxRounds`
+- [x] T012 [P] [US2] Add `returnToLobby` API function in `frontend/src/services/api.ts`
+- [x] T013 [US2] Add "Back to Lobby" button to `ResultPanel.tsx` in `frontend/src/components/ResultPanel.tsx` — visible only for host
+- [x] T014 [US2] Add waiting message in `ResultPanel.tsx` for non-host participants ("Waiting for host to return to lobby...")
+- [x] T015 [US2] Update `roomStore.ts` in `frontend/src/state/roomStore.ts` to handle transition from `round_end` to `lobby` on poll
 
 **Checkpoint**: Host can return all participants to lobby with a single click
 
@@ -89,15 +89,15 @@ No setup tasks required. Existing project structure already established.
 
 ### Implementation for User Story 3
 
-- [ ] T016 [P] [US3] Implement `start-round` route in `backend/src/api/router.ts` — `POST /rooms/:code/start-round`
-- [ ] T017 [P] [US3] Implement drawer rotation logic in `backend/src/services/roomStore.ts`: `nextIndex = (currentDrawerIndex + 1) % participants.length`, assign drawer role, update `currentDrawerIndex`
-- [ ] T018 [P] [US3] Implement word selection logic in `backend/src/services/roomStore.ts`: advance `wordIndex` through starter word list, skip if matches previous word, assign secret word
-- [ ] T019 [US3] Implement per-round state reset in `backend/src/services/roomStore.ts`: clear `guessLog`, clear canvas state, reset `roundEnded` to `false`, increment `roundCounter`, set `status = "playing"`
-- [ ] T020 [US3] Validate round limit in `start-round` logic: reject if `roundCounter >= maxRounds` or `participants.length < 2`
-- [ ] T021 [P] [US3] Add `startNewRound` API function in `frontend/src/services/api.ts`
-- [ ] T022 [US3] Add "Start New Round" button to `Lobby.tsx` in `frontend/src/components/Lobby.tsx` — visible only for host, disabled when `roundCounter >= maxRounds`
-- [ ] T023 [US3] Add "Game Complete" message in `Lobby.tsx` when `roundCounter >= maxRounds` — "Start New Round" not available
-- [ ] T024 [US3] Update `roomStore.ts` in `frontend/src/state/roomStore.ts` to handle transition from `lobby` to `playing` on poll, reset frontend canvas state
+- [x] T016 [P] [US3] Implement `start-round` route in `backend/src/api/router.ts` — `POST /rooms/:code/start-round`
+- [x] T017 [P] [US3] Implement drawer rotation logic in `backend/src/services/roomStore.ts`: `nextIndex = (currentDrawerIndex + 1) % participants.length`, assign drawer role, update `currentDrawerIndex`
+- [x] T018 [P] [US3] Implement word selection logic in `backend/src/services/roomStore.ts`: advance `wordIndex` through starter word list, skip if matches previous word, assign secret word
+- [x] T019 [US3] Implement per-round state reset in `backend/src/services/roomStore.ts`: clear `guessLog`, clear canvas state, reset `roundEnded` to `false`, increment `roundCounter`, set `status = "playing"`
+- [x] T020 [US3] Validate round limit in `start-round` logic: reject if `roundCounter >= maxRounds` or `participants.length < 2`
+- [x] T021 [P] [US3] Add `startNewRound` API function in `frontend/src/services/api.ts`
+- [x] T022 [US3] Add "Start New Round" button to `Lobby.tsx` in `frontend/src/components/Lobby.tsx` — visible only for host, disabled when `roundCounter >= maxRounds`
+- [x] T023 [US3] Add "Game Complete" message in `Lobby.tsx` when `roundCounter >= maxRounds` — "Start New Round" not available
+- [x] T024 [US3] Update `roomStore.ts` in `frontend/src/state/roomStore.ts` to handle transition from `lobby` to `playing` on poll, reset frontend canvas state
 
 **Checkpoint**: New rounds can be started from lobby with correct drawer, word, and cumulative scores
 
@@ -111,12 +111,12 @@ No setup tasks required. Existing project structure already established.
 
 ### Implementation for User Story 5
 
-- [ ] T025 [US5] Implement final round detection in `backend/src/services/roomStore.ts`: when round ends and `roundCounter >= maxRounds`, set `status = "game_over"` and compute `finalStandings` from cumulative scores (sorted descending, ties broken by join order)
-- [ ] T026 [US5] Add `finalStandings` to room snapshot in `backend/src/api/rooms.ts` — included when `status === "game_over"`
-- [ ] T027 [P] [US5] Create `FinalStandings.tsx` component in `frontend/src/components/FinalStandings.tsx` — displays ranked scores with winner highlighted
-- [ ] T028 [P] [US5] Add `LeaveButton.tsx` component in `frontend/src/components/LeaveButton.tsx` — visible on final standings screen for all participants
-- [ ] T029 [US5] Update `GamePage.tsx` in `frontend/src/pages/GamePage.tsx` to render `FinalStandings` when `status === "game_over"`; hide "Back to Lobby" and "Start New Round" actions
-- [ ] T030 [US5] Update `roomStore.ts` in `frontend/src/state/roomStore.ts` to capture and expose `finalStandings` from the room snapshot
+- [x] T025 [US5] Implement final round detection in `backend/src/services/roomStore.ts`: when round ends and `roundCounter >= maxRounds`, set `status = "game_over"` and compute `finalStandings` from cumulative scores (sorted descending, ties broken by join order)
+- [x] T026 [US5] Add `finalStandings` to room snapshot in `backend/src/api/rooms.ts` — included when `status === "game_over"`
+- [x] T027 [P] [US5] Create `FinalStandings.tsx` component in `frontend/src/components/FinalStandings.tsx` — displays ranked scores with winner highlighted
+- [x] T028 [P] [US5] Add `LeaveButton.tsx` component in `frontend/src/components/LeaveButton.tsx` — visible on final standings screen for all participants
+- [x] T029 [US5] Update `GamePage.tsx` in `frontend/src/pages/GamePage.tsx` to render `FinalStandings` when `status === "game_over"`; hide "Back to Lobby" and "Start New Round" actions
+- [x] T030 [US5] Update `roomStore.ts` in `frontend/src/state/roomStore.ts` to capture and expose `finalStandings` from the room snapshot
 
 **Checkpoint**: After the final round, participants see ranked standings with winner
 
@@ -130,13 +130,13 @@ No setup tasks required. Existing project structure already established.
 
 ### Implementation for User Story 4
 
-- [ ] T031 [P] [US4] Implement `leave` route in `backend/src/api/router.ts` — `POST /rooms/:code/leave`
-- [ ] T032 [P] [US4] Implement host transfer logic in `backend/src/services/roomStore.ts`: on host leave, assign `hostId` to first remaining participant by join order; on non-host leave, simply remove participant
-- [ ] T033 [US4] Implement leave validation in `backend/src/services/roomStore.ts`: reject if `status === "playing"` and participant is drawer; reject if participant not found
-- [ ] T034 [US4] Add `leaveRoom` API function in `frontend/src/services/api.ts`
-- [ ] T035 [US4] Wire up `LeaveButton.tsx` in `frontend/src/components/LeaveButton.tsx` to call `leaveRoom` API and redirect user away from room
-- [ ] T036 [US4] Update `roomStore.ts` in `frontend/src/state/roomStore.ts` to handle participant list changes on poll
-- [ ] T037 [US4] Add host-transfer awareness in `roomStore.ts`: if `hostId` changes, frontend updates to show/hide host controls accordingly
+- [x] T031 [P] [US4] Implement `leave` route in `backend/src/api/router.ts` — `POST /rooms/:code/leave`
+- [x] T032 [P] [US4] Implement host transfer logic in `backend/src/services/roomStore.ts`: on host leave, assign `hostId` to first remaining participant by join order; on non-host leave, simply remove participant
+- [x] T033 [US4] Implement leave validation in `backend/src/services/roomStore.ts`: reject if `status === "playing"` and participant is drawer; reject if participant not found
+- [x] T034 [US4] Add `leaveRoom` API function in `frontend/src/services/api.ts`
+- [x] T035 [US4] Wire up `LeaveButton.tsx` in `frontend/src/components/LeaveButton.tsx` to call `leaveRoom` API and redirect user away from room
+- [x] T036 [US4] Update `roomStore.ts` in `frontend/src/state/roomStore.ts` to handle participant list changes on poll
+- [x] T037 [US4] Add host-transfer awareness in `roomStore.ts`: if `hostId` changes, frontend updates to show/hide host controls accordingly
 
 **Checkpoint**: Participants can leave cleanly; host transfers automatically
 
@@ -146,12 +146,12 @@ No setup tasks required. Existing project structure already established.
 
 **Purpose**: Improvements that affect multiple user stories
 
-- [ ] T038 [P] Add CSS styles for final-standings, leave-button, waiting-message in `frontend/src/styles/app.css`
-- [ ] T039 [P] Add backend unit tests for multi-round, drawer rotation, word cycling, host transfer, leave logic in `tests/backend/roomStore.test.ts`
-- [ ] T040 Add inline error handling on all host-action buttons (Back to Lobby, Start New Round) — show error message, preserve button for retry
-- [ ] T041 Update all `status === "finished"` checks in frontend to `status === "round_end"` or `status === "game_over"` as appropriate
-- [ ] T042 Verify round-end no longer sets `status = "finished"` in `roomStore.ts` — must set `status = "round_end"` or `"game_over"`
-- [ ] T043 Run quickstart.md validation scenarios 1-7
+- [x] T038 [P] Add CSS styles for final-standings, leave-button, waiting-message in `frontend/src/styles/app.css`
+- [x] T039 [P] Add backend unit tests for multi-round, drawer rotation, word cycling, host transfer, leave logic in `tests/backend/roomStore.test.ts`
+- [x] T040 Add inline error handling on all host-action buttons (Back to Lobby, Start New Round) — show error message, preserve button for retry
+- [x] T041 Update all `status === "finished"` checks in frontend to `status === "round_end"` or `status === "game_over"` as appropriate
+- [x] T042 Verify round-end no longer sets `status = "finished"` in `roomStore.ts` — must set `status = "round_end"` or `"game_over"`
+- [x] T043 Run quickstart.md validation scenarios 1-7
 
 **Checkpoint**: All features complete and validated
 

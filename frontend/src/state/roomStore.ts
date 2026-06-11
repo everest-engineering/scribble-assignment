@@ -233,6 +233,29 @@ class RoomStore {
     await api.endRound(this.state.room.code, this.state.participantId);
     await this.fetchRoom();
   }
+
+  async returnToLobby() {
+    if (!this.state.room || !this.state.participantId) {
+      return;
+    }
+
+    await this.withLoading(() =>
+      api.returnToLobby(this.state.room!.code, this.state.participantId!)
+    );
+    await this.fetchRoom();
+  }
+
+  async startNewRound() {
+    if (!this.state.room || !this.state.participantId) {
+      return null;
+    }
+
+    const response = await this.withLoading(() =>
+      api.startNewRound(this.state.room!.code, this.state.participantId!)
+    );
+    await this.fetchRoom();
+    return response;
+  }
 }
 
 const RoomStoreContext = createContext<RoomStore | null>(null);

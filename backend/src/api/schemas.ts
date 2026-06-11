@@ -49,6 +49,18 @@ export const endRoundSchema = z.object({
   participantId: z.string().min(1)
 });
 
+export const returnToLobbySchema = z.object({
+  participantId: z.string().min(1)
+});
+
+export const startRoundSchema = z.object({
+  participantId: z.string().min(1)
+});
+
+export const leaveRoomSchema = z.object({
+  participantId: z.string().min(1)
+});
+
 export class HttpError extends Error {
   statusCode: number;
 

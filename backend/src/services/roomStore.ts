@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import type { CanvasState, Guess, Participant, Room, RoomSnapshot } from "../models/game.js";
+import type { CanvasState, FinalStanding, Guess, Participant, Room, RoomSnapshot, RoundResult } from "../models/game.js";
 import { STARTER_ROLES, STARTER_WORDS } from "../seed/starterData.js";
 
 export const MAX_PARTICIPANTS = 8;
@@ -58,6 +58,10 @@ export function createRoom(playerName: string) {
     scores: {},
     guessLog: [],
     roundEnded: false,
+    roundCounter: 0,
+    maxRounds: 0,
+    currentDrawerIndex: 0,
+    wordIndex: 0,
     createdAt: now(),
     updatedAt: now()
   };
@@ -127,14 +131,18 @@ export function startRoom(code: string, participantId: string) {
   }
 
   room.status = "playing";
+  room.roundCounter = 1;
+  room.maxRounds = room.participants.length;
+  room.roundEnded = false;
 
   const hostDrawerIndex = room.participants.findIndex((p) => p.id === room.hostId);
+  room.currentDrawerIndex = hostDrawerIndex;
   room.participants.forEach((p, index) => {
     p.role = index === hostDrawerIndex ? "drawer" : "guesser";
   });
 
-  const wordIndex = room.code.split("").reduce((sum, c) => sum + c.charCodeAt(0), 0) % STARTER_WORDS.length;
-  room.secretWord = STARTER_WORDS[wordIndex];
+  room.wordIndex = room.code.split("").reduce((sum, c) => sum + c.charCodeAt(0), 0) % STARTER_WORDS.length;
+  room.secretWord = STARTER_WORDS[room.wordIndex];
   room.updatedAt = now();
   rooms.set(room.code, cloneRoom(room));
 
@@ -145,32 +153,41 @@ export function leaveRoom(code: string, participantId: string) {
   const room = rooms.get(code.toUpperCase());
 
   if (!room) {
-    return false;
+    return null;
   }
 
   const index = room.participants.findIndex((p) => p.id === participantId);
 
   if (index === -1) {
-    return false;
+    return null;
+  }
+
+  if (room.status === "playing") {
+    const participant = room.participants[index];
+    if (participant.role === "drawer") {
+      return false;
+    }
   }
 
   room.participants.splice(index, 1);
 
   if (room.participants.length === 0) {
     rooms.delete(room.code);
-    return true;
+    return { hostTransferred: false, newHostId: null };
   }
 
+  let hostTransferred = false;
   if (room.hostId === participantId) {
     room.hostId = room.participants.reduce((earliest, p) =>
       p.joinedAt < earliest.joinedAt ? p : earliest
     ).id;
+    hostTransferred = true;
   }
 
   room.updatedAt = now();
   rooms.set(room.code, cloneRoom(room));
 
-  return true;
+  return { hostTransferred, newHostId: room.hostId };
 }
 
 export function appendStroke(roomCode: string, participantId: string, stroke: { color: string; points: { x: number; y: number }[] }) {
@@ -261,6 +278,55 @@ export function submitGuess(roomCode: string, participantId: string, text: strin
   return { correct: isCorrect, points: isCorrect ? 100 : 0, alreadyGuessed: false };
 }
 
+function computeRoundResult(room: Room): RoundResult {
+  const guesserCount = room.participants.filter((p) => p.role === "guesser").length;
+  const correctGuesserIds = new Set(
+    room.guessLog.filter((g) => g.correct).map((g) => g.participantId)
+  );
+
+  const correctGuessers = Array.from(correctGuesserIds);
+  const allCorrect = guesserCount > 0 && correctGuesserIds.size >= guesserCount;
+
+  const roundScores: Record<string, number> = {};
+  for (const p of room.participants) {
+    roundScores[p.id] = correctGuesserIds.has(p.id) ? 100 : 0;
+  }
+
+  const drawer = room.participants.find((p) => p.role === "drawer");
+  if (drawer) {
+    const drawerPoints = (guesserCount - correctGuesserIds.size) * 100;
+    roundScores[drawer.id] = drawerPoints;
+  }
+
+  return {
+    secretWord: room.secretWord ?? "",
+    scores: { ...room.scores },
+    roundScores,
+    correctGuessers,
+    allCorrect,
+    endedEarly: allCorrect ? false : true,
+    roundNumber: room.roundCounter
+  };
+}
+
+function computeFinalStandings(room: Room): FinalStanding[] {
+  const sorted = room.participants
+    .map((p) => ({
+      participantId: p.id,
+      name: p.name,
+      score: room.scores[p.id] ?? 0,
+      joinedAt: p.joinedAt
+    }))
+    .sort((a, b) => b.score - a.score || a.joinedAt.localeCompare(b.joinedAt));
+
+  return sorted.map((entry, index) => ({
+    participantId: entry.participantId,
+    name: entry.name,
+    score: entry.score,
+    rank: index + 1
+  }));
+}
+
 export function endRound(roomCode: string, requesterId?: string) {
   const code = roomCode.toUpperCase();
   const room = rooms.get(code);
@@ -280,12 +346,73 @@ export function endRound(roomCode: string, requesterId?: string) {
   }
 
   room.roundEnded = true;
-  room.status = "finished";
+  room.roundResult = computeRoundResult(room);
   canvasStore.delete(code);
+
+  if (room.roundCounter >= room.maxRounds) {
+    room.status = "game_over";
+    room.finalStandings = computeFinalStandings(room);
+  } else {
+    room.status = "round_end";
+  }
+
   room.updatedAt = now();
   rooms.set(code, cloneRoom(room));
 
   return getRoom(code);
+}
+
+export function returnToLobby(code: string, participantId: string) {
+  const room = rooms.get(code.toUpperCase());
+  if (!room) return null;
+
+  if (room.hostId !== participantId) return null;
+  if (room.status !== "round_end") return null;
+  if (room.roundCounter >= room.maxRounds) return null;
+
+  room.status = "lobby";
+  room.participants.forEach((p) => {
+    p.role = undefined;
+  });
+  room.secretWord = undefined;
+  room.guessLog = [];
+  room.roundEnded = false;
+  room.roundResult = undefined;
+  room.updatedAt = now();
+  rooms.set(room.code, cloneRoom(room));
+
+  return getRoom(room.code);
+}
+
+export function startNewRound(code: string, participantId: string) {
+  const room = rooms.get(code.toUpperCase());
+  if (!room) return null;
+
+  if (room.hostId !== participantId) return null;
+  if (room.status !== "lobby") return null;
+  if (room.roundCounter >= room.maxRounds) return null;
+  if (room.participants.length < 2) return null;
+
+  room.roundCounter += 1;
+  room.roundEnded = false;
+  room.roundResult = undefined;
+  room.guessLog = [];
+
+  const nextDrawerIndex = (room.currentDrawerIndex + 1) % room.participants.length;
+  room.currentDrawerIndex = nextDrawerIndex;
+  room.participants.forEach((p, index) => {
+    p.role = index === nextDrawerIndex ? "drawer" : "guesser";
+  });
+
+  const nextWordIndex = (room.wordIndex + 1) % STARTER_WORDS.length;
+  room.wordIndex = nextWordIndex;
+  room.secretWord = STARTER_WORDS[nextWordIndex];
+
+  room.status = "playing";
+  room.updatedAt = now();
+  rooms.set(room.code, cloneRoom(room));
+
+  return getRoom(room.code);
 }
 
 export function getCanvasState(roomCode: string) {
@@ -306,7 +433,9 @@ export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSn
     participants,
     hostId: room.hostId,
     availableWords: listWords(),
-    roles: [...STARTER_ROLES]
+    roles: [...STARTER_ROLES],
+    roundCounter: room.roundCounter,
+    maxRounds: room.maxRounds
   };
 
   if (room.status === "playing" && viewerParticipantId) {
@@ -316,7 +445,7 @@ export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSn
     }
   }
 
-  if (room.status === "playing" || room.status === "finished") {
+  if (room.status === "playing" || room.status === "round_end" || room.status === "game_over") {
     snapshot.guessLog = room.guessLog;
     snapshot.scores = { ...room.scores };
 
@@ -324,6 +453,16 @@ export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSn
       snapshot.secretWord = room.secretWord;
       snapshot.roundEnded = true;
     }
+  }
+
+  if (room.status === "round_end" && room.roundResult) {
+    snapshot.roundResult = room.roundResult;
+  }
+
+  if (room.status === "game_over" && room.finalStandings) {
+    snapshot.finalStandings = room.finalStandings;
+    snapshot.roundResult = room.roundResult;
+    snapshot.secretWord = room.secretWord;
   }
 
   return snapshot;

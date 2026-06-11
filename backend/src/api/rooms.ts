@@ -7,9 +7,12 @@ import {
   guessSchema,
   HttpError,
   joinRoomSchema,
+  leaveRoomSchema,
   roomCodeParamsSchema,
   roomViewerQuerySchema,
-  startGameParamsSchema
+  returnToLobbySchema,
+  startGameParamsSchema,
+  startRoundSchema
 } from "./schemas.js";
 import {
   appendStroke,
@@ -20,6 +23,8 @@ import {
   getRoom,
   joinRoom,
   leaveRoom,
+  returnToLobby,
+  startNewRound,
   startRoom,
   submitGuess,
   toRoomSnapshot
@@ -211,18 +216,56 @@ export function createRoomsRouter() {
     }
   });
 
+  router.post("/:code/return-to-lobby", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId } = returnToLobbySchema.parse(request.body);
+      const room = returnToLobby(code.toUpperCase(), participantId);
+
+      if (!room) {
+        const existing = getRoom(code.toUpperCase());
+        if (!existing) throw new HttpError(404, "Room not found");
+        if (existing.hostId !== participantId) throw new HttpError(403, "Only the host can return to lobby");
+        if (existing.status !== "round_end") throw new HttpError(409, "Room is not in round_end state");
+        if (existing.roundCounter >= existing.maxRounds) throw new HttpError(409, "Game is already complete");
+        throw new HttpError(400, "Cannot return to lobby");
+      }
+
+      response.json({ transitioned: true, status: "lobby" });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/:code/start-round", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId } = startRoundSchema.parse(request.body);
+      const room = startNewRound(code.toUpperCase(), participantId);
+
+      if (!room) {
+        const existing = getRoom(code.toUpperCase());
+        if (!existing) throw new HttpError(404, "Room not found");
+        if (existing.hostId !== participantId) throw new HttpError(403, "Only the host can start a new round");
+        if (existing.status !== "lobby") throw new HttpError(409, "Room is not in lobby state");
+        if (existing.roundCounter >= existing.maxRounds) throw new HttpError(409, "All rounds completed");
+        if (existing.participants.length < 2) throw new HttpError(409, "Need at least 2 players");
+        throw new HttpError(400, "Cannot start new round");
+      }
+
+      response.json({ started: true, roundNumber: room.roundCounter, maxRounds: room.maxRounds });
+    } catch (error) {
+      next(error);
+    }
+  });
+
   router.post("/:code/leave", (request, response, next) => {
     try {
       const { code } = roomCodeParamsSchema.parse(request.params);
-      const { participantId } = request.body as { participantId?: string };
+      const { participantId } = leaveRoomSchema.parse(request.body);
+      const result = leaveRoom(code.toUpperCase(), participantId);
 
-      if (!participantId) {
-        throw new HttpError(400, "participantId is required");
-      }
-
-      const success = leaveRoom(code.toUpperCase(), participantId);
-
-      if (!success) {
+      if (result === null) {
         const room = getRoom(code.toUpperCase());
         if (!room) {
           throw new HttpError(404, "Room not found");
@@ -230,7 +273,11 @@ export function createRoomsRouter() {
         throw new HttpError(404, "Participant not found in room");
       }
 
-      response.json({ success: true });
+      if (result === false) {
+        throw new HttpError(409, "Drawer cannot leave mid-round");
+      }
+
+      response.json({ left: true, hostTransferred: result.hostTransferred, newHostId: result.newHostId });
     } catch (error) {
       next(error);
     }

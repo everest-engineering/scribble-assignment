@@ -1,5 +1,5 @@
 export type ParticipantRole = "drawer" | "guesser";
-export type RoomStatus = "lobby" | "playing" | "finished";
+export type RoomStatus = "lobby" | "playing" | "round_end" | "game_over";
 
 export interface Participant {
   id: string;
@@ -15,6 +15,23 @@ export interface Guess {
   timestamp: string;
 }
 
+export interface RoundResult {
+  secretWord: string;
+  scores: Record<string, number>;
+  roundScores: Record<string, number>;
+  correctGuessers: string[];
+  allCorrect: boolean;
+  endedEarly: boolean;
+  roundNumber: number;
+}
+
+export interface FinalStanding {
+  participantId: string;
+  name: string;
+  score: number;
+  rank: number;
+}
+
 export interface RoomSnapshot {
   code: string;
   status: RoomStatus;
@@ -26,6 +43,10 @@ export interface RoomSnapshot {
   scores?: Record<string, number>;
   guessLog?: Guess[];
   roundEnded?: boolean;
+  roundCounter?: number;
+  maxRounds?: number;
+  roundResult?: RoundResult;
+  finalStandings?: FinalStanding[];
 }
 
 export interface RoomSessionResponse {
@@ -90,7 +111,7 @@ export const api = {
     });
   },
   leaveRoom(code: string, participantId: string) {
-    return request<{ success: boolean }>(`/rooms/${encodeURIComponent(code)}/leave`, {
+    return request<{ left: boolean; hostTransferred: boolean; newHostId: string | null }>(`/rooms/${encodeURIComponent(code)}/leave`, {
       method: "POST",
       body: JSON.stringify({ participantId })
     });
@@ -122,5 +143,17 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ participantId })
     });
-  }
+  },
+  returnToLobby(code: string, participantId: string) {
+    return request<{ transitioned: boolean; status: string }>(`/rooms/${encodeURIComponent(code)}/return-to-lobby`, {
+      method: "POST",
+      body: JSON.stringify({ participantId })
+    });
+  },
+  startNewRound(code: string, participantId: string) {
+    return request<{ started: boolean; roundNumber: number; maxRounds: number }>(`/rooms/${encodeURIComponent(code)}/start-round`, {
+      method: "POST",
+      body: JSON.stringify({ participantId })
+    });
+  },
 };

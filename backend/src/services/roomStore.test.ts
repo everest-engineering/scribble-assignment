@@ -8,6 +8,8 @@ import {
   getRoom,
   joinRoom,
   leaveRoom,
+  returnToLobby,
+  startNewRound,
   startRoom,
   submitGuess,
   toRoomSnapshot
@@ -247,7 +249,7 @@ describe("roomStore", () => {
       const freshRoom = getRoom(room1.code)!;
       const snapshot = toRoomSnapshot(freshRoom, bobId);
       expect(snapshot.roundEnded).toBe(true);
-      expect(snapshot.status).toBe("finished");
+      expect(snapshot.status).toBe("round_end");
     });
 
     it("awards drawer 100 pts per guesser who did not guess correctly on endRound", () => {
@@ -290,7 +292,7 @@ describe("roomStore", () => {
       const result = endRound(room.code, hostId);
 
       expect(result).not.toBeNull();
-      expect(result!.status).toBe("finished");
+      expect(result!.status).toBe("round_end");
       expect(result!.roundEnded).toBe(true);
     });
 
@@ -395,6 +397,169 @@ describe("roomStore", () => {
       expect(started!.status).toBe("playing");
       const newHost = started!.participants.find((p) => p.id === bobId);
       expect(newHost?.role).toBe("drawer");
+    });
+  });
+
+  describe("returnToLobby", () => {
+    it("returns null for non-existent room", () => {
+      const result = returnToLobby("ZZZZ", "any-id");
+      expect(result).toBeNull();
+    });
+
+    it("returns null if requester is not host", () => {
+      const { room, hostId, bobId } = setupGame();
+      endRound(room.code, hostId);
+      const result = returnToLobby(room.code, bobId);
+      expect(result).toBeNull();
+    });
+
+    it("returns null if room is not in round_end status", () => {
+      const { room, hostId } = setupGame();
+      const result = returnToLobby(room.code, hostId);
+      expect(result).toBeNull();
+    });
+
+    it("transitions room back to lobby when host returns", () => {
+      const { room, hostId } = setupGame();
+      endRound(room.code, hostId);
+      const result = returnToLobby(room.code, hostId);
+      expect(result).not.toBeNull();
+      expect(result!.status).toBe("lobby");
+      expect(result!.roundEnded).toBe(false);
+    });
+  });
+
+  describe("startNewRound", () => {
+    it("returns null for non-existent room", () => {
+      const result = startNewRound("ZZZZ", "any-id");
+      expect(result).toBeNull();
+    });
+
+    it("returns null if requester is not host", () => {
+      const { room, hostId, bobId } = setupGame();
+      endRound(room.code, hostId);
+      returnToLobby(room.code, hostId);
+      const result = startNewRound(room.code, bobId);
+      expect(result).toBeNull();
+    });
+
+    it("returns null if room is not in lobby status", () => {
+      const { room, hostId } = setupGame();
+      const result = startNewRound(room.code, hostId);
+      expect(result).toBeNull();
+    });
+
+    it("starts a new round with incremented roundCounter", () => {
+      const { room, hostId } = setupGame();
+      endRound(room.code, hostId);
+      returnToLobby(room.code, hostId);
+      const result = startNewRound(room.code, hostId);
+      expect(result).not.toBeNull();
+      expect(result!.status).toBe("playing");
+      expect(result!.roundCounter).toBe(2);
+    });
+
+    it("rotates drawer to next participant", () => {
+      const { room: room1, participantId: hostId } = createRoom("Alice");
+      const bobId = joinRoom(room1.code, "Bob")!.participantId;
+      joinRoom(room1.code, "Charlie");
+      const started = startRoom(room1.code, hostId)!;
+      const firstDrawer = started.participants.find((p) => p.role === "drawer")!.id;
+
+      endRound(room1.code, hostId);
+      returnToLobby(room1.code, hostId);
+      const result = startNewRound(room1.code, hostId)!;
+      const secondDrawer = result.participants.find((p) => p.role === "drawer")!.id;
+      expect(secondDrawer).not.toBe(firstDrawer);
+      expect(secondDrawer).toBe(bobId);
+    });
+
+    it("resets round-specific state", () => {
+      const { room, hostId } = setupGame();
+      endRound(room.code, hostId);
+      returnToLobby(room.code, hostId);
+      const result = startNewRound(room.code, hostId);
+      expect(result!.guessLog).toHaveLength(0);
+      expect(result!.roundEnded).toBe(false);
+    });
+
+    it("does not reset cumulative scores", () => {
+      const { room: room1, participantId: hostId } = createRoom("Alice");
+      const bobId = joinRoom(room1.code, "Bob")!.participantId;
+      joinRoom(room1.code, "Charlie");
+      const started = startRoom(room1.code, hostId)!;
+      submitGuess(room1.code, bobId, started.secretWord!);
+      const snapshot1 = toRoomSnapshot(getRoom(room1.code)!, bobId);
+      const bobScore = snapshot1.scores![bobId];
+
+      endRound(room1.code, hostId);
+      returnToLobby(room1.code, hostId);
+      const result = startNewRound(room1.code, hostId)!;
+      expect(result.scores[bobId]).toBe(bobScore);
+    });
+  });
+
+  describe("leave validation", () => {
+    it("rejects leave when drawer tries to leave mid-round", () => {
+      const { room, hostId } = setupGame();
+      const result = leaveRoom(room.code, hostId);
+      expect(result).toBe(false);
+    });
+
+    it("allows guesser to leave mid-round", () => {
+      const { room, bobId } = setupGame();
+      const result = leaveRoom(room.code, bobId);
+      expect(result).not.toBeNull();
+      expect(result).not.toBe(false);
+    });
+
+    it("returns null for non-existent participant", () => {
+      const { room } = setupGame();
+      const result = leaveRoom(room.code, "non-existent-id");
+      expect(result).toBeNull();
+    });
+  });
+
+  describe("multi-round flow", () => {
+    it("transitions to game_over after final round ends", () => {
+      const { room: room1, participantId: hostId } = createRoom("Alice");
+      joinRoom(room1.code, "Bob");
+      const started = startRoom(room1.code, hostId)!;
+      expect(started.maxRounds).toBe(2);
+
+      endRound(room1.code, hostId);
+      returnToLobby(room1.code, hostId);
+      startNewRound(room1.code, hostId);
+
+      endRound(room1.code, hostId);
+      const snapshot = toRoomSnapshot(getRoom(room1.code)!, hostId);
+      expect(snapshot.status).toBe("game_over");
+    });
+
+    it("includes finalStandings in snapshot at game_over", () => {
+      const { room: room1, participantId: hostId } = createRoom("Alice");
+      joinRoom(room1.code, "Bob");
+      startRoom(room1.code, hostId)!;
+
+      endRound(room1.code, hostId);
+      returnToLobby(room1.code, hostId);
+      startNewRound(room1.code, hostId);
+      endRound(room1.code, hostId);
+
+      const snapshot = toRoomSnapshot(getRoom(room1.code)!, hostId);
+      expect(snapshot.finalStandings).toBeDefined();
+      expect(snapshot.finalStandings!.length).toBe(2);
+      expect(snapshot.finalStandings![0].rank).toBe(1);
+    });
+
+    it("computes maxRounds based on participant count at first round start", () => {
+      const { room: room1, participantId: hostId } = createRoom("Alice");
+      joinRoom(room1.code, "Bob");
+      joinRoom(room1.code, "Charlie");
+      joinRoom(room1.code, "Diana");
+
+      const started = startRoom(room1.code, hostId)!;
+      expect(started.maxRounds).toBe(4);
     });
   });
 });
