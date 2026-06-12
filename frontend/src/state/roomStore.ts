@@ -98,6 +98,55 @@ class RoomStore {
     this.setRoomSnapshot(response.room);
     return response.room;
   }
+
+  async startGame() {
+    const room = this.state.room;
+
+    if (!room) {
+      throw new Error("No active room");
+    }
+
+    const response = await this.withLoading(() => api.startGame(room.code, this.state.participantId ?? undefined));
+    this.setRoomSnapshot(response.room);
+    return response.room;
+  }
+
+  async submitGuess(guess: string) {
+    const room = this.state.room;
+
+    if (!room) {
+      throw new Error("No active room");
+    }
+
+    const response = await api.submitGuess(room.code, guess, this.state.participantId ?? undefined);
+    this.setRoomSnapshot(response.room);
+    return response.room;
+  }
+
+  async submitCanvasState(canvasState: string) {
+    const room = this.state.room;
+
+    if (!room) {
+      throw new Error("No active room");
+    }
+
+    const response = await api.submitCanvasState(room.code, canvasState, this.state.participantId ?? undefined);
+    this.setRoomSnapshot(response.room);
+    return response.room;
+  }
+
+  async restartRoom() {
+    const room = this.state.room;
+    const participantId = this.state.participantId;
+
+    if (!room || !participantId) {
+      throw new Error("No active room");
+    }
+
+    const response = await this.withLoading(() => api.restartRoom(room.code, participantId));
+    this.setRoomSnapshot(response.room);
+    return response.room;
+  }
 }
 
 const RoomStoreContext = createContext<RoomStore | null>(null);

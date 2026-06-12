@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { PageHeader } from "../components/PageHeader";
 import { useRoomStore } from "../state/roomStore";
 
+const ROOM_CODE_PATTERN = /^[ABCDEFGHJKLMNPQRSTUVWXYZ23456789]{4}$/;
+
 export function JoinRoomPage() {
   const [playerName, setPlayerName] = useState("");
   const [roomCode, setRoomCode] = useState("");
@@ -13,9 +15,27 @@ export function JoinRoomPage() {
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
+    const normalizedCode = roomCode.trim().toUpperCase();
+    const trimmedName = playerName.trim();
+
+    if (!trimmedName) {
+      setError("Please enter a player name.");
+      return;
+    }
+
+    if (!normalizedCode) {
+      setError("Please enter a room code.");
+      return;
+    }
+
+    if (!ROOM_CODE_PATTERN.test(normalizedCode)) {
+      setError("Please enter a valid 4-character room code using letters A-H, J-N, P-Z and digits 2-9.");
+      return;
+    }
+
     try {
       setError(null);
-      await roomStore.joinRoom(roomCode.toUpperCase(), playerName);
+      await roomStore.joinRoom(normalizedCode, trimmedName);
       navigate("/lobby");
     } catch (caughtError) {
       setError(caughtError instanceof Error ? caughtError.message : "Unable to join room");

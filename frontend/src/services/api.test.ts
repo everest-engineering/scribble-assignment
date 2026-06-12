@@ -12,7 +12,15 @@ describe("api service", () => {
       json: () =>
         Promise.resolve({
           participantId: "p1",
-          room: { code: "ABCD", status: "lobby", participants: [] },
+          room: {
+            code: "ABCD",
+            status: "lobby",
+            hostId: "p1",
+            isHost: true,
+            participants: [],
+            availableWords: [],
+            roles: []
+          },
         }),
     };
     vi.mocked(fetch).mockResolvedValue(mockResponse as unknown as Response);
@@ -43,6 +51,45 @@ describe("api service", () => {
     expect(fetch).toHaveBeenCalledWith(
       expect.stringContaining("/rooms/XYZW?participantId=p1"),
       expect.anything()
+    );
+  });
+
+  it("startGame sends POST to /rooms/:code/start with optional participantId query", async () => {
+    const mockResponse = {
+      ok: true,
+      json: () =>
+        Promise.resolve({
+          room: { code: "ABCD", status: "playing", participants: [] },
+        }),
+    };
+    vi.mocked(fetch).mockResolvedValue(mockResponse as unknown as Response);
+
+    await api.startGame("ABCD", "p1");
+
+    expect(fetch).toHaveBeenCalledWith(
+      expect.stringContaining("/rooms/ABCD/start?participantId=p1"),
+      expect.objectContaining({ method: "POST" })
+    );
+  });
+
+  it("restartRoom sends POST to /rooms/:code/restart with participantId in body", async () => {
+    const mockResponse = {
+      ok: true,
+      json: () =>
+        Promise.resolve({
+          room: { code: "ABCD", status: "waiting", participants: [] },
+        }),
+    };
+    vi.mocked(fetch).mockResolvedValue(mockResponse as unknown as Response);
+
+    await api.restartRoom("ABCD", "p1");
+
+    expect(fetch).toHaveBeenCalledWith(
+      expect.stringContaining("/rooms/ABCD/restart"),
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({ participantId: "p1" }),
+      })
     );
   });
 });
