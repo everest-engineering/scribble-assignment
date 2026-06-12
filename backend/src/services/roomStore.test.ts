@@ -11,9 +11,9 @@ describe("roomStore", () => {
     expect(result.participantId).toBeDefined();
   });
 
-  it("joinRoom returns null for an unknown room code", () => {
+  it("joinRoom returns an error for an unknown room code", () => {
     const result = joinRoom("ZZZZ", "Bob");
 
-    expect(result).toBeNull();
+    expect(result).toEqual({ error: "not_found" });
   });
 });

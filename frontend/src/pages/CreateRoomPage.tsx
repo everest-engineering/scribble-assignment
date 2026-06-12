@@ -3,21 +3,47 @@ import { useNavigate } from "react-router-dom";
 import { PageHeader } from "../components/PageHeader";
 import { useRoomStore } from "../state/roomStore";
 
+function validateName(name: string): string | null {
+  const trimmed = name.trim();
+  if (!trimmed) {
+    return "Name is required";
+  }
+  if (trimmed.length > 30) {
+    return "Name must be 30 characters or less";
+  }
+  return null;
+}
+
 export function CreateRoomPage() {
   const [playerName, setPlayerName] = useState("");
-  const [error, setError] = useState<string | null>(null);
+  const [nameError, setNameError] = useState<string | null>(null);
+  const [serverError, setServerError] = useState<string | null>(null);
   const navigate = useNavigate();
   const roomStore = useRoomStore();
+
+  function handleNameChange(value: string) {
+    setPlayerName(value);
+    if (nameError) {
+      setNameError(null);
+    }
+  }
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
+    const validation = validateName(playerName);
+    setNameError(validation);
+
+    if (validation) {
+      return;
+    }
+
     try {
-      setError(null);
+      setServerError(null);
       await roomStore.createRoom(playerName);
       navigate("/lobby");
     } catch (caughtError) {
-      setError(caughtError instanceof Error ? caughtError.message : "Unable to create room");
+      setServerError(caughtError instanceof Error ? caughtError.message : "Unable to create room");
     }
   }
 
@@ -34,11 +60,12 @@ export function CreateRoomPage() {
           <input
             className="form__input"
             value={playerName}
-            onChange={(event) => setPlayerName(event.target.value)}
+            onChange={(event) => handleNameChange(event.target.value)}
             placeholder="Sketch captain"
           />
+          {nameError ? <p className="form__error form__error--inline">{nameError}</p> : null}
         </label>
-        {error ? <p className="form__error">{error}</p> : null}
+        {serverError ? <p className="form__error">{serverError}</p> : null}
         <div className="button-row">
           <button className="button button--primary" type="submit">
             Create and Continue

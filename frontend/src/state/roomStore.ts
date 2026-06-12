@@ -13,7 +13,9 @@ export interface RoomState {
   room: RoomSnapshot | null;
   participantId: string | null;
   error: string | null;
+  pollError: string | null;
   isLoading: boolean;
+  isPolling: boolean;
 }
 
 type Listener = () => void;
@@ -23,7 +25,9 @@ class RoomStore {
     room: null,
     participantId: null,
     error: null,
-    isLoading: false
+    pollError: null,
+    isLoading: false,
+    isPolling: false
   };
 
   private listeners = new Set<Listener>();
@@ -97,6 +101,79 @@ class RoomStore {
     const response = await api.fetchRoom(this.state.room.code, this.state.participantId ?? undefined);
     this.setRoomSnapshot(response.room);
     return response.room;
+  }
+
+  async pollRoom() {
+    if (!this.state.room) {
+      return;
+    }
+
+    this.setState({ isPolling: true });
+
+    try {
+      const response = await api.fetchRoom(this.state.room.code, this.state.participantId ?? undefined);
+      this.setRoomSnapshot(response.room);
+      this.setState({ pollError: null });
+    } catch {
+      this.setState({ pollError: "Connection issue..." });
+    } finally {
+      this.setState({ isPolling: false });
+    }
+  }
+
+  clearPolling() {
+    this.setState({ isPolling: false });
+  }
+
+  async startGame() {
+    if (!this.state.room || !this.state.participantId) {
+      return;
+    }
+
+    await this.withLoading(async () => {
+      const response = await api.startGame(this.state.room!.code, this.state.participantId!);
+      this.setRoomSnapshot(response.room);
+    });
+  }
+
+  async leaveRoom() {
+    if (!this.state.room || !this.state.participantId) {
+      return;
+    }
+
+    await this.withLoading(async () => {
+      await api.leaveRoom(this.state.room!.code, this.state.participantId!);
+      this.state = {
+        room: null,
+        participantId: null,
+        error: null,
+        pollError: null,
+        isLoading: false,
+        isPolling: false
+      };
+      this.listeners.forEach((listener) => listener());
+    });
+  }
+
+  async submitGuess(text: string) {
+    if (!this.state.room || !this.state.participantId) {
+      return;
+    }
+
+    const response = await api.submitGuess(this.state.room.code, this.state.participantId, text);
+    this.setRoomSnapshot(response.room);
+    return response;
+  }
+
+  async restartRoom() {
+    if (!this.state.room || !this.state.participantId) {
+      return;
+    }
+
+    await this.withLoading(async () => {
+      const response = await api.restartRoom(this.state.room!.code, this.state.participantId!);
+      this.setRoomSnapshot(response.room);
+    });
   }
 }
 

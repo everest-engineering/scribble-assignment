@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card } from "../components/Card";
 import { PageHeader } from "../components/PageHeader";
@@ -8,14 +8,42 @@ import { useRoomState, useRoomStore } from "../state/roomStore";
 export function LobbyPage() {
   const navigate = useNavigate();
   const roomStore = useRoomStore();
-  const { room, error, isLoading } = useRoomState();
+  const { room, participantId, error, pollError, isLoading, isPolling } = useRoomState();
   const [refreshError, setRefreshError] = useState<string | null>(null);
+  const [startError, setStartError] = useState<string | null>(null);
+  const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
     if (!room) {
       navigate("/", { replace: true });
+      return;
+    }
+
+    if (room.status === "playing") {
+      navigate("/game", { replace: true });
+    } else if (room.status === "finished") {
+      navigate("/", { replace: true });
     }
   }, [navigate, room]);
+
+  useEffect(() => {
+    if (!room) {
+      return;
+    }
+
+    const code = room.code;
+    pollingRef.current = setInterval(() => {
+      roomStore.pollRoom();
+    }, 2000);
+
+    return () => {
+      if (pollingRef.current) {
+        clearInterval(pollingRef.current);
+        pollingRef.current = null;
+      }
+      roomStore.clearPolling();
+    };
+  }, [roomStore, room?.code]);
 
   async function handleRefresh() {
     try {
@@ -26,9 +54,23 @@ export function LobbyPage() {
     }
   }
 
+  async function handleStartGame() {
+    try {
+      setStartError(null);
+      await roomStore.startGame();
+      navigate("/game");
+    } catch (caughtError) {
+      setStartError(caughtError instanceof Error ? caughtError.message : "Unable to start game");
+    }
+  }
+
   if (!room) {
     return null;
   }
+
+  const isHost = participantId !== null && room.hostId === participantId;
+  const canStart = room.participants.length >= 2;
+  const showPollingIndicator = isPolling && !isLoading;
 
   return (
     <section className="panel placeholder-page">
@@ -49,7 +91,7 @@ export function LobbyPage() {
             <ul className="player-list">
               {room.participants.map((participant) => (
                 <li key={participant.id}>
-                  <span>{participant.name}</span>
+                  <span>{participant.name}{participant.isHost ? <span className="host-badge"> (Host)</span> : null}</span>
                   <span className="player-list__meta">joined</span>
                 </li>
               ))}
@@ -58,10 +100,10 @@ export function LobbyPage() {
         </Card>
 
         <Card title="Status">
-          <p className="status-line" style={{ backgroundColor: isLoading ? '#fef3c7' : '#e0e7ff', color: isLoading ? '#b45309' : '#3730a3' }}>
-            {isLoading ? "Refreshing players..." : "Ready to play"}
+          <p className="status-line" style={{ backgroundColor: showPollingIndicator ? '#fef3c7' : '#e0e7ff', color: showPollingIndicator ? '#b45309' : '#3730a3' }}>
+            {isLoading ? "Refreshing players..." : showPollingIndicator ? "Checking for new players..." : "Ready to play"}
           </p>
-          <p style={{ marginTop: '8px' }}>{error ?? refreshError ?? "Waiting for the host to start the game."}</p>
+          <p style={{ marginTop: '8px' }}>{error ?? refreshError ?? startError ?? pollError ?? "Waiting for the host to start the game."}</p>
         </Card>
       </div>
 
@@ -69,9 +111,11 @@ export function LobbyPage() {
         <button className="button button--secondary" disabled={isLoading} onClick={handleRefresh}>
           {isLoading ? "Refreshing..." : "Refresh Room"}
         </button>
-        <button className="button button--primary" onClick={() => navigate("/game")}>
-          Start Game
-        </button>
+        {isHost ? (
+          <button className="button button--primary" disabled={isLoading || !canStart} onClick={handleStartGame}>
+            {!canStart ? "At least 2 players required" : "Start Game"}
+          </button>
+        ) : null}
       </div>
     </section>
   );
