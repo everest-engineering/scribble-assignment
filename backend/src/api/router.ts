@@ -1,6 +1,7 @@
 import type { NextFunction, Request, Response } from "express";
 import { Router } from "express";
 import { createRoomsRouter } from "./rooms.js";
+import { createCanvasRouter } from "./canvas.js";
 
 export function createApiRouter() {
   const router = Router();
@@ -13,6 +14,7 @@ export function createApiRouter() {
   });
 
   router.use("/rooms", createRoomsRouter());
+  router.use("/api/rooms", createCanvasRouter());
 
   return router;
 }
