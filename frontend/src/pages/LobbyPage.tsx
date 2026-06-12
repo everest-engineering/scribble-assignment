@@ -5,17 +5,42 @@ import { PageHeader } from "../components/PageHeader";
 import { RoomCodeBadge } from "../components/RoomCodeBadge";
 import { useRoomState, useRoomStore } from "../state/roomStore";
 
+function formatTime(isoString: string) {
+  const date = new Date(isoString);
+  return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+}
+
 export function LobbyPage() {
   const navigate = useNavigate();
   const roomStore = useRoomStore();
-  const { room, error, isLoading } = useRoomState();
+  const { room, participantId, error, isLoading } = useRoomState();
   const [refreshError, setRefreshError] = useState<string | null>(null);
+  const [startError, setStartError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!room) {
+    if (!room || !participantId) {
       navigate("/", { replace: true });
+      return;
     }
-  }, [navigate, room]);
+
+    if (room.status === "playing") {
+      navigate("/game", { replace: true });
+    }
+  }, [navigate, room, participantId]);
+
+  useEffect(() => {
+    if (!room || room.status !== "lobby") {
+      return;
+    }
+
+    const intervalId = setInterval(() => {
+      roomStore.fetchRoom().catch(() => {
+        // Silently retry on next poll
+      });
+    }, 2000);
+
+    return () => clearInterval(intervalId);
+  }, [roomStore, room]);
 
   async function handleRefresh() {
     try {
@@ -26,9 +51,22 @@ export function LobbyPage() {
     }
   }
 
+  async function handleStartGame() {
+    try {
+      setStartError(null);
+      await roomStore.startGame();
+      navigate("/game");
+    } catch (caughtError) {
+      setStartError(caughtError instanceof Error ? caughtError.message : "Unable to start game");
+    }
+  }
+
   if (!room) {
     return null;
   }
+
+  const isHost = participantId === room.hostId;
+  const canStart = isHost && room.participants.length >= 2;
 
   return (
     <section className="panel placeholder-page">
@@ -50,7 +88,11 @@ export function LobbyPage() {
               {room.participants.map((participant) => (
                 <li key={participant.id}>
                   <span>{participant.name}</span>
-                  <span className="player-list__meta">joined</span>
+                  {participant.id === room.hostId ? (
+                    <span className="player-list__meta">Host · {formatTime(participant.joinedAt)}</span>
+                  ) : (
+                    <span className="player-list__meta">{formatTime(participant.joinedAt)}</span>
+                  )}
                 </li>
               ))}
             </ul>
@@ -69,10 +111,13 @@ export function LobbyPage() {
         <button className="button button--secondary" disabled={isLoading} onClick={handleRefresh}>
           {isLoading ? "Refreshing..." : "Refresh Room"}
         </button>
-        <button className="button button--primary" onClick={() => navigate("/game")}>
-          Start Game
-        </button>
+        {isHost ? (
+          <button className="button button--primary" disabled={!canStart} onClick={handleStartGame}>
+            Start Game
+          </button>
+        ) : null}
       </div>
+      {startError ? <p className="form__error" style={{ marginTop: '12px', textAlign: 'center' }}>{startError}</p> : null}
     </section>
   );
 }
