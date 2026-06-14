@@ -108,10 +108,16 @@ Implemented today (Scenario 3 — Gameplay Interaction):
 - frontend guess panel: input + ordered feed + scoreboard, drawer's tab has no input, locked-out players see a static "already guessed correctly" line
 - drawer canvas: drawer-local freehand `<canvas>` with pointer events + Clear button; non-drawers see a "Waiting for the drawer…" placeholder (canvas content is intentionally **not** transmitted)
 
-Not implemented yet:
+Implemented today (Scenario 4 — Result, Restart & Final Validation):
 
-- result state
-- restart flow
+- new room lifecycle state `"result"` reached via host-only `POST /rooms/:code/end`; transitions are `lobby → round → result → lobby` (via `restart`)
+- secret-word reveal: in `"result"`, every viewer (drawer, guesser, anonymous) sees cleartext `secretWord` in their `RoomSnapshot.round`
+- guess endpoint locked: `POST /rooms/:code/guesses` returns `409 "No round in progress"` once the room is in `"result"`; feed/scores frozen
+- host-only restart: `POST /rooms/:code/restart` returns `result → lobby`, sets `round = null`, preserves `participants` (incl. host) and `participants[].isDrawer = false` for everyone
+- both endpoints **idempotent** in their terminal state (re-end while `"result"` → 200 no-op; re-restart while `"lobby"` → 200 no-op)
+- error envelopes: `403` for non-host on either endpoint; `404` for unknown rooms; `409` for invalid transition (`end` from `"lobby"`, `restart` from `"round"`); `400` on empty `participantId`
+- frontend Result view (`ResultView.tsx`): banner + cleartext word + scoreboard + read-only feed; **End Round** button on host-drawer's `RoundView`, **Restart** button on host's `ResultView`
+- restart-then-start produces a fresh round: `scores` zeroed, `guesses` empty, no carry-over (per Constitution §I — no cumulative scoring)
 
 ## API Included In The Starter
 
@@ -123,6 +129,8 @@ Backend endpoints currently available:
 - `GET /rooms/:code`
 - `POST /rooms/:code/start`
 - `POST /rooms/:code/guesses`
+- `POST /rooms/:code/end`
+- `POST /rooms/:code/restart`
 
 The backend stores all room data in memory only. Restarting the backend clears all rooms.
 

@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
   createRoomSchema,
+  endRoundSchema,
   joinRoomSchema,
+  restartRoomSchema,
   roomCodeParamsSchema,
   startRoomSchema,
   submitGuessSchema
@@ -77,5 +79,24 @@ describe("schemas", () => {
         text
       });
     });
+  });
+
+  describe("endRoundSchema / restartRoomSchema", () => {
+    it("parses a valid body with participantId", () => {
+      expect(endRoundSchema.parse({ participantId: "p-alice" })).toEqual({
+        participantId: "p-alice"
+      });
+      expect(restartRoomSchema.parse({ participantId: "p-alice" })).toEqual({
+        participantId: "p-alice"
+      });
+    });
+
+    it.each([{}, { participantId: "" }])(
+      "rejects missing/empty participantId: %j",
+      (body) => {
+        expect(() => endRoundSchema.parse(body)).toThrow();
+        expect(() => restartRoomSchema.parse(body)).toThrow();
+      }
+    );
   });
 });

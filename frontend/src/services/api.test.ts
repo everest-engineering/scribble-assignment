@@ -132,4 +132,72 @@ describe("api service", () => {
       })
     );
   });
+
+  it("endRound POSTs participantId to /rooms/:code/end", async () => {
+    const mockResponse = {
+      ok: true,
+      json: () =>
+        Promise.resolve({ room: { code: "ABCD", status: "result", participants: [] } }),
+    };
+    vi.mocked(fetch).mockResolvedValue(mockResponse as unknown as Response);
+
+    await api.endRound("ABCD", "p1");
+
+    expect(fetch).toHaveBeenCalledWith(
+      expect.stringContaining("/rooms/ABCD/end"),
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({ participantId: "p1" }),
+      })
+    );
+  });
+
+  it("endRound maps a 403 to ApiError with the server message", async () => {
+    const mockResponse = {
+      ok: false,
+      status: 403,
+      json: () =>
+        Promise.resolve({ message: "Only the host can end the round" }),
+    };
+    vi.mocked(fetch).mockResolvedValue(mockResponse as unknown as Response);
+
+    await expect(api.endRound("ABCD", "p-bob")).rejects.toMatchObject({
+      message: "Only the host can end the round",
+      status: 403,
+    });
+  });
+
+  it("restartRoom POSTs participantId to /rooms/:code/restart", async () => {
+    const mockResponse = {
+      ok: true,
+      json: () =>
+        Promise.resolve({ room: { code: "ABCD", status: "lobby", participants: [] } }),
+    };
+    vi.mocked(fetch).mockResolvedValue(mockResponse as unknown as Response);
+
+    await api.restartRoom("ABCD", "p1");
+
+    expect(fetch).toHaveBeenCalledWith(
+      expect.stringContaining("/rooms/ABCD/restart"),
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({ participantId: "p1" }),
+      })
+    );
+  });
+
+  it("restartRoom maps a 409 to ApiError", async () => {
+    const mockResponse = {
+      ok: false,
+      status: 409,
+      json: () =>
+        Promise.resolve({ message: "End the active round before restarting" }),
+    };
+    vi.mocked(fetch).mockResolvedValue(mockResponse as unknown as Response);
+
+    await expect(api.restartRoom("ABCD", "p1")).rejects.toMatchObject({
+      message: "End the active round before restarting",
+      status: 409,
+    });
+  });
 });

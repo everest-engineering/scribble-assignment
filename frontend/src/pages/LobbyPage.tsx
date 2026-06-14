@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Card } from "../components/Card";
 import { PageHeader } from "../components/PageHeader";
 import { RoomCodeBadge } from "../components/RoomCodeBadge";
+import { ResultView } from "../components/ResultView";
 import { RoundView } from "../components/RoundView";
 import { useLobbyPolling } from "../hooks/useLobbyPolling";
 import type { RoomSnapshot } from "../services/api";
@@ -118,13 +119,26 @@ export function LobbyPage() {
           )}
         </Card>
 
-        <Card title={room.round ? "Round" : "Status"}>
-          {room.round ? (
+        <Card
+          title={
+            room.status === "result" ? "Result" : room.round ? "Round" : "Status"
+          }
+        >
+          {room.status === "result" ? (
+            <ResultView
+              room={room}
+              viewerParticipantId={participantId}
+              onRestart={() => roomStore.restartRoom()}
+            />
+          ) : room.round ? (
             <RoundView
               room={room}
               viewerParticipantId={participantId}
               onGuessSubmit={(text) => roomStore.submitGuess(text)}
               guessError={error}
+              onEndRound={
+                room.viewerIsHost ? () => roomStore.endRound() : undefined
+              }
             />
           ) : (
             <>

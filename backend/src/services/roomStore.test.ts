@@ -2,9 +2,11 @@ import { beforeEach, describe, expect, it } from "vitest";
 import {
   __resetRoomsForTests,
   createRoom,
+  endRound,
   getRoom,
   isGuessCorrect,
   joinRoom,
+  restartRoom,
   selectWordForRound,
   startRoom,
   submitGuess,
@@ -420,6 +422,168 @@ describe("roomStore", () => {
     it("picks 'rocket' (the first STARTER_WORDS entry) for round 1", () => {
       expect(selectWordForRound(STARTER_WORDS, 1)).toBe(STARTER_WORDS[0]);
       expect(STARTER_WORDS[0]).toBe("rocket");
+    });
+  });
+
+  describe("endRound", () => {
+    function setupActiveRound() {
+      const alice = createRoom("Alice");
+      const code = alice.room.code;
+      const aliceId = alice.participantId;
+      const join = joinRoom(code, "Bob");
+      if (!join) throw new Error("join failed");
+      const bobId = join.participantId;
+      startRoom(code, aliceId);
+      return { code, aliceId, bobId };
+    }
+
+    it("returns not_found for unknown rooms", () => {
+      const result = endRound("ZZZZ", "p1");
+      expect(result).toEqual({ ok: false, reason: "not_found" });
+    });
+
+    it("returns not_host when caller is not the host", () => {
+      const { code, bobId } = setupActiveRound();
+      const result = endRound(code, bobId);
+      expect(result).toEqual({ ok: false, reason: "not_host" });
+    });
+
+    it("returns not_active when room is in lobby", () => {
+      const alice = createRoom("Alice");
+      const result = endRound(alice.room.code, alice.participantId);
+      expect(result).toEqual({ ok: false, reason: "not_active" });
+    });
+
+    it("transitions round → result, leaves round payload intact", () => {
+      const { code, aliceId, bobId } = setupActiveRound();
+      submitGuess(code, bobId, "rocket");
+      const before = getRoom(code);
+      const result = endRound(code, aliceId);
+      expect(result.ok).toBe(true);
+      if (!result.ok) return;
+      expect(result.room.status).toBe("result");
+      expect(result.room.round).not.toBeNull();
+      expect(result.room.round!.secretWord).toBe(before!.round!.secretWord);
+      expect(result.room.round!.guesses).toHaveLength(1);
+      expect(result.room.round!.scores[bobId]).toBe(100);
+    });
+
+    it("is idempotent in result state (no updatedAt bump)", () => {
+      const { code, aliceId } = setupActiveRound();
+      const first = endRound(code, aliceId);
+      expect(first.ok).toBe(true);
+      const stamp1 = getRoom(code)!.updatedAt;
+      const second = endRound(code, aliceId);
+      expect(second.ok).toBe(true);
+      const stamp2 = getRoom(code)!.updatedAt;
+      expect(stamp2).toBe(stamp1);
+      if (second.ok) expect(second.room.status).toBe("result");
+    });
+  });
+
+  describe("submitGuess in result state", () => {
+    it("rejects with no_round once the room is in result", () => {
+      const alice = createRoom("Alice");
+      const code = alice.room.code;
+      const join = joinRoom(code, "Bob");
+      if (!join) throw new Error("join failed");
+      const bobId = join.participantId;
+      startRoom(code, alice.participantId);
+      endRound(code, alice.participantId);
+
+      const before = getRoom(code)!.round!.guesses.length;
+      const result = submitGuess(code, bobId, "rocket");
+      expect(result).toEqual({ ok: false, reason: "no_round" });
+      expect(getRoom(code)!.round!.guesses.length).toBe(before);
+    });
+  });
+
+  describe("toRoomSnapshot in result state", () => {
+    it("reveals secretWord to every viewer (drawer, guesser, anonymous)", () => {
+      const alice = createRoom("Alice");
+      const code = alice.room.code;
+      const aliceId = alice.participantId;
+      const join = joinRoom(code, "Bob");
+      if (!join) throw new Error("join failed");
+      const bobId = join.participantId;
+      startRoom(code, aliceId);
+      endRound(code, aliceId);
+      const room = getRoom(code)!;
+
+      expect(toRoomSnapshot(room, aliceId).round!.secretWord).toBe("rocket");
+      expect(toRoomSnapshot(room, bobId).round!.secretWord).toBe("rocket");
+      expect(toRoomSnapshot(room).round!.secretWord).toBe("rocket");
+    });
+  });
+
+  describe("restartRoom", () => {
+    function setupResultState() {
+      const alice = createRoom("Alice");
+      const code = alice.room.code;
+      const aliceId = alice.participantId;
+      const join = joinRoom(code, "Bob");
+      if (!join) throw new Error("join failed");
+      const bobId = join.participantId;
+      startRoom(code, aliceId);
+      submitGuess(code, bobId, "wrong");
+      submitGuess(code, bobId, "rocket");
+      endRound(code, aliceId);
+      return { code, aliceId, bobId };
+    }
+
+    it("returns not_found for unknown rooms", () => {
+      const result = restartRoom("ZZZZ", "p1");
+      expect(result).toEqual({ ok: false, reason: "not_found" });
+    });
+
+    it("returns not_host when caller is not the host", () => {
+      const { code, bobId } = setupResultState();
+      const result = restartRoom(code, bobId);
+      expect(result).toEqual({ ok: false, reason: "not_host" });
+    });
+
+    it("returns not_ended when called on a round-state room", () => {
+      const alice = createRoom("Alice");
+      joinRoom(alice.room.code, "Bob");
+      startRoom(alice.room.code, alice.participantId);
+      const result = restartRoom(alice.room.code, alice.participantId);
+      expect(result).toEqual({ ok: false, reason: "not_ended" });
+    });
+
+    it("transitions result → lobby, clears round, preserves participants and host", () => {
+      const { code, aliceId, bobId } = setupResultState();
+      const before = getRoom(code)!;
+      const result = restartRoom(code, aliceId);
+      expect(result.ok).toBe(true);
+      if (!result.ok) return;
+      expect(result.room.status).toBe("lobby");
+      expect(result.room.round).toBeNull();
+      expect(result.room.hostParticipantId).toBe(before.hostParticipantId);
+      expect(result.room.participants.map((p) => p.id)).toEqual([aliceId, bobId]);
+      expect(result.room.participants.map((p) => p.name)).toEqual(["Alice", "Bob"]);
+    });
+
+    it("is idempotent in lobby state (no updatedAt bump)", () => {
+      const { code, aliceId } = setupResultState();
+      const first = restartRoom(code, aliceId);
+      expect(first.ok).toBe(true);
+      const stamp1 = getRoom(code)!.updatedAt;
+      const second = restartRoom(code, aliceId);
+      expect(second.ok).toBe(true);
+      const stamp2 = getRoom(code)!.updatedAt;
+      expect(stamp2).toBe(stamp1);
+    });
+
+    it("after restart-then-start, scores are zeroed and guesses are empty", () => {
+      const { code, aliceId, bobId } = setupResultState();
+      restartRoom(code, aliceId);
+      const next = startRoom(code, aliceId);
+      expect(next.ok).toBe(true);
+      if (!next.ok) return;
+      expect(next.room.round).not.toBeNull();
+      expect(next.room.round!.guesses).toEqual([]);
+      expect(next.room.round!.scores[aliceId]).toBe(0);
+      expect(next.room.round!.scores[bobId]).toBe(0);
     });
   });
 });
