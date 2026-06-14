@@ -83,19 +83,41 @@ Implemented today:
 - game screen placeholders for canvas, guess input, scoreboard, and results
 - basic light UI styling
 
-Not implemented yet:
+Implemented today (Scenario 1 — Room Setup & Lobby):
 
-- host behavior or host-only permissions
-- automatic lobby polling
-- start game flow
-- drawer assignment
-- secret word visibility rules
-- drawing interaction
-- clear canvas action
-- guess submission and synced history
-- scoring
-- result state
-- restart flow
+- host designation tied to the room creator's `participantId`
+- automatic lobby polling at ~2s with visibility-aware pause/resume
+- host-only Start Game with a ≥2-player gate enforced server-side
+- empty/invalid name and code rejection with clear inline feedback
+- case-insensitive, whitespace-tolerant room code lookup
+- 404 → "Room no longer available" lobby state and `sessionStorage` rehydration on refresh
+
+Implemented today (Scenario 2 — Game Start & Drawer):
+
+- start game flow: room transitions from `lobby` to `round` on host action; idempotent retries
+- drawer assignment: host is the drawer for round 1; `participants[].isDrawer` exposed in the snapshot
+- secret word visibility rules: cleartext `secretWord` returned only to the drawer; everyone else receives a length-only `maskedWord` (server-side filter, no client-side hiding)
+- deterministic word selection: round 1 always picks `STARTER_WORDS[0]` (currently `"rocket"`) via `selectWordForRound`
+
+Implemented today (Scenario 3 — Gameplay Interaction):
+
+- guess submission: `POST /rooms/:code/guesses` accepts `{ participantId, text }`, server-side trims and case-insensitively compares against the round's secret word
+- input validation: empty / whitespace-only / >50-char guesses → `400`; drawer-as-guesser → `403`; unknown participant → `403`; unknown room → `404`; lobby-state room → `409`; already-correct guesser → `409` (lockout, no double-score)
+- per-round scoring: correct guesses score exactly `+100`, incorrect guesses score `+0`; scores start at `0` for every participant at round start
+- guess history sync: ordered `guesses[]` feed and `scores{}` map exposed in every viewer's `RoomSnapshot.round`, propagated to all participants via the existing ~2s polling channel
+- frontend guess panel: input + ordered feed + scoreboard, drawer's tab has no input, locked-out players see a static "already guessed correctly" line
+- drawer canvas: drawer-local freehand `<canvas>` with pointer events + Clear button; non-drawers see a "Waiting for the drawer…" placeholder (canvas content is intentionally **not** transmitted)
+
+Implemented today (Scenario 4 — Result, Restart & Final Validation):
+
+- new room lifecycle state `"result"` reached via host-only `POST /rooms/:code/end`; transitions are `lobby → round → result → lobby` (via `restart`)
+- secret-word reveal: in `"result"`, every viewer (drawer, guesser, anonymous) sees cleartext `secretWord` in their `RoomSnapshot.round`
+- guess endpoint locked: `POST /rooms/:code/guesses` returns `409 "No round in progress"` once the room is in `"result"`; feed/scores frozen
+- host-only restart: `POST /rooms/:code/restart` returns `result → lobby`, sets `round = null`, preserves `participants` (incl. host) and `participants[].isDrawer = false` for everyone
+- both endpoints **idempotent** in their terminal state (re-end while `"result"` → 200 no-op; re-restart while `"lobby"` → 200 no-op)
+- error envelopes: `403` for non-host on either endpoint; `404` for unknown rooms; `409` for invalid transition (`end` from `"lobby"`, `restart` from `"round"`); `400` on empty `participantId`
+- frontend Result view (`ResultView.tsx`): banner + cleartext word + scoreboard + read-only feed; **End Round** button on host-drawer's `RoundView`, **Restart** button on host's `ResultView`
+- restart-then-start produces a fresh round: `scores` zeroed, `guesses` empty, no carry-over (per Constitution §I — no cumulative scoring)
 
 ## API Included In The Starter
 
@@ -105,6 +127,10 @@ Backend endpoints currently available:
 - `POST /rooms`
 - `POST /rooms/:code/join`
 - `GET /rooms/:code`
+- `POST /rooms/:code/start`
+- `POST /rooms/:code/guesses`
+- `POST /rooms/:code/end`
+- `POST /rooms/:code/restart`
 
 The backend stores all room data in memory only. Restarting the backend clears all rooms.
 

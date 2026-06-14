@@ -4,14 +4,39 @@ export interface Participant {
   id: string;
   name: string;
   joinedAt: string;
+  isHost: boolean;
+  isDrawer: boolean;
+}
+
+export interface GuessView {
+  id: string;
+  participantId: string;
+  displayName: string;
+  text: string;
+  isCorrect: boolean;
+  submittedAt: string;
+}
+
+export interface RoundView {
+  roundNumber: number;
+  drawerParticipantId: string;
+  maskedWord: string;
+  secretWord?: string;
+  guesses: GuessView[];
+  scores: Record<string, number>;
+  lockedParticipantIds: string[];
 }
 
 export interface RoomSnapshot {
   code: string;
-  status: "lobby";
+  status: "lobby" | "round" | "result";
   participants: Participant[];
+  hostParticipantId: string;
+  viewerIsHost: boolean;
+  canStart: boolean;
   availableWords: string[];
   roles: ParticipantRole[];
+  round: RoundView | null;
 }
 
 export interface RoomSessionResponse {
@@ -19,7 +44,17 @@ export interface RoomSessionResponse {
   room: RoomSnapshot;
 }
 
-const API_BASE_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3001/bug";
+const API_BASE_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3001";
+
+export class ApiError extends Error {
+  status: number;
+
+  constructor(status: number, message: string) {
+    super(message);
+    this.status = status;
+    this.name = "ApiError";
+  }
+}
 
 async function request<T>(path: string, init?: RequestInit) {
   const response = await fetch(`${API_BASE_URL}${path}`, {
@@ -35,7 +70,7 @@ async function request<T>(path: string, init?: RequestInit) {
       message?: string;
     };
 
-    throw new Error(errorBody.message ?? "Request failed");
+    throw new ApiError(response.status, errorBody.message ?? "Request failed");
   }
 
   return (await response.json()) as T;
@@ -57,5 +92,29 @@ export const api = {
   fetchRoom(code: string, participantId?: string) {
     const query = participantId ? `?participantId=${encodeURIComponent(participantId)}` : "";
     return request<{ room: RoomSnapshot }>(`/rooms/${encodeURIComponent(code)}${query}`);
+  },
+  startRoom(code: string, participantId: string) {
+    return request<{ room: RoomSnapshot }>(`/rooms/${encodeURIComponent(code)}/start`, {
+      method: "POST",
+      body: JSON.stringify({ participantId })
+    });
+  },
+  submitGuess(code: string, participantId: string, text: string) {
+    return request<{ room: RoomSnapshot }>(`/rooms/${encodeURIComponent(code)}/guesses`, {
+      method: "POST",
+      body: JSON.stringify({ participantId, text })
+    });
+  },
+  endRound(code: string, participantId: string) {
+    return request<{ room: RoomSnapshot }>(`/rooms/${encodeURIComponent(code)}/end`, {
+      method: "POST",
+      body: JSON.stringify({ participantId })
+    });
+  },
+  restartRoom(code: string, participantId: string) {
+    return request<{ room: RoomSnapshot }>(`/rooms/${encodeURIComponent(code)}/restart`, {
+      method: "POST",
+      body: JSON.stringify({ participantId })
+    });
   }
 };

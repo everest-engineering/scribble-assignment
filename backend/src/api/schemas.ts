@@ -1,19 +1,42 @@
 import { z } from "zod";
 
+const playerNameSchema = z.string().trim().min(1).max(24);
+
 export const createRoomSchema = z.object({
-  playerName: z.string().optional()
+  playerName: playerNameSchema
 });
 
 export const joinRoomSchema = z.object({
-  playerName: z.string().optional()
+  playerName: playerNameSchema
 });
 
 export const roomCodeParamsSchema = z.object({
-  code: z.string()
+  code: z
+    .string()
+    .trim()
+    .min(1)
+    .transform((value) => value.toUpperCase())
 });
 
 export const roomViewerQuerySchema = z.object({
   participantId: z.string().optional()
+});
+
+export const startRoomSchema = z.object({
+  participantId: z.string().min(1)
+});
+
+export const submitGuessSchema = z.object({
+  participantId: z.string().min(1),
+  text: z.string().trim().min(1).max(50)
+});
+
+export const endRoundSchema = z.object({
+  participantId: z.string().min(1)
+});
+
+export const restartRoomSchema = z.object({
+  participantId: z.string().min(1)
 });
 
 export class HttpError extends Error {
