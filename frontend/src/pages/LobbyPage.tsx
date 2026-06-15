@@ -26,9 +26,48 @@ export function LobbyPage() {
     }
   }
 
+  async function handleStart() {
+    try {
+      setRefreshError(null);
+      const updatedRoom = await roomStore.startRoom();
+
+      if (updatedRoom.status === "active") {
+        navigate("/game");
+      }
+    } catch (caughtError) {
+      setRefreshError(caughtError instanceof Error ? caughtError.message : "Unable to start game");
+    }
+  }
+
+  useEffect(() => {
+    if (!room) {
+      return;
+    }
+
+    if (room.status === "active") {
+      navigate("/game");
+      return;
+    }
+
+    const intervalId = window.setInterval(() => {
+      roomStore.fetchRoom().catch(() => undefined);
+    }, 2000);
+
+    return () => window.clearInterval(intervalId);
+  }, [navigate, room, roomStore]);
+
   if (!room) {
     return null;
   }
+
+  const participantId = roomStore.getSnapshot().participantId;
+  const isHost = room.hostId === participantId;
+  const canStart = isHost && room.participants.length >= 2;
+  const startMessage = !isHost
+    ? "Only the host can start the game."
+    : room.participants.length < 2
+    ? "At least two players are required to start."
+    : "Ready to start the game.";
 
   return (
     <section className="panel placeholder-page">
@@ -69,10 +108,11 @@ export function LobbyPage() {
         <button className="button button--secondary" disabled={isLoading} onClick={handleRefresh}>
           {isLoading ? "Refreshing..." : "Refresh Room"}
         </button>
-        <button className="button button--primary" onClick={() => navigate("/game")}>
+        <button className="button button--primary" disabled={!canStart || isLoading} onClick={handleStart}>
           Start Game
         </button>
       </div>
+      <p style={{ marginTop: '12px', color: '#6b7280' }}>{startMessage}</p>
     </section>
   );
 }
