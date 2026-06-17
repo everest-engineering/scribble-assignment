@@ -27,4 +27,14 @@ describe("roomStore", () => {
 
     expect(result).toBeNull();
   });
+
+  it("joinRoom adds a participant to an existing room", () => {
+    const created = createRoom("Alice");
+    const joined = joinRoom(created.room.code, "Bob");
+
+    expect(joined).not.toBeNull();
+    expect(joined?.room.participants).toHaveLength(2);
+    expect(joined?.room.participants[1].name).toBe("Bob");
+    expect(joined?.participantId).toBeDefined();
+  });
 });

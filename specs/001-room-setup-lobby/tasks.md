@@ -69,12 +69,12 @@ code → "No room with that code.".
 
 ### Tests for User Story 2
 
-- [ ] T007 [P] [US2] In `backend/src/services/roomStore.test.ts`: assert `joinRoom()` returns `null` for an unknown code (which the route maps to a 404), and succeeds for an existing code.
+- [X] T007 [P] [US2] In `backend/src/services/roomStore.test.ts`: assert `joinRoom()` returns `null` for an unknown code (which the route maps to a 404), and succeeds for an existing code.
 
 ### Implementation for User Story 2
 
-- [ ] T008 [US2] In `backend/src/api/rooms.ts`: change the join-not-found 404 message to `"No room with that code."` (keep the existing `code.toUpperCase()` case-insensitive match).
-- [ ] T009 [US2] In `frontend/src/pages/JoinRoomPage.tsx`: trim the room code on submit; if empty/whitespace, show `"Enter a room code."` and do NOT call the API or navigate.
+- [X] T008 [US2] In `backend/src/api/rooms.ts`: change the join-not-found 404 message to `"No room with that code."` (keep the existing `code.toUpperCase()` case-insensitive match).
+- [X] T009 [US2] In `frontend/src/pages/JoinRoomPage.tsx`: trim the room code on submit; if empty/whitespace, show `"Enter a room code."` and do NOT call the API or navigate.
 
 **Checkpoint**: Both distinct join errors and case-insensitive join work (verify V2/V3 in quickstart).
 
