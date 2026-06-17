@@ -26,9 +26,9 @@ matching the Group 1–2 pattern — no new test deps. Frontend behavior (canvas
 
 **Purpose**: Shared data-shape additions for guesses and scores.
 
-- [ ] T002 [P] In `backend/src/models/game.ts`: add `score: number` to `Participant`; add a `Guess` interface `{ id; participantId; name; text; correct; at }`; add `guesses: Guess[]` to `Room` and to `RoomSnapshot`.
-- [ ] T003 [P] In `frontend/src/services/api.ts`: add `score: number` to `Participant`; add a `Guess` type; add `guesses: Guess[]` to `RoomSnapshot`.
-- [ ] T004 In `backend/src/services/roomStore.ts`: set `score: 0` in `createParticipant`; initialize `guesses: []` in `createRoom`.
+- [X] T002 [P] In `backend/src/models/game.ts`: add `score: number` to `Participant`; add a `Guess` interface `{ id; participantId; name; text; correct; at }`; add `guesses: Guess[]` to `Room` and to `RoomSnapshot`.
+- [X] T003 [P] In `frontend/src/services/api.ts`: add `score: number` to `Participant`; add a `Guess` type; add `guesses: Guess[]` to `RoomSnapshot`.
+- [X] T004 In `backend/src/services/roomStore.ts`: set `score: 0` in `createParticipant`; initialize `guesses: []` in `createRoom`.
 
 **Checkpoint**: model + snapshot can carry scores and a guess history.
 

@@ -44,7 +44,8 @@ function createParticipant(name: string): Participant {
   return {
     id: randomUUID(),
     name,
-    joinedAt: now()
+    joinedAt: now(),
+    score: 0
   };
 }
 
@@ -69,6 +70,7 @@ export function createRoom(playerName?: string) {
     status: "lobby",
     hostId: participant.id,
     participants: [participant],
+    guesses: [],
     createdAt: now(),
     updatedAt: now()
   };
@@ -150,6 +152,7 @@ export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSn
     // so a guesser never receives the word (or its length).
     word: isDrawer ? room.secretWord : undefined,
     participants: room.participants.map((participant) => ({ ...participant })),
+    guesses: room.guesses.map((guess) => ({ ...guess })),
     availableWords: listWords(),
     roles: [...STARTER_ROLES]
   };
