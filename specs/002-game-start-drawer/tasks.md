@@ -82,11 +82,11 @@ host-only start, auto-advance).
 
 ### Tests for User Story 3
 
-- [ ] T012 [P] [US3] In `backend/src/services/roomStore.test.ts`: assert `selectWord(code)` is pure (same code → same word, value ∈ STARTER_WORDS) and that after `startGame`, `room.secretWord` is one of the starter words.
+- [X] T012 [P] [US3] In `backend/src/services/roomStore.test.ts`: assert `selectWord(code)` is pure (same code → same word, value ∈ STARTER_WORDS) and that after `startGame`, `room.secretWord` is one of the starter words.
 
 ### Implementation for User Story 3
 
-- [ ] T013 [US3] In `backend/src/services/roomStore.ts`: add `selectWord(code)` = `STARTER_WORDS[(sum of code char codes) % STARTER_WORDS.length]`; in `startGame`, set `room.secretWord = selectWord(room.code)`.
+- [X] T013 [US3] In `backend/src/services/roomStore.ts`: add `selectWord(code)` = `STARTER_WORDS[(sum of code char codes) % STARTER_WORDS.length]`; in `startGame`, set `room.secretWord = selectWord(room.code)`.
 
 **Checkpoint**: a stable secret word exists for the round (quickstart V5).
 

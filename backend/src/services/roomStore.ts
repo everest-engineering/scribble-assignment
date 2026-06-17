@@ -56,6 +56,12 @@ export function listWords() {
   return [...STARTER_WORDS];
 }
 
+// Deterministic word pick: stable per room code (sum of char codes mod word count).
+export function selectWord(code: string): string {
+  const sum = [...code].reduce((total, char) => total + char.charCodeAt(0), 0);
+  return STARTER_WORDS[sum % STARTER_WORDS.length];
+}
+
 export function createRoom(playerName?: string) {
   const participant = createParticipant(requireName(playerName));
   const room: Room = {
@@ -121,6 +127,7 @@ export function startGame(code: string, participantId: string) {
 
   room.status = "active";
   room.drawerId = room.hostId;
+  room.secretWord = selectWord(room.code);
   room.updatedAt = now();
   rooms.set(room.code, room);
 

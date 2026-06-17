@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createRoom, joinRoom, startGame, toRoomSnapshot } from "./roomStore.js";
+import { createRoom, joinRoom, listWords, selectWord, startGame, toRoomSnapshot } from "./roomStore.js";
 
 function expectHttpStatus(fn: () => unknown, statusCode: number) {
   try {
@@ -102,5 +102,22 @@ describe("roomStore", () => {
     expect(drawerView.role).toBe("drawer");
     expect(guesserView.role).toBe("guesser");
     expect(guesserView.drawerId).toBe(result.room.hostId);
+  });
+
+  it("selectWord is deterministic and returns a starter word", () => {
+    const words = listWords();
+
+    expect(words).toContain(selectWord("ABCD"));
+    expect(selectWord("ABCD")).toBe(selectWord("ABCD"));
+  });
+
+  it("startGame sets a secret word from the starter list", () => {
+    const created = createRoom("Alice");
+    joinRoom(created.room.code, "Bob");
+
+    const result = startGame(created.room.code, created.participantId);
+
+    expect(listWords()).toContain(result.room.secretWord);
+    expect(result.room.secretWord).toBe(selectWord(result.room.code));
   });
 });
