@@ -12,6 +12,14 @@
 
 **Input**: User description: "Given a game is starting and player names are trimmed (empty/whitespace-only rejected with a message), When the first round begins, Then the host (or first player) becomes the clearly-identified drawer, and the secret word (deterministically selected from the starter list) is visible only to the drawer."
 
+## Clarifications
+
+### Session 2026-06-17
+
+- Q: How is the secret word selected deterministically from the starter list? → A: Derive the index from the room code via a stable function (e.g., sum of the code's character codes modulo the word count), so a given room always yields the same word while different rooms can differ.
+- Q: Who becomes the drawer at game start? → A: The host (the room creator, already tracked as `hostId` from Group 1); in this lab host = first player = creator.
+- Q: What do guessers see about the secret word during the round? → A: Nothing at all — the word and its length are entirely absent from guesser views, not merely hidden in the UI.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Player names are validated (Priority: P1)
@@ -106,13 +114,13 @@ guesser's screen does not reveal it.
 - **FR-001**: The system MUST trim leading/trailing whitespace from a player name on room creation and on joining.
 - **FR-002**: The system MUST reject an empty or whitespace-only player name on both create and join, returning a clear user-facing message, and MUST NOT create/join with a placeholder name.
 - **FR-003**: The system MUST store and display accepted names in their trimmed form.
-- **FR-004**: On game start, the system MUST designate exactly one participant as the drawer for the round, selected as the host / first player.
+- **FR-004**: On game start, the system MUST designate exactly one participant as the drawer for the round — the host (the room creator, tracked as `hostId` from Group 1).
 - **FR-005**: The system MUST expose the drawer's identity so that every participant's game view can clearly indicate who the drawer is.
 - **FR-006**: The system MUST allow a non-drawer participant's view to identify them as a guesser.
 - **FR-007**: On game start, the system MUST select exactly one secret word from the fixed starter word list.
-- **FR-008**: The system MUST select the secret word deterministically (stable for a given room/round), never re-randomized per request.
+- **FR-008**: The system MUST select the secret word deterministically by deriving the word-list index from the room code (a stable function such as the sum of the code's character codes modulo the word count), so a given room always yields the same word and it is never re-randomized per request.
 - **FR-009**: The system MUST include the secret word only in the drawer's view of the room.
-- **FR-010**: The system MUST exclude the secret word from every non-drawer (guesser) view of the room, such that it is not discoverable from the data the guesser receives.
+- **FR-010**: The system MUST exclude the secret word — including its length — from every non-drawer (guesser) view of the room, such that neither the word nor its length is discoverable from the data the guesser receives.
 - **FR-011**: The system MUST preserve the Group 1 behaviors (host identity, polling, host-only gated start, auto-advance) without regression.
 
 ### Key Entities *(include if feature involves data)*
@@ -134,9 +142,9 @@ guesser's screen does not reveal it.
 
 ## Assumptions
 
-- "Host or first player" is the same participant in this lab (the creator), so the drawer is the host. Documented for confirmation in clarification.
-- Deterministic selection is interpreted as a stable function of the room (e.g., derived from the room code), so different rooms may differ but a given room's word never changes mid-round. The exact rule is a clarification candidate; "always the first word" is an acceptable simpler alternative.
+- The drawer is the host (room creator); in this lab host = first player = creator (confirmed in Clarifications).
+- Deterministic selection derives the word index from the room code (stable function, e.g. sum of char codes mod word count), so different rooms may differ but a given room's word never changes mid-round (confirmed in Clarifications).
 - Player-name validation is limited to trim + non-empty; no maximum length, character-set, or uniqueness rules are imposed (out of scope).
-- Guessers see that a word exists and who is drawing, but never the word text, until results (Group 4).
+- Guessers see that a word exists and who is drawing, but never the word text or its length, until results (Group 4).
 - This group covers a single round only: no drawing interaction, guess handling, scoring, results, restart, multiple rounds, or drawer rotation (later groups / explicitly out of scope).
 - The work extends the Group 1 in-memory room model and the existing viewer-aware snapshot seam; it does not introduce persistence, auth, or new libraries (brownfield, polling-only).

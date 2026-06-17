@@ -34,6 +34,7 @@
 - Builds on Group 1 (`specs/001-room-setup-lobby`): reuses `active` room state, host identity, and the
   viewer-aware snapshot seam.
 - Deferred-by-design (in Assumptions, not gaps): drawing/guessing/scoring/results/restart → Groups 3–4.
-- Two items worth tightening via `/speckit.clarify` before planning: (1) the exact deterministic
-  word-selection rule (room-code-derived vs. always-first); (2) confirm drawer = host. Reasonable defaults
-  are documented; neither blocks planning.
+- Clarified 2026-06-17 (`/speckit.clarify`, 3 Qs): (1) secret word = room-code-derived index (stable per
+  room); (2) drawer = host (creator); (3) guessers see nothing of the word, incl. its length. Encoded into
+  `## Clarifications`, FR-004/FR-008/FR-010, and Assumptions. No checkbox states changed (remained 16/16);
+  clarifications sharpened testability of existing requirements.
