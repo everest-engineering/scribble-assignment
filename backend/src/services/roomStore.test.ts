@@ -1,5 +1,16 @@
 import { describe, expect, it } from "vitest";
-import { createRoom, joinRoom, toRoomSnapshot } from "./roomStore.js";
+import { createRoom, joinRoom, startGame, toRoomSnapshot } from "./roomStore.js";
+
+function expectHttpStatus(fn: () => unknown, statusCode: number) {
+  try {
+    fn();
+  } catch (error) {
+    expect((error as { statusCode?: number }).statusCode).toBe(statusCode);
+    return;
+  }
+
+  throw new Error(`expected an error with status ${statusCode}, but none was thrown`);
+}
 
 describe("roomStore", () => {
   it("createRoom returns a room with a 4-character uppercase code", () => {
@@ -36,5 +47,27 @@ describe("roomStore", () => {
     expect(joined?.room.participants).toHaveLength(2);
     expect(joined?.room.participants[1].name).toBe("Bob");
     expect(joined?.participantId).toBeDefined();
+  });
+
+  it("startGame rejects a non-host with 403", () => {
+    const created = createRoom("Alice");
+    joinRoom(created.room.code, "Bob");
+
+    expectHttpStatus(() => startGame(created.room.code, "intruder-id"), 403);
+  });
+
+  it("startGame rejects fewer than 2 players with 409", () => {
+    const created = createRoom("Alice");
+
+    expectHttpStatus(() => startGame(created.room.code, created.participantId), 409);
+  });
+
+  it("startGame activates the room for the host with 2+ players", () => {
+    const created = createRoom("Alice");
+    joinRoom(created.room.code, "Bob");
+
+    const result = startGame(created.room.code, created.participantId);
+
+    expect(result.room.status).toBe("active");
   });
 });

@@ -8,14 +8,23 @@ import { useRoomState, useRoomStore } from "../state/roomStore";
 export function LobbyPage() {
   const navigate = useNavigate();
   const roomStore = useRoomStore();
-  const { room, error, isLoading } = useRoomState();
+  const { room, participantId, error, isLoading } = useRoomState();
   const [refreshError, setRefreshError] = useState<string | null>(null);
+  const [startError, setStartError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!room) {
       navigate("/", { replace: true });
     }
   }, [navigate, room]);
+
+  // Once the room is started, every player (host and non-hosts) advances to the game screen.
+  // Non-hosts reach this via their ~2s poll observing status === "active".
+  useEffect(() => {
+    if (room?.status === "active") {
+      navigate("/game");
+    }
+  }, [navigate, room?.status]);
 
   // Auto-refresh the lobby (~2s polling) so newly joined players appear without a manual refresh.
   // Polling errors are non-fatal here; the manual Refresh button surfaces them explicitly.
@@ -36,9 +45,22 @@ export function LobbyPage() {
     }
   }
 
+  async function handleStart() {
+    try {
+      setStartError(null);
+      await roomStore.startGame();
+      // Navigation to /game happens via the status effect once the room becomes "active".
+    } catch (caughtError) {
+      setStartError(caughtError instanceof Error ? caughtError.message : "Unable to start game");
+    }
+  }
+
   if (!room) {
     return null;
   }
+
+  const isHost = participantId !== null && room.hostId === participantId;
+  const canStart = isHost && room.participants.length >= 2;
 
   return (
     <section className="panel placeholder-page">
@@ -98,10 +120,22 @@ export function LobbyPage() {
         <button className="button button--secondary" disabled={isLoading} onClick={handleRefresh}>
           {isLoading ? "Refreshing..." : "Refresh Room"}
         </button>
-        <button className="button button--primary" onClick={() => navigate("/game")}>
-          Start Game
-        </button>
+        {isHost ? (
+          <button
+            className="button button--primary"
+            disabled={!canStart || isLoading}
+            onClick={handleStart}
+            title={canStart ? undefined : "Need at least 2 players to start."}
+          >
+            Start Game
+          </button>
+        ) : null}
       </div>
+
+      {isHost && !canStart ? (
+        <p style={{ marginTop: 8 }}>Need at least 2 players to start.</p>
+      ) : null}
+      {startError ? <p className="form__error">{startError}</p> : null}
     </section>
   );
 }

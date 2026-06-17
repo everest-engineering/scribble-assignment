@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { HttpError } from "../api/schemas.js";
 import type { Participant, Room, RoomSnapshot } from "../models/game.js";
 import { STARTER_ROLES, STARTER_WORDS } from "../seed/starterData.js";
 
@@ -95,6 +96,30 @@ export function saveRoom(room: Room) {
   room.updatedAt = now();
   rooms.set(room.code, cloneRoom(room));
   return getRoom(room.code);
+}
+
+export function startGame(code: string, participantId: string) {
+  const room = rooms.get(code);
+
+  if (!room) {
+    throw new HttpError(404, "Unable to load room");
+  }
+
+  if (room.hostId !== participantId) {
+    throw new HttpError(403, "Only the host can start the game.");
+  }
+
+  if (room.participants.length < 2) {
+    throw new HttpError(409, "Need at least 2 players to start.");
+  }
+
+  room.status = "active";
+  room.updatedAt = now();
+  rooms.set(room.code, room);
+
+  return {
+    room: cloneRoom(room)
+  };
 }
 
 export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSnapshot {

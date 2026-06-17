@@ -104,16 +104,16 @@ on start both tabs move to `/game` within ~2s.
 
 ### Tests for User Story 4
 
-- [ ] T011 [P] [US4] In `backend/src/services/roomStore.test.ts`: assert `startGame()` throws a 403-class error for a non-host, throws a 409-class error with `<2` players, and sets `status: "active"` for the host with ≥2 players.
+- [X] T011 [P] [US4] In `backend/src/services/roomStore.test.ts`: assert `startGame()` throws a 403-class error for a non-host, throws a 409-class error with `<2` players, and sets `status: "active"` for the host with ≥2 players.
 
 ### Implementation for User Story 4
 
-- [ ] T012 [US4] In `backend/src/api/schemas.ts`: add `startRoomSchema = z.object({ participantId: z.string().min(1) })`.
-- [ ] T013 [US4] In `backend/src/services/roomStore.ts`: add `startGame(code, participantId)` — 404 if room missing, throw `HttpError(403, "Only the host can start the game.")` if `participantId !== hostId`, throw `HttpError(409, "Need at least 2 players to start.")` if `participants.length < 2`, else set `status = "active"`, bump `updatedAt`, and return the saved room (depends on T002, T003).
-- [ ] T014 [US4] In `backend/src/api/rooms.ts`: add `POST /:code/start` handler parsing `startRoomSchema` and calling `startGame()`, returning `{ room: toRoomSnapshot(...) }` on success (depends on T012, T013).
-- [ ] T015 [P] [US4] In `frontend/src/services/api.ts`: add `startRoom(code, participantId)` calling `POST /rooms/:code/start`, returning `{ room }`.
-- [ ] T016 [US4] In `frontend/src/state/roomStore.ts`: add a `startGame()` action that calls `api.startRoom(code, participantId)` and applies the returned snapshot via `setRoomSnapshot` (depends on T015).
-- [ ] T017 [US4] In `frontend/src/pages/LobbyPage.tsx`: enable Start only when `isHost && room.participants.length >= 2` (disabled otherwise with an explanation; non-hosts never get an enabled Start); wire Start to `roomStore.startGame()`; and add a `useEffect` that navigates to `/game` when `room.status === "active"` (depends on T006, T010, T016).
+- [X] T012 [US4] In `backend/src/api/schemas.ts`: add `startRoomSchema = z.object({ participantId: z.string().min(1) })`.
+- [X] T013 [US4] In `backend/src/services/roomStore.ts`: add `startGame(code, participantId)` — 404 if room missing, throw `HttpError(403, "Only the host can start the game.")` if `participantId !== hostId`, throw `HttpError(409, "Need at least 2 players to start.")` if `participants.length < 2`, else set `status = "active"`, bump `updatedAt`, and return the saved room (depends on T002, T003).
+- [X] T014 [US4] In `backend/src/api/rooms.ts`: add `POST /:code/start` handler parsing `startRoomSchema` and calling `startGame()`, returning `{ room: toRoomSnapshot(...) }` on success (depends on T012, T013).
+- [X] T015 [P] [US4] In `frontend/src/services/api.ts`: add `startRoom(code, participantId)` calling `POST /rooms/:code/start`, returning `{ room }`.
+- [X] T016 [US4] In `frontend/src/state/roomStore.ts`: add a `startGame()` action that calls `api.startRoom(code, participantId)` and applies the returned snapshot via `setRoomSnapshot` (depends on T015).
+- [X] T017 [US4] In `frontend/src/pages/LobbyPage.tsx`: enable Start only when `isHost && room.participants.length >= 2` (disabled otherwise with an explanation; non-hosts never get an enabled Start); wire Start to `roomStore.startGame()`; and add a `useEffect` that navigates to `/game` when `room.status === "active"` (depends on T006, T010, T016).
 
 **Checkpoint**: Full Scenario 1 is functional end-to-end.
 
