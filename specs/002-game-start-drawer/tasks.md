@@ -19,7 +19,7 @@ host-only start, auto-advance).
 
 ## Phase 1: Setup
 
-- [ ] T001 Verify baseline: on branch `scribble-assignment`, `npm test` green in both `backend/` and `frontend/`, and the Group 1 app runs (create/join/start work).
+- [X] T001 Verify baseline: on branch `scribble-assignment`, `npm test` green in both `backend/` and `frontend/`, and the Group 1 app runs (create/join/start work).
 
 ---
 
@@ -113,9 +113,9 @@ host-only start, auto-advance).
 
 ## Phase 7: Polish & Cross-Cutting
 
-- [ ] T017 Run [quickstart.md](./quickstart.md) V1–V6 with two browsers (V7 optional curl — verify guesser payload has no `word`); record pass/fail.
-- [ ] T018 [P] Confirm `npm test` passes in both `backend/` and `frontend/`.
-- [ ] T019 Record any spec/implementation deviation in spec.md or plan.md (Principle VII). Note: name validation is enforced in `roomStore` (service) rather than `schemas.ts`, to return the specific `"Enter a player name."` message — confirm this reconciles with the plan during `/speckit.analyze`.
+- [X] T017 Run [quickstart.md](./quickstart.md) V1–V6 with two browsers (V7 optional curl — verify guesser payload has no `word`); record pass/fail.
+- [X] T018 [P] Confirm `npm test` passes in both `backend/` and `frontend/`.
+- [X] T019 Record any spec/implementation deviation in spec.md or plan.md (Principle VII). Note: name validation is enforced in `roomStore` (service) rather than `schemas.ts`, to return the specific `"Enter a player name."` message — confirm this reconciles with the plan during `/speckit.analyze`.
 
 ---
 

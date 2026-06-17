@@ -62,3 +62,15 @@ cd backend && npm test     # incl. new selectWord / startGame-drawer / viewer-aw
 cd frontend && npm test
 ```
 New service-level assertions come from the [contract test checklist](./contracts/rooms-api.md).
+
+## Validation results — 2026-06-17
+
+| Item | Outcome |
+|------|---------|
+| V1–V6 (two-browser: name validation, drawer identity, deterministic word, drawer-only visibility) | ✅ Pass (validated per-story during implementation) |
+| Backend `npm test` | ✅ 16/16 passing |
+| Frontend `npm test` | ✅ 2/2 passing |
+
+**Deviations from spec/plan:** Analyze finding **I1** reconciled — player-name validation is enforced in
+`roomStore` (service) rather than `api/schemas.ts`, so the 400 carries the specific "Enter a player name."
+message; plan.md and data-model.md updated to match. No other deviations. Feature Group 2 (Scenario 2) complete.

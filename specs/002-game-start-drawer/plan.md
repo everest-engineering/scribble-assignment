@@ -70,9 +70,9 @@ specs/002-game-start-drawer/
 backend/src/
 ├── models/game.ts            # EDIT: Room += drawerId?, secretWord?; RoomSnapshot += drawerId?, role?, word?
 ├── seed/starterData.ts       # (reuse STARTER_WORDS; no change)
-├── services/roomStore.ts     # EDIT: name trim/validate on create+join; startGame assigns drawerId + selectWord(code); toRoomSnapshot becomes viewer-aware (word only for drawer, role per viewer)
-├── api/schemas.ts            # EDIT: createRoomSchema/joinRoomSchema enforce trimmed non-empty playerName
-└── api/rooms.ts              # (mostly unchanged; relies on schema/store validation; 400 maps via existing Zod handler)
+├── services/roomStore.ts     # EDIT: name trim/validate on create+join (throws HttpError(400) — authoritative); startGame assigns drawerId + selectWord(code); toRoomSnapshot becomes viewer-aware (word only for drawer, role per viewer)
+├── api/schemas.ts            # (unchanged — name validation is enforced in roomStore so the 400 carries the specific "Enter a player name." message; reconciled per analyze finding I1)
+└── api/rooms.ts              # (unchanged; the roomStore HttpError(400) flows through the existing error handler)
 
 frontend/src/
 ├── services/api.ts           # EDIT: RoomSnapshot type += drawerId?, role?, word?

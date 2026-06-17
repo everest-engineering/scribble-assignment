@@ -56,8 +56,8 @@ stored as `room.secretWord`.
 
 | Rule | Where | FR |
 |------|-------|----|
-| Trim name on create & join | `schemas.ts` transform + `roomStore` | FR-001 |
-| Reject blank/whitespace name (400 + message); no "Player" fallback | `schemas.ts` / `roomStore` | FR-002 |
+| Trim name on create & join | `roomStore` `requireName` (reconciled per analyze I1) | FR-001 |
+| Reject blank/whitespace name (400 "Enter a player name."); no "Player" fallback | `roomStore` `requireName` | FR-002 |
 | Store/display trimmed name | `roomStore` `createParticipant` | FR-003 |
 | Exactly one drawer = host on start | `startGame` sets `drawerId = hostId` | FR-004 |
 | Drawer identity visible to all | `toRoomSnapshot` always returns `drawerId` | FR-005 |
