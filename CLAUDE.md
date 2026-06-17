@@ -1,7 +1,8 @@
 <!-- SPECKIT START -->
-Active feature: Room Setup & Lobby (Feature Group 1 of 4).
-Current plan: specs/001-room-setup-lobby/plan.md
-Spec: specs/001-room-setup-lobby/spec.md | Contracts: specs/001-room-setup-lobby/contracts/rooms-api.md
+Active feature: Game Start & Drawer Flow (Feature Group 2 of 4). Builds on Group 1.
+Current plan: specs/002-game-start-drawer/plan.md
+Spec: specs/002-game-start-drawer/spec.md | Contracts: specs/002-game-start-drawer/contracts/rooms-api.md
+Group 1 (done): specs/001-room-setup-lobby/ — host identity, ~2s polling, host-only start, auto-advance.
 
 Stack: brownfield web app — Express + Zod backend (in-memory room store, no DB), React 18 +
 React Router frontend with a useSyncExternalStore room store. Sync is polling-only (~2s); no
