@@ -64,6 +64,12 @@ export function GamePage() {
                 <dt>Your role</dt>
                 <dd>{isDrawer ? "Drawer" : "Guesser"}</dd>
               </div>
+              {isDrawer ? (
+                <div>
+                  <dt>Your word</dt>
+                  <dd>{room.word ?? "—"}</dd>
+                </div>
+              ) : null}
             </dl>
           </Card>
 

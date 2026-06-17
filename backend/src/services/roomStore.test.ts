@@ -120,4 +120,19 @@ describe("roomStore", () => {
     expect(listWords()).toContain(result.room.secretWord);
     expect(result.room.secretWord).toBe(selectWord(result.room.code));
   });
+
+  it("exposes the secret word only to the drawer", () => {
+    const created = createRoom("Alice");
+    const joined = joinRoom(created.room.code, "Bob");
+    const result = startGame(created.room.code, created.participantId);
+
+    const drawerView = toRoomSnapshot(result.room, created.participantId);
+    const guesserView = toRoomSnapshot(result.room, joined?.participantId);
+
+    expect(drawerView.word).toBe(result.room.secretWord);
+    // The guesser snapshot carries no `word` field, so it never reveals which word is secret.
+    // (The public `availableWords` list still contains all candidates by design.)
+    expect(guesserView.word).toBeUndefined();
+    expect(Object.values(guesserView).includes(result.room.secretWord as string)).toBe(false);
+  });
 });

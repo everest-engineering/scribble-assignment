@@ -137,11 +137,8 @@ export function startGame(code: string, participantId: string) {
 }
 
 export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSnapshot {
-  const role = room.drawerId
-    ? room.drawerId === viewerParticipantId
-      ? "drawer"
-      : "guesser"
-    : undefined;
+  const isDrawer = Boolean(room.drawerId) && room.drawerId === viewerParticipantId;
+  const role = room.drawerId ? (isDrawer ? "drawer" : "guesser") : undefined;
 
   return {
     code: room.code,
@@ -149,6 +146,9 @@ export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSn
     hostId: room.hostId,
     drawerId: room.drawerId,
     role,
+    // Word is exposed ONLY to the drawer; `undefined` is omitted from the JSON payload,
+    // so a guesser never receives the word (or its length).
+    word: isDrawer ? room.secretWord : undefined,
     participants: room.participants.map((participant) => ({ ...participant })),
     availableWords: listWords(),
     roles: [...STARTER_ROLES]

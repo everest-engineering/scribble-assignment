@@ -100,12 +100,12 @@ host-only start, auto-advance).
 
 ### Tests for User Story 4
 
-- [ ] T014 [P] [US4] In `backend/src/services/roomStore.test.ts`: after `startGame`, assert `toRoomSnapshot(room, hostId).word === room.secretWord` and `toRoomSnapshot(room, guesserId).word === undefined` (key absent).
+- [X] T014 [P] [US4] In `backend/src/services/roomStore.test.ts`: after `startGame`, assert `toRoomSnapshot(room, hostId).word === room.secretWord` and `toRoomSnapshot(room, guesserId).word === undefined` (key absent).
 
 ### Implementation for User Story 4
 
-- [ ] T015 [US4] In `backend/src/services/roomStore.ts`: in `toRoomSnapshot`, include `word: room.secretWord` ONLY when `viewerParticipantId === room.drawerId`; otherwise omit the field entirely.
-- [ ] T016 [US4] In `frontend/src/pages/GamePage.tsx`: if the viewer is the drawer, display `room.word`; guessers see no word (placeholder/role text only).
+- [X] T015 [US4] In `backend/src/services/roomStore.ts`: in `toRoomSnapshot`, include `word: room.secretWord` ONLY when `viewerParticipantId === room.drawerId`; otherwise omit the field entirely.
+- [X] T016 [US4] In `frontend/src/pages/GamePage.tsx`: if the viewer is the drawer, display `room.word`; guessers see no word (placeholder/role text only).
 
 **Checkpoint**: full Scenario 2 works end-to-end (quickstart V4).
 
