@@ -121,9 +121,9 @@ on start both tabs move to `/game` within ~2s.
 
 ## Phase 7: Polish & Cross-Cutting
 
-- [ ] T018 Run [quickstart.md](./quickstart.md) V1–V7 with two browsers (V8 optional curl); record pass/fail per scenario.
-- [ ] T019 [P] Confirm `npm test` passes in both `backend/` and `frontend/` (new + existing suites green).
-- [ ] T020 Record any spec/implementation deviation in spec.md or plan.md (Constitution Principle VII); none expected.
+- [X] T018 Run [quickstart.md](./quickstart.md) V1–V7 with two browsers (V8 optional curl); record pass/fail per scenario.
+- [X] T019 [P] Confirm `npm test` passes in both `backend/` and `frontend/` (new + existing suites green).
+- [X] T020 Record any spec/implementation deviation in spec.md or plan.md (Constitution Principle VII); none expected.
 
 ---
 

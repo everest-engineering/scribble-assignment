@@ -79,3 +79,15 @@ Existing Vitest suites should remain green; new contract assertions from
 cd backend && npm test
 cd frontend && npm test
 ```
+
+## Validation results — 2026-06-17
+
+| Item | Outcome |
+|------|---------|
+| V1–V7 (two-browser, incl. V7 room isolation) | ✅ Pass |
+| Backend `npm test` | ✅ 9/9 passing |
+| Frontend `npm test` | ✅ 2/2 passing |
+
+**Deviations from spec:** none. Implementation matches FR-001…FR-014 and the clarified behaviors
+(host-start auto-advance, "Enter a room code." / "No room with that code." wording). Feature Group 1
+(Scenario 1) is complete.
