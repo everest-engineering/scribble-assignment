@@ -27,8 +27,8 @@ host-only start, auto-advance).
 
 **Purpose**: Shared data-shape additions every Group 2 story depends on.
 
-- [ ] T002 [P] In `backend/src/models/game.ts`: add `drawerId?: string` and `secretWord?: string` to `Room`; add `drawerId?: string`, `role?: "drawer" | "guesser"`, and `word?: string` to `RoomSnapshot`.
-- [ ] T003 [P] In `frontend/src/services/api.ts`: extend the `RoomSnapshot` type with `drawerId?: string`, `role?: "drawer" | "guesser"`, and `word?: string`.
+- [X] T002 [P] In `backend/src/models/game.ts`: add `drawerId?: string` and `secretWord?: string` to `Room`; add `drawerId?: string`, `role?: "drawer" | "guesser"`, and `word?: string` to `RoomSnapshot`.
+- [X] T003 [P] In `frontend/src/services/api.ts`: extend the `RoomSnapshot` type with `drawerId?: string`, `role?: "drawer" | "guesser"`, and `word?: string`.
 
 **Checkpoint**: model + snapshot can carry drawer, role, and word.
 
@@ -62,13 +62,13 @@ host-only start, auto-advance).
 
 ### Tests for User Story 2
 
-- [ ] T008 [P] [US2] In `backend/src/services/roomStore.test.ts`: after `startGame`, assert `room.drawerId === room.hostId`; assert `toRoomSnapshot(room, hostId).role === "drawer"` and `toRoomSnapshot(room, otherId).role === "guesser"`, and both include `drawerId`.
+- [X] T008 [P] [US2] In `backend/src/services/roomStore.test.ts`: after `startGame`, assert `room.drawerId === room.hostId`; assert `toRoomSnapshot(room, hostId).role === "drawer"` and `toRoomSnapshot(room, otherId).role === "guesser"`, and both include `drawerId`.
 
 ### Implementation for User Story 2
 
-- [ ] T009 [US2] In `backend/src/services/roomStore.ts`: in `startGame`, set `room.drawerId = room.hostId` (depends on T002; extends Group 1 `startGame`).
-- [ ] T010 [US2] In `backend/src/services/roomStore.ts`: make `toRoomSnapshot(room, viewerParticipantId)` return `drawerId` (always, once set) and `role` = `viewerParticipantId === room.drawerId ? "drawer" : "guesser"`.
-- [ ] T011 [US2] In `frontend/src/pages/GamePage.tsx`: show the drawer's name to all viewers, and label the current viewer as Drawer or Guesser (from `room.role`).
+- [X] T009 [US2] In `backend/src/services/roomStore.ts`: in `startGame`, set `room.drawerId = room.hostId` (depends on T002; extends Group 1 `startGame`).
+- [X] T010 [US2] In `backend/src/services/roomStore.ts`: make `toRoomSnapshot(room, viewerParticipantId)` return `drawerId` (always, once set) and `role` = `viewerParticipantId === room.drawerId ? "drawer" : "guesser"`.
+- [X] T011 [US2] In `frontend/src/pages/GamePage.tsx`: show the drawer's name to all viewers, and label the current viewer as Drawer or Guesser (from `room.role`).
 
 **Checkpoint**: drawer assigned and clearly shown to everyone (quickstart V3).
 

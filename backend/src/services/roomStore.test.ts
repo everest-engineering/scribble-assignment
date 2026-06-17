@@ -87,4 +87,20 @@ describe("roomStore", () => {
 
     expectHttpStatus(() => joinRoom(created.room.code, "   "), 400);
   });
+
+  it("startGame assigns the host as drawer and snapshot reports role per viewer", () => {
+    const created = createRoom("Alice");
+    const joined = joinRoom(created.room.code, "Bob");
+    const result = startGame(created.room.code, created.participantId);
+
+    expect(result.room.drawerId).toBe(result.room.hostId);
+
+    const drawerView = toRoomSnapshot(result.room, created.participantId);
+    const guesserView = toRoomSnapshot(result.room, joined?.participantId);
+
+    expect(drawerView.drawerId).toBe(result.room.hostId);
+    expect(drawerView.role).toBe("drawer");
+    expect(guesserView.role).toBe("guesser");
+    expect(guesserView.drawerId).toBe(result.room.hostId);
+  });
 });

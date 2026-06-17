@@ -120,6 +120,7 @@ export function startGame(code: string, participantId: string) {
   }
 
   room.status = "active";
+  room.drawerId = room.hostId;
   room.updatedAt = now();
   rooms.set(room.code, room);
 
@@ -129,12 +130,18 @@ export function startGame(code: string, participantId: string) {
 }
 
 export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSnapshot {
-  void viewerParticipantId;
+  const role = room.drawerId
+    ? room.drawerId === viewerParticipantId
+      ? "drawer"
+      : "guesser"
+    : undefined;
 
   return {
     code: room.code,
     status: room.status,
     hostId: room.hostId,
+    drawerId: room.drawerId,
+    role,
     participants: room.participants.map((participant) => ({ ...participant })),
     availableWords: listWords(),
     roles: [...STARTER_ROLES]
