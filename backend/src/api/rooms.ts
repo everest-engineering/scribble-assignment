@@ -1,12 +1,45 @@
 import { Router } from "express";
 import {
+  canvasUpdateSchema,
   createRoomSchema,
+  endRoundSchema,
   HttpError,
   joinRoomSchema,
+  leaveRoomSchema,
+  restartSchema,
   roomCodeParamsSchema,
-  roomViewerQuerySchema
+  roomViewerQuerySchema,
+  startGameSchema,
+  submitGuessSchema
 } from "./schemas.js";
-import { createRoom, getRoom, joinRoom, toRoomSnapshot } from "../services/roomStore.js";
+import {
+  createRoom,
+  endRound,
+  getRoom,
+  joinRoom,
+  leaveRoom,
+  restartGame,
+  saveCanvas,
+  startGame,
+  submitGuess,
+  toRoomSnapshot
+} from "../services/roomStore.js";
+import { RoomError } from "../models/game.js";
+
+function handleRoomError(error: unknown): never {
+  if (error instanceof RoomError) {
+    const statusMap: Record<string, number> = {
+      NOT_FOUND: 404,
+      ROOM_CLOSED: 409,
+      ROOM_FULL: 409,
+      INVALID_STATE: 409,
+      FORBIDDEN: 403,
+      MIN_PLAYERS: 400
+    };
+    throw new HttpError(statusMap[error.code] ?? 400, error.message);
+  }
+  throw error;
+}
 
 export function createRoomsRouter() {
   const router = Router();
@@ -29,16 +62,16 @@ export function createRoomsRouter() {
     try {
       const { code } = roomCodeParamsSchema.parse(request.params);
       const { playerName } = joinRoomSchema.parse(request.body);
-      const result = joinRoom(code.toUpperCase(), playerName);
 
-      if (!result) {
-        throw new HttpError(404, "Unable to join room");
+      try {
+        const result = joinRoom(code.toUpperCase(), playerName);
+        response.json({
+          participantId: result.participantId,
+          room: toRoomSnapshot(result.room, result.participantId)
+        });
+      } catch (joinError) {
+        handleRoomError(joinError);
       }
-
-      response.json({
-        participantId: result.participantId,
-        room: toRoomSnapshot(result.room, result.participantId)
-      });
     } catch (error) {
       next(error);
     }
@@ -57,6 +90,102 @@ export function createRoomsRouter() {
       response.json({
         room: toRoomSnapshot(room, participantId)
       });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/:code/leave", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId } = leaveRoomSchema.parse(request.body);
+
+      try {
+        const result = leaveRoom(code.toUpperCase(), participantId);
+        response.json(result);
+      } catch (leaveError) {
+        handleRoomError(leaveError);
+      }
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.put("/:code/canvas", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId, strokes } = canvasUpdateSchema.parse(request.body);
+
+      try {
+        const result = saveCanvas(code.toUpperCase(), participantId, strokes);
+        response.json(result);
+      } catch (canvasError) {
+        handleRoomError(canvasError);
+      }
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/:code/guesses", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId, text } = submitGuessSchema.parse(request.body);
+
+      try {
+        const result = submitGuess(code.toUpperCase(), participantId, text);
+        response.json(result);
+      } catch (guessError) {
+        handleRoomError(guessError);
+      }
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/:code/end-round", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId } = endRoundSchema.parse(request.body);
+
+      try {
+        const result = endRound(code.toUpperCase(), participantId);
+        response.json(result);
+      } catch (endError) {
+        handleRoomError(endError);
+      }
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/:code/restart", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId } = restartSchema.parse(request.body);
+
+      try {
+        const result = restartGame(code.toUpperCase(), participantId);
+        response.json(result);
+      } catch (restartError) {
+        handleRoomError(restartError);
+      }
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/:code/start", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId } = startGameSchema.parse(request.body);
+
+      try {
+        const result = startGame(code.toUpperCase(), participantId);
+        response.json(result);
+      } catch (startError) {
+        handleRoomError(startError);
+      }
     } catch (error) {
       next(error);
     }

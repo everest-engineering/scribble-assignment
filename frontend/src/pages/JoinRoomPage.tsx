@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { PageHeader } from "../components/PageHeader";
 import { useRoomStore } from "../state/roomStore";
 
+const CODE_REGEX = /^[A-Z0-9]{4}$/;
+
 export function JoinRoomPage() {
   const [playerName, setPlayerName] = useState("");
   const [roomCode, setRoomCode] = useState("");
@@ -12,10 +14,28 @@ export function JoinRoomPage() {
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    setError(null);
+
+    const trimmed = playerName.trim();
+    if (!trimmed) {
+      setError("Player name is required");
+      return;
+    }
+
+    const code = roomCode.toUpperCase();
+
+    if (!code) {
+      setError("Please enter a room code");
+      return;
+    }
+
+    if (!CODE_REGEX.test(code)) {
+      setError("Room code must be 4 alphanumeric characters");
+      return;
+    }
 
     try {
-      setError(null);
-      await roomStore.joinRoom(roomCode.toUpperCase(), playerName);
+      await roomStore.joinRoom(code, trimmed);
       navigate("/lobby");
     } catch (caughtError) {
       setError(caughtError instanceof Error ? caughtError.message : "Unable to join room");
@@ -47,6 +67,7 @@ export function JoinRoomPage() {
             value={roomCode}
             onChange={(event) => setRoomCode(event.target.value.toUpperCase())}
             placeholder="ABCD"
+            maxLength={4}
           />
         </label>
         {error ? <p className="form__error">{error}</p> : null}

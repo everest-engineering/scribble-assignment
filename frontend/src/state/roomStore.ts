@@ -9,11 +9,19 @@ import {
 } from "react";
 import { api, type RoomSessionResponse, type RoomSnapshot } from "../services/api";
 
+const SESSION_KEY = "scribble-session";
+
+interface StoredSession {
+  participantId: string;
+  roomCode: string;
+}
+
 export interface RoomState {
   room: RoomSnapshot | null;
   participantId: string | null;
   error: string | null;
   isLoading: boolean;
+  isSessionRestored: boolean;
 }
 
 type Listener = () => void;
@@ -23,10 +31,15 @@ class RoomStore {
     room: null,
     participantId: null,
     error: null,
-    isLoading: false
+    isLoading: false,
+    isSessionRestored: false
   };
 
   private listeners = new Set<Listener>();
+
+  constructor() {
+    this.restoreSession();
+  }
 
   subscribe = (listener: Listener) => {
     this.listeners.add(listener);
@@ -62,12 +75,57 @@ class RoomStore {
     }
   }
 
+  private async restoreSession() {
+    try {
+      const raw = sessionStorage.getItem(SESSION_KEY);
+      if (!raw) {
+        this.setState({ isSessionRestored: true });
+        return;
+      }
+      const stored = JSON.parse(raw) as StoredSession;
+      if (!stored.participantId || !stored.roomCode) {
+        this.setState({ isSessionRestored: true });
+        return;
+      }
+
+      this.setState({ participantId: stored.participantId });
+
+      const response = await api.fetchRoom(stored.roomCode, stored.participantId);
+      this.setRoomSnapshot(response.room);
+    } catch {
+      sessionStorage.removeItem(SESSION_KEY);
+      this.setState({ participantId: null });
+    } finally {
+      this.setState({ isSessionRestored: true });
+    }
+  }
+
+  private saveSession(participantId: string, roomCode: string) {
+    try {
+      sessionStorage.setItem(
+        SESSION_KEY,
+        JSON.stringify({ participantId, roomCode } satisfies StoredSession)
+      );
+    } catch {
+      // sessionStorage may be unavailable
+    }
+  }
+
+  private clearSession() {
+    try {
+      sessionStorage.removeItem(SESSION_KEY);
+    } catch {
+      // sessionStorage may be unavailable
+    }
+  }
+
   setRoomSession(response: RoomSessionResponse) {
     this.setState({
       participantId: response.participantId,
       room: response.room,
       error: null
     });
+    this.saveSession(response.participantId, response.room.code);
   }
 
   setRoomSnapshot(room: RoomSnapshot) {
@@ -97,6 +155,35 @@ class RoomStore {
     const response = await api.fetchRoom(this.state.room.code, this.state.participantId ?? undefined);
     this.setRoomSnapshot(response.room);
     return response.room;
+  }
+
+  async startGame() {
+    if (!this.state.room || !this.state.participantId) {
+      return;
+    }
+
+    await this.withLoading(() =>
+      api.startGame(this.state.room!.code, this.state.participantId!)
+    );
+  }
+
+  async leaveRoom() {
+    if (!this.state.room || !this.state.participantId) {
+      return;
+    }
+
+    await api.leaveRoom(this.state.room.code, this.state.participantId);
+    this.reset();
+  }
+
+  reset() {
+    this.setState({
+      room: null,
+      participantId: null,
+      error: null,
+      isLoading: false
+    });
+    this.clearSession();
   }
 }
 
