@@ -33,6 +33,7 @@
 
 - Builds on Groups 1–2: reuses active round state, drawer identity, and the secret word.
 - Deferred-by-design (Assumptions, not gaps): round end/result reveal, restart, multiple rounds → Group 4.
-- Worth tightening via `/speckit.clarify` before planning: (1) is drawing drawer-local or synced to guessers;
-  (2) are correct guesses shown verbatim in shared history or masked from other guessers. Reasonable defaults
-  documented; neither blocks planning.
+- Clarified 2026-06-17 (`/speckit.clarify`, 3 Qs): (1) drawing is drawer-local (no stroke sync); (2) guesses
+  shown verbatim to all (correct guess reveals the word); (3) a guesser's input is disabled after a correct
+  guess. Encoded into `## Clarifications`, FR-011a, US4 scenario, edge cases, and Assumptions. No checkbox
+  states changed (remained 16/16).

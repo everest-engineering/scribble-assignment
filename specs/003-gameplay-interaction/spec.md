@@ -12,6 +12,14 @@
 
 **Input**: User description: "Given a round is active with a drawer and guessers (all scores start at 0), When the drawer draws/clears the canvas and guessers submit their guesses, Then the drawing is visible on the drawer's screen; guesses are trimmed, case-insensitively compared, and empty ones rejected; the guess history is synced to all players via polling; correct guesses score 100 (incorrect add 0)."
 
+## Clarifications
+
+### Session 2026-06-17
+
+- Q: Is the drawer's canvas synced to guessers, or local to the drawer? → A: Drawer-local only — the canvas is interactive and clearable for the drawer, and stroke data is NOT sent to guessers (no pixel sync over polling).
+- Q: How are guesses shown in the shared history? → A: Verbatim to all players — every guess shows its exact text, so a correct guess reveals the word in the history (the word is revealed at round end anyway).
+- Q: After a guesser guesses correctly, what happens to their guess input? → A: It is disabled for the rest of the round (they have scored their 100 and cannot submit further guesses).
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - The drawer can draw and clear the canvas (Priority: P1)
@@ -87,14 +95,14 @@ becomes 100 on all screens; submit incorrect guesses and confirm no score change
 1. **Given** a freshly started round, **When** the scoreboard is viewed, **Then** every participant's score is 0.
 2. **Given** a guesser submits a correct guess, **When** scores update, **Then** that guesser's score is 100 and is reflected on all players' scoreboards within ~2 seconds.
 3. **Given** a guesser submits an incorrect guess, **When** scores update, **Then** no score changes.
-4. **Given** a guesser has already scored for a correct guess, **When** they submit again, **Then** their score does not increase further.
+4. **Given** a guesser has already scored for a correct guess, **When** the round continues, **Then** their guess input is disabled and their score does not increase further.
 
 ### Edge Cases
 
 - **Empty/whitespace-only guess** → rejected with a clear message; not recorded; no score change.
 - **Case/spacing differences** ("  CASTLE " vs "castle") → treated as correct (trim + case-insensitive).
 - **Drawer attempts to guess** → no guess control available to the drawer; a drawer guess is not accepted.
-- **Repeat correct guess by the same guesser** → scores once only; no double-award.
+- **Repeat correct guess by the same guesser** → scores once only; no double-award, and their guess input is disabled after the first correct guess.
 - **Guess submitted before/after the active round** → only meaningful while the room is in the active round state.
 - **History/scoreboard while polling** → no duplicate entries; consistent across players.
 
@@ -113,6 +121,7 @@ becomes 100 on all screens; submit incorrect guesses and confirm no score change
 - **FR-009**: The system MUST initialize every participant's score to 0 for the round.
 - **FR-010**: The system MUST award exactly 100 points to a guesser for a correct guess and 0 for an incorrect guess.
 - **FR-011**: The system MUST NOT award additional points for a repeat correct guess by a guesser who has already scored.
+- **FR-011a**: After a guesser has guessed correctly, the system MUST disable further guess submission for that guesser for the remainder of the round.
 - **FR-012**: The system MUST make scores visible to all players and keep them current via polling.
 - **FR-013**: The system MUST preserve Group 1 & 2 behaviors (host/lobby/start/auto-advance, name validation, drawer assignment, deterministic word, drawer-only word visibility) without regression.
 
@@ -135,10 +144,10 @@ becomes 100 on all screens; submit incorrect guesses and confirm no score change
 
 ## Assumptions
 
-- **Drawing is local to the drawer's screen** for this group: the canvas is interactive and clearable for the drawer, but stroke data is NOT synced to guessers (real-time/transport-heavy pixel sync is out of scope under the polling-only constraint). The assignment requires the drawing "visible on the drawer's screen"; guessers see the canvas area but not live strokes. (Clarification candidate.)
-- Guess **text is shown verbatim** in the shared history to all players; a correct guess therefore reveals the word in the history (consistent with how the word is revealed at round end). Masking correct guesses from other guessers is a possible alternative. (Clarification candidate.)
+- **Drawing is local to the drawer's screen** for this group: the canvas is interactive and clearable for the drawer, but stroke data is NOT synced to guessers (real-time/transport-heavy pixel sync is out of scope under the polling-only constraint). Guessers see the canvas area but not live strokes (confirmed in Clarifications).
+- Guess **text is shown verbatim** in the shared history to all players; a correct guess therefore reveals the word in the history (consistent with how the word is revealed at round end) (confirmed in Clarifications).
 - Only **guessers** submit guesses; the drawer knows the word and has no guess control.
-- A guesser scores **once** for a correct guess; subsequent guesses (correct or not) never change their score.
+- A guesser scores **once** for a correct guess; after a correct guess their guess input is disabled for the round and their score never changes again (confirmed in Clarifications).
 - Scoring is fixed at **100 for correct, 0 otherwise**; no speed/order bonuses, no penalties (out of scope).
 - This group covers a **single active round**: no round end/result reveal, restart, multiple rounds, or drawer rotation (Group 4 / explicitly out of scope).
 - Work extends the Group 1–2 in-memory room model and polling; no persistence, auth, real-time transport, or new libraries (brownfield).
