@@ -33,9 +33,9 @@ dependencies. HTTP status codes (403/409) and all frontend behavior are validate
 
 **⚠️ CRITICAL**: No user story work begins until this phase is complete.
 
-- [ ] T002 [P] Add `hostId: string` to `Room` and `RoomSnapshot`, and widen `RoomStatus` to `"lobby" | "active"` in `backend/src/models/game.ts`.
-- [ ] T003 In `backend/src/services/roomStore.ts`: set `hostId = participant.id` in `createRoom()`, and include `hostId` and `status` in the object returned by `toRoomSnapshot()` (depends on T002).
-- [ ] T004 [P] Extend the `RoomSnapshot` type with `hostId: string` and `status: "lobby" | "active"` in `frontend/src/services/api.ts`.
+- [X] T002 [P] Add `hostId: string` to `Room` and `RoomSnapshot`, and widen `RoomStatus` to `"lobby" | "active"` in `backend/src/models/game.ts`.
+- [X] T003 In `backend/src/services/roomStore.ts`: set `hostId = participant.id` in `createRoom()`, and include `hostId` and `status` in the object returned by `toRoomSnapshot()` (depends on T002).
+- [X] T004 [P] Extend the `RoomSnapshot` type with `hostId: string` and `status: "lobby" | "active"` in `frontend/src/services/api.ts`.
 
 **Checkpoint**: Model + snapshot now carry host identity and a started state; stories can begin.
 
