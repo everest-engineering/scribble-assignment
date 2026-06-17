@@ -10,6 +10,14 @@
 
 **Input**: User description: "Room Setup & Lobby — creator becomes host; invalid/empty codes rejected with clear feedback; rooms fully isolated; lobby refreshes via polling (~2s); only the host can start the game once at least 2 players are present."
 
+## Clarifications
+
+### Session 2026-06-17
+
+- Q: When the host starts the game, what should other players' lobby screens do? → A: All players auto-advance to the game screen together, with non-hosts detecting the started state via the ~2s poll (no manual action required).
+- Q: Exact wording for the two distinct join errors? → A: Empty/whitespace code → "Enter a room code."; unknown code → "No room with that code."
+- Q: How should Group 1 treat a browser reload while in the lobby? → A: Out of scope for Group 1 — client room state is per-session, so a reload returns the player to the start screen (existing starter behavior); no session-restoration work is added.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Host creates a room and is identified as host (Priority: P1)
@@ -45,8 +53,8 @@ the same lobby; then attempt an empty code and an unknown code and confirm disti
 **Acceptance Scenarios**:
 
 1. **Given** a valid existing room code, **When** a player joins, **Then** they enter that room's lobby and are listed as a (non-host) participant.
-2. **Given** an empty or whitespace-only code, **When** the player attempts to join, **Then** the join is rejected with a "room code is required" message and no navigation occurs.
-3. **Given** a syntactically present but non-existent code, **When** the player attempts to join, **Then** the join is rejected with a "room not found" message distinct from the empty-code message.
+2. **Given** an empty or whitespace-only code, **When** the player attempts to join, **Then** the join is rejected with the message "Enter a room code." and no navigation occurs.
+3. **Given** a syntactically present but non-existent code, **When** the player attempts to join, **Then** the join is rejected with the message "No room with that code." (distinct from the empty-code message).
 4. **Given** a code entered in lower case, **When** the player joins, **Then** the code is matched case-insensitively to the existing room.
 
 ---
@@ -87,7 +95,7 @@ control is ever offered.
 1. **Given** a room with only the host present, **When** the host views the lobby, **Then** the start control is disabled and explains that at least 2 players are required.
 2. **Given** a room with 2 or more players, **When** the host views the lobby, **Then** the start control is enabled and the host can start the game.
 3. **Given** a room with 2 or more players, **When** a non-host views the lobby, **Then** no enabled start control is presented to them.
-4. **Given** the host starts the game, **When** the start succeeds, **Then** the room leaves the waiting-lobby state into a started state observable to all players in that room.
+4. **Given** the host starts the game, **When** the start succeeds, **Then** the room leaves the waiting-lobby state into a started state, and every player in that room — host and non-hosts — advances to the game screen together, with non-hosts detecting the change via the ~2s poll without manual action.
 5. **Given** a non-host attempts to trigger a start, **When** the request is evaluated, **Then** it is refused.
 
 ### Edge Cases
@@ -100,6 +108,8 @@ control is ever offered.
 - **Two rooms active at once** → each lobby shows only its own participants and its own start eligibility; one room's membership never leaks into another.
 - **Lobby left open with no changes** → polling continues without errors and without duplicating participants.
 - **Host identity** → remains the original creator for the room's lifetime within this feature group.
+- **Host starts the game** → all players in the room (host and non-hosts) advance to the game screen together; non-hosts move automatically when their next poll observes the started state.
+- **Browser reload in the lobby** → out of scope for Group 1: client room state is per-session, so a reload returns the player to the start screen; no session restoration is added here.
 
 ## Requirements *(mandatory)*
 
@@ -117,7 +127,7 @@ control is ever offered.
 - **FR-010**: The system MUST present an enabled start control only to the host and only when the room has at least 2 participants.
 - **FR-011**: The system MUST NOT present an enabled start control to non-host participants under any participant count.
 - **FR-012**: The system MUST refuse a start request that originates from a non-host or that targets a room with fewer than 2 participants, independent of what any client UI shows.
-- **FR-013**: On a successful start, the system MUST transition the room out of the waiting-lobby state into a started state that all participants in that room can observe via the same polling mechanism.
+- **FR-013**: On a successful start, the system MUST transition the room out of the waiting-lobby state into a started state that all participants in that room observe via the same polling mechanism, causing every player's client — host and non-hosts — to advance from the lobby to the game screen together (non-hosts advance automatically on their next poll, with no manual action).
 - **FR-014**: The system MUST express join and start rejections as clear, user-facing messages rather than silent failures.
 
 ### Key Entities *(include if feature involves data)*
@@ -143,5 +153,5 @@ control is ever offered.
 - Player-name trimming and rejection of blank names is **deferred to Feature Group 2** and is not validated here; this group accepts whatever name handling the starter already provides and leaves a seam for stricter validation later.
 - Drawer assignment, secret word selection, gameplay, scoring, results, and restart are out of scope for this group; the "started" state introduced by FR-013 is only a seam that later groups build upon.
 - The host does not change for the room's lifetime within this group; participant-leave/host-reassignment flows are not in scope (no leave action exists in the starter).
-- Each browser tab represents one participant; identity is carried per session, not persisted across reloads.
+- Each browser tab represents one participant; identity is carried per session in memory and is NOT persisted across reloads — a reload returns the player to the start screen. Session restoration is explicitly out of scope for Group 1.
 - The existing create/join/get-room flows and the existing manual refresh are reused and extended, not replaced (brownfield enhancement).
