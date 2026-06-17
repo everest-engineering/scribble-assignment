@@ -70,4 +70,21 @@ describe("roomStore", () => {
 
     expect(result.room.status).toBe("active");
   });
+
+  it("createRoom rejects a blank or whitespace-only name with 400", () => {
+    expectHttpStatus(() => createRoom("   "), 400);
+    expectHttpStatus(() => createRoom(undefined), 400);
+  });
+
+  it("createRoom trims the player name", () => {
+    const result = createRoom("  Alice  ");
+
+    expect(result.room.participants[0].name).toBe("Alice");
+  });
+
+  it("joinRoom rejects a blank name with 400", () => {
+    const created = createRoom("Alice");
+
+    expectHttpStatus(() => joinRoom(created.room.code, "   "), 400);
+  });
 });

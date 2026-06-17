@@ -42,13 +42,13 @@ host-only start, auto-advance).
 
 ### Tests for User Story 1
 
-- [ ] T004 [P] [US1] In `backend/src/services/roomStore.test.ts`: assert `createRoom("   ")` throws a 400-class error, and `createRoom("  Alice  ")` stores `participants[0].name === "Alice"`; same trim/reject for `joinRoom`.
+- [X] T004 [P] [US1] In `backend/src/services/roomStore.test.ts`: assert `createRoom("   ")` throws a 400-class error, and `createRoom("  Alice  ")` stores `participants[0].name === "Alice"`; same trim/reject for `joinRoom`.
 
 ### Implementation for User Story 1
 
-- [ ] T005 [US1] In `backend/src/services/roomStore.ts`: trim the player name in `createRoom`/`joinRoom`; if empty after trim, throw `HttpError(400, "Enter a player name.")`; store the trimmed name; remove the `"Player"` fallback in `displayName`.
-- [ ] T006 [P] [US1] In `frontend/src/pages/CreateRoomPage.tsx`: trim the name on submit; if empty, show `"Enter a player name."` and do NOT call the API or navigate.
-- [ ] T007 [P] [US1] In `frontend/src/pages/JoinRoomPage.tsx`: trim the name on submit; if empty, show `"Enter a player name."` and do NOT call the API (in addition to the existing Group 1 empty-code guard).
+- [X] T005 [US1] In `backend/src/services/roomStore.ts`: trim the player name in `createRoom`/`joinRoom`; if empty after trim, throw `HttpError(400, "Enter a player name.")`; store the trimmed name; remove the `"Player"` fallback in `displayName`.
+- [X] T006 [P] [US1] In `frontend/src/pages/CreateRoomPage.tsx`: trim the name on submit; if empty, show `"Enter a player name."` and do NOT call the API or navigate.
+- [X] T007 [P] [US1] In `frontend/src/pages/JoinRoomPage.tsx`: trim the name on submit; if empty, show `"Enter a player name."` and do NOT call the API (in addition to the existing Group 1 empty-code guard).
 
 **Checkpoint**: blank names rejected everywhere; names stored trimmed (quickstart V1–V2).
 
