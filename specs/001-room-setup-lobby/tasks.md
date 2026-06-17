@@ -49,11 +49,11 @@ dependencies. HTTP status codes (403/409) and all frontend behavior are validate
 
 ### Tests for User Story 1
 
-- [ ] T005 [P] [US1] In `backend/src/services/roomStore.test.ts`: assert `createRoom()` sets `hostId` to the creator participant's id, and `toRoomSnapshot()` exposes `hostId` and `status: "lobby"`.
+- [X] T005 [P] [US1] In `backend/src/services/roomStore.test.ts`: assert `createRoom()` sets `hostId` to the creator participant's id, and `toRoomSnapshot()` exposes `hostId` and `status: "lobby"`.
 
 ### Implementation for User Story 1
 
-- [ ] T006 [US1] In `frontend/src/pages/LobbyPage.tsx`: derive `isHost = participantId === room.hostId` and render a "Host" badge on the host's row in the participant list.
+- [X] T006 [US1] In `frontend/src/pages/LobbyPage.tsx`: derive `isHost = participantId === room.hostId` and render a "Host" badge on the host's row in the participant list.
 
 **Checkpoint**: Host identity is created (T003) and visible (T006), proven by T005.
 

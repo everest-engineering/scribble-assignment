@@ -49,8 +49,27 @@ export function LobbyPage() {
             <ul className="player-list">
               {room.participants.map((participant) => (
                 <li key={participant.id}>
-                  <span>{participant.name}</span>
-                  <span className="player-list__meta">joined</span>
+                  <span>
+                    {participant.name}
+                    {participant.id === room.hostId ? (
+                      <span
+                        className="player-list__badge"
+                        style={{
+                          marginLeft: 8,
+                          padding: "2px 8px",
+                          borderRadius: 999,
+                          backgroundColor: "#4338ca",
+                          color: "#fff",
+                          fontSize: 12
+                        }}
+                      >
+                        Host
+                      </span>
+                    ) : null}
+                  </span>
+                  <span className="player-list__meta">
+                    {participant.id === room.hostId ? "host" : "joined"}
+                  </span>
                 </li>
               ))}
             </ul>
