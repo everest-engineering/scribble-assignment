@@ -42,8 +42,8 @@ matching the Group 1–2 pattern — no new test deps. Frontend behavior (canvas
 
 ### Implementation for User Story 1
 
-- [ ] T005 [P] [US1] Create `frontend/src/components/DrawingCanvas.tsx`: an interactive freehand `<canvas>` (pointer events) with a Clear button; accepts an `enabled` prop so only the drawer can draw.
-- [ ] T006 [US1] In `frontend/src/pages/GamePage.tsx`: replace the canvas placeholder with `<DrawingCanvas enabled={isDrawer} />` (interactive for the drawer, inert for guessers).
+- [X] T005 [P] [US1] Create `frontend/src/components/DrawingCanvas.tsx`: an interactive freehand `<canvas>` (pointer events) with a Clear button; accepts an `enabled` prop so only the drawer can draw.
+- [X] T006 [US1] In `frontend/src/pages/GamePage.tsx`: replace the canvas placeholder with `<DrawingCanvas enabled={isDrawer} />` (interactive for the drawer, inert for guessers).
 
 **Checkpoint**: drawer draws/clears; guessers can't (quickstart V1). No backend involved (drawer-local).
 
