@@ -88,7 +88,7 @@ code → "No room with that code.".
 
 ### Implementation for User Story 3
 
-- [ ] T010 [US3] In `frontend/src/pages/LobbyPage.tsx`: add a `setInterval(…, 2000)` in a `useEffect` that calls `roomStore.fetchRoom()`, cleared on unmount; keep the manual "Refresh Room" button as a fallback. (Frontend behavior validated via quickstart V4.)
+- [X] T010 [US3] In `frontend/src/pages/LobbyPage.tsx`: add a `setInterval(…, 2000)` in a `useEffect` that calls `roomStore.fetchRoom()`, cleared on unmount; keep the manual "Refresh Room" button as a fallback. (Frontend behavior validated via quickstart V4.)
 
 **Checkpoint**: Lobby auto-updates; manual refresh still works.
 

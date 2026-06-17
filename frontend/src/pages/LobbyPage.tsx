@@ -17,6 +17,16 @@ export function LobbyPage() {
     }
   }, [navigate, room]);
 
+  // Auto-refresh the lobby (~2s polling) so newly joined players appear without a manual refresh.
+  // Polling errors are non-fatal here; the manual Refresh button surfaces them explicitly.
+  useEffect(() => {
+    const intervalId = window.setInterval(() => {
+      void roomStore.fetchRoom().catch(() => undefined);
+    }, 2000);
+
+    return () => window.clearInterval(intervalId);
+  }, [roomStore]);
+
   async function handleRefresh() {
     try {
       setRefreshError(null);
