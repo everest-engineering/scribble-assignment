@@ -6,10 +6,11 @@ import { GuessForm } from "../components/GuessForm";
 import { ResultPanel } from "../components/ResultPanel";
 import { RoomCodeBadge } from "../components/RoomCodeBadge";
 import { Scoreboard } from "../components/Scoreboard";
-import { useRoomState } from "../state/roomStore";
+import { useRoomState, useRoomStore } from "../state/roomStore";
 
 export function GamePage() {
   const navigate = useNavigate();
+  const roomStore = useRoomStore();
   const { room, participantId } = useRoomState();
 
   useEffect(() => {
@@ -17,6 +18,15 @@ export function GamePage() {
       navigate("/", { replace: true });
     }
   }, [navigate, room]);
+
+  // Auto-refresh the game (~2s polling) so guess history and scores stay in sync for all players.
+  useEffect(() => {
+    const intervalId = window.setInterval(() => {
+      void roomStore.fetchRoom().catch(() => undefined);
+    }, 2000);
+
+    return () => window.clearInterval(intervalId);
+  }, [roomStore]);
 
   if (!room) {
     return null;

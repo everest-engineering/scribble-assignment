@@ -80,12 +80,12 @@ matching the Group 1–2 pattern — no new test deps. Frontend behavior (canvas
 
 ### Tests for User Story 3
 
-- [ ] T014 [P] [US3] In `backend/src/services/roomStore.test.ts`: after a guess, assert `toRoomSnapshot(room, anyViewerId).guesses` contains the guess and is identical for drawer and guesser viewers.
+- [X] T014 [P] [US3] In `backend/src/services/roomStore.test.ts`: after a guess, assert `toRoomSnapshot(room, anyViewerId).guesses` contains the guess and is identical for drawer and guesser viewers.
 
 ### Implementation for User Story 3
 
-- [ ] T015 [US3] In `backend/src/services/roomStore.ts`: include `guesses: room.guesses.map(...)` in `toRoomSnapshot` (same for all viewers).
-- [ ] T016 [US3] In `frontend/src/components/ResultPanel.tsx`: render the shared guess history from room state (each entry: guesser name, text, correct/incorrect), newest-aware ordering.
+- [X] T015 [US3] In `backend/src/services/roomStore.ts`: include `guesses: room.guesses.map(...)` in `toRoomSnapshot` (same for all viewers).
+- [X] T016 [US3] In `frontend/src/components/ResultPanel.tsx`: render the shared guess history from room state (each entry: guesser name, text, correct/incorrect), newest-aware ordering.
 
 **Checkpoint**: history visible and synced across tabs (quickstart V3).
 

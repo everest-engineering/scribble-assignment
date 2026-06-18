@@ -165,4 +165,18 @@ describe("roomStore", () => {
     expect(right.room.guesses.at(-1)?.correct).toBe(true);
     expect(right.room.guesses.at(-1)?.text).toBe(word.toUpperCase());
   });
+
+  it("includes the shared guess history in every viewer's snapshot", () => {
+    const created = createRoom("Alice");
+    const joined = joinRoom(created.room.code, "Bob");
+    startGame(created.room.code, created.participantId);
+    const after = submitGuess(created.room.code, joined?.participantId as string, "pizza");
+
+    const drawerView = toRoomSnapshot(after.room, created.participantId);
+    const guesserView = toRoomSnapshot(after.room, joined?.participantId);
+
+    expect(drawerView.guesses).toHaveLength(1);
+    expect(drawerView.guesses[0].text).toBe("pizza");
+    expect(guesserView.guesses).toEqual(drawerView.guesses);
+  });
 });
