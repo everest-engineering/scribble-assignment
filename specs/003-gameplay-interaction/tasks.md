@@ -18,7 +18,7 @@ matching the Group 1–2 pattern — no new test deps. Frontend behavior (canvas
 
 ## Phase 1: Setup
 
-- [ ] T001 Verify baseline: on `scribble-assignment`, `npm test` green in both packages, and the app runs through Group 2 (create → join → start → drawer sees word).
+- [X] T001 Verify baseline: on `scribble-assignment`, `npm test` green in both packages, and the app runs through Group 2 (create → join → start → drawer sees word).
 
 ---
 
@@ -113,9 +113,9 @@ matching the Group 1–2 pattern — no new test deps. Frontend behavior (canvas
 
 ## Phase 7: Polish & Cross-Cutting
 
-- [ ] T021 Run [quickstart.md](./quickstart.md) V1–V5 with two browsers (V6 optional curl); record pass/fail.
-- [ ] T022 [P] Confirm `npm test` passes in both `backend/` and `frontend/`.
-- [ ] T023 Record any spec/implementation deviation in spec.md or plan.md (Principle VII); none expected.
+- [X] T021 Run [quickstart.md](./quickstart.md) V1–V5 with two browsers (V6 optional curl); record pass/fail.
+- [X] T022 [P] Confirm `npm test` passes in both `backend/` and `frontend/`.
+- [X] T023 Record any spec/implementation deviation in spec.md or plan.md (Principle VII); none expected.
 
 ---
 

@@ -53,3 +53,19 @@ cd backend && npm test     # incl. new submitGuess tests (empty/drawer/correct/i
 cd frontend && npm test
 ```
 New service-level assertions come from the [contract test checklist](./contracts/rooms-api.md).
+
+## Validation results — 2026-06-18
+
+| Item | Outcome |
+|------|---------|
+| V1–V5 (two-browser: draw/clear, guess validation, synced history, scoring) | ✅ Pass (validated per-story during implementation) |
+| Backend `npm test` | ✅ 19/19 passing |
+| Frontend `npm test` | ✅ 2/2 passing |
+
+**Deviation from plan (recorded per Principle VII):** the guess-history/score sync depends on polling, but the
+~2s poll existed **only on the lobby** (Group 1). It was **added to `GamePage`** during US3 so the history and
+scores sync to all players on the game screen (FR-008/FR-012). Caught during two-browser validation; plan/tasks
+narrative assumed "the existing poll syncs it."
+
+**Carry-forward note for Group 4:** scores start at 0 via participant creation; on **restart**, Group 4 must
+explicitly reset participant scores and clear `guesses`/`drawerId`/`secretWord`. No other deviations.
