@@ -1,5 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { createRoom, joinRoom, listWords, selectWord, startGame, toRoomSnapshot } from "./roomStore.js";
+import {
+  createRoom,
+  joinRoom,
+  listWords,
+  selectWord,
+  startGame,
+  submitGuess,
+  toRoomSnapshot
+} from "./roomStore.js";
 
 function expectHttpStatus(fn: () => unknown, statusCode: number) {
   try {
@@ -134,5 +142,27 @@ describe("roomStore", () => {
     // (The public `availableWords` list still contains all candidates by design.)
     expect(guesserView.word).toBeUndefined();
     expect(Object.values(guesserView).includes(result.room.secretWord as string)).toBe(false);
+  });
+
+  it("submitGuess validates input and records correctness", () => {
+    const created = createRoom("Alice");
+    const joined = joinRoom(created.room.code, "Bob");
+    const result = startGame(created.room.code, created.participantId);
+    const word = result.room.secretWord as string;
+    const guesserId = joined?.participantId as string;
+
+    // empty/whitespace rejected
+    expectHttpStatus(() => submitGuess(created.room.code, guesserId, "   "), 400);
+    // the drawer cannot guess
+    expectHttpStatus(() => submitGuess(created.room.code, created.participantId, "anything"), 403);
+
+    // a wrong guess is recorded as incorrect
+    const wrong = submitGuess(created.room.code, guesserId, "definitely-not-the-word");
+    expect(wrong.room.guesses.at(-1)?.correct).toBe(false);
+
+    // a correct guess (different case + surrounding spaces) is recorded as correct
+    const right = submitGuess(created.room.code, guesserId, `  ${word.toUpperCase()} `);
+    expect(right.room.guesses.at(-1)?.correct).toBe(true);
+    expect(right.room.guesses.at(-1)?.text).toBe(word.toUpperCase());
   });
 });

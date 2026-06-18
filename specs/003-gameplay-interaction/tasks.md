@@ -57,16 +57,16 @@ matching the Group 1–2 pattern — no new test deps. Frontend behavior (canvas
 
 ### Tests for User Story 2
 
-- [ ] T007 [P] [US2] In `backend/src/services/roomStore.test.ts`: assert `submitGuess` throws 400 for empty/whitespace text, 403 for the drawer; a correct guess ("  CASTLE " vs the word) is appended with `correct:true`; a wrong guess with `correct:false`.
+- [X] T007 [P] [US2] In `backend/src/services/roomStore.test.ts`: assert `submitGuess` throws 400 for empty/whitespace text, 403 for the drawer; a correct guess ("  CASTLE " vs the word) is appended with `correct:true`; a wrong guess with `correct:false`.
 
 ### Implementation for User Story 2
 
-- [ ] T008 [US2] In `backend/src/api/schemas.ts`: add `submitGuessSchema = z.object({ participantId: z.string().min(1), text: z.string() })`.
-- [ ] T009 [US2] In `backend/src/services/roomStore.ts`: add `submitGuess(code, participantId, text)` — 404 if missing; throw `HttpError(403, "The drawer cannot guess.")` if `participantId === drawerId`; trim and throw `HttpError(400, "Enter a guess.")` if empty; compute `correct` via case-insensitive compare to `secretWord`; append `{ id, participantId, name, text(trimmed), correct, at }` to `room.guesses`; return the saved room. (Scoring added in US4.)
-- [ ] T010 [US2] In `backend/src/api/rooms.ts`: add `POST /:code/start`-style handler `POST /:code/guess` parsing `submitGuessSchema` and calling `submitGuess`, returning `{ room: toRoomSnapshot(...) }`.
-- [ ] T011 [P] [US2] In `frontend/src/services/api.ts`: add `submitGuess(code, participantId, text)` calling `POST /rooms/:code/guess`.
-- [ ] T012 [US2] In `frontend/src/state/roomStore.ts`: add a `submitGuess(text)` action that calls `api.submitGuess(code, participantId, text)` and applies the returned snapshot.
-- [ ] T013 [US2] In `frontend/src/components/GuessForm.tsx`: wire submit to the store; trim and reject empty with `"Enter a guess."` (no API call); render only for guessers (the drawer gets no guess input). (Disable-after-correct added in US4.)
+- [X] T008 [US2] In `backend/src/api/schemas.ts`: add `submitGuessSchema = z.object({ participantId: z.string().min(1), text: z.string() })`.
+- [X] T009 [US2] In `backend/src/services/roomStore.ts`: add `submitGuess(code, participantId, text)` — 404 if missing; throw `HttpError(403, "The drawer cannot guess.")` if `participantId === drawerId`; trim and throw `HttpError(400, "Enter a guess.")` if empty; compute `correct` via case-insensitive compare to `secretWord`; append `{ id, participantId, name, text(trimmed), correct, at }` to `room.guesses`; return the saved room. (Scoring added in US4.)
+- [X] T010 [US2] In `backend/src/api/rooms.ts`: add `POST /:code/start`-style handler `POST /:code/guess` parsing `submitGuessSchema` and calling `submitGuess`, returning `{ room: toRoomSnapshot(...) }`.
+- [X] T011 [P] [US2] In `frontend/src/services/api.ts`: add `submitGuess(code, participantId, text)` calling `POST /rooms/:code/guess`.
+- [X] T012 [US2] In `frontend/src/state/roomStore.ts`: add a `submitGuess(text)` action that calls `api.submitGuess(code, participantId, text)` and applies the returned snapshot.
+- [X] T013 [US2] In `frontend/src/components/GuessForm.tsx`: wire submit to the store; trim and reject empty with `"Enter a guess."` (no API call); render only for guessers (the drawer gets no guess input). (Disable-after-correct added in US4.)
 
 **Checkpoint**: guesses submit, validate, and record (quickstart V2).
 

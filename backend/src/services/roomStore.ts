@@ -138,6 +138,43 @@ export function startGame(code: string, participantId: string) {
   };
 }
 
+export function submitGuess(code: string, participantId: string, text: string) {
+  const room = rooms.get(code);
+
+  if (!room) {
+    throw new HttpError(404, "Unable to load room");
+  }
+
+  if (room.drawerId === participantId) {
+    throw new HttpError(403, "The drawer cannot guess.");
+  }
+
+  const trimmed = text.trim();
+
+  if (!trimmed) {
+    throw new HttpError(400, "Enter a guess.");
+  }
+
+  const guesser = room.participants.find((participant) => participant.id === participantId);
+  const correct =
+    Boolean(room.secretWord) && trimmed.toLowerCase() === room.secretWord!.toLowerCase();
+
+  room.guesses.push({
+    id: randomUUID(),
+    participantId,
+    name: guesser?.name ?? "Unknown",
+    text: trimmed,
+    correct,
+    at: now()
+  });
+  room.updatedAt = now();
+  rooms.set(room.code, room);
+
+  return {
+    room: cloneRoom(room)
+  };
+}
+
 export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSnapshot {
   const isDrawer = Boolean(room.drawerId) && room.drawerId === viewerParticipantId;
   const role = room.drawerId ? (isDrawer ? "drawer" : "guesser") : undefined;
