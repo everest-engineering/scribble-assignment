@@ -12,6 +12,13 @@
 
 **Input**: User description: "Given a round has ended, When the result state is displayed and the host restarts, Then all players see the correct word, final scores, and full guess history; on restart, everyone returns to the lobby with players preserved and all round state cleared."
 
+## Clarifications
+
+### Session 2026-06-18
+
+- Q: What ends the active round? → A: The host ends it explicitly (a host-only "End Round" action), consistent with host-only Start/Restart lifecycle control.
+- Q: Where does Restart land everyone? → A: Back to the lobby (players preserved, round state cleared); the host then starts the next round via the normal Group 1 flow.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Round-end result is shown to everyone (Priority: P1)
@@ -98,9 +105,9 @@ the same participant list, and that drawer, secret word, guesses, and scores hav
 
 ## Assumptions
 
-- **The host ends the round** via an explicit action (the host controls the round lifecycle, consistent with host-only start in Group 1). An alternative trigger (auto-end when the word is first guessed) is possible. (Clarification candidate.)
+- **The host ends the round** via an explicit host-only action (the host controls the round lifecycle, consistent with host-only start in Group 1) — confirmed in Clarifications.
 - The result state is a distinct room lifecycle state; reaching it reveals the word to everyone (the secrecy from Group 2 applies only during the active round).
-- Restart returns to the **lobby** (not straight into a new active round); the host then starts the next round using the existing Group 1 start flow. (Clarification candidate.)
+- Restart returns to the **lobby** (not straight into a new active round); the host then starts the next round using the existing Group 1 start flow — confirmed in Clarifications.
 - "All round state cleared" means: drawer, secret word, and guess history removed, and every score reset to 0; participants (and the host) are preserved. (Addresses the Group 3 carry-forward note.)
 - This lab covers a single round per start (no automatic rotation or multi-round scoring carry-over); restart simply enables playing again from the lobby.
 - Work extends the Groups 1–3 in-memory model and polling; no persistence, auth, real-time transport, or new libraries (brownfield).

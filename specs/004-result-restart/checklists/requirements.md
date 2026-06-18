@@ -33,6 +33,6 @@
 
 - Final group: completes the lobby → active → result → lobby lifecycle. Addresses the Group 3 carry-forward
   (restart must reset scores + clear guesses/drawer/word).
-- Worth tightening via `/speckit.clarify` before planning: (1) what triggers round end — explicit host action
-  vs. auto-end on first correct guess; (2) restart returns to the lobby vs. straight into a new round.
-  Reasonable defaults documented; neither blocks planning.
+- Clarified 2026-06-18 (`/speckit.clarify`, 2 Qs): (1) the host ends the round explicitly (host-only action);
+  (2) restart returns everyone to the lobby (then normal Group 1 start). Encoded into `## Clarifications` and
+  Assumptions; FRs already matched. No checkbox states changed (remained 16/16).
