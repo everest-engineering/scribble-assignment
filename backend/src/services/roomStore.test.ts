@@ -179,4 +179,26 @@ describe("roomStore", () => {
     expect(drawerView.guesses[0].text).toBe("pizza");
     expect(guesserView.guesses).toEqual(drawerView.guesses);
   });
+
+  it("awards 100 once for a correct guess and blocks repeats", () => {
+    const created = createRoom("Alice");
+    const joined = joinRoom(created.room.code, "Bob");
+    const started = startGame(created.room.code, created.participantId);
+    const word = started.room.secretWord as string;
+    const guesserId = joined?.participantId as string;
+
+    const findScore = (room: { participants: { id: string; score: number }[] }) =>
+      room.participants.find((participant) => participant.id === guesserId)?.score;
+
+    // incorrect → score stays 0
+    const wrong = submitGuess(created.room.code, guesserId, "not-the-word");
+    expect(findScore(wrong.room)).toBe(0);
+
+    // correct → 100
+    const right = submitGuess(created.room.code, guesserId, word);
+    expect(findScore(right.room)).toBe(100);
+
+    // repeat after correct → 409, score unchanged
+    expectHttpStatus(() => submitGuess(created.room.code, guesserId, word), 409);
+  });
 });

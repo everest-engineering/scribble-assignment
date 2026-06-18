@@ -99,13 +99,13 @@ matching the Group 1–2 pattern — no new test deps. Frontend behavior (canvas
 
 ### Tests for User Story 4
 
-- [ ] T017 [P] [US4] In `backend/src/services/roomStore.test.ts`: a correct guess sets the guesser's `score` to 100; an incorrect guess leaves it 0; a repeat guess after a correct one throws 409 and the score stays 100 (scored once).
+- [X] T017 [P] [US4] In `backend/src/services/roomStore.test.ts`: a correct guess sets the guesser's `score` to 100; an incorrect guess leaves it 0; a repeat guess after a correct one throws 409 and the score stays 100 (scored once).
 
 ### Implementation for User Story 4
 
-- [ ] T018 [US4] In `backend/src/services/roomStore.ts`: in `submitGuess`, before recording, throw `HttpError(409, "You already guessed the word.")` if the guesser's `score === 100`; when a guess is correct and the guesser's score is 0, set it to 100.
-- [ ] T019 [US4] In `frontend/src/components/Scoreboard.tsx`: render participants and their `score` from room state (drawer included).
-- [ ] T020 [US4] In `frontend/src/components/GuessForm.tsx`: disable the input/submit once the viewer's own participant `score === 100` (already guessed correctly).
+- [X] T018 [US4] In `backend/src/services/roomStore.ts`: in `submitGuess`, before recording, throw `HttpError(409, "You already guessed the word.")` if the guesser's `score === 100`; when a guess is correct and the guesser's score is 0, set it to 100.
+- [X] T019 [US4] In `frontend/src/components/Scoreboard.tsx`: render participants and their `score` from room state (drawer included).
+- [X] T020 [US4] In `frontend/src/components/GuessForm.tsx`: disable the input/submit once the viewer's own participant `score === 100` (already guessed correctly).
 
 **Checkpoint**: full Scenario 3 works end-to-end (quickstart V4).
 

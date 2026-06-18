@@ -1,10 +1,14 @@
 import { useState } from "react";
-import { useRoomStore } from "../state/roomStore";
+import { useRoomState, useRoomStore } from "../state/roomStore";
 
 export function GuessForm() {
   const roomStore = useRoomStore();
+  const { room, participantId } = useRoomState();
   const [guessText, setGuessText] = useState("");
   const [error, setError] = useState<string | null>(null);
+
+  const me = room?.participants.find((participant) => participant.id === participantId) ?? null;
+  const alreadyCorrect = me?.score === 100;
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -23,6 +27,10 @@ export function GuessForm() {
     } catch (caughtError) {
       setError(caughtError instanceof Error ? caughtError.message : "Unable to submit guess");
     }
+  }
+
+  if (alreadyCorrect) {
+    return <p className="status-line" style={{ backgroundColor: "#dcfce7", color: "#15803d" }}>You guessed it! 🎉</p>;
   }
 
   return (

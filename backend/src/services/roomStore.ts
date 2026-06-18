@@ -156,6 +156,11 @@ export function submitGuess(code: string, participantId: string, text: string) {
   }
 
   const guesser = room.participants.find((participant) => participant.id === participantId);
+
+  if (guesser && guesser.score === 100) {
+    throw new HttpError(409, "You already guessed the word.");
+  }
+
   const correct =
     Boolean(room.secretWord) && trimmed.toLowerCase() === room.secretWord!.toLowerCase();
 
@@ -167,6 +172,11 @@ export function submitGuess(code: string, participantId: string, text: string) {
     correct,
     at: now()
   });
+
+  if (correct && guesser && guesser.score === 0) {
+    guesser.score = 100;
+  }
+
   room.updatedAt = now();
   rooms.set(room.code, room);
 
