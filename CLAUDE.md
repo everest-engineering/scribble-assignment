@@ -1,8 +1,8 @@
 <!-- SPECKIT START -->
-Active feature: Result, Restart & Final Validation (Feature Group 4 of 4 — final). Builds on Groups 1–3.
-Current plan: specs/004-result-restart/plan.md
-Spec: specs/004-result-restart/spec.md | Contracts: specs/004-result-restart/contracts/rooms-api.md
-Done: Group 1 (001-room-setup-lobby) host/polling/start; Group 2 (002-game-start-drawer) name validation, drawer, deterministic word, drawer-only word; Group 3 (003-gameplay-interaction) canvas, guesses, synced history, scoring.
+Active feature: increment 005-auto-end-round — a correct guess auto-ends the round to the result state (refines Groups 3/4).
+Current plan: specs/005-auto-end-round/plan.md
+Spec: specs/005-auto-end-round/spec.md | Contracts: specs/005-auto-end-round/contracts/rooms-api.md
+Done: Groups 1–4 (001-room-setup-lobby, 002-game-start-drawer, 003-gameplay-interaction, 004-result-restart) — full lobby→active→result→restart loop with host-only End Round; this increment adds auto-end on a correct guess (host End Round kept as fallback).
 
 Stack: brownfield web app — Express + Zod backend (in-memory room store, no DB), React 18 +
 React Router frontend with a useSyncExternalStore room store. Sync is polling-only (~2s); no
