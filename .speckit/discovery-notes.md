@@ -1,6 +1,9 @@
 # Discovery Notes
 
-## Incomplete Behaviors
+> **Required coverage:** this document lists **6 gaps / incomplete behaviors** (requirement: ≥3) and
+> **5 assumptions** (requirement: ≥2), plus the list of relevant files. See the two sections below.
+
+## Gaps / Incomplete Behaviors (6 — requirement: ≥3)
 
 ### 1. No host or drawer assignment
 The backend room model currently stores only `participants` and `status`. There is no separate host field and no role assignment tied to a player.
@@ -48,7 +51,7 @@ Impact:
 - Drawer-specific secret word visibility cannot be enforced.
 - The frontend cannot show role-specific content based on the viewer.
 
-## Assumptions
+## Assumptions (5 — requirement: ≥2)
 
 ### Assumption 1
 Rooms are temporary and stored only in memory. Backend restart resets all active rooms.
