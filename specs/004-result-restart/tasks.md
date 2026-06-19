@@ -65,15 +65,15 @@ matching the Groups 1–3 pattern — no new test deps. Frontend behavior valida
 
 ### Tests for User Story 2
 
-- [ ] T012 [P] [US2] In `backend/src/services/roomStore.test.ts`: assert `restartGame` throws 403 for a non-host; for the host it sets `status: "lobby"`, clears `drawerId`/`secretWord`, empties `guesses`, resets every `score` to 0, and preserves `participants` (same ids and count).
+- [X] T012 [P] [US2] In `backend/src/services/roomStore.test.ts`: assert `restartGame` throws 403 for a non-host; for the host it sets `status: "lobby"`, clears `drawerId`/`secretWord`, empties `guesses`, resets every `score` to 0, and preserves `participants` (same ids and count).
 
 ### Implementation for User Story 2
 
-- [ ] T013 [US2] In `backend/src/services/roomStore.ts`: add `restartGame(code, participantId)` — 404 if missing; throw `HttpError(403, "Only the host can restart.")` if not host; set `status = "lobby"`, `drawerId = undefined`, `secretWord = undefined`, `guesses = []`, set each participant `score = 0`; return the saved room.
-- [ ] T014 [US2] In `backend/src/api/rooms.ts`: add `POST /:code/restart` parsing `participantActionSchema` and calling `restartGame`.
-- [ ] T015 [P] [US2] In `frontend/src/services/api.ts`: add `restartGame(code, participantId)` calling `POST /rooms/:code/restart`.
-- [ ] T016 [US2] In `frontend/src/state/roomStore.ts`: add a `restartGame()` action that calls `api.restartGame(code, participantId)` and applies the snapshot.
-- [ ] T017 [US2] In `frontend/src/pages/GamePage.tsx`: show a host-only **Restart** button in the result view; add a `useEffect` that navigates to `/lobby` when `room.status === "lobby"` (mirrors Group 1 auto-advance), so all clients return to the lobby after restart.
+- [X] T013 [US2] In `backend/src/services/roomStore.ts`: add `restartGame(code, participantId)` — 404 if missing; throw `HttpError(403, "Only the host can restart.")` if not host; set `status = "lobby"`, `drawerId = undefined`, `secretWord = undefined`, `guesses = []`, set each participant `score = 0`; return the saved room.
+- [X] T014 [US2] In `backend/src/api/rooms.ts`: add `POST /:code/restart` parsing `participantActionSchema` and calling `restartGame`.
+- [X] T015 [P] [US2] In `frontend/src/services/api.ts`: add `restartGame(code, participantId)` calling `POST /rooms/:code/restart`.
+- [X] T016 [US2] In `frontend/src/state/roomStore.ts`: add a `restartGame()` action that calls `api.restartGame(code, participantId)` and applies the snapshot.
+- [X] T017 [US2] In `frontend/src/pages/GamePage.tsx`: show a host-only **Restart** button in the result view; add a `useEffect` that navigates to `/lobby` when `room.status === "lobby"` (mirrors Group 1 auto-advance), so all clients return to the lobby after restart.
 
 **Checkpoint**: full lifecycle works — start → end → result → restart → lobby (quickstart V3–V5).
 

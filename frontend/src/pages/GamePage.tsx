@@ -28,6 +28,13 @@ export function GamePage() {
     return () => window.clearInterval(intervalId);
   }, [roomStore]);
 
+  // After a host restart the room returns to "lobby"; every player's client follows it back.
+  useEffect(() => {
+    if (room?.status === "lobby") {
+      navigate("/lobby");
+    }
+  }, [navigate, room?.status]);
+
   if (!room) {
     return null;
   }
@@ -41,6 +48,14 @@ export function GamePage() {
   async function handleEnd() {
     try {
       await roomStore.endRound();
+    } catch {
+      // errors surface via room state; ignore here
+    }
+  }
+
+  async function handleRestart() {
+    try {
+      await roomStore.restartGame();
     } catch {
       // errors surface via room state; ignore here
     }
@@ -113,6 +128,11 @@ export function GamePage() {
         {isHost && room.status === "active" ? (
           <button className="button button--primary" onClick={handleEnd}>
             End Round
+          </button>
+        ) : null}
+        {isHost && isResult ? (
+          <button className="button button--primary" onClick={handleRestart}>
+            Restart
           </button>
         ) : null}
         <button className="button button--secondary" onClick={() => navigate("/lobby")}>

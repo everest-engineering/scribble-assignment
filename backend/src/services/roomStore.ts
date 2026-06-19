@@ -209,6 +209,33 @@ export function endRound(code: string, participantId: string) {
   };
 }
 
+export function restartGame(code: string, participantId: string) {
+  const room = rooms.get(code);
+
+  if (!room) {
+    throw new HttpError(404, "Unable to load room");
+  }
+
+  if (room.hostId !== participantId) {
+    throw new HttpError(403, "Only the host can restart.");
+  }
+
+  // Return to the lobby with players preserved and all round state cleared.
+  room.status = "lobby";
+  room.drawerId = undefined;
+  room.secretWord = undefined;
+  room.guesses = [];
+  room.participants.forEach((participant) => {
+    participant.score = 0;
+  });
+  room.updatedAt = now();
+  rooms.set(room.code, room);
+
+  return {
+    room: cloneRoom(room)
+  };
+}
+
 export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSnapshot {
   const isDrawer = Boolean(room.drawerId) && room.drawerId === viewerParticipantId;
   const role = room.drawerId ? (isDrawer ? "drawer" : "guesser") : undefined;

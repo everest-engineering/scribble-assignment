@@ -4,6 +4,7 @@ import {
   endRound,
   joinRoom,
   listWords,
+  restartGame,
   selectWord,
   startGame,
   submitGuess,
@@ -222,5 +223,26 @@ describe("roomStore", () => {
 
     // ending again is refused (no longer an active round)
     expectHttpStatus(() => endRound(created.room.code, created.participantId), 409);
+  });
+
+  it("restartGame is host-only and resets round state while preserving players", () => {
+    const created = createRoom("Alice");
+    const joined = joinRoom(created.room.code, "Bob");
+    const started = startGame(created.room.code, created.participantId);
+    const guesserId = joined?.participantId as string;
+    submitGuess(created.room.code, guesserId, started.room.secretWord as string); // → score 100
+    endRound(created.room.code, created.participantId);
+
+    // a non-host cannot restart
+    expectHttpStatus(() => restartGame(created.room.code, guesserId), 403);
+
+    // the host restarts → clean lobby, players preserved
+    const restarted = restartGame(created.room.code, created.participantId);
+    expect(restarted.room.status).toBe("lobby");
+    expect(restarted.room.drawerId).toBeUndefined();
+    expect(restarted.room.secretWord).toBeUndefined();
+    expect(restarted.room.guesses).toHaveLength(0);
+    expect(restarted.room.participants).toHaveLength(2);
+    expect(restarted.room.participants.every((participant) => participant.score === 0)).toBe(true);
   });
 });
