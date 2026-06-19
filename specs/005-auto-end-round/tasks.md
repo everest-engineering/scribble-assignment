@@ -30,11 +30,11 @@ Frontend needs no change (existing result handling), so it's validated via [quic
 
 ### Tests for User Story 1
 
-- [ ] T002 [P] [US1] In `backend/src/services/roomStore.test.ts`: assert that a correct guess sets the guesser's `score` to 100 **and** `room.status === "result"`, and that `toRoomSnapshot(room, guesserId).word === secretWord` after it; an incorrect guess leaves `room.status === "active"`; and `submitGuess` throws 409 ("The round is not active.") when the room is not `active`.
+- [X] T002 [P] [US1] In `backend/src/services/roomStore.test.ts`: assert that a correct guess sets the guesser's `score` to 100 **and** `room.status === "result"`, and that `toRoomSnapshot(room, guesserId).word === secretWord` after it; an incorrect guess leaves `room.status === "active"`; and `submitGuess` throws 409 ("The round is not active.") when the room is not `active`.
 
 ### Implementation for User Story 1
 
-- [ ] T003 [US1] In `backend/src/services/roomStore.ts`: in `submitGuess`, (a) add an early guard that throws `HttpError(409, "The round is not active.")` when `room.status !== "active"`; (b) when a guess is correct and the guesser is scored, set `room.status = "result"` (after awarding 100). Leave `endRound`/`restartGame` untouched (End Round stays a fallback).
+- [X] T003 [US1] In `backend/src/services/roomStore.ts`: in `submitGuess`, (a) add an early guard that throws `HttpError(409, "The round is not active.")` when `room.status !== "active"`; (b) when a guess is correct and the guesser is scored, set `room.status = "result"` (after awarding 100). Leave `endRound`/`restartGame` untouched (End Round stays a fallback).
 
 **Checkpoint**: correct guess auto-ends to the shared result; incorrect keeps playing (quickstart V1–V3).
 

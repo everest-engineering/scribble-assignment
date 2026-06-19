@@ -145,6 +145,10 @@ export function submitGuess(code: string, participantId: string, text: string) {
     throw new HttpError(404, "Unable to load room");
   }
 
+  if (room.status !== "active") {
+    throw new HttpError(409, "The round is not active.");
+  }
+
   if (room.drawerId === participantId) {
     throw new HttpError(403, "The drawer cannot guess.");
   }
@@ -175,6 +179,8 @@ export function submitGuess(code: string, participantId: string, text: string) {
 
   if (correct && guesser && guesser.score === 0) {
     guesser.score = 100;
+    // A correct guess ends the round: move the whole room to the result state (revealed to all).
+    room.status = "result";
   }
 
   room.updatedAt = now();

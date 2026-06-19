@@ -230,8 +230,9 @@ describe("roomStore", () => {
     const joined = joinRoom(created.room.code, "Bob");
     const started = startGame(created.room.code, created.participantId);
     const guesserId = joined?.participantId as string;
-    submitGuess(created.room.code, guesserId, started.room.secretWord as string); // → score 100
-    endRound(created.room.code, created.participantId);
+    // a correct guess scores 100 and now auto-ends the round to the result state (increment 005)
+    const ended = submitGuess(created.room.code, guesserId, started.room.secretWord as string);
+    expect(ended.room.status).toBe("result");
 
     // a non-host cannot restart
     expectHttpStatus(() => restartGame(created.room.code, guesserId), 403);
@@ -244,5 +245,25 @@ describe("roomStore", () => {
     expect(restarted.room.guesses).toHaveLength(0);
     expect(restarted.room.participants).toHaveLength(2);
     expect(restarted.room.participants.every((participant) => participant.score === 0)).toBe(true);
+  });
+
+  it("auto-ends the round on a correct guess and refuses guesses once ended", () => {
+    const created = createRoom("Alice");
+    const joined = joinRoom(created.room.code, "Bob");
+    const started = startGame(created.room.code, created.participantId);
+    const guesserId = joined?.participantId as string;
+    const word = started.room.secretWord as string;
+
+    // an incorrect guess keeps the round active
+    const wrong = submitGuess(created.room.code, guesserId, "not-the-word");
+    expect(wrong.room.status).toBe("active");
+
+    // a correct guess scores and moves the whole room to the result state, word revealed to all
+    const right = submitGuess(created.room.code, guesserId, word);
+    expect(right.room.status).toBe("result");
+    expect(toRoomSnapshot(right.room, guesserId).word).toBe(word);
+
+    // once the round has ended, further guesses are refused (round not active)
+    expectHttpStatus(() => submitGuess(created.room.code, guesserId, word), 409);
   });
 });
