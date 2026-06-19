@@ -56,3 +56,19 @@ cd backend && npm test     # incl. new endRound / restartGame / result-word-reve
 cd frontend && npm test
 ```
 New service-level assertions come from the [contract test checklist](./contracts/rooms-api.md).
+
+## Validation results — 2026-06-18
+
+| Item | Outcome |
+|------|---------|
+| V1–V5 (two-browser: end→result reveal, host-only, restart→clean lobby, replay) | ✅ Pass (validated per-story during implementation) |
+| V6 no-regression (Groups 1–3) | ✅ Pass |
+| Backend `npm test` | ✅ 21/21 passing |
+| Frontend `npm test` | ✅ 2/2 passing |
+
+**Deviation from plan (recorded per Principle VII):** `endRound` was hardened to reject unless the round is
+`active` (returns 409) — a positive deviation flagged by `/speckit.analyze` (finding U1) and applied during
+implementation, so the endpoint is robust beyond the UI gating. No other deviations.
+
+**Lifecycle now complete:** lobby → active → result → (restart) → lobby. Feature Group 4 (Scenario 4) and the
+full assignment implementation are complete.
