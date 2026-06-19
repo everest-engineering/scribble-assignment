@@ -1,14 +1,16 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card } from "../components/Card";
+import { DrawingCanvas } from "../components/DrawingCanvas";
 import { GuessForm } from "../components/GuessForm";
 import { ResultPanel } from "../components/ResultPanel";
 import { RoomCodeBadge } from "../components/RoomCodeBadge";
 import { Scoreboard } from "../components/Scoreboard";
-import { useRoomState } from "../state/roomStore";
+import { useRoomState, useRoomStore } from "../state/roomStore";
 
 export function GamePage() {
   const navigate = useNavigate();
+  const roomStore = useRoomStore();
   const { room, participantId } = useRoomState();
 
   useEffect(() => {
@@ -17,11 +19,47 @@ export function GamePage() {
     }
   }, [navigate, room]);
 
+  // Auto-refresh the game (~2s polling) so guess history and scores stay in sync for all players.
+  useEffect(() => {
+    const intervalId = window.setInterval(() => {
+      void roomStore.fetchRoom().catch(() => undefined);
+    }, 2000);
+
+    return () => window.clearInterval(intervalId);
+  }, [roomStore]);
+
+  // After a host restart the room returns to "lobby"; every player's client follows it back.
+  useEffect(() => {
+    if (room?.status === "lobby") {
+      navigate("/lobby");
+    }
+  }, [navigate, room?.status]);
+
   if (!room) {
     return null;
   }
 
   const viewer = room.participants.find((participant) => participant.id === participantId) ?? null;
+  const drawer = room.participants.find((participant) => participant.id === room.drawerId) ?? null;
+  const isDrawer = room.role === "drawer";
+  const isHost = participantId !== null && room.hostId === participantId;
+  const isResult = room.status === "result";
+
+  async function handleEnd() {
+    try {
+      await roomStore.endRound();
+    } catch {
+      // errors surface via room state; ignore here
+    }
+  }
+
+  async function handleRestart() {
+    try {
+      await roomStore.restartGame();
+    } catch {
+      // errors surface via room state; ignore here
+    }
+  }
 
   return (
     <section className="panel game-page">
@@ -40,11 +78,18 @@ export function GamePage() {
         </aside>
 
         <div className="game-page__main">
-          <Card title="Canvas">
-            <div className="canvas-placeholder" style={{ minHeight: '500px', backgroundColor: '#ffffff', border: '1px solid #e5e7eb' }}>
-              Waiting for drawer...
-            </div>
-          </Card>
+          {isResult ? (
+            <Card title="Round Over">
+              <p style={{ fontSize: "1.125rem" }}>
+                The word was <strong>{room.word ?? "—"}</strong>.
+              </p>
+              <p style={{ color: "#6b7280" }}>
+                Final scores and the full guess history are shown on the left.
+              </p>
+            </Card>
+          ) : (
+            <DrawingCanvas enabled={isDrawer} />
+          )}
         </div>
 
         <aside className="game-page__sidebar game-page__sidebar--right">
@@ -55,19 +100,41 @@ export function GamePage() {
                 <dd>{viewer?.name ?? "Unknown player"}</dd>
               </div>
               <div>
-                <dt>Status</dt>
-                <dd>Playing</dd>
+                <dt>Drawer</dt>
+                <dd>{drawer ? `${drawer.name}${isDrawer ? " (you)" : ""}` : "Not assigned"}</dd>
               </div>
+              <div>
+                <dt>Your role</dt>
+                <dd>{isDrawer ? "Drawer" : "Guesser"}</dd>
+              </div>
+              {isDrawer ? (
+                <div>
+                  <dt>Your word</dt>
+                  <dd>{room.word ?? "—"}</dd>
+                </div>
+              ) : null}
             </dl>
           </Card>
 
-          <Card title="Your Guess">
-            <GuessForm />
-          </Card>
+          {!isDrawer && !isResult ? (
+            <Card title="Your Guess">
+              <GuessForm />
+            </Card>
+          ) : null}
         </aside>
       </div>
 
       <div className="button-row">
+        {isHost && room.status === "active" ? (
+          <button className="button button--primary" onClick={handleEnd}>
+            End Round
+          </button>
+        ) : null}
+        {isHost && isResult ? (
+          <button className="button button--primary" onClick={handleRestart}>
+            Restart
+          </button>
+        ) : null}
         <button className="button button--secondary" onClick={() => navigate("/lobby")}>
           Exit Game
         </button>
