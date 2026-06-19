@@ -18,7 +18,7 @@ Frontend needs no change (existing result handling), so it's validated via [quic
 
 ## Phase 1: Setup
 
-- [ ] T001 Verify baseline: on `scribble-assignment`, `npm test` green in both packages, and Groups 1–4 run (full create → start → guess → host End Round → restart loop works).
+- [X] T001 Verify baseline: on `scribble-assignment`, `npm test` green in both packages, and Groups 1–4 run (full create → start → guess → host End Round → restart loop works).
 
 ---
 
@@ -42,9 +42,9 @@ Frontend needs no change (existing result handling), so it's validated via [quic
 
 ## Phase 3: Polish & Cross-Cutting
 
-- [ ] T004 Run [quickstart.md](./quickstart.md) V1–V5 with two browsers (auto-end, incorrect keeps playing, no guess after end, host End Round fallback, restart no-regression); record pass/fail.
-- [ ] T005 [P] Confirm `npm test` passes in both `backend/` and `frontend/`.
-- [ ] T006 Note in this spec/quickstart that increment 005 supersedes the Group 4 "host ends it explicitly" clarification for the correct-guess case (host End Round retained as fallback); record any deviation (Principle VII).
+- [X] T004 Run [quickstart.md](./quickstart.md) V1–V5 with two browsers (auto-end, incorrect keeps playing, no guess after end, host End Round fallback, restart no-regression); record pass/fail.
+- [X] T005 [P] Confirm `npm test` passes in both `backend/` and `frontend/`.
+- [X] T006 Note in this spec/quickstart that increment 005 supersedes the Group 4 "host ends it explicitly" clarification for the correct-guess case (host End Round retained as fallback); record any deviation (Principle VII).
 
 ---
 

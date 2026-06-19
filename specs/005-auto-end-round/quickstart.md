@@ -44,3 +44,16 @@ cd backend && npm test     # incl. new auto-end tests (correct → result, incor
 cd frontend && npm test
 ```
 New service-level assertions come from the [contract test checklist](./contracts/rooms-api.md).
+
+## Validation results — 2026-06-18
+
+| Item | Outcome |
+|------|---------|
+| V1–V5 (auto-end on correct, incorrect keeps playing, no guess after end, host End Round fallback, restart) | ✅ Pass (two browsers) |
+| Backend `npm test` | ✅ 22/22 passing |
+| Frontend `npm test` | ✅ 2/2 passing |
+
+**Decision recorded (Principle VII):** this increment **supersedes the Group 4 "host ends it explicitly"
+clarification** for the correct-guess case — a correct guess now auto-ends the round to the result state.
+The host **End Round** action is retained as a fallback for rounds nobody solves. Addresses the evaluator's
+Scenario 3 Major Finding. No regression to Groups 1–4 (existing tests updated for the new flow remain green).
