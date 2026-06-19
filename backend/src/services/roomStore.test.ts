@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   createRoom,
+  endRound,
   joinRoom,
   listWords,
   selectWord,
@@ -200,5 +201,26 @@ describe("roomStore", () => {
 
     // repeat after correct → 409, score unchanged
     expectHttpStatus(() => submitGuess(created.room.code, guesserId, word), 409);
+  });
+
+  it("endRound is host-only, requires an active round, and reveals the word to all", () => {
+    const created = createRoom("Alice");
+    const joined = joinRoom(created.room.code, "Bob");
+    const started = startGame(created.room.code, created.participantId);
+    const guesserId = joined?.participantId as string;
+
+    // during the active round, a guesser cannot see the word
+    expect(toRoomSnapshot(started.room, guesserId).word).toBeUndefined();
+
+    // a non-host cannot end the round
+    expectHttpStatus(() => endRound(created.room.code, guesserId), 403);
+
+    // the host ends the round → result, and the word is revealed to everyone
+    const ended = endRound(created.room.code, created.participantId);
+    expect(ended.room.status).toBe("result");
+    expect(toRoomSnapshot(ended.room, guesserId).word).toBe(ended.room.secretWord);
+
+    // ending again is refused (no longer an active round)
+    expectHttpStatus(() => endRound(created.room.code, created.participantId), 409);
   });
 });

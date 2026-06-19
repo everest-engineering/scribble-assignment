@@ -26,8 +26,8 @@ matching the Groups 1–3 pattern — no new test deps. Frontend behavior valida
 
 **Purpose**: Add the `result` lifecycle state both stories build on.
 
-- [ ] T002 [P] In `backend/src/models/game.ts`: widen `RoomStatus` to `"lobby" | "active" | "result"`.
-- [ ] T003 [P] In `frontend/src/services/api.ts`: widen `RoomSnapshot.status` to `"lobby" | "active" | "result"`.
+- [X] T002 [P] In `backend/src/models/game.ts`: widen `RoomStatus` to `"lobby" | "active" | "result"`.
+- [X] T003 [P] In `frontend/src/services/api.ts`: widen `RoomSnapshot.status` to `"lobby" | "active" | "result"`.
 
 **Checkpoint**: model + snapshot can represent the result state.
 
@@ -41,17 +41,17 @@ matching the Groups 1–3 pattern — no new test deps. Frontend behavior valida
 
 ### Tests for User Story 1
 
-- [ ] T004 [P] [US1] In `backend/src/services/roomStore.test.ts`: assert `endRound` throws 403 for a non-host and sets `status: "result"` for the host; after end, `toRoomSnapshot(room, guesserId).word === secretWord` (revealed to all at result), while during `active` a guesser snapshot still has no `word`.
+- [X] T004 [P] [US1] In `backend/src/services/roomStore.test.ts`: assert `endRound` throws 403 for a non-host and sets `status: "result"` for the host; after end, `toRoomSnapshot(room, guesserId).word === secretWord` (revealed to all at result), while during `active` a guesser snapshot still has no `word`.
 
 ### Implementation for User Story 1
 
-- [ ] T005 [US1] In `backend/src/api/schemas.ts`: add `participantActionSchema = z.object({ participantId: z.string().min(1) })` (shared by end + restart).
-- [ ] T006 [US1] In `backend/src/services/roomStore.ts`: add `endRound(code, participantId)` — 404 if missing; throw `HttpError(403, "Only the host can end the round.")` if not host; set `status = "result"`; return the saved room.
-- [ ] T007 [US1] In `backend/src/services/roomStore.ts`: in `toRoomSnapshot`, reveal `word` when the viewer is the drawer **OR** `room.status === "result"` (keeps Group 2 during-play secrecy).
-- [ ] T008 [US1] In `backend/src/api/rooms.ts`: add `POST /:code/end` parsing `participantActionSchema` and calling `endRound`, returning `{ room: toRoomSnapshot(...) }`.
-- [ ] T009 [P] [US1] In `frontend/src/services/api.ts`: add `endRound(code, participantId)` calling `POST /rooms/:code/end`.
-- [ ] T010 [US1] In `frontend/src/state/roomStore.ts`: add an `endRound()` action that calls `api.endRound(code, participantId)` and applies the snapshot.
-- [ ] T011 [US1] In `frontend/src/pages/GamePage.tsx`: show a host-only **End Round** button during `active`; when `status === "result"`, show a result view that reveals the word to everyone (the Scoreboard + Activity already show final scores + history).
+- [X] T005 [US1] In `backend/src/api/schemas.ts`: add `participantActionSchema = z.object({ participantId: z.string().min(1) })` (shared by end + restart).
+- [X] T006 [US1] In `backend/src/services/roomStore.ts`: add `endRound(code, participantId)` — 404 if missing; throw `HttpError(403, "Only the host can end the round.")` if not host; set `status = "result"`; return the saved room.
+- [X] T007 [US1] In `backend/src/services/roomStore.ts`: in `toRoomSnapshot`, reveal `word` when the viewer is the drawer **OR** `room.status === "result"` (keeps Group 2 during-play secrecy).
+- [X] T008 [US1] In `backend/src/api/rooms.ts`: add `POST /:code/end` parsing `participantActionSchema` and calling `endRound`, returning `{ room: toRoomSnapshot(...) }`.
+- [X] T009 [P] [US1] In `frontend/src/services/api.ts`: add `endRound(code, participantId)` calling `POST /rooms/:code/end`.
+- [X] T010 [US1] In `frontend/src/state/roomStore.ts`: add an `endRound()` action that calls `api.endRound(code, participantId)` and applies the snapshot.
+- [X] T011 [US1] In `frontend/src/pages/GamePage.tsx`: show a host-only **End Round** button during `active`; when `status === "result"`, show a result view that reveals the word to everyone (the Scoreboard + Activity already show final scores + history).
 
 **Checkpoint**: round ends to a shared result with the word revealed (quickstart V1–V2).
 

@@ -185,6 +185,30 @@ export function submitGuess(code: string, participantId: string, text: string) {
   };
 }
 
+export function endRound(code: string, participantId: string) {
+  const room = rooms.get(code);
+
+  if (!room) {
+    throw new HttpError(404, "Unable to load room");
+  }
+
+  if (room.hostId !== participantId) {
+    throw new HttpError(403, "Only the host can end the round.");
+  }
+
+  if (room.status !== "active") {
+    throw new HttpError(409, "The round is not active.");
+  }
+
+  room.status = "result";
+  room.updatedAt = now();
+  rooms.set(room.code, room);
+
+  return {
+    room: cloneRoom(room)
+  };
+}
+
 export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSnapshot {
   const isDrawer = Boolean(room.drawerId) && room.drawerId === viewerParticipantId;
   const role = room.drawerId ? (isDrawer ? "drawer" : "guesser") : undefined;
@@ -195,9 +219,10 @@ export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSn
     hostId: room.hostId,
     drawerId: room.drawerId,
     role,
-    // Word is exposed ONLY to the drawer; `undefined` is omitted from the JSON payload,
-    // so a guesser never receives the word (or its length).
-    word: isDrawer ? room.secretWord : undefined,
+    // Word is exposed to the drawer during play, and to EVERYONE once the round is in the
+    // result state. `undefined` is omitted from the JSON payload, so guessers never receive
+    // the word while the round is still active.
+    word: isDrawer || room.status === "result" ? room.secretWord : undefined,
     participants: room.participants.map((participant) => ({ ...participant })),
     guesses: room.guesses.map((guess) => ({ ...guess })),
     availableWords: listWords(),

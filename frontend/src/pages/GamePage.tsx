@@ -35,6 +35,16 @@ export function GamePage() {
   const viewer = room.participants.find((participant) => participant.id === participantId) ?? null;
   const drawer = room.participants.find((participant) => participant.id === room.drawerId) ?? null;
   const isDrawer = room.role === "drawer";
+  const isHost = participantId !== null && room.hostId === participantId;
+  const isResult = room.status === "result";
+
+  async function handleEnd() {
+    try {
+      await roomStore.endRound();
+    } catch {
+      // errors surface via room state; ignore here
+    }
+  }
 
   return (
     <section className="panel game-page">
@@ -53,7 +63,18 @@ export function GamePage() {
         </aside>
 
         <div className="game-page__main">
-          <DrawingCanvas enabled={isDrawer} />
+          {isResult ? (
+            <Card title="Round Over">
+              <p style={{ fontSize: "1.125rem" }}>
+                The word was <strong>{room.word ?? "—"}</strong>.
+              </p>
+              <p style={{ color: "#6b7280" }}>
+                Final scores and the full guess history are shown on the left.
+              </p>
+            </Card>
+          ) : (
+            <DrawingCanvas enabled={isDrawer} />
+          )}
         </div>
 
         <aside className="game-page__sidebar game-page__sidebar--right">
@@ -80,7 +101,7 @@ export function GamePage() {
             </dl>
           </Card>
 
-          {!isDrawer ? (
+          {!isDrawer && !isResult ? (
             <Card title="Your Guess">
               <GuessForm />
             </Card>
@@ -89,6 +110,11 @@ export function GamePage() {
       </div>
 
       <div className="button-row">
+        {isHost && room.status === "active" ? (
+          <button className="button button--primary" onClick={handleEnd}>
+            End Round
+          </button>
+        ) : null}
         <button className="button button--secondary" onClick={() => navigate("/lobby")}>
           Exit Game
         </button>
