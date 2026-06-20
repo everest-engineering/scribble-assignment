@@ -63,6 +63,7 @@ class RoomStore {
   }
 
   setRoomSession(response: RoomSessionResponse) {
+    sessionStorage.setItem("participantId", response.participantId);
     this.setState({
       participantId: response.participantId,
       room: response.room,
@@ -96,6 +97,28 @@ class RoomStore {
 
     const response = await api.fetchRoom(this.state.room.code, this.state.participantId ?? undefined);
     this.setRoomSnapshot(response.room);
+    return response.room;
+  }
+
+  async startRoom(code: string, participantId: string) {
+    const response = await this.withLoading(() => api.startRoom(code, participantId));
+    this.setRoomSnapshot(response.room);
+    return response.room;
+  }
+
+  async restartRoom(code: string, participantId: string) {
+    const response = await this.withLoading(() => api.restartRoom(code, participantId));
+    this.setRoomSnapshot(response.room);
+    return response.room;
+  }
+
+  async restoreSession(roomCode: string, participantId: string) {
+    const response = await api.fetchRoom(roomCode, participantId);
+    this.setState({
+      room: response.room,
+      participantId,
+      error: null
+    });
     return response.room;
   }
 }
