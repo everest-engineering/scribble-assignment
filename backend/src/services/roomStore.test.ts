@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createRoom, joinRoom, selectWord, startGame, toRoomSnapshot } from "./roomStore.js";
+import { createRoom, joinRoom, restartGame, selectWord, startGame, submitGuess, toRoomSnapshot } from "./roomStore.js";
 
 describe("roomStore", () => {
   it("createRoom returns a room with a 4-character uppercase code", () => {
@@ -97,5 +97,53 @@ describe("roomStore", () => {
 
     expect(drawer?.role).toBe("drawer");
     expect(guesser?.role).toBe("guesser");
+  });
+
+  it("submitGuess scores correct guess and ends round", () => {
+    const { room, participantId: hostId } = createRoom("Alice");
+    const guest = joinRoom(room.code, "Bob");
+    const playing = startGame(room.code, hostId);
+    const word = playing.secretWord!;
+
+    const updated = submitGuess(room.code, guest!.participantId, word.toUpperCase());
+
+    expect(updated.status).toBe("result");
+    expect(updated.scores[guest!.participantId]).toBe(100);
+    expect(updated.guesses).toHaveLength(1);
+    expect(updated.guesses[0].isCorrect).toBe(true);
+  });
+
+  it("submitGuess rejects empty guess", () => {
+    const { room, participantId: hostId } = createRoom("Alice");
+    const guest = joinRoom(room.code, "Bob");
+    startGame(room.code, hostId);
+
+    expect(() => submitGuess(room.code, guest!.participantId, "   ")).toThrow("Guess is required");
+  });
+
+  it("restartGame clears round state and returns to lobby", () => {
+    const { room, participantId: hostId } = createRoom("Alice");
+    const guest = joinRoom(room.code, "Bob");
+    const playing = startGame(room.code, hostId);
+    submitGuess(room.code, guest!.participantId, playing.secretWord!);
+
+    const restarted = restartGame(room.code, hostId);
+
+    expect(restarted.status).toBe("lobby");
+    expect(restarted.drawerId).toBeNull();
+    expect(restarted.secretWord).toBeNull();
+    expect(restarted.participants).toHaveLength(2);
+    expect(restarted.guesses).toHaveLength(0);
+  });
+
+  it("toRoomSnapshot reveals secret word to all on result", () => {
+    const { room, participantId: hostId } = createRoom("Alice");
+    const guest = joinRoom(room.code, "Bob");
+    const playing = startGame(room.code, hostId);
+    const result = submitGuess(room.code, guest!.participantId, playing.secretWord!);
+
+    const guesserView = toRoomSnapshot(result, guest!.participantId);
+
+    expect(guesserView.secretWord).toBe(playing.secretWord);
   });
 });
