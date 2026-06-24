@@ -21,6 +21,14 @@ function validateRoomCode(code: string): string | null {
   return null;
 }
 
+function validatePlayerName(name: string): string | null {
+  if (!name.trim()) {
+    return "Player name is required";
+  }
+
+  return null;
+}
+
 export function JoinRoomPage() {
   const [playerName, setPlayerName] = useState("");
   const [roomCode, setRoomCode] = useState("");
@@ -38,9 +46,16 @@ export function JoinRoomPage() {
       return;
     }
 
+    const nameError = validatePlayerName(playerName);
+
+    if (nameError) {
+      setError(nameError);
+      return;
+    }
+
     try {
       setError(null);
-      await roomStore.joinRoom(roomCode.trim().toUpperCase(), playerName);
+      await roomStore.joinRoom(roomCode.trim().toUpperCase(), playerName.trim());
       navigate("/lobby");
     } catch (caughtError) {
       setError(caughtError instanceof Error ? caughtError.message : "Unable to join room");

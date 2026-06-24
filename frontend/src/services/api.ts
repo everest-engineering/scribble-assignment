@@ -6,11 +6,41 @@ export interface Participant {
   joinedAt: string;
 }
 
+export interface ParticipantView extends Participant {
+  role: ParticipantRole;
+  score: number;
+}
+
+export interface Guess {
+  id: string;
+  participantId: string;
+  participantName: string;
+  text: string;
+  isCorrect: boolean;
+  createdAt: string;
+}
+
+export interface DrawingPoint {
+  x: number;
+  y: number;
+}
+
+export interface DrawingStroke {
+  id: string;
+  color: string;
+  width: number;
+  points: DrawingPoint[];
+}
+
 export interface RoomSnapshot {
   code: string;
   status: "lobby" | "playing" | "result";
   hostId: string;
-  participants: Participant[];
+  drawerId: string | null;
+  secretWord?: string;
+  participants: ParticipantView[];
+  guesses: Guess[];
+  drawingStrokes: DrawingStroke[];
   availableWords: string[];
   roles: ParticipantRole[];
 }
