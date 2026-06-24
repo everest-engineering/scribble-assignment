@@ -8,6 +8,16 @@ describe("schemas", () => {
     expect(result.playerName).toBe("Alice");
   });
 
+  it("createRoomSchema trims playerName", () => {
+    const result = createRoomSchema.parse({ playerName: "  Alice  " });
+
+    expect(result.playerName).toBe("Alice");
+  });
+
+  it("createRoomSchema rejects empty playerName", () => {
+    expect(() => createRoomSchema.parse({ playerName: "   " })).toThrow();
+  });
+
   it("roomCodeParamsSchema rejects missing code", () => {
     expect(() => roomCodeParamsSchema.parse({})).toThrow();
   });
