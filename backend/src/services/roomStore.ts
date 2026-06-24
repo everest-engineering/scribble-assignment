@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import type { Guess, Participant, Room, RoomSnapshot } from "../models/game.js";
+import type { DrawingStroke, Guess, Participant, Room, RoomSnapshot } from "../models/game.js";
 import { STARTER_ROLES, STARTER_WORDS } from "../seed/starterData.js";
 
 export class RoomStoreError extends Error {
@@ -155,6 +155,125 @@ export function startGame(code: string, participantId: string) {
   return cloneRoom(room);
 }
 
+function requirePlayingRoom(code: string) {
+  const room = rooms.get(code);
+
+  if (!room) {
+    throw new RoomStoreError(404, "Room not found");
+  }
+
+  if (room.status !== "playing") {
+    throw new RoomStoreError(409, "Round is not active");
+  }
+
+  return room;
+}
+
+function requireDrawer(room: Room, participantId: string) {
+  if (room.drawerId !== participantId) {
+    throw new RoomStoreError(403, "Only the drawer can perform this action");
+  }
+}
+
+function requireGuesser(room: Room, participantId: string) {
+  if (room.drawerId === participantId) {
+    throw new RoomStoreError(403, "The drawer cannot submit guesses");
+  }
+}
+
+export function addStroke(code: string, participantId: string, stroke: DrawingStroke) {
+  const room = requirePlayingRoom(code);
+  requireDrawer(room, participantId);
+
+  room.drawingStrokes.push({
+    ...stroke,
+    points: stroke.points.map((point) => ({ ...point }))
+  });
+  room.updatedAt = now();
+  rooms.set(room.code, room);
+
+  return cloneRoom(room);
+}
+
+export function clearDrawing(code: string, participantId: string) {
+  const room = requirePlayingRoom(code);
+  requireDrawer(room, participantId);
+
+  room.drawingStrokes = [];
+  room.updatedAt = now();
+  rooms.set(room.code, room);
+
+  return cloneRoom(room);
+}
+
+export function submitGuess(code: string, participantId: string, text: string) {
+  const room = requirePlayingRoom(code);
+  requireGuesser(room, participantId);
+
+  const trimmed = text.trim();
+
+  if (!trimmed) {
+    throw new RoomStoreError(400, "Guess is required");
+  }
+
+  const participant = room.participants.find((p) => p.id === participantId);
+
+  if (!participant) {
+    throw new RoomStoreError(404, "Participant not found");
+  }
+
+  const isCorrect =
+    room.secretWord != null && trimmed.toLowerCase() === room.secretWord.toLowerCase();
+
+  const guess: Guess = {
+    id: randomUUID(),
+    participantId,
+    participantName: participant.name,
+    text: trimmed,
+    isCorrect,
+    createdAt: now()
+  };
+
+  room.guesses.push(guess);
+
+  if (isCorrect) {
+    room.scores[participantId] = (room.scores[participantId] ?? 0) + 100;
+    room.status = "result";
+  }
+
+  room.updatedAt = now();
+  rooms.set(room.code, room);
+
+  return cloneRoom(room);
+}
+
+export function restartGame(code: string, participantId: string) {
+  const room = rooms.get(code);
+
+  if (!room) {
+    throw new RoomStoreError(404, "Room not found");
+  }
+
+  if (room.hostId !== participantId) {
+    throw new RoomStoreError(403, "Only the host can restart the game");
+  }
+
+  if (room.status !== "result") {
+    throw new RoomStoreError(409, "Game can only be restarted from result state");
+  }
+
+  room.status = "lobby";
+  room.drawerId = null;
+  room.secretWord = null;
+  room.scores = {};
+  room.guesses = [];
+  room.drawingStrokes = [];
+  room.updatedAt = now();
+  rooms.set(room.code, room);
+
+  return cloneRoom(room);
+}
+
 export function saveRoom(room: Room) {
   room.updatedAt = now();
   rooms.set(room.code, cloneRoom(room));
@@ -163,6 +282,7 @@ export function saveRoom(room: Room) {
 
 export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSnapshot {
   const isDrawer = viewerParticipantId != null && viewerParticipantId === room.drawerId;
+  const revealWord = room.status === "result";
 
   const snapshot: RoomSnapshot = {
     code: room.code,
@@ -183,7 +303,7 @@ export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSn
     roles: [...STARTER_ROLES]
   };
 
-  if (isDrawer && room.secretWord) {
+  if (room.secretWord && (isDrawer || revealWord)) {
     snapshot.secretWord = room.secretWord;
   }
 

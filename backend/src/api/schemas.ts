@@ -35,6 +35,30 @@ export const startGameSchema = z.object({
   participantId: z.string().min(1)
 });
 
+export const participantActionSchema = z.object({
+  participantId: z.string().min(1)
+});
+
+const drawingPointSchema = z.object({
+  x: z.number(),
+  y: z.number()
+});
+
+export const addStrokeSchema = z.object({
+  participantId: z.string().min(1),
+  stroke: z.object({
+    id: z.string().min(1),
+    color: z.string().min(1),
+    width: z.number().positive(),
+    points: z.array(drawingPointSchema).min(1)
+  })
+});
+
+export const submitGuessSchema = z.object({
+  participantId: z.string().min(1),
+  text: z.string()
+});
+
 export class HttpError extends Error {
   statusCode: number;
 

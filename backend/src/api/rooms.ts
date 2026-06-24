@@ -1,20 +1,52 @@
 import { Router } from "express";
 import {
+  addStrokeSchema,
   createRoomSchema,
   HttpError,
   joinRoomSchema,
+  participantActionSchema,
   roomCodeParamsSchema,
   roomViewerQuerySchema,
-  startGameSchema
+  startGameSchema,
+  submitGuessSchema
 } from "./schemas.js";
 import {
+  addStroke,
+  clearDrawing,
   createRoom,
   getRoom,
   joinRoom,
+  restartGame,
   RoomStoreError,
   startGame,
+  submitGuess,
   toRoomSnapshot
 } from "../services/roomStore.js";
+
+function handleRoomStoreRoute(
+  handler: () => ReturnType<typeof getRoom>,
+  participantId: string | undefined,
+  response: import("express").Response,
+  next: import("express").NextFunction
+) {
+  try {
+    const room = handler();
+
+    if (!room) {
+      throw new HttpError(404, "Room not found");
+    }
+
+    response.json({
+      room: toRoomSnapshot(room, participantId)
+    });
+  } catch (error) {
+    if (error instanceof RoomStoreError) {
+      next(new HttpError(error.statusCode, error.message));
+      return;
+    }
+    next(error);
+  }
+}
 
 export function createRoomsRouter() {
   const router = Router();
@@ -29,6 +61,10 @@ export function createRoomsRouter() {
         room: toRoomSnapshot(result.room, result.participantId)
       });
     } catch (error) {
+      if (error instanceof RoomStoreError) {
+        next(new HttpError(error.statusCode, error.message));
+        return;
+      }
       next(error);
     }
   });
@@ -74,16 +110,48 @@ export function createRoomsRouter() {
     try {
       const { code } = roomCodeParamsSchema.parse(request.params);
       const { participantId } = startGameSchema.parse(request.body);
-      const room = startGame(code, participantId);
-
-      response.json({
-        room: toRoomSnapshot(room, participantId)
-      });
+      handleRoomStoreRoute(() => startGame(code, participantId), participantId, response, next);
     } catch (error) {
-      if (error instanceof RoomStoreError) {
-        next(new HttpError(error.statusCode, error.message));
-        return;
-      }
+      next(error);
+    }
+  });
+
+  router.post("/:code/drawing/strokes", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId, stroke } = addStrokeSchema.parse(request.body);
+      handleRoomStoreRoute(() => addStroke(code, participantId, stroke), participantId, response, next);
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/:code/drawing/clear", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId } = participantActionSchema.parse(request.body);
+      handleRoomStoreRoute(() => clearDrawing(code, participantId), participantId, response, next);
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/:code/guesses", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId, text } = submitGuessSchema.parse(request.body);
+      handleRoomStoreRoute(() => submitGuess(code, participantId, text), participantId, response, next);
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/:code/restart", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId } = participantActionSchema.parse(request.body);
+      handleRoomStoreRoute(() => restartGame(code, participantId), participantId, response, next);
+    } catch (error) {
       next(error);
     }
   });
