@@ -3,6 +3,24 @@ import { useNavigate } from "react-router-dom";
 import { PageHeader } from "../components/PageHeader";
 import { useRoomStore } from "../state/roomStore";
 
+const ROOM_CODE_PATTERN = /^[A-Z0-9]{4}$/;
+
+function validateRoomCode(code: string): string | null {
+  const trimmed = code.trim();
+
+  if (!trimmed) {
+    return "Room code is required";
+  }
+
+  const normalized = trimmed.toUpperCase();
+
+  if (!ROOM_CODE_PATTERN.test(normalized)) {
+    return "Room code must be exactly 4 characters";
+  }
+
+  return null;
+}
+
 export function JoinRoomPage() {
   const [playerName, setPlayerName] = useState("");
   const [roomCode, setRoomCode] = useState("");
@@ -13,9 +31,16 @@ export function JoinRoomPage() {
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
+    const codeError = validateRoomCode(roomCode);
+
+    if (codeError) {
+      setError(codeError);
+      return;
+    }
+
     try {
       setError(null);
-      await roomStore.joinRoom(roomCode.toUpperCase(), playerName);
+      await roomStore.joinRoom(roomCode.trim().toUpperCase(), playerName);
       navigate("/lobby");
     } catch (caughtError) {
       setError(caughtError instanceof Error ? caughtError.message : "Unable to join room");
@@ -47,6 +72,7 @@ export function JoinRoomPage() {
             value={roomCode}
             onChange={(event) => setRoomCode(event.target.value.toUpperCase())}
             placeholder="ABCD"
+            maxLength={4}
           />
         </label>
         {error ? <p className="form__error">{error}</p> : null}

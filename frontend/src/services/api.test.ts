@@ -45,4 +45,25 @@ describe("api service", () => {
       expect.anything()
     );
   });
+
+  it("startRoom sends POST to /rooms/:code/start with participantId", async () => {
+    const mockResponse = {
+      ok: true,
+      json: () =>
+        Promise.resolve({
+          room: { code: "ABCD", status: "playing", hostId: "p1", participants: [] },
+        }),
+    };
+    vi.mocked(fetch).mockResolvedValue(mockResponse as unknown as Response);
+
+    await api.startRoom("ABCD", "p1");
+
+    expect(fetch).toHaveBeenCalledWith(
+      expect.stringContaining("/rooms/ABCD/start"),
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({ participantId: "p1" }),
+      })
+    );
+  });
 });
