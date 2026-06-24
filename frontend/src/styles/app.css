@@ -451,6 +451,50 @@ input {
   font-weight: 500;
 }
 
+/* --- DRAWER INDICATOR --- */
+.drawer-indicator {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 20px;
+  border-radius: 10px;
+  background: var(--surface-muted);
+  border: 1px solid var(--line);
+}
+
+.drawer-indicator--self {
+  background: #ecfdf5;
+  border-color: #a7f3d0;
+}
+
+.drawer-indicator__icon {
+  font-size: 1.25rem;
+}
+
+.drawer-indicator__text {
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--ink);
+}
+
+.drawer-indicator--self .drawer-indicator__text {
+  color: #065f46;
+}
+
+/* --- WORD DISPLAY --- */
+.word-display {
+  display: grid;
+  place-items: center;
+  padding: 32px;
+  font-size: 2.5rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  color: var(--brand-strong);
+  background: #e0e7ff;
+  border-radius: 12px;
+  text-align: center;
+}
+
 /* --- GAME PAGE LAYOUT --- */
 /* Changed layout structure to be much wider and utilize screen space */
 .game-page {

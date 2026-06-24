@@ -1,20 +1,52 @@
 import { Router } from "express";
 import {
+  canvasClearBodySchema,
+  canvasStrokesSchema,
   createRoomSchema,
+  disbandBodySchema,
+  guessBodySchema,
   HttpError,
   joinRoomSchema,
+  renameBodySchema,
+  restartBodySchema,
   roomCodeParamsSchema,
-  roomViewerQuerySchema
+  roundEndBodySchema,
+  roomViewerQuerySchema,
+  startGameBodySchema
 } from "./schemas.js";
-import { createRoom, getRoom, joinRoom, toRoomSnapshot } from "../services/roomStore.js";
+import {
+  checkCreateRateLimit,
+  checkJoinRateLimit,
+  clearCanvas,
+  createRoom,
+  disbandRoom,
+  endRound,
+  getRoom,
+  getRoomStatus,
+  joinRoom,
+  recordCreateAttempt,
+  recordJoinAttempt,
+  renameParticipant,
+  restartGame,
+  startGame,
+  submitGuess,
+  toRoomSnapshot,
+  updateCanvas
+} from "../services/roomStore.js";
 
 export function createRoomsRouter() {
   const router = Router();
 
   router.post("/", (request, response, next) => {
     try {
+      const sessionKey = request.ip ?? "anonymous";
+      if (!checkCreateRateLimit(sessionKey)) {
+        throw new HttpError(429, "Too many rooms created. Please wait before creating another.");
+      }
+
       const { playerName } = createRoomSchema.parse(request.body);
       const result = createRoom(playerName);
+      recordCreateAttempt(sessionKey);
 
       response.status(201).json({
         participantId: result.participantId,
@@ -27,13 +59,23 @@ export function createRoomsRouter() {
 
   router.post("/:code/join", (request, response, next) => {
     try {
+      const sessionKey = request.ip ?? "anonymous";
+      if (!checkJoinRateLimit(sessionKey)) {
+        throw new HttpError(429, "Too many join attempts. Please wait before trying again.");
+      }
+
       const { code } = roomCodeParamsSchema.parse(request.params);
+      const upperCode = code.toUpperCase();
+      const status = getRoomStatus(upperCode);
+
       const { playerName } = joinRoomSchema.parse(request.body);
-      const result = joinRoom(code.toUpperCase(), playerName);
+      const result = joinRoom(upperCode, playerName);
 
       if (!result) {
         throw new HttpError(404, "Unable to join room");
       }
+
+      recordJoinAttempt(sessionKey);
 
       response.json({
         participantId: result.participantId,
@@ -56,6 +98,204 @@ export function createRoomsRouter() {
 
       response.json({
         room: toRoomSnapshot(room, participantId)
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/:code/start", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId } = startGameBodySchema.parse(request.body);
+      const result = startGame(code.toUpperCase(), participantId);
+
+      if ("error" in result) {
+        const message = result.error as string;
+        const statusCode = message === "Room not found" ? 404
+          : message === "Participant not found in room" ? 403
+          : message === "Only the host can start the game" ? 403
+          : 400;
+        throw new HttpError(statusCode, message);
+      }
+
+      if ("awaitingRename" in result) {
+        response.json({
+          status: "awaiting_rename",
+          invalidParticipantIds: result.invalidParticipantIds,
+          room: toRoomSnapshot(result.room, participantId)
+        });
+        return;
+      }
+
+      response.json({
+        status: "playing",
+        room: toRoomSnapshot(result.room, participantId)
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/:code/rename", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId, name } = renameBodySchema.parse(request.body);
+      const result = renameParticipant(code.toUpperCase(), participantId, name);
+
+      if ("error" in result) {
+        const message = result.error as string;
+        const statusCode = message === "Room not found" ? 404
+          : message === "Participant not found" ? 403
+          : message === "Room is not in awaiting_rename state" ? 400
+          : 400;
+        throw new HttpError(statusCode, message);
+      }
+
+      if ("autoStarted" in result) {
+        response.json({
+          status: "playing",
+          room: toRoomSnapshot(result.room, participantId)
+        });
+        return;
+      }
+
+      response.json({
+        status: "awaiting_rename",
+        invalidParticipantIds: result.invalidParticipantIds,
+        room: toRoomSnapshot(result.room, participantId)
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/:code/disband", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId } = disbandBodySchema.parse(request.body);
+      const result = disbandRoom(code.toUpperCase(), participantId);
+
+      if ("error" in result) {
+        const message = result.error as string;
+        const statusCode = message === "Room not found" ? 404
+          : message === "Participant not found" ? 403
+          : 403;
+        throw new HttpError(statusCode, message);
+      }
+
+      response.json({ message: "Room disbanded" });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/:code/guess", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId, text } = guessBodySchema.parse(request.body);
+      const result = submitGuess(code.toUpperCase(), participantId, text);
+
+      if ("error" in result) {
+        const message = result.error as string;
+        const statusCode = message === "Room not found" ? 404
+          : message === "No active round" ? 400
+          : message === "Participant not found" ? 403
+          : 403;
+        throw new HttpError(statusCode, message);
+      }
+
+      if ("rejected" in result) {
+        response.status(400).json({ error: result.reason });
+        return;
+      }
+
+      response.json({ room: toRoomSnapshot(result.room, participantId) });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/:code/canvas", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId, strokes } = canvasStrokesSchema.parse(request.body);
+      const result = updateCanvas(code.toUpperCase(), participantId, strokes);
+
+      if ("error" in result) {
+        const message = result.error as string;
+        const statusCode = message === "Room not found" ? 404
+          : message === "No active round" ? 400
+          : 403;
+        throw new HttpError(statusCode, message);
+      }
+
+      response.json({ room: toRoomSnapshot(result.room, participantId) });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/:code/canvas/clear", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId } = canvasClearBodySchema.parse(request.body);
+      const result = clearCanvas(code.toUpperCase(), participantId);
+
+      if ("error" in result) {
+        const message = result.error as string;
+        const statusCode = message === "Room not found" ? 404
+          : message === "No active round" ? 400
+          : 403;
+        throw new HttpError(statusCode, message);
+      }
+
+      response.json({ room: toRoomSnapshot(result.room, participantId) });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/:code/round/end", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId } = roundEndBodySchema.parse(request.body);
+      const result = endRound(code.toUpperCase(), participantId);
+
+      if ("error" in result) {
+        const message = result.error as string;
+        const statusCode = message === "Room not found" ? 404
+          : message === "No active round" ? 400
+          : 403;
+        throw new HttpError(statusCode, message);
+      }
+
+      response.json({
+        status: "result",
+        room: toRoomSnapshot(result.room, participantId)
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/:code/restart", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId } = restartBodySchema.parse(request.body);
+      const result = restartGame(code.toUpperCase(), participantId);
+
+      if ("error" in result) {
+        const message = result.error as string;
+        const statusCode = message === "Room not found" ? 404
+          : message === "Room is not in result state" ? 400
+          : 403;
+        throw new HttpError(statusCode, message);
+      }
+
+      response.json({
+        status: "lobby",
+        room: toRoomSnapshot(result.room, participantId)
       });
     } catch (error) {
       next(error);
