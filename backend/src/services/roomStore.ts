@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import type { Participant, Room, RoomSnapshot } from "../models/game.js";
+import type { Guess, Participant, Room, RoomSnapshot } from "../models/game.js";
 import { STARTER_ROLES, STARTER_WORDS } from "../seed/starterData.js";
 
 export class RoomStoreError extends Error {
@@ -38,15 +38,36 @@ function generateUniqueCode() {
   return code;
 }
 
-function displayName(name?: string) {
-  return name || "Player";
+export function validatePlayerName(name?: string): string {
+  const trimmed = name?.trim() ?? "";
+
+  if (!trimmed) {
+    throw new RoomStoreError(400, "Player name is required");
+  }
+
+  return trimmed;
 }
 
-function createParticipant(name?: string): Participant {
+export function selectWord(roomCode: string): string {
+  const hash = roomCode.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0);
+  return STARTER_WORDS[hash % STARTER_WORDS.length] ?? STARTER_WORDS[0];
+}
+
+function createParticipant(name: string): Participant {
   return {
     id: randomUUID(),
-    name: displayName(name),
+    name,
     joinedAt: now()
+  };
+}
+
+function createEmptyRoomFields() {
+  return {
+    drawerId: null,
+    secretWord: null,
+    scores: {} as Record<string, number>,
+    guesses: [] as Guess[],
+    drawingStrokes: [] as Room["drawingStrokes"]
   };
 }
 
@@ -59,12 +80,14 @@ export function listWords() {
 }
 
 export function createRoom(playerName?: string) {
-  const participant = createParticipant(playerName);
+  const name = validatePlayerName(playerName);
+  const participant = createParticipant(name);
   const room: Room = {
     code: generateUniqueCode(),
     status: "lobby",
     hostId: participant.id,
     participants: [participant],
+    ...createEmptyRoomFields(),
     createdAt: now(),
     updatedAt: now()
   };
@@ -84,7 +107,8 @@ export function joinRoom(code: string, playerName?: string) {
     return null;
   }
 
-  const participant = createParticipant(playerName);
+  const name = validatePlayerName(playerName);
+  const participant = createParticipant(name);
   room.participants.push(participant);
   room.updatedAt = now();
   rooms.set(room.code, room);
@@ -120,6 +144,11 @@ export function startGame(code: string, participantId: string) {
   }
 
   room.status = "playing";
+  room.drawerId = room.hostId;
+  room.secretWord = selectWord(room.code);
+  room.scores = Object.fromEntries(room.participants.map((p) => [p.id, 0]));
+  room.guesses = [];
+  room.drawingStrokes = [];
   room.updatedAt = now();
   rooms.set(room.code, room);
 
@@ -133,14 +162,30 @@ export function saveRoom(room: Room) {
 }
 
 export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSnapshot {
-  void viewerParticipantId;
+  const isDrawer = viewerParticipantId != null && viewerParticipantId === room.drawerId;
 
-  return {
+  const snapshot: RoomSnapshot = {
     code: room.code,
     status: room.status,
     hostId: room.hostId,
-    participants: room.participants.map((participant) => ({ ...participant })),
+    drawerId: room.drawerId,
+    participants: room.participants.map((participant) => ({
+      ...participant,
+      role: participant.id === room.drawerId ? "drawer" : "guesser",
+      score: room.scores[participant.id] ?? 0
+    })),
+    guesses: room.guesses.map((guess) => ({ ...guess })),
+    drawingStrokes: room.drawingStrokes.map((stroke) => ({
+      ...stroke,
+      points: stroke.points.map((point) => ({ ...point }))
+    })),
     availableWords: listWords(),
     roles: [...STARTER_ROLES]
   };
+
+  if (isDrawer && room.secretWord) {
+    snapshot.secretWord = room.secretWord;
+  }
+
+  return snapshot;
 }

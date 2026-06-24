@@ -3,11 +3,19 @@ import { z } from "zod";
 const roomCodePattern = /^[A-Z0-9]{4}$/;
 
 export const createRoomSchema = z.object({
-  playerName: z.string().optional()
+  playerName: z
+    .string()
+    .optional()
+    .transform((value) => value?.trim() ?? "")
+    .refine((value) => value.length > 0, { message: "Player name is required" })
 });
 
 export const joinRoomSchema = z.object({
-  playerName: z.string().optional()
+  playerName: z
+    .string()
+    .optional()
+    .transform((value) => value?.trim() ?? "")
+    .refine((value) => value.length > 0, { message: "Player name is required" })
 });
 
 export const roomCodeParamsSchema = z.object({
