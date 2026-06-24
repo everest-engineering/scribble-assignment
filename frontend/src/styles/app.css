@@ -451,6 +451,15 @@ input {
   font-weight: 500;
 }
 
+.drawing-canvas__surface {
+  width: 100%;
+  min-height: 500px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #ffffff;
+  display: block;
+}
+
 /* --- GAME PAGE LAYOUT --- */
 /* Changed layout structure to be much wider and utilize screen space */
 .game-page {
