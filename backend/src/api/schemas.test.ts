@@ -11,4 +11,14 @@ describe("schemas", () => {
   it("roomCodeParamsSchema rejects missing code", () => {
     expect(() => roomCodeParamsSchema.parse({})).toThrow();
   });
+
+  it("roomCodeParamsSchema rejects invalid format", () => {
+    expect(() => roomCodeParamsSchema.parse({ code: "AB" })).toThrow();
+  });
+
+  it("roomCodeParamsSchema normalizes lowercase codes", () => {
+    const result = roomCodeParamsSchema.parse({ code: "abcd" });
+
+    expect(result.code).toBe("ABCD");
+  });
 });
