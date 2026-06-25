@@ -1,0 +1,22 @@
+# Scribble Constitution
+
+## Engineering Principles
+
+1. Preserve the starter architecture: Express backend, React frontend, TypeScript, REST endpoints, and in-memory room state.
+2. Keep game rules deterministic. Room setup, drawer assignment, word selection, scoring, and restart behavior must be predictable and testable.
+3. Validate at the boundary. Backend request bodies and params must reject empty names, malformed room codes, missing participant ids, and empty guesses with clear messages.
+4. Sync through HTTP polling only. WebSockets, databases, authentication, sessions, and unrelated infrastructure are out of scope.
+5. Keep room data isolated by room code. Actions for one room must not affect another room.
+
+## AI Usage Rules
+
+1. Inspect the existing code before changing behavior.
+2. Tie every generated artifact to real files and implemented behavior.
+3. Prefer small, reviewable edits over framework rewrites.
+4. Run tests and builds after implementation, and record any validation gaps honestly.
+
+## Review Discipline
+
+1. Review host-only permissions, player validation, room isolation, word visibility, scoring, and restart reset before submission.
+2. Check the UI with two participants in separate browser tabs.
+3. Keep implementation and Spec Kit artifacts consistent. If behavior changes, update the relevant artifact in the same branch.

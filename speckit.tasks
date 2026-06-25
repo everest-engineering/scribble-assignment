@@ -1,0 +1,34 @@
+# Tasks
+
+## Discovery and Artifacts
+
+- [x] Inspect backend room model, route surface, and frontend placeholders.
+- [x] Document incomplete behaviors, assumptions, and relevant files.
+- [x] Write constitution, four specify iterations, plan, tasks, and reflection.
+
+## Backend
+
+- [x] Extend room state with host id, statuses, scores, round, guesses, and result.
+- [x] Validate player names, room codes, participant ids, drawing data, and guesses.
+- [x] Add start, drawing, clear, guess, and restart endpoints.
+- [x] Enforce host-only start/restart and drawer-only drawing.
+- [x] Hide secret word from guessers while playing.
+- [x] Add backend tests for the required scenarios.
+
+## Frontend
+
+- [x] Fix API base URL and add typed command calls.
+- [x] Add store actions for start, drawing, clear, guess, and restart.
+- [x] Add 2-second polling in lobby and game views.
+- [x] Add host-only lobby start state.
+- [x] Implement drawing canvas and clear action.
+- [x] Implement live scoreboard, guess form, activity history, result panel, and restart action.
+
+## Validation
+
+- [x] Run backend tests.
+- [x] Run backend build.
+- [x] Run frontend tests.
+- [x] Run frontend build.
+- [x] Run live frontend-load and two-player backend smoke test against local dev servers.
+- [ ] Run a final manual two-tab visual check in a real browser before submission.
