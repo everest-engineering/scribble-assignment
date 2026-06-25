@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { PageHeader } from "../components/PageHeader";
 import { useRoomStore } from "../state/roomStore";
@@ -9,12 +9,18 @@ export function CreateRoomPage() {
   const navigate = useNavigate();
   const roomStore = useRoomStore();
 
-  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    const trimmedName = playerName.trim();
+
+    if (!trimmedName) {
+      setError("Player name is required");
+      return;
+    }
 
     try {
       setError(null);
-      await roomStore.createRoom(playerName);
+      await roomStore.createRoom(trimmedName);
       navigate("/lobby");
     } catch (caughtError) {
       setError(caughtError instanceof Error ? caughtError.message : "Unable to create room");
@@ -36,6 +42,7 @@ export function CreateRoomPage() {
             value={playerName}
             onChange={(event) => setPlayerName(event.target.value)}
             placeholder="Sketch captain"
+            autoComplete="nickname"
           />
         </label>
         {error ? <p className="form__error">{error}</p> : null}

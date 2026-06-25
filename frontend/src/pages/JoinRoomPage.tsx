@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { PageHeader } from "../components/PageHeader";
 import { useRoomStore } from "../state/roomStore";
@@ -10,12 +10,24 @@ export function JoinRoomPage() {
   const navigate = useNavigate();
   const roomStore = useRoomStore();
 
-  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    const trimmedName = playerName.trim();
+    const trimmedRoomCode = roomCode.trim().toUpperCase();
+
+    if (!trimmedName) {
+      setError("Player name is required");
+      return;
+    }
+
+    if (!/^[A-Z0-9]{4}$/.test(trimmedRoomCode)) {
+      setError("Room code must be 4 letters or numbers");
+      return;
+    }
 
     try {
       setError(null);
-      await roomStore.joinRoom(roomCode.toUpperCase(), playerName);
+      await roomStore.joinRoom(trimmedRoomCode, trimmedName);
       navigate("/lobby");
     } catch (caughtError) {
       setError(caughtError instanceof Error ? caughtError.message : "Unable to join room");
@@ -37,6 +49,7 @@ export function JoinRoomPage() {
             value={playerName}
             onChange={(event) => setPlayerName(event.target.value)}
             placeholder="Second pencil"
+            autoComplete="nickname"
           />
         </label>
 
@@ -47,6 +60,7 @@ export function JoinRoomPage() {
             value={roomCode}
             onChange={(event) => setRoomCode(event.target.value.toUpperCase())}
             placeholder="ABCD"
+            maxLength={4}
           />
         </label>
         {error ? <p className="form__error">{error}</p> : null}

@@ -1,14 +1,29 @@
 import { Card } from "./Card";
+import type { ScoreEntry } from "../services/api";
 
-export function Scoreboard() {
+interface ScoreboardProps {
+  scores: ScoreEntry[];
+  drawerId: string | null;
+}
+
+export function Scoreboard({ scores, drawerId }: ScoreboardProps) {
   return (
     <Card title="Scoreboard">
-      <div className="placeholder-block" style={{ backgroundColor: '#f9fafb' }}>
-        <div className="placeholder-row">
-          <span>Waiting for players...</span>
-          <strong>0</strong>
-        </div>
-      </div>
+      {scores.length === 0 ? (
+        <p>No scores yet.</p>
+      ) : (
+        <ol className="score-list">
+          {scores.map((score) => (
+            <li key={score.participantId}>
+              <span>
+                {score.playerName}
+                {drawerId === score.participantId ? <em>Drawer</em> : null}
+              </span>
+              <strong>{score.score}</strong>
+            </li>
+          ))}
+        </ol>
+      )}
     </Card>
   );
 }
