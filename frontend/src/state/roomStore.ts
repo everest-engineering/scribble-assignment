@@ -94,7 +94,59 @@ class RoomStore {
       return null;
     }
 
-    const response = await api.fetchRoom(this.state.room.code, this.state.participantId ?? undefined);
+    try {
+      const response = await api.fetchRoom(this.state.room.code, this.state.participantId ?? undefined);
+      this.setRoomSnapshot(response.room);
+      return response.room;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unable to refresh room";
+      this.setState({ error: message });
+      throw error;
+    }
+  }
+
+  private requireActiveSession() {
+    if (!this.state.room || !this.state.participantId) {
+      throw new Error("Room session is missing");
+    }
+
+    return {
+      code: this.state.room.code,
+      participantId: this.state.participantId
+    };
+  }
+
+  async startGame() {
+    const { code, participantId } = this.requireActiveSession();
+    const response = await this.withLoading(() => api.startGame(code, participantId));
+    this.setRoomSnapshot(response.room);
+    return response.room;
+  }
+
+  async updateDrawing(drawingDataUrl: string | null) {
+    const { code, participantId } = this.requireActiveSession();
+    const response = await api.updateDrawing(code, participantId, drawingDataUrl);
+    this.setRoomSnapshot(response.room);
+    return response.room;
+  }
+
+  async clearDrawing() {
+    const { code, participantId } = this.requireActiveSession();
+    const response = await this.withLoading(() => api.clearDrawing(code, participantId));
+    this.setRoomSnapshot(response.room);
+    return response.room;
+  }
+
+  async submitGuess(guess: string) {
+    const { code, participantId } = this.requireActiveSession();
+    const response = await this.withLoading(() => api.submitGuess(code, participantId, guess));
+    this.setRoomSnapshot(response.room);
+    return response.room;
+  }
+
+  async restartGame() {
+    const { code, participantId } = this.requireActiveSession();
+    const response = await this.withLoading(() => api.restartGame(code, participantId));
     this.setRoomSnapshot(response.room);
     return response.room;
   }

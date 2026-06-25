@@ -1,0 +1,44 @@
+# Implementation Plan
+
+## State Model
+
+`Room` now contains `status`, `hostId`, `participants`, `scores`, and optional `round` state. `Round` contains `drawerId`, deterministic `word`, optional `drawingDataUrl`, ordered `guesses`, `startedAt`, and optional `endedAt`.
+
+Snapshots are viewer-aware. Drawer and result viewers receive `secretWord`; guessers receive only `wordLength` while playing. Scores are returned in participant order for stable display.
+
+## Backend Flow
+
+1. `POST /rooms` creates a host participant and lobby room.
+2. `POST /rooms/:code/join` validates code/name and adds a participant only while lobby is open.
+3. `POST /rooms/:code/start` requires host and at least 2 players, then creates the first round.
+4. `POST /rooms/:code/drawing` and `/clear` require the drawer.
+5. `POST /rooms/:code/guesses` requires a guesser, records guesses, scores correct guesses, and moves to result.
+6. `POST /rooms/:code/restart` requires the host in result state and clears round state.
+
+## Frontend Flow
+
+1. Create and join pages trim inputs and surface backend validation messages.
+2. Lobby polls `fetchRoom` every 2 seconds and redirects to game after start.
+3. Game polls `fetchRoom` every 2 seconds for drawing, guesses, scores, result, and restart changes.
+4. Drawer uses a pointer-event canvas; stroke completion saves a PNG data URL.
+5. Guessers submit guesses through the store and see the synced history/result.
+6. Host restart returns all players to the lobby state on the next snapshot.
+
+## Files Changed
+
+- Backend model, store, schemas, routes, and tests.
+- Frontend API service, room store, create/join/lobby/game pages, game components, and CSS.
+- Spec Kit artifacts in the repository root.
+
+## Validation Strategy
+
+1. Backend unit tests for game rules and schema validation.
+2. Backend TypeScript build.
+3. Frontend API tests.
+4. Frontend TypeScript and Vite production build.
+5. Manual two-browser smoke test with backend and frontend dev servers.
+
+## Risks
+
+1. Drawing sync uses data URLs and polling, so it is sufficient for the lab but not optimized for high-frequency real-time drawing.
+2. The assignment requires one round only; drawer rotation, timers, and multi-round scoring remain intentionally out of scope.

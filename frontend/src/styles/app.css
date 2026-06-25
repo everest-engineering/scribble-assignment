@@ -377,6 +377,12 @@ input {
   font-weight: 500;
 }
 
+.form__hint {
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: 0.9rem;
+}
+
 .player-list {
   display: grid;
   gap: 12px;
@@ -414,6 +420,87 @@ input {
   color: var(--ink-soft);
   font-size: 0.875rem;
   font-weight: 600;
+}
+
+.status-line--success {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.score-list,
+.guess-list {
+  display: grid;
+  gap: 12px;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.score-list li,
+.guess-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-strong);
+}
+
+.score-list span {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.score-list em {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #dbeafe;
+  color: #1d4ed8;
+  font-size: 0.75rem;
+  font-style: normal;
+  font-weight: 700;
+}
+
+.score-list strong {
+  color: var(--ink);
+  font-size: 1.15rem;
+}
+
+.guess-list li {
+  align-items: flex-start;
+}
+
+.guess-list span {
+  color: var(--ink-soft);
+}
+
+.guess-list em {
+  color: var(--ink-soft);
+  font-style: normal;
+  font-weight: 700;
+}
+
+.guess-list__item--correct {
+  border-color: #86efac;
+  background: #f0fdf4;
+}
+
+.guess-list__item--correct em {
+  color: #166534;
+}
+
+.result-summary {
+  display: grid;
+  gap: 12px;
+}
+
+.result-summary strong {
+  color: var(--ink);
 }
 
 .placeholder-block {
@@ -484,6 +571,42 @@ input {
   line-height: 1.2;
   font-weight: 700;
   letter-spacing: -0.025em;
+}
+
+.game-page__subtitle {
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: 1.1rem;
+}
+
+.drawing-board {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #ffffff;
+  aspect-ratio: 5 / 3;
+}
+
+.drawing-board__canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+}
+
+.drawing-board__hint {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  margin: 0;
+  padding: 24px;
+  color: var(--ink-soft);
+  font-size: 1.05rem;
+  font-weight: 600;
+  pointer-events: none;
+  text-align: center;
 }
 
 /* Responsive grid: 3-column layout */
