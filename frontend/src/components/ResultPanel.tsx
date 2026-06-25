@@ -1,11 +1,23 @@
-import { Card } from "./Card";
+import type { Guess } from "../services/api";
 
-export function ResultPanel() {
+interface ResultPanelProps {
+  guesses: Guess[];
+}
+
+export function ResultPanel({ guesses }: ResultPanelProps) {
+  if (guesses.length === 0) {
+    return <p>No guesses yet. Activity will appear here.</p>;
+  }
+
   return (
-    <Card title="Activity">
-      <div className="placeholder-block" style={{ backgroundColor: '#f9fafb' }}>
-        <p style={{ fontSize: '0.875rem', color: '#6b7280' }}>Game activity and guesses will appear here.</p>
-      </div>
-    </Card>
+    <ul className="guess-history">
+      {guesses.map((guess) => (
+        <li key={guess.id} className={guess.correct ? "guess-history__item guess-history__item--correct" : "guess-history__item"}>
+          <span className="guess-history__name">{guess.participantName}</span>
+          <span className="guess-history__text">{guess.text}</span>
+          {guess.correct ? <span className="guess-history__badge">Correct!</span> : null}
+        </li>
+      ))}
+    </ul>
   );
 }
