@@ -3,6 +3,22 @@ import { useNavigate } from "react-router-dom";
 import { PageHeader } from "../components/PageHeader";
 import { useRoomStore } from "../state/roomStore";
 
+function validatePlayerName(name: string) {
+  const trimmed = name.trim();
+  if (!trimmed) {
+    return "Player name is required";
+  }
+  return null;
+}
+
+function validateRoomCode(code: string) {
+  const trimmed = code.trim();
+  if (!trimmed) {
+    return "Room code is required";
+  }
+  return null;
+}
+
 export function JoinRoomPage() {
   const [playerName, setPlayerName] = useState("");
   const [roomCode, setRoomCode] = useState("");
@@ -12,6 +28,18 @@ export function JoinRoomPage() {
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+
+    const nameError = validatePlayerName(playerName);
+    if (nameError) {
+      setError(nameError);
+      return;
+    }
+
+    const codeError = validateRoomCode(roomCode);
+    if (codeError) {
+      setError(codeError);
+      return;
+    }
 
     try {
       setError(null);
