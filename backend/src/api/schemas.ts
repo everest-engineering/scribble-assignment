@@ -22,6 +22,32 @@ export const roomViewerQuerySchema = z.object({
   participantId: z.string().optional()
 });
 
+const strokePointSchema = z.object({
+  x: z.number(),
+  y: z.number()
+});
+
+const drawingStrokeSchema = z.object({
+  id: z.string(),
+  points: z.array(strokePointSchema),
+  color: z.string(),
+  width: z.number()
+});
+
+export const drawStrokesSchema = z.object({
+  participantId: z.string(),
+  strokes: z.array(drawingStrokeSchema)
+});
+
+export const clearCanvasSchema = z.object({
+  participantId: z.string()
+});
+
+export const submitGuessSchema = z.object({
+  participantId: z.string(),
+  guess: z.string()
+});
+
 export class HttpError extends Error {
   statusCode: number;
 

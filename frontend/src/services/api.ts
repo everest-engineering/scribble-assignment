@@ -6,6 +6,42 @@ export interface Participant {
   joinedAt: string;
 }
 
+export interface Point {
+  x: number;
+  y: number;
+}
+
+export interface DrawingStroke {
+  id: string;
+  points: Point[];
+  color: string;
+  width: number;
+}
+
+export interface GuessEntry {
+  participantId: string;
+  participantName: string;
+  guess: string;
+  correct: boolean;
+  timestamp: string;
+  roundScoreAfter: number;
+  cumulativeScoreAfter: number;
+}
+
+export interface ParticipantScore {
+  roundScore: number;
+  cumulativeScore: number;
+}
+
+export interface RoundResult {
+  roundNumber: number;
+  secretWord: string;
+  drawerId: string;
+  drawerName: string;
+  guessHistory: GuessEntry[];
+  scores: Record<string, ParticipantScore>;
+}
+
 export interface RoomSnapshot {
   code: string;
   status: "lobby" | "playing";
@@ -16,6 +52,16 @@ export interface RoomSnapshot {
   currentRound?: number;
   drawerId?: string;
   secretWord?: string;
+  strokes: DrawingStroke[];
+  guessHistory: GuessEntry[];
+  scores: Record<string, ParticipantScore>;
+  lastRoundResult?: RoundResult;
+}
+
+export interface GuessResponse {
+  correct: boolean;
+  message: string;
+  guessEntry: GuessEntry;
 }
 
 export interface RoomSessionResponse {
@@ -66,6 +112,24 @@ export const api = {
     return request<{ room: RoomSnapshot }>(`/rooms/${encodeURIComponent(code)}/start`, {
       method: "POST",
       body: JSON.stringify({ playerId })
+    });
+  },
+  addStrokes(code: string, participantId: string, strokes: DrawingStroke[]) {
+    return request<{ strokes: DrawingStroke[] }>(`/rooms/${encodeURIComponent(code)}/draw`, {
+      method: "POST",
+      body: JSON.stringify({ participantId, strokes })
+    });
+  },
+  clearCanvas(code: string, participantId: string) {
+    return request<{ strokes: DrawingStroke[] }>(`/rooms/${encodeURIComponent(code)}/draw`, {
+      method: "DELETE",
+      body: JSON.stringify({ participantId })
+    });
+  },
+  submitGuess(code: string, participantId: string, guess: string) {
+    return request<GuessResponse>(`/rooms/${encodeURIComponent(code)}/guess`, {
+      method: "POST",
+      body: JSON.stringify({ participantId, guess })
     });
   }
 };

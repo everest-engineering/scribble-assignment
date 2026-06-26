@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { STARTER_WORDS } from "../seed/starterData.js";
-import { createRoom, joinRoom, startGame, toRoomSnapshot } from "./roomStore.js";
+import { addStrokes, advanceRound, clearStrokes, createRoom, getRoom, joinRoom, startGame, submitGuess, toRoomSnapshot } from "./roomStore.js";
+
+function setupPlayingRoom() {
+  const host = createRoom("Alice");
+  const joiner = joinRoom(host.room.code, "Bob");
+  const started = startGame(host.room.code);
+  return { host, joiner: joiner!, started: started!, code: host.room.code, hostParticipantId: host.participantId, joinerParticipantId: joiner!.participantId };
+}
 
 describe("roomStore", () => {
   it("createRoom returns a room with a 4-character uppercase code", () => {
@@ -124,5 +131,174 @@ describe("roomStore", () => {
     expect(snapshot.currentRound).toBeUndefined();
     expect(snapshot.drawerId).toBeUndefined();
     expect(snapshot.secretWord).toBeUndefined();
+  });
+
+  describe("addStrokes", () => {
+    it("appends strokes to a playing room", () => {
+      const { code, hostParticipantId } = setupPlayingRoom();
+      const stroke = { id: "s1", points: [{ x: 0, y: 0 }, { x: 10, y: 10 }], color: "#000", width: 3 };
+
+      const result = addStrokes(code, hostParticipantId, [stroke]);
+
+      expect(result).not.toBeNull();
+      expect(result!.strokes).toHaveLength(1);
+      expect(result!.strokes[0].id).toBe("s1");
+    });
+
+    it("returns null for unknown room", () => {
+      const result = addStrokes("ZZZZ", "p1", []);
+      expect(result).toBeNull();
+    });
+
+    it("returns null when non-drawer tries to add strokes", () => {
+      const { code, joinerParticipantId } = setupPlayingRoom();
+      const result = addStrokes(code, joinerParticipantId, []);
+      expect(result).toBeNull();
+    });
+  });
+
+  describe("clearStrokes", () => {
+    it("clears all strokes from a playing room", () => {
+      const { code, hostParticipantId } = setupPlayingRoom();
+      const stroke = { id: "s1", points: [{ x: 0, y: 0 }], color: "#000", width: 3 };
+      addStrokes(code, hostParticipantId, [stroke]);
+
+      const result = clearStrokes(code, hostParticipantId);
+
+      expect(result).not.toBeNull();
+      expect(result!.strokes).toEqual([]);
+    });
+
+    it("returns null for unknown room", () => {
+      const result = clearStrokes("ZZZZ", "p1");
+      expect(result).toBeNull();
+    });
+
+    it("returns null when non-drawer tries to clear", () => {
+      const { code, joinerParticipantId } = setupPlayingRoom();
+      const result = clearStrokes(code, joinerParticipantId);
+      expect(result).toBeNull();
+    });
+  });
+
+  describe("submitGuess", () => {
+    it("returns correct for a matching guess (case-insensitive)", () => {
+      const { code, joinerParticipantId } = setupPlayingRoom();
+      const result = submitGuess(code, joinerParticipantId, STARTER_WORDS[0].toUpperCase());
+
+      expect(result).not.toHaveProperty("error");
+      if ("error" in result) return;
+      expect(result.correct).toBe(true);
+      expect(result.message).toBe("Correct!");
+    });
+
+    it("returns wrong for an incorrect guess", () => {
+      const { code, joinerParticipantId } = setupPlayingRoom();
+      const result = submitGuess(code, joinerParticipantId, "wrongguess");
+
+      expect(result).not.toHaveProperty("error");
+      if ("error" in result) return;
+      expect(result.correct).toBe(false);
+      expect(result.message).toBe("Wrong guess");
+    });
+
+    it("rejects empty guess", () => {
+      const { code, joinerParticipantId } = setupPlayingRoom();
+      const result = submitGuess(code, joinerParticipantId, "   ");
+
+      expect(result).toHaveProperty("error");
+    });
+
+    it("rejects guess from drawer", () => {
+      const { code, hostParticipantId } = setupPlayingRoom();
+      const result = submitGuess(code, hostParticipantId, "anything");
+
+      expect(result).toHaveProperty("error");
+    });
+
+    it("rejects subsequent correct guess after round ended", () => {
+      const { code, joinerParticipantId } = setupPlayingRoom();
+      submitGuess(code, joinerParticipantId, STARTER_WORDS[0]);
+
+      const result = submitGuess(code, joinerParticipantId, STARTER_WORDS[0]);
+      expect(result).toHaveProperty("error");
+    });
+
+    it("records a GuessEntry with correct score values", () => {
+      const { code, joinerParticipantId } = setupPlayingRoom();
+      const result = submitGuess(code, joinerParticipantId, STARTER_WORDS[0]);
+
+      if ("error" in result) return;
+      expect(result.guessEntry.correct).toBe(true);
+      expect(result.guessEntry.roundScoreAfter).toBe(100);
+      expect(result.guessEntry.cumulativeScoreAfter).toBe(100);
+    });
+
+    it("advances round on correct guess", () => {
+      const { code, joinerParticipantId, hostParticipantId } = setupPlayingRoom();
+      submitGuess(code, joinerParticipantId, STARTER_WORDS[0]);
+
+      const room = toRoomSnapshot(getRoom(code)!, hostParticipantId);
+      if (!("currentRound" in room)) return;
+      expect(room.currentRound).toBe(2);
+    });
+  });
+
+  describe("advanceRound", () => {
+    it("increments currentRound", () => {
+      const { code } = setupPlayingRoom();
+
+      advanceRound(code);
+      const room = getRoom(code);
+
+      expect(room!.currentRound).toBe(2);
+    });
+
+    it("sets next drawer via round-robin", () => {
+      const { code, hostParticipantId, joinerParticipantId } = setupPlayingRoom();
+
+      advanceRound(code);
+      const room = getRoom(code);
+
+      expect(room!.drawerId).toBe(joinerParticipantId);
+    });
+
+    it("selects next word from STARTER_WORDS", () => {
+      const { code } = setupPlayingRoom();
+
+      advanceRound(code);
+      const room = getRoom(code);
+
+      expect(room!.secretWord).toBe(STARTER_WORDS[1]);
+    });
+
+    it("clears strokes after advancing", () => {
+      const { code, hostParticipantId } = setupPlayingRoom();
+      addStrokes(code, hostParticipantId, [{ id: "s1", points: [{ x: 0, y: 0 }], color: "#000", width: 3 }]);
+
+      advanceRound(code);
+      const room = getRoom(code);
+
+      expect(room!.strokes).toEqual([]);
+    });
+
+    it("resets roundScore to 0 for all participants", () => {
+      const { code, joinerParticipantId } = setupPlayingRoom();
+      submitGuess(code, joinerParticipantId, STARTER_WORDS[0]);
+
+      const room = getRoom(code);
+      expect(room!.scores[joinerParticipantId].roundScore).toBe(0);
+    });
+
+    it("sets lastRoundResult with correct round data", () => {
+      const { code, hostParticipantId } = setupPlayingRoom();
+
+      advanceRound(code);
+      const room = getRoom(code);
+
+      expect(room!.lastRoundResult).toBeDefined();
+      expect(room!.lastRoundResult!.roundNumber).toBe(1);
+      expect(room!.lastRoundResult!.drawerId).toBe(hostParticipantId);
+    });
   });
 });

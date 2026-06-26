@@ -7,7 +7,7 @@ import {
   useSyncExternalStore,
   type PropsWithChildren
 } from "react";
-import { api, type RoomSessionResponse, type RoomSnapshot } from "../services/api";
+import { api, type DrawingStroke, type RoomSessionResponse, type RoomSnapshot, type RoundResult } from "../services/api";
 
 export interface RoomState {
   room: RoomSnapshot | null;
@@ -15,6 +15,7 @@ export interface RoomState {
   error: string | null;
   pollingError: string | null;
   isLoading: boolean;
+  lastRoundResult: RoundResult | null;
 }
 
 type Listener = () => void;
@@ -25,7 +26,8 @@ class RoomStore {
     participantId: null,
     error: null,
     pollingError: null,
-    isLoading: false
+    isLoading: false,
+    lastRoundResult: null
   };
 
   private listeners = new Set<Listener>();
@@ -140,6 +142,30 @@ class RoomStore {
     return response.room;
   }
 
+  async addStrokes(strokes: DrawingStroke[]) {
+    if (!this.state.room || !this.state.participantId) return;
+    const result = await api.addStrokes(this.state.room.code, this.state.participantId, strokes);
+    if (this.state.room) {
+      this.setState({ room: { ...this.state.room, strokes: result.strokes } });
+    }
+  }
+
+  async clearCanvas() {
+    if (!this.state.room || !this.state.participantId) return;
+    await api.clearCanvas(this.state.room.code, this.state.participantId);
+    if (this.state.room) {
+      this.setState({ room: { ...this.state.room, strokes: [] } });
+    }
+  }
+
+  async submitGuess(guess: string) {
+    if (!this.state.room || !this.state.participantId) {
+      throw new Error("No room to submit guess");
+    }
+    const response = await api.submitGuess(this.state.room.code, this.state.participantId, guess);
+    return response;
+  }
+
   async fetchRoom() {
     if (!this.state.room) {
       return null;
@@ -147,6 +173,11 @@ class RoomStore {
 
     const response = await api.fetchRoom(this.state.room.code, this.state.participantId ?? undefined);
     this.setRoomSnapshot(response.room);
+    if (response.room.lastRoundResult) {
+      this.setState({ lastRoundResult: response.room.lastRoundResult });
+    } else if (this.state.lastRoundResult) {
+      this.setState({ lastRoundResult: null });
+    }
     return response.room;
   }
 

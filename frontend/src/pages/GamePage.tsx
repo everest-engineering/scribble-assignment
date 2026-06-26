@@ -1,17 +1,18 @@
 import { useCallback, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { CanvasPlaceholder } from "../components/CanvasPlaceholder";
+import { Canvas } from "../components/Canvas";
 import { Card } from "../components/Card";
 import { GuessForm } from "../components/GuessForm";
-import { ResultPanel } from "../components/ResultPanel";
+import { GuessHistory } from "../components/GuessHistory";
 import { RoomCodeBadge } from "../components/RoomCodeBadge";
+import { RoundResultCard } from "../components/RoundResultCard";
 import { Scoreboard } from "../components/Scoreboard";
 import { useRoomState, useRoomStore } from "../state/roomStore";
 
 export function GamePage() {
   const navigate = useNavigate();
   const roomStore = useRoomStore();
-  const { room, participantId } = useRoomState();
+  const { room, participantId, lastRoundResult } = useRoomState();
 
   useEffect(() => {
     if (room) return;
@@ -23,7 +24,14 @@ export function GamePage() {
     });
   }, [navigate, room, roomStore]);
 
+  useEffect(() => {
+    if (!room) return;
+    roomStore.startPolling();
+    return () => roomStore.stopPolling();
+  }, [room, roomStore]);
+
   const handleExit = useCallback(() => {
+    roomStore.stopPolling();
     roomStore.clearSession();
     navigate("/lobby");
   }, [navigate, roomStore]);
@@ -38,6 +46,8 @@ export function GamePage() {
 
   return (
     <section className="panel game-page">
+      {lastRoundResult && <RoundResultCard result={lastRoundResult} />}
+
       <div className="game-page__header">
         <div className="game-page__header-left">
           <span className="section-kicker">Round {room.currentRound ?? 1}</span>
@@ -51,15 +61,17 @@ export function GamePage() {
       <div className="game-page__layout">
         <aside className="game-page__sidebar game-page__sidebar--left">
           <Scoreboard />
-          {isDrawer ? null : <ResultPanel />}
+          <GuessHistory guesses={room.guessHistory} />
         </aside>
 
         <div className="game-page__main">
           <Card title="Canvas">
-            <CanvasPlaceholder
+            <Canvas
               isDrawer={isDrawer}
-              drawerName={drawer?.name ?? null}
+              strokes={room.strokes}
               secretWord={room.secretWord}
+              onAddStrokes={(strokes) => roomStore.addStrokes(strokes)}
+              onClearCanvas={() => roomStore.clearCanvas()}
             />
           </Card>
         </div>
@@ -84,7 +96,7 @@ export function GamePage() {
 
           {isDrawer ? null : (
             <Card title="Your Guess">
-              <GuessForm />
+              <GuessForm onSubmitGuess={(guess) => roomStore.submitGuess(guess)} />
             </Card>
           )}
         </aside>
