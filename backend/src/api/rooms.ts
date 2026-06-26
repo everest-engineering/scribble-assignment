@@ -73,6 +73,9 @@ export function createRoomsRouter() {
       if (!room) {
         throw new HttpError(404, "Room not found");
       }
+      if (room.status !== "lobby") {
+        throw new HttpError(400, "Game has already started");
+      }
       if (room.hostId !== playerId) {
         throw new HttpError(403, "Only the host can start the game");
       }
@@ -86,7 +89,7 @@ export function createRoomsRouter() {
       }
 
       response.json({
-        room: toRoomSnapshot(updatedRoom)
+        room: toRoomSnapshot(updatedRoom, playerId)
       });
     } catch (error) {
       next(error);

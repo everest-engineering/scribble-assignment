@@ -84,15 +84,49 @@ class RoomStore {
     });
   }
 
+  clearSession() {
+    sessionStorage.removeItem("scribble_roomCode");
+    sessionStorage.removeItem("scribble_participantId");
+  }
+
+  getSavedSession(): { code: string; participantId: string } | null {
+    const code = sessionStorage.getItem("scribble_roomCode");
+    const participantId = sessionStorage.getItem("scribble_participantId");
+    if (code && participantId) {
+      return { code, participantId };
+    }
+    return null;
+  }
+
+  async restoreSession() {
+    const session = this.getSavedSession();
+    if (!session) return null;
+
+    this.setState({ participantId: session.participantId });
+
+    try {
+      const response = await api.fetchRoom(session.code, session.participantId);
+      this.setRoomSnapshot(response.room);
+      return response.room;
+    } catch {
+      this.setState({ error: "Failed to restore session" });
+      return null;
+    }
+  }
+
   async createRoom(playerName: string) {
     const response = await this.withLoading(() => api.createRoom(playerName));
     this.setRoomSession(response);
+    sessionStorage.setItem("scribble_roomCode", response.room.code);
+    sessionStorage.setItem("scribble_participantId", response.participantId);
     return response;
   }
 
   async joinRoom(code: string, playerName: string) {
     const response = await this.withLoading(() => api.joinRoom(code, playerName));
     this.setRoomSession(response);
+    sessionStorage.setItem("scribble_roomCode", response.room.code);
+    sessionStorage.setItem("scribble_participantId", response.participantId);
     return response;
   }
 
