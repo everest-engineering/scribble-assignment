@@ -9,12 +9,20 @@ export function CreateRoomPage() {
   const navigate = useNavigate();
   const roomStore = useRoomStore();
 
+  const trimmedName = playerName.trim();
+  const isNameValid = trimmedName.length > 0;
+
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
+    if (!isNameValid) {
+      setError("Player name is required");
+      return;
+    }
+
     try {
       setError(null);
-      await roomStore.createRoom(playerName);
+      await roomStore.createRoom(trimmedName);
       navigate("/lobby");
     } catch (caughtError) {
       setError(caughtError instanceof Error ? caughtError.message : "Unable to create room");
@@ -40,7 +48,7 @@ export function CreateRoomPage() {
         </label>
         {error ? <p className="form__error">{error}</p> : null}
         <div className="button-row">
-          <button className="button button--primary" type="submit">
+          <button className="button button--primary" type="submit" disabled={!isNameValid}>
             Create and Continue
           </button>
           <button className="button button--secondary" type="button" onClick={() => navigate("/")}>

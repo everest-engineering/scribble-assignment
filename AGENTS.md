@@ -40,3 +40,7 @@ You are working on a monolithic repository for a multiplayer drawing game ("Scri
 -   Give concise, direct answers.
 -   Do not output large blocks of code if a small change suffices.
 -   When creating or editing files, ensure consistency with the existing directory structure detailed above.
+
+<!-- SPECKIT START -->
+Current plan: specs/001-room-setup-lobby/plan.md
+<!-- SPECKIT END -->

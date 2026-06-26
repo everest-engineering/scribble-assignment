@@ -13,6 +13,7 @@ export interface RoomState {
   room: RoomSnapshot | null;
   participantId: string | null;
   error: string | null;
+  pollingError: string | null;
   isLoading: boolean;
 }
 
@@ -23,10 +24,16 @@ class RoomStore {
     room: null,
     participantId: null,
     error: null,
+    pollingError: null,
     isLoading: false
   };
 
   private listeners = new Set<Listener>();
+
+  private pollTimerId: ReturnType<typeof setTimeout> | null = null;
+  private isPolling = false;
+  private consecutiveFailures = 0;
+  private pollInterval = 2000;
 
   subscribe = (listener: Listener) => {
     this.listeners.add(listener);
@@ -89,6 +96,16 @@ class RoomStore {
     return response;
   }
 
+  async startGame() {
+    if (!this.state.room || !this.state.participantId) {
+      throw new Error("No room to start");
+    }
+
+    const response = await api.startRoom(this.state.room.code, this.state.participantId);
+    this.setRoomSnapshot(response.room);
+    return response.room;
+  }
+
   async fetchRoom() {
     if (!this.state.room) {
       return null;
@@ -97,6 +114,47 @@ class RoomStore {
     const response = await api.fetchRoom(this.state.room.code, this.state.participantId ?? undefined);
     this.setRoomSnapshot(response.room);
     return response.room;
+  }
+
+  startPolling() {
+    this.stopPolling();
+    this.isPolling = true;
+    this.scheduleNextPoll();
+  }
+
+  stopPolling() {
+    this.isPolling = false;
+    if (this.pollTimerId !== null) {
+      clearTimeout(this.pollTimerId);
+      this.pollTimerId = null;
+    }
+    this.consecutiveFailures = 0;
+    this.pollInterval = 2000;
+    this.setState({ pollingError: null });
+  }
+
+  private scheduleNextPoll() {
+    if (!this.isPolling) return;
+
+    this.pollTimerId = setTimeout(async () => {
+      if (!this.isPolling) return;
+
+      try {
+        await this.fetchRoom();
+        this.consecutiveFailures = 0;
+        this.pollInterval = 2000;
+        this.setState({ pollingError: null });
+      } catch {
+        this.consecutiveFailures++;
+        this.pollInterval = Math.min(this.pollInterval * 2, 8000);
+
+        if (this.consecutiveFailures >= 3) {
+          this.setState({ pollingError: "Unable to reach server. Retrying..." });
+        }
+      }
+
+      this.scheduleNextPoll();
+    }, this.pollInterval);
   }
 }
 

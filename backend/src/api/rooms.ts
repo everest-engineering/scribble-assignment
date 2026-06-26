@@ -4,9 +4,10 @@ import {
   HttpError,
   joinRoomSchema,
   roomCodeParamsSchema,
-  roomViewerQuerySchema
+  roomViewerQuerySchema,
+  startGameSchema
 } from "./schemas.js";
-import { createRoom, getRoom, joinRoom, toRoomSnapshot } from "../services/roomStore.js";
+import { createRoom, getRoom, joinRoom, startGame, toRoomSnapshot } from "../services/roomStore.js";
 
 export function createRoomsRouter() {
   const router = Router();
@@ -32,7 +33,7 @@ export function createRoomsRouter() {
       const result = joinRoom(code.toUpperCase(), playerName);
 
       if (!result) {
-        throw new HttpError(404, "Unable to join room");
+        throw new HttpError(404, "Room not found");
       }
 
       response.json({
@@ -56,6 +57,36 @@ export function createRoomsRouter() {
 
       response.json({
         room: toRoomSnapshot(room, participantId)
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/:code/start", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { playerId } = startGameSchema.parse(request.body);
+      const upperCode = code.toUpperCase();
+
+      const room = getRoom(upperCode);
+      if (!room) {
+        throw new HttpError(404, "Room not found");
+      }
+      if (room.hostId !== playerId) {
+        throw new HttpError(403, "Only the host can start the game");
+      }
+      if (room.participants.length < 2) {
+        throw new HttpError(400, "At least 2 players are required to start");
+      }
+
+      const updatedRoom = startGame(upperCode);
+      if (!updatedRoom) {
+        throw new HttpError(500, "Failed to start game");
+      }
+
+      response.json({
+        room: toRoomSnapshot(updatedRoom)
       });
     } catch (error) {
       next(error);
