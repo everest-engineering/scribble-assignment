@@ -7,13 +7,17 @@ import {
   useSyncExternalStore,
   type PropsWithChildren
 } from "react";
-import { api, type RoomSessionResponse, type RoomSnapshot } from "../services/api";
+import { api, type DrawingStroke, type RoomSessionResponse, type RoomSnapshot, type RoundResult } from "../services/api";
 
 export interface RoomState {
   room: RoomSnapshot | null;
   participantId: string | null;
   error: string | null;
+  pollingError: string | null;
   isLoading: boolean;
+  lastRoundResult: RoundResult | null;
+  resultDismissed: boolean;
+  dismissedRoundNumber: number | null;
 }
 
 type Listener = () => void;
@@ -23,10 +27,19 @@ class RoomStore {
     room: null,
     participantId: null,
     error: null,
-    isLoading: false
+    pollingError: null,
+    isLoading: false,
+    lastRoundResult: null,
+    resultDismissed: false,
+    dismissedRoundNumber: null
   };
 
   private listeners = new Set<Listener>();
+
+  private pollTimerId: ReturnType<typeof setTimeout> | null = null;
+  private isPolling = false;
+  private consecutiveFailures = 0;
+  private pollInterval = 2000;
 
   subscribe = (listener: Listener) => {
     this.listeners.add(listener);
@@ -77,15 +90,138 @@ class RoomStore {
     });
   }
 
+  dismissLastRoundResult() {
+    const roundNumber = this.state.lastRoundResult?.roundNumber ?? null;
+    this.setState({
+      lastRoundResult: null,
+      resultDismissed: true,
+      dismissedRoundNumber: roundNumber
+    });
+  }
+
+  clearSession() {
+    sessionStorage.removeItem("scribble_roomCode");
+    sessionStorage.removeItem("scribble_participantId");
+  }
+
+  getSavedSession(): { code: string; participantId: string } | null {
+    const code = sessionStorage.getItem("scribble_roomCode");
+    const participantId = sessionStorage.getItem("scribble_participantId");
+    if (code && participantId) {
+      return { code, participantId };
+    }
+    return null;
+  }
+
+  async restoreSession() {
+    const session = this.getSavedSession();
+    if (!session) return null;
+
+    this.setState({ participantId: session.participantId });
+
+    try {
+      const response = await api.fetchRoom(session.code, session.participantId);
+      this.setRoomSnapshot(response.room);
+      return response.room;
+    } catch {
+      this.setState({ error: "Failed to restore session" });
+      return null;
+    }
+  }
+
   async createRoom(playerName: string) {
     const response = await this.withLoading(() => api.createRoom(playerName));
     this.setRoomSession(response);
+    sessionStorage.setItem("scribble_roomCode", response.room.code);
+    sessionStorage.setItem("scribble_participantId", response.participantId);
     return response;
   }
 
   async joinRoom(code: string, playerName: string) {
     const response = await this.withLoading(() => api.joinRoom(code, playerName));
     this.setRoomSession(response);
+    sessionStorage.setItem("scribble_roomCode", response.room.code);
+    sessionStorage.setItem("scribble_participantId", response.participantId);
+    return response;
+  }
+
+  async skipRound() {
+    if (!this.state.room || !this.state.participantId) {
+      throw new Error("No room to skip round");
+    }
+    const response = await api.skipRound(this.state.room.code, this.state.participantId);
+    this.setRoomSnapshot(response.room);
+    return response.room;
+  }
+
+  async suggestSkip() {
+    if (!this.state.room || !this.state.participantId) {
+      throw new Error("No room to suggest skip");
+    }
+    const response = await api.suggestSkip(this.state.room.code, this.state.participantId);
+    this.setRoomSnapshot(response.room);
+    this.setState({
+      room: this.state.room ? { ...this.state.room, drawerDisconnected: false } : null
+    });
+    return response.room;
+  }
+
+  async restartGame() {
+    if (!this.state.room || !this.state.participantId) {
+      throw new Error("No room to restart");
+    }
+    const response = await api.restartGame(this.state.room.code, this.state.participantId);
+    this.setRoomSnapshot(response.room);
+    return response.room;
+  }
+
+  async claimHost() {
+    if (!this.state.room || !this.state.participantId) {
+      throw new Error("No room to claim host");
+    }
+    const response = await api.claimHost(this.state.room.code, this.state.participantId);
+    this.setRoomSnapshot(response.room);
+    return response.room;
+  }
+
+  async startGame() {
+    if (!this.state.room || !this.state.participantId) {
+      throw new Error("No room to start");
+    }
+
+    const response = await api.startRoom(this.state.room.code, this.state.participantId);
+    this.setRoomSnapshot(response.room);
+    return response.room;
+  }
+
+  async leaveRoom() {
+    if (!this.state.room || !this.state.participantId) return;
+    await api.leaveRoom(this.state.room.code, this.state.participantId);
+    this.clearSession();
+    this.stopPolling();
+  }
+
+  async addStrokes(strokes: DrawingStroke[]) {
+    if (!this.state.room || !this.state.participantId) return;
+    const result = await api.addStrokes(this.state.room.code, this.state.participantId, strokes);
+    if (this.state.room) {
+      this.setState({ room: { ...this.state.room, strokes: result.strokes } });
+    }
+  }
+
+  async clearCanvas() {
+    if (!this.state.room || !this.state.participantId) return;
+    await api.clearCanvas(this.state.room.code, this.state.participantId);
+    if (this.state.room) {
+      this.setState({ room: { ...this.state.room, strokes: [] } });
+    }
+  }
+
+  async submitGuess(guess: string) {
+    if (!this.state.room || !this.state.participantId) {
+      throw new Error("No room to submit guess");
+    }
+    const response = await api.submitGuess(this.state.room.code, this.state.participantId, guess);
     return response;
   }
 
@@ -96,7 +232,63 @@ class RoomStore {
 
     const response = await api.fetchRoom(this.state.room.code, this.state.participantId ?? undefined);
     this.setRoomSnapshot(response.room);
+
+    const serverResult = response.room.lastRoundResult;
+    if (serverResult) {
+      if (this.state.resultDismissed && this.state.dismissedRoundNumber === serverResult.roundNumber) {
+        // Same result that was dismissed — keep suppressing
+      } else {
+        this.setState({
+          lastRoundResult: serverResult,
+          resultDismissed: false,
+          dismissedRoundNumber: null
+        });
+      }
+    } else if (this.state.lastRoundResult) {
+      this.setState({ lastRoundResult: null, resultDismissed: false, dismissedRoundNumber: null });
+    }
     return response.room;
+  }
+
+  startPolling() {
+    this.stopPolling();
+    this.isPolling = true;
+    this.scheduleNextPoll();
+  }
+
+  stopPolling() {
+    this.isPolling = false;
+    if (this.pollTimerId !== null) {
+      clearTimeout(this.pollTimerId);
+      this.pollTimerId = null;
+    }
+    this.consecutiveFailures = 0;
+    this.pollInterval = 2000;
+    this.setState({ pollingError: null });
+  }
+
+  private scheduleNextPoll() {
+    if (!this.isPolling) return;
+
+    this.pollTimerId = setTimeout(async () => {
+      if (!this.isPolling) return;
+
+      try {
+        await this.fetchRoom();
+        this.consecutiveFailures = 0;
+        this.pollInterval = 2000;
+        this.setState({ pollingError: null });
+      } catch {
+        this.consecutiveFailures++;
+        this.pollInterval = Math.min(this.pollInterval * 2, 8000);
+
+        if (this.consecutiveFailures >= 3) {
+          this.setState({ pollingError: "Unable to reach server. Retrying..." });
+        }
+      }
+
+      this.scheduleNextPoll();
+    }, this.pollInterval);
   }
 }
 
