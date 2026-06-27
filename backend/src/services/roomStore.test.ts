@@ -1,6 +1,6 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { STARTER_WORDS } from "../seed/starterData.js";
-import { addStrokes, advanceRound, clearStrokes, createRoom, getRoom, joinRoom, startGame, submitGuess, toRoomSnapshot } from "./roomStore.js";
+import { addStrokes, advanceRound, clearStrokes, createRoom, getRoom, joinRoom, removeParticipant, startGame, submitGuess, toRoomSnapshot } from "./roomStore.js";
 
 function setupPlayingRoom() {
   const host = createRoom("Alice");
@@ -299,6 +299,101 @@ describe("roomStore", () => {
       expect(room!.lastRoundResult).toBeDefined();
       expect(room!.lastRoundResult!.roundNumber).toBe(1);
       expect(room!.lastRoundResult!.drawerId).toBe(hostParticipantId);
+    });
+
+    it("persists lastRoundResult indefinitely (no auto-clear after arbitrary time)", () => {
+      const { code } = setupPlayingRoom();
+
+      advanceRound(code);
+      const room1 = getRoom(code);
+      expect(room1!.lastRoundResult).toBeDefined();
+
+      const room2 = getRoom(code);
+      expect(room2!.lastRoundResult).toBeDefined();
+      expect(room2!.lastRoundResult!.roundNumber).toBe(1);
+    });
+  });
+
+  describe("removeParticipant", () => {
+    it("removes participant from room", () => {
+      const { code, joinerParticipantId } = setupPlayingRoom();
+
+      const updated = removeParticipant(code, joinerParticipantId);
+      expect(updated).not.toBeNull();
+      expect(updated!.participants.length).toBe(1);
+      expect(updated!.participants[0].id).not.toBe(joinerParticipantId);
+    });
+
+    it("reassigns host when host leaves", () => {
+      const { code, hostParticipantId, joinerParticipantId } = setupPlayingRoom();
+
+      const updated = removeParticipant(code, hostParticipantId);
+      expect(updated).not.toBeNull();
+      expect(updated!.hostId).toBe(joinerParticipantId);
+    });
+
+    it("triggers game over when only 1 participant remains in playing status", () => {
+      const { code, joinerParticipantId } = setupPlayingRoom();
+
+      const updated = removeParticipant(code, joinerParticipantId);
+      expect(updated).not.toBeNull();
+      expect(updated!.status).toBe("finished");
+      expect(updated!.lastRoundResult).toBeDefined();
+    });
+
+    it("deletes room when last participant leaves", () => {
+      const { code, hostParticipantId, joinerParticipantId } = setupPlayingRoom();
+
+      removeParticipant(code, joinerParticipantId);
+      const result = removeParticipant(code, hostParticipantId);
+      expect(result).toBeNull();
+
+      const room = getRoom(code);
+      expect(room).toBeNull();
+    });
+
+    it("returns null for unknown participant", () => {
+      const { code } = setupPlayingRoom();
+
+      const result = removeParticipant(code, "nonexistent");
+      expect(result).toBeNull();
+    });
+
+    it("returns null for unknown room", () => {
+      const result = removeParticipant("ZZZZ", "player1");
+      expect(result).toBeNull();
+    });
+
+    it("does not trigger game over when more than 1 participant remains", () => {
+      const host = createRoom("Alice");
+      joinRoom(host.room.code, "Bob");
+      joinRoom(host.room.code, "Charlie");
+      startGame(host.room.code);
+
+      const updated = removeParticipant(host.room.code, host.participantId);
+      expect(updated).not.toBeNull();
+      expect(updated!.status).toBe("playing");
+      expect(updated!.participants.length).toBe(2);
+    });
+
+    it("triggers game over when host leaves and all remaining participants are disconnected", () => {
+      vi.useFakeTimers();
+      try {
+        const host = createRoom("Alice");
+        joinRoom(host.room.code, "Bob");
+        joinRoom(host.room.code, "Charlie");
+        startGame(host.room.code);
+
+        vi.advanceTimersByTime(31000);
+
+        const updated = removeParticipant(host.room.code, host.participantId);
+        expect(updated).not.toBeNull();
+        expect(updated!.status).toBe("finished");
+        expect(updated!.lastRoundResult).toBeDefined();
+        expect(updated!.participants.length).toBe(2);
+      } finally {
+        vi.useRealTimers();
+      }
     });
   });
 });

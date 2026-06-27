@@ -37,7 +37,8 @@ function createParticipant(name?: string): Participant {
   return {
     id: randomUUID(),
     name: displayName(name),
-    joinedAt: now()
+    joinedAt: now(),
+    lastSeenAt: now()
   };
 }
 
@@ -60,7 +61,8 @@ export function createRoom(playerName?: string) {
     updatedAt: now(),
     strokes: [],
     guessHistory: [],
-    scores: {}
+    scores: {},
+    skipSuggested: false
   };
 
   rooms.set(room.code, room);
@@ -78,6 +80,10 @@ export function joinRoom(code: string, playerName?: string) {
     return null;
   }
 
+  if (room.status !== "lobby") {
+    return null;
+  }
+
   const participant = createParticipant(playerName);
   room.participants.push(participant);
   room.updatedAt = now();
@@ -89,19 +95,9 @@ export function joinRoom(code: string, playerName?: string) {
   };
 }
 
-function clearExpiredRoundResult(room: Room) {
-  if (room.lastRoundResult && room.lastRoundResultSetAt) {
-    if (Date.now() - room.lastRoundResultSetAt > 6000) {
-      room.lastRoundResult = undefined;
-      room.lastRoundResultSetAt = undefined;
-    }
-  }
-}
-
 export function getRoom(code: string) {
   const room = rooms.get(code);
   if (!room) return null;
-  clearExpiredRoundResult(room);
   return cloneRoom(room);
 }
 
@@ -163,6 +159,7 @@ export function advanceRound(code: string) {
     scores: { ...room.scores }
   };
   room.lastRoundResultSetAt = Date.now();
+  room.skipSuggested = false;
 
   room.currentRound += 1;
   room.drawerId = room.participants[(room.currentRound - 1) % room.participants.length].id;
@@ -209,15 +206,122 @@ export function submitGuess(code: string, participantId: string, guess: string) 
 
   room.guessHistory.push(guessEntry);
 
-  if (isCorrect && score) {
-    score.roundScore += 100;
-    score.cumulativeScore += 100;
+  if (isCorrect) {
+    if (score) {
+      score.roundScore += 100;
+      score.cumulativeScore += 100;
+    }
     advanceRound(code);
     return { guessEntry, correct: true, message: "Correct!" };
   }
 
   saveRoom(room);
   return { guessEntry, correct: false, message: "Wrong guess" };
+}
+
+export function restartGame(code: string, playerId: string) {
+  const room = rooms.get(code);
+  if (!room) return null;
+  if (room.status !== "playing") return null;
+  if (room.hostId !== playerId) return null;
+
+  room.status = "lobby";
+  room.currentRound = undefined;
+  room.drawerId = undefined;
+  room.secretWord = undefined;
+  room.strokes = [];
+  room.guessHistory = [];
+  room.scores = {};
+  room.lastRoundResult = undefined;
+  room.lastRoundResultSetAt = undefined;
+  room.skipSuggested = false;
+
+  return saveRoom(room);
+}
+
+export function skipRound(code: string, playerId: string) {
+  const room = rooms.get(code);
+  if (!room) return { error: "Room not found" };
+  if (room.status !== "playing") return { error: "Game is not in progress" };
+  if (room.hostId !== playerId) return { error: "Only the host can skip the round" };
+
+  const hasCorrectGuess = room.guessHistory.some((g) => g.correct);
+  if (hasCorrectGuess) return { error: "Round already ended" };
+
+  const updated = advanceRound(code);
+  if (!updated) return { error: "Failed to advance round" };
+  return { room: updated };
+}
+
+export function suggestSkip(code: string, participantId: string) {
+  const room = rooms.get(code);
+  if (!room) return { error: "Room not found" };
+  if (room.status !== "playing") return { error: "Game is not in progress" };
+  const participant = room.participants.find((p) => p.id === participantId);
+  if (!participant) return { error: "Participant not found" };
+
+  room.skipSuggested = true;
+  return { room: saveRoom(room) };
+}
+
+export function touchParticipant(code: string, participantId: string) {
+  const room = rooms.get(code);
+  if (!room) return;
+  const participant = room.participants.find((p) => p.id === participantId);
+  if (!participant) return;
+  participant.lastSeenAt = now();
+}
+
+export function claimHost(code: string, participantId: string) {
+  const room = rooms.get(code);
+  if (!room) return null;
+  const participant = room.participants.find((p) => p.id === participantId);
+  if (!participant) return null;
+  room.hostId = participantId;
+  return saveRoom(room);
+}
+
+export function removeParticipant(code: string, participantId: string) {
+  const room = rooms.get(code);
+  if (!room) return null;
+
+  const index = room.participants.findIndex((p) => p.id === participantId);
+  if (index === -1) return null;
+
+  room.participants.splice(index, 1);
+  delete room.scores[participantId];
+
+  if (room.participants.length === 0) {
+    rooms.delete(code);
+    return null;
+  }
+
+  if (room.hostId === participantId) {
+    room.hostId = room.participants[0].id;
+  }
+
+  if (room.status === "playing") {
+    const allRemainingDisconnected = room.participants.every((p) => isDisconnected(p.lastSeenAt));
+
+    if (room.participants.length <= 1 || allRemainingDisconnected) {
+      const drawerName = room.participants.find((p) => p.id === room.drawerId)?.name ?? "Unknown";
+      room.lastRoundResult = {
+        roundNumber: room.currentRound ?? 0,
+        secretWord: room.secretWord ?? "???",
+        drawerId: room.drawerId ?? "",
+        drawerName,
+        guessHistory: [...room.guessHistory],
+        scores: { ...room.scores }
+      };
+      room.status = "finished";
+    }
+  }
+
+  return saveRoom(room);
+}
+
+function isDisconnected(lastSeenAt: string, thresholdMs = 30000) {
+  return Date.now() - new Date(lastSeenAt).getTime() > thresholdMs;
 }
 
 export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSnapshot {
@@ -230,16 +334,29 @@ export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSn
     roles: [...STARTER_ROLES],
     strokes: [],
     guessHistory: [],
-    scores: {}
+    scores: {},
+    skipSuggested: room.skipSuggested
   };
 
-  if (room.status === "playing") {
+  if (room.status === "playing" || room.status === "finished") {
     snapshot.currentRound = room.currentRound;
     snapshot.drawerId = room.drawerId;
     snapshot.strokes = room.strokes;
     snapshot.guessHistory = room.guessHistory;
     snapshot.scores = room.scores;
     snapshot.lastRoundResult = room.lastRoundResult;
+
+    const host = room.participants.find((p) => p.id === room.hostId);
+    if (host) {
+      snapshot.hostDisconnected = isDisconnected(host.lastSeenAt);
+    }
+
+    if (room.drawerId) {
+      const drawer = room.participants.find((p) => p.id === room.drawerId);
+      if (drawer) {
+        snapshot.drawerDisconnected = isDisconnected(drawer.lastSeenAt);
+      }
+    }
 
     if (viewerParticipantId === room.drawerId) {
       snapshot.secretWord = room.secretWord;

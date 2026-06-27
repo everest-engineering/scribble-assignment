@@ -44,6 +44,7 @@ export function CreateRoomPage() {
             value={playerName}
             onChange={(event) => setPlayerName(event.target.value)}
             placeholder="Sketch captain"
+            maxLength={20}
           />
         </label>
         {error ? <p className="form__error">{error}</p> : null}

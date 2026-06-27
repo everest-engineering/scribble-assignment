@@ -2,8 +2,10 @@ import { useCallback, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Canvas } from "../components/Canvas";
 import { Card } from "../components/Card";
+import { DrawerDisconnectedBanner } from "../components/DrawerDisconnectedBanner";
 import { GuessForm } from "../components/GuessForm";
 import { GuessHistory } from "../components/GuessHistory";
+import { HostDisconnectedBanner } from "../components/HostDisconnectedBanner";
 import { RoomCodeBadge } from "../components/RoomCodeBadge";
 import { RoundResultCard } from "../components/RoundResultCard";
 import { Scoreboard } from "../components/Scoreboard";
@@ -26,14 +28,22 @@ export function GamePage() {
 
   useEffect(() => {
     if (!room) return;
+    if (room.status === "lobby") {
+      navigate("/lobby", { replace: true });
+      return;
+    }
+    if (room.status === "finished") {
+      roomStore.startPolling();
+      return () => roomStore.stopPolling();
+    }
     roomStore.startPolling();
     return () => roomStore.stopPolling();
-  }, [room, roomStore]);
+  }, [navigate, room, roomStore]);
 
   const handleExit = useCallback(() => {
-    roomStore.stopPolling();
-    roomStore.clearSession();
-    navigate("/lobby");
+    roomStore.leaveRoom().finally(() => {
+      navigate("/lobby");
+    });
   }, [navigate, roomStore]);
 
   if (!room || !participantId) {
@@ -41,12 +51,33 @@ export function GamePage() {
   }
 
   const viewer = room.participants.find((participant) => participant.id === participantId) ?? null;
+  const isHost = room.hostId === participantId;
   const isDrawer = room.drawerId === participantId;
   const drawer = room.participants.find((participant) => participant.id === room.drawerId) ?? null;
 
   return (
     <section className="panel game-page">
-      {lastRoundResult && <RoundResultCard result={lastRoundResult} />}
+      {lastRoundResult && room.status === "finished" ? (
+        <RoundResultCard
+          result={lastRoundResult}
+          participants={room.participants}
+          onExit={handleExit}
+        />
+      ) : lastRoundResult ? (
+        <RoundResultCard
+          result={lastRoundResult}
+          participants={room.participants}
+          onContinue={() => roomStore.dismissLastRoundResult()}
+          onRestart={isHost ? () => roomStore.restartGame() : undefined}
+          onExit={handleExit}
+        />
+      ) : null}
+
+      {room.status !== "finished" && room.hostDisconnected && participantId !== room.hostId ? (
+        <HostDisconnectedBanner onClaimHost={() => roomStore.claimHost()} />
+      ) : room.status !== "finished" && room.drawerDisconnected && participantId !== room.hostId ? (
+        <DrawerDisconnectedBanner onNotifyHost={() => roomStore.suggestSkip()} />
+      ) : null}
 
       <div className="game-page__header">
         <div className="game-page__header-left">
@@ -103,6 +134,14 @@ export function GamePage() {
       </div>
 
       <div className="button-row">
+        {isHost && room.status === "playing" && (
+          <button
+            className={`button button--secondary${room.skipSuggested ? " button--pulse" : ""}`}
+            onClick={() => roomStore.skipRound()}
+          >
+            Skip Round{room.skipSuggested ? " (!)" : ""}
+          </button>
+        )}
         <button className="button button--secondary" onClick={handleExit}>
           Exit Game
         </button>

@@ -4,6 +4,7 @@ export interface Participant {
   id: string;
   name: string;
   joinedAt: string;
+  lastSeenAt: string;
 }
 
 export interface Point {
@@ -44,7 +45,7 @@ export interface RoundResult {
 
 export interface RoomSnapshot {
   code: string;
-  status: "lobby" | "playing";
+  status: "lobby" | "playing" | "finished";
   hostId: string;
   participants: Participant[];
   availableWords: string[];
@@ -56,6 +57,9 @@ export interface RoomSnapshot {
   guessHistory: GuessEntry[];
   scores: Record<string, ParticipantScore>;
   lastRoundResult?: RoundResult;
+  hostDisconnected?: boolean;
+  drawerDisconnected?: boolean;
+  skipSuggested?: boolean;
 }
 
 export interface GuessResponse {
@@ -108,6 +112,30 @@ export const api = {
     const query = participantId ? `?participantId=${encodeURIComponent(participantId)}` : "";
     return request<{ room: RoomSnapshot }>(`/rooms/${encodeURIComponent(code)}${query}`);
   },
+  restartGame(code: string, playerId: string) {
+    return request<{ room: RoomSnapshot }>(`/rooms/${encodeURIComponent(code)}/restart`, {
+      method: "POST",
+      body: JSON.stringify({ playerId })
+    });
+  },
+  skipRound(code: string, playerId: string) {
+    return request<{ room: RoomSnapshot }>(`/rooms/${encodeURIComponent(code)}/skip-round`, {
+      method: "POST",
+      body: JSON.stringify({ playerId })
+    });
+  },
+  suggestSkip(code: string, participantId: string) {
+    return request<{ room: RoomSnapshot }>(`/rooms/${encodeURIComponent(code)}/suggest-skip`, {
+      method: "POST",
+      body: JSON.stringify({ participantId })
+    });
+  },
+  claimHost(code: string, participantId: string) {
+    return request<{ room: RoomSnapshot }>(`/rooms/${encodeURIComponent(code)}/claim-host`, {
+      method: "POST",
+      body: JSON.stringify({ participantId })
+    });
+  },
   startRoom(code: string, playerId: string) {
     return request<{ room: RoomSnapshot }>(`/rooms/${encodeURIComponent(code)}/start`, {
       method: "POST",
@@ -122,6 +150,12 @@ export const api = {
   },
   clearCanvas(code: string, participantId: string) {
     return request<{ strokes: DrawingStroke[] }>(`/rooms/${encodeURIComponent(code)}/draw`, {
+      method: "DELETE",
+      body: JSON.stringify({ participantId })
+    });
+  },
+  leaveRoom(code: string, participantId: string) {
+    return request<{ room: RoomSnapshot | null }>(`/rooms/${encodeURIComponent(code)}/leave`, {
       method: "DELETE",
       body: JSON.stringify({ participantId })
     });

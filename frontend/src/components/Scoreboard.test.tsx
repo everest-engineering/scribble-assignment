@@ -30,8 +30,8 @@ describe("Scoreboard", () => {
       status: "playing",
       hostId: "p1",
       participants: [
-        { id: "p1", name: "Alice", joinedAt: "2024-01-01" },
-        { id: "p2", name: "Bob", joinedAt: "2024-01-01" }
+        { id: "p1", name: "Alice", joinedAt: "2024-01-01", lastSeenAt: "2024-01-01T00:00:00Z" },
+        { id: "p2", name: "Bob", joinedAt: "2024-01-01", lastSeenAt: "2024-01-01T00:00:00Z" }
       ],
       availableWords: [],
       roles: ["drawer", "guesser"],

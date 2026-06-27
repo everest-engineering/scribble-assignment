@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card } from "../components/Card";
+import { HostDisconnectedBanner } from "../components/HostDisconnectedBanner";
 import { PageHeader } from "../components/PageHeader";
 import { RoomCodeBadge } from "../components/RoomCodeBadge";
 import { useRoomState, useRoomStore } from "../state/roomStore";
@@ -55,11 +56,17 @@ export function LobbyPage() {
     return null;
   }
 
+  const isViewerNotHost = participantId !== room.hostId;
+
   const statusMessage = error ?? refreshError ?? pollingError ?? startError ?? (isHost ? "Waiting for players to join..." : "Waiting for the host to start the game.");
   const canStart = isHost && room.participants.length >= 2;
 
   return (
     <section className="panel placeholder-page">
+      {room.status !== "finished" && room.hostDisconnected && isViewerNotHost && (
+        <HostDisconnectedBanner onClaimHost={() => roomStore.claimHost()} />
+      )}
+
       <div className="lobby-header">
         <PageHeader
           kicker="Waiting for players"

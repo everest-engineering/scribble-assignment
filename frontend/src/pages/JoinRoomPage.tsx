@@ -45,6 +45,7 @@ export function JoinRoomPage() {
             value={playerName}
             onChange={(event) => setPlayerName(event.target.value)}
             placeholder="Second pencil"
+            maxLength={20}
           />
         </label>
 

@@ -16,6 +16,8 @@ export interface RoomState {
   pollingError: string | null;
   isLoading: boolean;
   lastRoundResult: RoundResult | null;
+  resultDismissed: boolean;
+  dismissedRoundNumber: number | null;
 }
 
 type Listener = () => void;
@@ -27,7 +29,9 @@ class RoomStore {
     error: null,
     pollingError: null,
     isLoading: false,
-    lastRoundResult: null
+    lastRoundResult: null,
+    resultDismissed: false,
+    dismissedRoundNumber: null
   };
 
   private listeners = new Set<Listener>();
@@ -86,6 +90,15 @@ class RoomStore {
     });
   }
 
+  dismissLastRoundResult() {
+    const roundNumber = this.state.lastRoundResult?.roundNumber ?? null;
+    this.setState({
+      lastRoundResult: null,
+      resultDismissed: true,
+      dismissedRoundNumber: roundNumber
+    });
+  }
+
   clearSession() {
     sessionStorage.removeItem("scribble_roomCode");
     sessionStorage.removeItem("scribble_participantId");
@@ -132,6 +145,45 @@ class RoomStore {
     return response;
   }
 
+  async skipRound() {
+    if (!this.state.room || !this.state.participantId) {
+      throw new Error("No room to skip round");
+    }
+    const response = await api.skipRound(this.state.room.code, this.state.participantId);
+    this.setRoomSnapshot(response.room);
+    return response.room;
+  }
+
+  async suggestSkip() {
+    if (!this.state.room || !this.state.participantId) {
+      throw new Error("No room to suggest skip");
+    }
+    const response = await api.suggestSkip(this.state.room.code, this.state.participantId);
+    this.setRoomSnapshot(response.room);
+    this.setState({
+      room: this.state.room ? { ...this.state.room, drawerDisconnected: false } : null
+    });
+    return response.room;
+  }
+
+  async restartGame() {
+    if (!this.state.room || !this.state.participantId) {
+      throw new Error("No room to restart");
+    }
+    const response = await api.restartGame(this.state.room.code, this.state.participantId);
+    this.setRoomSnapshot(response.room);
+    return response.room;
+  }
+
+  async claimHost() {
+    if (!this.state.room || !this.state.participantId) {
+      throw new Error("No room to claim host");
+    }
+    const response = await api.claimHost(this.state.room.code, this.state.participantId);
+    this.setRoomSnapshot(response.room);
+    return response.room;
+  }
+
   async startGame() {
     if (!this.state.room || !this.state.participantId) {
       throw new Error("No room to start");
@@ -140,6 +192,13 @@ class RoomStore {
     const response = await api.startRoom(this.state.room.code, this.state.participantId);
     this.setRoomSnapshot(response.room);
     return response.room;
+  }
+
+  async leaveRoom() {
+    if (!this.state.room || !this.state.participantId) return;
+    await api.leaveRoom(this.state.room.code, this.state.participantId);
+    this.clearSession();
+    this.stopPolling();
   }
 
   async addStrokes(strokes: DrawingStroke[]) {
@@ -173,10 +232,20 @@ class RoomStore {
 
     const response = await api.fetchRoom(this.state.room.code, this.state.participantId ?? undefined);
     this.setRoomSnapshot(response.room);
-    if (response.room.lastRoundResult) {
-      this.setState({ lastRoundResult: response.room.lastRoundResult });
+
+    const serverResult = response.room.lastRoundResult;
+    if (serverResult) {
+      if (this.state.resultDismissed && this.state.dismissedRoundNumber === serverResult.roundNumber) {
+        // Same result that was dismissed — keep suppressing
+      } else {
+        this.setState({
+          lastRoundResult: serverResult,
+          resultDismissed: false,
+          dismissedRoundNumber: null
+        });
+      }
     } else if (this.state.lastRoundResult) {
-      this.setState({ lastRoundResult: null });
+      this.setState({ lastRoundResult: null, resultDismissed: false, dismissedRoundNumber: null });
     }
     return response.room;
   }

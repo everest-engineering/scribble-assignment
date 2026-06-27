@@ -1,10 +1,11 @@
 export type ParticipantRole = "drawer" | "guesser";
-export type RoomStatus = "lobby" | "playing";
+export type RoomStatus = "lobby" | "playing" | "finished";
 
 export interface Participant {
   id: string;
   name: string;
   joinedAt: string;
+  lastSeenAt: string;
 }
 
 export interface Point {
@@ -58,6 +59,7 @@ export interface Room {
   scores: Record<string, ParticipantScore>;
   lastRoundResult?: RoundResult;
   lastRoundResultSetAt?: number;
+  skipSuggested: boolean;
 }
 
 export interface RoomSnapshot {
@@ -74,6 +76,9 @@ export interface RoomSnapshot {
   guessHistory: GuessEntry[];
   scores: Record<string, ParticipantScore>;
   lastRoundResult?: RoundResult;
+  hostDisconnected?: boolean;
+  drawerDisconnected?: boolean;
+  skipSuggested?: boolean;
 }
 
 export interface RoomSessionResponse {

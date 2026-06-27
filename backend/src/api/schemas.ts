@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-const trimmedNonEmptyString = z.string().trim().min(1, { message: "Player name is required" });
+const trimmedNonEmptyString = z.string().trim().min(1, { message: "Player name is required" }).max(20, { message: "Player name must be 20 characters or fewer" });
 
 export const createRoomSchema = z.object({
   playerName: trimmedNonEmptyString
@@ -40,6 +40,26 @@ export const drawStrokesSchema = z.object({
 });
 
 export const clearCanvasSchema = z.object({
+  participantId: z.string()
+});
+
+export const restartGameSchema = z.object({
+  playerId: z.string()
+});
+
+export const claimHostSchema = z.object({
+  participantId: z.string()
+});
+
+export const skipRoundSchema = z.object({
+  playerId: z.string()
+});
+
+export const suggestSkipSchema = z.object({
+  participantId: z.string()
+});
+
+export const leaveRoomSchema = z.object({
   participantId: z.string()
 });
 
