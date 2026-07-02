@@ -106,6 +106,11 @@ export function saveRoom(room: Room) {
   return getRoom(room.code);
 }
 
+export function getDeterministicWord(code: string): string {
+  const sum = code.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0);
+  return STARTER_WORDS[sum % STARTER_WORDS.length];
+}
+
 export function startGame(code: string, hostParticipantId: string) {
   const room = rooms.get(code);
   if (!room) {
@@ -125,6 +130,8 @@ export function startGame(code: string, hostParticipantId: string) {
   }
 
   room.status = "active";
+  room.drawerId = room.participants[0].id;
+  room.secretWord = getDeterministicWord(code);
   room.updatedAt = now();
   rooms.set(room.code, room);
 
@@ -132,9 +139,7 @@ export function startGame(code: string, hostParticipantId: string) {
 }
 
 export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSnapshot {
-  void viewerParticipantId;
-
-  return {
+  const snapshot: RoomSnapshot = {
     code: room.code,
     status: room.status,
     hostId: room.hostId,
@@ -142,4 +147,14 @@ export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSn
     availableWords: listWords(),
     roles: [...STARTER_ROLES]
   };
+
+  if (room.drawerId) {
+    snapshot.drawerId = room.drawerId;
+  }
+
+  if (room.drawerId && viewerParticipantId === room.drawerId) {
+    snapshot.secretWord = room.secretWord;
+  }
+
+  return snapshot;
 }

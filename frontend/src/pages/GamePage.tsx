@@ -5,23 +5,37 @@ import { GuessForm } from "../components/GuessForm";
 import { ResultPanel } from "../components/ResultPanel";
 import { RoomCodeBadge } from "../components/RoomCodeBadge";
 import { Scoreboard } from "../components/Scoreboard";
-import { useRoomState } from "../state/roomStore";
+import { useRoomState, useRoomStore } from "../state/roomStore";
 
 export function GamePage() {
   const navigate = useNavigate();
   const { room, participantId } = useRoomState();
+  const roomStore = useRoomStore();
 
   useEffect(() => {
     if (!room) {
       navigate("/", { replace: true });
+      return;
     }
-  }, [navigate, room]);
+
+    const intervalId = setInterval(async () => {
+      try {
+        await roomStore.fetchRoom(true);
+      } catch (caughtError) {
+        console.error("Polling fetchRoom failed in GamePage:", caughtError);
+      }
+    }, 2000);
+
+    return () => clearInterval(intervalId);
+  }, [navigate, room, roomStore]);
 
   if (!room) {
     return null;
   }
 
   const viewer = room.participants.find((participant) => participant.id === participantId) ?? null;
+  const isDrawer = room.drawerId === participantId;
+  const drawerName = room.participants.find((p) => p.id === room.drawerId)?.name ?? "Someone";
 
   return (
     <section className="panel game-page">
@@ -40,10 +54,19 @@ export function GamePage() {
         </aside>
 
         <div className="game-page__main">
-          <Card title="Canvas">
-            <div className="canvas-placeholder" style={{ minHeight: '500px', backgroundColor: '#ffffff', border: '1px solid #e5e7eb' }}>
-              Waiting for drawer...
-            </div>
+          <Card title={isDrawer ? `Canvas - Draw "${room.secretWord || ""}"` : "Canvas"}>
+            {isDrawer ? (
+              <div className="canvas-placeholder" style={{ minHeight: '500px', backgroundColor: '#ffffff', border: '1px solid #e5e7eb', padding: '24px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                <p style={{ fontSize: '1.2rem', marginBottom: '8px' }}>You are the drawer!</p>
+                <p>Your secret word is: <strong style={{ fontSize: '1.5rem', color: '#4f46e5' }}>{room.secretWord}</strong></p>
+                <p style={{ marginTop: '16px', color: '#6b7280', fontSize: '0.9rem' }}>Draw on the canvas below (Interaction coming in next feature)</p>
+              </div>
+            ) : (
+              <div className="canvas-placeholder" style={{ minHeight: '500px', backgroundColor: '#ffffff', border: '1px solid #e5e7eb', padding: '24px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                <p style={{ fontSize: '1.2rem', color: '#374151' }}>{drawerName} is drawing...</p>
+                <p style={{ marginTop: '8px', color: '#4b5563' }}>Guess the word in the input box on the right!</p>
+              </div>
+            )}
           </Card>
         </div>
 
@@ -53,6 +76,10 @@ export function GamePage() {
               <div>
                 <dt>Name</dt>
                 <dd>{viewer?.name ?? "Unknown player"}</dd>
+              </div>
+              <div>
+                <dt>Role</dt>
+                <dd><strong>{isDrawer ? "Drawer" : "Guesser"}</strong></dd>
               </div>
               <div>
                 <dt>Status</dt>
