@@ -89,12 +89,30 @@ class RoomStore {
     return response;
   }
 
-  async fetchRoom() {
+  async startGame() {
+    if (!this.state.room || !this.state.participantId) {
+      return null;
+    }
+
+    const response = await this.withLoading(() =>
+      api.startGame(this.state.room!.code, this.state.participantId!)
+    );
+    this.setRoomSnapshot(response.room);
+    return response.room;
+  }
+
+  async fetchRoom(silent = false) {
     if (!this.state.room) {
       return null;
     }
 
-    const response = await api.fetchRoom(this.state.room.code, this.state.participantId ?? undefined);
+    const fetchOperation = () =>
+      api.fetchRoom(this.state.room!.code, this.state.participantId ?? undefined);
+
+    const response = silent
+      ? await fetchOperation()
+      : await this.withLoading(fetchOperation);
+
     this.setRoomSnapshot(response.room);
     return response.room;
   }
