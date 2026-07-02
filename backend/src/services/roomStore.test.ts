@@ -191,6 +191,23 @@ describe("roomStore", () => {
     expect(restartedRoom.scores[guest.participantId]).toBe(0);
   });
 
+  it("picks the next word after restart", () => {
+    const createResult = createRoom("Alice");
+    const code = createResult.room.code;
+    const hostId = createResult.participantId;
+    const guest = joinRoom(code, "Bob")!;
+
+    const firstRound = startGame(code, hostId);
+    const firstWord = firstRound.secretWord;
+
+    submitGuess(code, guest.participantId, "wrongword");
+    restartGame(code, hostId);
+
+    const secondRound = startGame(code, hostId);
+    expect(secondRound.secretWord).toBeDefined();
+    expect(secondRound.secretWord).not.toBe(firstWord);
+  });
+
   it("rejects restart when caller is not host", () => {
     const createResult = createRoom("Alice");
     const code = createResult.room.code;

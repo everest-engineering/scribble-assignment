@@ -63,6 +63,7 @@ export function createRoom(playerName?: string) {
     participants: [participant],
     createdAt: now(),
     updatedAt: now(),
+    wordIndex: 0,
     guesses: [],
     scores: {
       [participant.id]: 0
@@ -70,6 +71,8 @@ export function createRoom(playerName?: string) {
     drawing: [],
     correctGuessers: []
   };
+
+  room.wordIndex = room.code.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0) % STARTER_WORDS.length;
 
   rooms.set(room.code, room);
 
@@ -138,7 +141,7 @@ export function startGame(code: string, hostParticipantId: string) {
 
   room.status = "active";
   room.drawerId = room.participants[0].id;
-  room.secretWord = getDeterministicWord(code);
+  room.secretWord = STARTER_WORDS[room.wordIndex % STARTER_WORDS.length];
   room.guesses = [];
   room.drawing = [];
   room.correctGuessers = [];
@@ -232,6 +235,7 @@ export function restartGame(code: string, hostParticipantId: string) {
   }
 
   room.status = "lobby";
+  room.wordIndex = (room.wordIndex + 1) % STARTER_WORDS.length;
   room.drawerId = undefined;
   room.secretWord = undefined;
   room.guesses = [];

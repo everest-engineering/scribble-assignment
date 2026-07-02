@@ -31,6 +31,7 @@ export interface Room {
   participants: Participant[];
   createdAt: string;
   updatedAt: string;
+  wordIndex: number;
   drawerId?: string;
   secretWord?: string;
   guesses: Guess[];
