@@ -1,13 +1,25 @@
 import { Router } from "express";
 import {
   createRoomSchema,
+  drawingUpdateSchema,
   HttpError,
   joinRoomSchema,
+  participantActionSchema,
   roomCodeParamsSchema,
   roomViewerQuerySchema,
+  submitGuessSchema,
   startGameSchema
 } from "./schemas.js";
-import { createRoom, getRoom, joinRoom, toRoomSnapshot, startGame } from "../services/roomStore.js";
+import {
+  clearDrawing,
+  createRoom,
+  getRoom,
+  joinRoom,
+  startGame,
+  submitGuess,
+  toRoomSnapshot,
+  updateDrawing
+} from "../services/roomStore.js";
 
 export function createRoomsRouter() {
   const router = Router();
@@ -50,6 +62,48 @@ export function createRoomsRouter() {
       const { code } = roomCodeParamsSchema.parse(request.params);
       const { participantId } = startGameSchema.parse(request.body);
       const room = startGame(code.toUpperCase(), participantId);
+
+      response.json({
+        room: toRoomSnapshot(room, participantId)
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/:code/guess", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId, text } = submitGuessSchema.parse(request.body);
+      const room = submitGuess(code.toUpperCase(), participantId, text);
+
+      response.json({
+        room: toRoomSnapshot(room, participantId)
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/:code/draw", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId, strokes } = drawingUpdateSchema.parse(request.body);
+      const room = updateDrawing(code.toUpperCase(), participantId, strokes);
+
+      response.json({
+        room: toRoomSnapshot(room, participantId)
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/:code/clear", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId } = participantActionSchema.parse(request.body);
+      const room = clearDrawing(code.toUpperCase(), participantId);
 
       response.json({
         room: toRoomSnapshot(room, participantId)

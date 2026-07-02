@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useCallback, useEffect, useRef, type PointerEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card } from "../components/Card";
 import { GuessForm } from "../components/GuessForm";
@@ -6,11 +6,73 @@ import { ResultPanel } from "../components/ResultPanel";
 import { RoomCodeBadge } from "../components/RoomCodeBadge";
 import { Scoreboard } from "../components/Scoreboard";
 import { useRoomState, useRoomStore } from "../state/roomStore";
+import type { DrawingStroke, Point } from "../services/api";
 
 export function GamePage() {
   const navigate = useNavigate();
   const { room, participantId } = useRoomState();
   const roomStore = useRoomStore();
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const isDrawingRef = useRef(false);
+  const activeStrokeRef = useRef<Point[]>([]);
+
+  const drawScene = useCallback(
+    (strokes: DrawingStroke[], activePoints: Point[] = []) => {
+      const canvas = canvasRef.current;
+      if (!canvas) {
+        return;
+      }
+
+      const context = canvas.getContext("2d");
+      if (!context) {
+        return;
+      }
+
+      context.clearRect(0, 0, canvas.width, canvas.height);
+      context.fillStyle = "#ffffff";
+      context.fillRect(0, 0, canvas.width, canvas.height);
+
+      const renderStroke = (points: Point[]) => {
+        if (points.length === 0) {
+          return;
+        }
+
+        context.strokeStyle = "#111827";
+        context.lineWidth = 4;
+        context.lineCap = "round";
+        context.lineJoin = "round";
+        context.beginPath();
+        context.moveTo(points[0].x, points[0].y);
+        for (let index = 1; index < points.length; index += 1) {
+          context.lineTo(points[index].x, points[index].y);
+        }
+
+        context.stroke();
+      };
+
+      for (const stroke of strokes) {
+        renderStroke(stroke.points);
+      }
+
+      if (activePoints.length > 0) {
+        renderStroke(activePoints);
+      }
+    },
+    []
+  );
+
+  const toCanvasPoint = useCallback((event: PointerEvent<HTMLCanvasElement>): Point => {
+    const canvas = canvasRef.current;
+    if (!canvas) {
+      return { x: 0, y: 0 };
+    }
+
+    const rect = canvas.getBoundingClientRect();
+    return {
+      x: ((event.clientX - rect.left) / rect.width) * canvas.width,
+      y: ((event.clientY - rect.top) / rect.height) * canvas.height
+    };
+  }, []);
 
   useEffect(() => {
     if (!room) {
@@ -33,9 +95,72 @@ export function GamePage() {
     return null;
   }
 
-  const viewer = room.participants.find((participant) => participant.id === participantId) ?? null;
-  const isDrawer = room.drawerId === participantId;
-  const drawerName = room.participants.find((p) => p.id === room.drawerId)?.name ?? "Someone";
+  const activeRoom = room;
+
+  const viewer = activeRoom.participants.find((participant) => participant.id === participantId) ?? null;
+  const isDrawer = activeRoom.drawerId === participantId;
+  const drawerName = activeRoom.participants.find((p) => p.id === activeRoom.drawerId)?.name ?? "Someone";
+
+  useEffect(() => {
+    drawScene(activeRoom.drawing);
+  }, [activeRoom.drawing, drawScene]);
+
+  async function handleClearCanvas() {
+    if (!isDrawer) {
+      return;
+    }
+
+    try {
+      await roomStore.clearDrawing();
+    } catch (error) {
+      console.error("Clear drawing failed:", error);
+    }
+  }
+
+  function handlePointerDown(event: PointerEvent<HTMLCanvasElement>) {
+    if (!isDrawer) {
+      return;
+    }
+
+    isDrawingRef.current = true;
+    activeStrokeRef.current = [toCanvasPoint(event)];
+    event.currentTarget.setPointerCapture(event.pointerId);
+    drawScene(activeRoom.drawing, activeStrokeRef.current);
+  }
+
+  function handlePointerMove(event: PointerEvent<HTMLCanvasElement>) {
+    if (!isDrawer || !isDrawingRef.current) {
+      return;
+    }
+
+    activeStrokeRef.current = [...activeStrokeRef.current, toCanvasPoint(event)];
+    drawScene(activeRoom.drawing, activeStrokeRef.current);
+  }
+
+  async function finishStroke() {
+    if (!isDrawer || !isDrawingRef.current) {
+      return;
+    }
+
+    isDrawingRef.current = false;
+    const completedPoints = [...activeStrokeRef.current];
+    activeStrokeRef.current = [];
+
+    if (completedPoints.length < 2) {
+      drawScene(activeRoom.drawing);
+      return;
+    }
+
+    const nextDrawing = [...activeRoom.drawing, { points: completedPoints }];
+    drawScene(nextDrawing);
+
+    try {
+      await roomStore.updateDrawing(nextDrawing);
+    } catch (error) {
+      console.error("Update drawing failed:", error);
+      drawScene(activeRoom.drawing);
+    }
+  }
 
   return (
     <section className="panel game-page">
@@ -44,7 +169,7 @@ export function GamePage() {
           <span className="section-kicker">Round 1</span>
           <h1 className="game-page__title">Guess the Word!</h1>
         </div>
-        <RoomCodeBadge code={room.code} />
+        <RoomCodeBadge code={activeRoom.code} />
       </div>
 
       <div className="game-page__layout">
@@ -54,19 +179,31 @@ export function GamePage() {
         </aside>
 
         <div className="game-page__main">
-          <Card title={isDrawer ? `Canvas - Draw "${room.secretWord || ""}"` : "Canvas"}>
+          <Card title={isDrawer ? `Canvas - Draw "${activeRoom.secretWord || ""}"` : "Canvas"}>
+            <div className="canvas-stage">
+              <canvas
+                className={`game-canvas ${isDrawer ? "game-canvas--interactive" : ""}`}
+                ref={canvasRef}
+                width={1100}
+                height={520}
+                onPointerDown={handlePointerDown}
+                onPointerMove={handlePointerMove}
+                onPointerUp={finishStroke}
+                onPointerLeave={finishStroke}
+              />
+            </div>
+            <p className="canvas-caption">
+              {isDrawer
+                ? `You are drawing: ${activeRoom.secretWord ?? ""}`
+                : `${drawerName} is drawing. Submit your guesses on the right.`}
+            </p>
             {isDrawer ? (
-              <div className="canvas-placeholder" style={{ minHeight: '500px', backgroundColor: '#ffffff', border: '1px solid #e5e7eb', padding: '24px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-                <p style={{ fontSize: '1.2rem', marginBottom: '8px' }}>You are the drawer!</p>
-                <p>Your secret word is: <strong style={{ fontSize: '1.5rem', color: '#4f46e5' }}>{room.secretWord}</strong></p>
-                <p style={{ marginTop: '16px', color: '#6b7280', fontSize: '0.9rem' }}>Draw on the canvas below (Interaction coming in next feature)</p>
+              <div className="button-row button-row--compact">
+                <button className="button button--secondary" type="button" onClick={handleClearCanvas}>
+                  Clear Canvas
+                </button>
               </div>
-            ) : (
-              <div className="canvas-placeholder" style={{ minHeight: '500px', backgroundColor: '#ffffff', border: '1px solid #e5e7eb', padding: '24px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-                <p style={{ fontSize: '1.2rem', color: '#374151' }}>{drawerName} is drawing...</p>
-                <p style={{ marginTop: '8px', color: '#4b5563' }}>Guess the word in the input box on the right!</p>
-              </div>
-            )}
+            ) : null}
           </Card>
         </div>
 

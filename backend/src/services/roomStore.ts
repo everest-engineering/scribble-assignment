@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import type { Participant, Room, RoomSnapshot } from "../models/game.js";
+import type { DrawingStroke, Participant, Room, RoomSnapshot } from "../models/game.js";
 import { STARTER_ROLES, STARTER_WORDS } from "../seed/starterData.js";
 import { HttpError } from "../api/schemas.js";
 
@@ -62,7 +62,13 @@ export function createRoom(playerName?: string) {
     hostId: participant.id,
     participants: [participant],
     createdAt: now(),
-    updatedAt: now()
+    updatedAt: now(),
+    guesses: [],
+    scores: {
+      [participant.id]: 0
+    },
+    drawing: [],
+    correctGuessers: []
   };
 
   rooms.set(room.code, room);
@@ -86,6 +92,7 @@ export function joinRoom(code: string, playerName?: string) {
 
   const participant = createParticipant(trimmedName);
   room.participants.push(participant);
+  room.scores[participant.id] = 0;
   room.updatedAt = now();
   rooms.set(room.code, room);
 
@@ -132,9 +139,105 @@ export function startGame(code: string, hostParticipantId: string) {
   room.status = "active";
   room.drawerId = room.participants[0].id;
   room.secretWord = getDeterministicWord(code);
+  room.guesses = [];
+  room.drawing = [];
+  room.correctGuessers = [];
+  for (const participant of room.participants) {
+    room.scores[participant.id] = 0;
+  }
   room.updatedAt = now();
   rooms.set(room.code, room);
 
+  return cloneRoom(room);
+}
+
+function getRoomOrThrow(code: string) {
+  const room = rooms.get(code);
+  if (!room) {
+    throw new HttpError(404, "Room not found");
+  }
+
+  return room;
+}
+
+function ensureParticipantInRoom(room: Room, participantId: string) {
+  const participant = room.participants.find((entry) => entry.id === participantId);
+  if (!participant) {
+    throw new HttpError(404, "Participant not found in room");
+  }
+
+  return participant;
+}
+
+function ensureActiveRoom(room: Room) {
+  if (room.status !== "active") {
+    throw new HttpError(400, "Game is not active");
+  }
+}
+
+export function submitGuess(code: string, participantId: string, text: string) {
+  const room = getRoomOrThrow(code);
+  ensureActiveRoom(room);
+  ensureParticipantInRoom(room, participantId);
+
+  if (participantId === room.drawerId) {
+    throw new HttpError(403, "Drawer cannot submit guesses");
+  }
+
+  const normalizedText = text.trim();
+  if (!normalizedText) {
+    throw new HttpError(400, "Guess cannot be empty");
+  }
+
+  const participant = room.participants.find((entry) => entry.id === participantId)!;
+  const normalizedSecretWord = (room.secretWord ?? "").trim().toLowerCase();
+  const isCorrect = normalizedSecretWord.length > 0 && normalizedText.toLowerCase() === normalizedSecretWord;
+
+  if (isCorrect && !room.correctGuessers.includes(participantId)) {
+    room.correctGuessers.push(participantId);
+    room.scores[participantId] = (room.scores[participantId] ?? 0) + 100;
+  }
+
+  room.guesses.push({
+    participantId,
+    participantName: participant.name,
+    text: normalizedText,
+    correct: isCorrect,
+    timestamp: now()
+  });
+
+  room.updatedAt = now();
+  rooms.set(room.code, room);
+  return cloneRoom(room);
+}
+
+export function updateDrawing(code: string, participantId: string, strokes: DrawingStroke[]) {
+  const room = getRoomOrThrow(code);
+  ensureActiveRoom(room);
+  ensureParticipantInRoom(room, participantId);
+
+  if (participantId !== room.drawerId) {
+    throw new HttpError(403, "Only the drawer can update drawing");
+  }
+
+  room.drawing = structuredClone(strokes);
+  room.updatedAt = now();
+  rooms.set(room.code, room);
+  return cloneRoom(room);
+}
+
+export function clearDrawing(code: string, participantId: string) {
+  const room = getRoomOrThrow(code);
+  ensureActiveRoom(room);
+  ensureParticipantInRoom(room, participantId);
+
+  if (participantId !== room.drawerId) {
+    throw new HttpError(403, "Only the drawer can clear drawing");
+  }
+
+  room.drawing = [];
+  room.updatedAt = now();
+  rooms.set(room.code, room);
   return cloneRoom(room);
 }
 
@@ -145,7 +248,13 @@ export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSn
     hostId: room.hostId,
     participants: room.participants.map((participant) => ({ ...participant })),
     availableWords: listWords(),
-    roles: [...STARTER_ROLES]
+    roles: [...STARTER_ROLES],
+    guesses: room.guesses.map((guess) => ({ ...guess })),
+    scores: { ...room.scores },
+    drawing: room.drawing.map((stroke) => ({
+      points: stroke.points.map((point) => ({ ...point }))
+    })),
+    correctGuessers: [...room.correctGuessers]
   };
 
   if (room.drawerId) {

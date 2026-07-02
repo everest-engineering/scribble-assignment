@@ -1,5 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { createRoom, joinRoom, startGame, toRoomSnapshot, getDeterministicWord } from "./roomStore.js";
+import {
+  clearDrawing,
+  createRoom,
+  getDeterministicWord,
+  joinRoom,
+  startGame,
+  submitGuess,
+  toRoomSnapshot,
+  updateDrawing
+} from "./roomStore.js";
 
 describe("roomStore", () => {
   it("createRoom returns a room with a 4-character uppercase code", () => {
@@ -48,6 +57,7 @@ describe("roomStore", () => {
     expect(updatedRoom.status).toBe("active");
     expect(updatedRoom.drawerId).toBe(hostId);
     expect(updatedRoom.secretWord).toBeDefined();
+    expect(updatedRoom.scores[hostId]).toBe(0);
   });
 
   it("toRoomSnapshot includes secretWord for the drawer but not for guessers", () => {
@@ -68,5 +78,60 @@ describe("roomStore", () => {
 
     expect(guestSnapshot.drawerId).toBe(hostId);
     expect(guestSnapshot.secretWord).toBeUndefined();
+  });
+
+  it("rejects empty or whitespace-only guesses", () => {
+    const createResult = createRoom("Alice");
+    const code = createResult.room.code;
+    const hostId = createResult.participantId;
+    const joinResult = joinRoom(code, "Bob")!;
+    startGame(code, hostId);
+
+    expect(() => submitGuess(code, joinResult.participantId, "   ")).toThrow("Guess cannot be empty");
+  });
+
+  it("matches correct guesses case-insensitively and only scores once", () => {
+    const createResult = createRoom("Alice");
+    const code = createResult.room.code;
+    const hostId = createResult.participantId;
+    const joinResult = joinRoom(code, "Bob")!;
+    const startedRoom = startGame(code, hostId);
+
+    const firstGuessRoom = submitGuess(code, joinResult.participantId, startedRoom.secretWord!.toUpperCase());
+    expect(firstGuessRoom.scores[joinResult.participantId]).toBe(100);
+    expect(firstGuessRoom.guesses.at(-1)?.correct).toBe(true);
+
+    const secondGuessRoom = submitGuess(code, joinResult.participantId, startedRoom.secretWord!.toLowerCase());
+    expect(secondGuessRoom.scores[joinResult.participantId]).toBe(100);
+    expect(secondGuessRoom.guesses.at(-1)?.correct).toBe(true);
+    expect(secondGuessRoom.correctGuessers).toContain(joinResult.participantId);
+  });
+
+  it("rejects drawer guess attempts", () => {
+    const createResult = createRoom("Alice");
+    const code = createResult.room.code;
+    const hostId = createResult.participantId;
+    joinRoom(code, "Bob");
+    startGame(code, hostId);
+
+    expect(() => submitGuess(code, hostId, "pizza")).toThrow("Drawer cannot submit guesses");
+  });
+
+  it("allows drawer to update and clear drawing while blocking guessers", () => {
+    const createResult = createRoom("Alice");
+    const code = createResult.room.code;
+    const hostId = createResult.participantId;
+    const joinResult = joinRoom(code, "Bob")!;
+    startGame(code, hostId);
+
+    const updatedRoom = updateDrawing(code, hostId, [{ points: [{ x: 1, y: 2 }, { x: 3, y: 4 }] }]);
+    expect(updatedRoom.drawing).toHaveLength(1);
+
+    expect(() =>
+      updateDrawing(code, joinResult.participantId, [{ points: [{ x: 5, y: 6 }] }])
+    ).toThrow("Only the drawer can update drawing");
+
+    const clearedRoom = clearDrawing(code, hostId);
+    expect(clearedRoom.drawing).toEqual([]);
   });
 });

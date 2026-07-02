@@ -6,6 +6,23 @@ export interface Participant {
   joinedAt: string;
 }
 
+export interface Point {
+  x: number;
+  y: number;
+}
+
+export interface DrawingStroke {
+  points: Point[];
+}
+
+export interface Guess {
+  participantId: string;
+  participantName: string;
+  text: string;
+  correct: boolean;
+  timestamp: string;
+}
+
 export interface RoomSnapshot {
   code: string;
   status: "lobby" | "active";
@@ -15,6 +32,10 @@ export interface RoomSnapshot {
   hostId: string;
   drawerId?: string;
   secretWord?: string;
+  guesses: Guess[];
+  scores: Record<string, number>;
+  drawing: DrawingStroke[];
+  correctGuessers: string[];
 }
 
 export interface RoomSessionResponse {
@@ -46,7 +67,6 @@ async function request<T>(path: string, init?: RequestInit) {
 
 export const api = {
   createRoom(playerName: string) {
-    console.log("2222222")
     return request<RoomSessionResponse>("/rooms", {
       method: "POST",
       body: JSON.stringify({ playerName })
@@ -67,5 +87,23 @@ export const api = {
   fetchRoom(code: string, participantId?: string) {
     const query = participantId ? `?participantId=${encodeURIComponent(participantId)}` : "";
     return request<{ room: RoomSnapshot }>(`/rooms/${encodeURIComponent(code)}${query}`);
+  },
+  submitGuess(code: string, participantId: string, text: string) {
+    return request<{ room: RoomSnapshot }>(`/rooms/${encodeURIComponent(code)}/guess`, {
+      method: "POST",
+      body: JSON.stringify({ participantId, text })
+    });
+  },
+  updateDrawing(code: string, participantId: string, strokes: DrawingStroke[]) {
+    return request<{ room: RoomSnapshot }>(`/rooms/${encodeURIComponent(code)}/draw`, {
+      method: "POST",
+      body: JSON.stringify({ participantId, strokes })
+    });
+  },
+  clearDrawing(code: string, participantId: string) {
+    return request<{ room: RoomSnapshot }>(`/rooms/${encodeURIComponent(code)}/clear`, {
+      method: "POST",
+      body: JSON.stringify({ participantId })
+    });
   }
 };

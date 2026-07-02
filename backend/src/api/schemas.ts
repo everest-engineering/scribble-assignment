@@ -20,6 +20,29 @@ export const startGameSchema = z.object({
   participantId: z.string().min(1, "Participant ID is required")
 });
 
+export const submitGuessSchema = z.object({
+  participantId: z.string().min(1, "Participant ID is required"),
+  text: z.string()
+});
+
+export const drawingUpdateSchema = z.object({
+  participantId: z.string().min(1, "Participant ID is required"),
+  strokes: z.array(
+    z.object({
+      points: z.array(
+        z.object({
+          x: z.number(),
+          y: z.number()
+        })
+      )
+    })
+  )
+});
+
+export const participantActionSchema = z.object({
+  participantId: z.string().min(1, "Participant ID is required")
+});
+
 export class HttpError extends Error {
   statusCode: number;
 
