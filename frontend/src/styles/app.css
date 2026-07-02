@@ -529,6 +529,23 @@ input {
   color: var(--ink-soft);
 }
 
+.results-word-label {
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: 0.875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 700;
+}
+
+.results-word-value {
+  margin: 0;
+  color: var(--ink);
+  font-size: clamp(2rem, 4vw, 2.75rem);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
 .scoreboard-list,
 .guess-history-list {
   margin: 0;

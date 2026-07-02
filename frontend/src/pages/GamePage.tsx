@@ -80,6 +80,11 @@ export function GamePage() {
       return;
     }
 
+    if (room.status === "lobby") {
+      navigate("/lobby", { replace: true });
+      return;
+    }
+
     const intervalId = setInterval(async () => {
       try {
         await roomStore.fetchRoom(true);
@@ -99,6 +104,9 @@ export function GamePage() {
 
   const viewer = activeRoom.participants.find((participant) => participant.id === participantId) ?? null;
   const isDrawer = activeRoom.drawerId === participantId;
+  const isHost = activeRoom.hostId === participantId;
+  const inResults = activeRoom.status === "results";
+  const canViewGuessHistory = inResults;
   const drawerName = activeRoom.participants.find((p) => p.id === activeRoom.drawerId)?.name ?? "Someone";
 
   useEffect(() => {
@@ -114,6 +122,19 @@ export function GamePage() {
       await roomStore.clearDrawing();
     } catch (error) {
       console.error("Clear drawing failed:", error);
+    }
+  }
+
+  async function handleRestartGame() {
+    if (!isHost || !inResults) {
+      return;
+    }
+
+    try {
+      await roomStore.restartGame();
+      navigate("/lobby", { replace: true });
+    } catch (error) {
+      console.error("Restart game failed:", error);
     }
   }
 
@@ -166,45 +187,53 @@ export function GamePage() {
     <section className="panel game-page">
       <div className="game-page__header">
         <div className="game-page__header-left">
-          <span className="section-kicker">Round 1</span>
-          <h1 className="game-page__title">Guess the Word!</h1>
+          <span className="section-kicker">{inResults ? "Round Complete" : "Round 1"}</span>
+          <h1 className="game-page__title">{inResults ? "Results" : "Guess the Word!"}</h1>
         </div>
         <RoomCodeBadge code={activeRoom.code} />
       </div>
 
       <div className="game-page__layout">
         <aside className="game-page__sidebar game-page__sidebar--left">
-          <Scoreboard />
-          <ResultPanel />
+          <Scoreboard sortByScore={inResults} />
+          <ResultPanel showGuesses={canViewGuessHistory} />
         </aside>
 
         <div className="game-page__main">
-          <Card title={isDrawer ? `Canvas - Draw "${activeRoom.secretWord || ""}"` : "Canvas"}>
-            <div className="canvas-stage">
-              <canvas
-                className={`game-canvas ${isDrawer ? "game-canvas--interactive" : ""}`}
-                ref={canvasRef}
-                width={1100}
-                height={520}
-                onPointerDown={handlePointerDown}
-                onPointerMove={handlePointerMove}
-                onPointerUp={finishStroke}
-                onPointerLeave={finishStroke}
-              />
-            </div>
-            <p className="canvas-caption">
-              {isDrawer
-                ? `You are drawing: ${activeRoom.secretWord ?? ""}`
-                : `${drawerName} is drawing. Submit your guesses on the right.`}
-            </p>
-            {isDrawer ? (
-              <div className="button-row button-row--compact">
-                <button className="button button--secondary" type="button" onClick={handleClearCanvas}>
-                  Clear Canvas
-                </button>
+          {inResults ? (
+            <Card title="Round Summary">
+              <p className="results-word-label">Correct Word</p>
+              <p className="results-word-value">{activeRoom.secretWord ?? "(Unavailable)"}</p>
+              <p className="canvas-caption">Final scores and complete guess history are shown on the left.</p>
+            </Card>
+          ) : (
+            <Card title={isDrawer ? `Canvas - Draw "${activeRoom.secretWord || ""}"` : "Canvas"}>
+              <div className="canvas-stage">
+                <canvas
+                  className={`game-canvas ${isDrawer ? "game-canvas--interactive" : ""}`}
+                  ref={canvasRef}
+                  width={1100}
+                  height={520}
+                  onPointerDown={handlePointerDown}
+                  onPointerMove={handlePointerMove}
+                  onPointerUp={finishStroke}
+                  onPointerLeave={finishStroke}
+                />
               </div>
-            ) : null}
-          </Card>
+              <p className="canvas-caption">
+                {isDrawer
+                  ? `You are drawing: ${activeRoom.secretWord ?? ""}`
+                  : `${drawerName} is drawing. Submit your guesses on the right.`}
+              </p>
+              {isDrawer ? (
+                <div className="button-row button-row--compact">
+                  <button className="button button--secondary" type="button" onClick={handleClearCanvas}>
+                    Clear Canvas
+                  </button>
+                </div>
+              ) : null}
+            </Card>
+          )}
         </div>
 
         <aside className="game-page__sidebar game-page__sidebar--right">
@@ -220,14 +249,28 @@ export function GamePage() {
               </div>
               <div>
                 <dt>Status</dt>
-                <dd>Playing</dd>
+                <dd>{inResults ? "Results" : "Playing"}</dd>
               </div>
             </dl>
           </Card>
 
-          <Card title="Your Guess">
-            <GuessForm />
-          </Card>
+          {inResults ? (
+            <Card title="Next Round">
+              {isHost ? (
+                <div className="button-row button-row--compact">
+                  <button className="button button--primary" type="button" onClick={handleRestartGame}>
+                    Restart Game
+                  </button>
+                </div>
+              ) : (
+                <p className="status-line">Waiting for host to restart...</p>
+              )}
+            </Card>
+          ) : (
+            <Card title="Your Guess">
+              <GuessForm />
+            </Card>
+          )}
         </aside>
       </div>
 

@@ -206,6 +206,41 @@ export function submitGuess(code: string, participantId: string, text: string) {
     timestamp: now()
   });
 
+  const allNonDrawersGuessedAtLeastOnce = room.participants
+    .filter((participant) => participant.id !== room.drawerId)
+    .every((participant) => room.guesses.some((guess) => guess.participantId === participant.id));
+
+  if (allNonDrawersGuessedAtLeastOnce) {
+    room.status = "results";
+  }
+
+  room.updatedAt = now();
+  rooms.set(room.code, room);
+  return cloneRoom(room);
+}
+
+export function restartGame(code: string, hostParticipantId: string) {
+  const room = getRoomOrThrow(code);
+  ensureParticipantInRoom(room, hostParticipantId);
+
+  if (room.hostId !== hostParticipantId) {
+    throw new HttpError(403, "Only the host can restart the game");
+  }
+
+  if (room.status !== "results") {
+    throw new HttpError(400, "Game can only be restarted from results");
+  }
+
+  room.status = "lobby";
+  room.drawerId = undefined;
+  room.secretWord = undefined;
+  room.guesses = [];
+  room.drawing = [];
+  room.correctGuessers = [];
+  for (const participant of room.participants) {
+    room.scores[participant.id] = 0;
+  }
+
   room.updatedAt = now();
   rooms.set(room.code, room);
   return cloneRoom(room);
@@ -261,7 +296,7 @@ export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSn
     snapshot.drawerId = room.drawerId;
   }
 
-  if (room.drawerId && viewerParticipantId === room.drawerId) {
+  if (room.secretWord && (room.status === "results" || (room.drawerId && viewerParticipantId === room.drawerId))) {
     snapshot.secretWord = room.secretWord;
   }
 

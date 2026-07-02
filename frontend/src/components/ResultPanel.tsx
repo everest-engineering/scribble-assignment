@@ -1,8 +1,20 @@
 import { Card } from "./Card";
 import { useRoomState } from "../state/roomStore";
 
-export function ResultPanel() {
+interface ResultPanelProps {
+  showGuesses?: boolean;
+}
+
+export function ResultPanel({ showGuesses = true }: ResultPanelProps) {
   const { room } = useRoomState();
+
+  if (!showGuesses) {
+    return (
+      <Card title="Guess History">
+        <p className="placeholder-note">Guess history is revealed after the round ends.</p>
+      </Card>
+    );
+  }
 
   return (
     <Card title="Guess History">

@@ -4,6 +4,7 @@ import {
   createRoom,
   getDeterministicWord,
   joinRoom,
+  restartGame,
   startGame,
   submitGuess,
   toRoomSnapshot,
@@ -133,5 +134,83 @@ describe("roomStore", () => {
 
     const clearedRoom = clearDrawing(code, hostId);
     expect(clearedRoom.drawing).toEqual([]);
+  });
+
+  it("transitions to results when all guessers submit at least one guess", () => {
+    const createResult = createRoom("Alice");
+    const code = createResult.room.code;
+    const hostId = createResult.participantId;
+    const guestOne = joinRoom(code, "Bob")!;
+    const guestTwo = joinRoom(code, "Carol")!;
+    const startedRoom = startGame(code, hostId);
+
+    const afterFirstCorrect = submitGuess(code, guestOne.participantId, startedRoom.secretWord!);
+    expect(afterFirstCorrect.status).toBe("active");
+
+    const afterSecondGuess = submitGuess(code, guestTwo.participantId, "wrongword");
+    expect(afterSecondGuess.status).toBe("results");
+  });
+
+  it("reveals secret word to all viewers during results", () => {
+    const createResult = createRoom("Alice");
+    const code = createResult.room.code;
+    const hostId = createResult.participantId;
+    const guest = joinRoom(code, "Bob")!;
+    const startedRoom = startGame(code, hostId);
+    const resultsRoom = submitGuess(code, guest.participantId, startedRoom.secretWord!);
+
+    const drawerSnapshot = toRoomSnapshot(resultsRoom, hostId);
+    const guestSnapshot = toRoomSnapshot(resultsRoom, guest.participantId);
+
+    expect(resultsRoom.status).toBe("results");
+    expect(drawerSnapshot.secretWord).toBe(startedRoom.secretWord);
+    expect(guestSnapshot.secretWord).toBe(startedRoom.secretWord);
+  });
+
+  it("restartGame resets round state and preserves participants", () => {
+    const createResult = createRoom("Alice");
+    const code = createResult.room.code;
+    const hostId = createResult.participantId;
+    const guest = joinRoom(code, "Bob")!;
+    const startedRoom = startGame(code, hostId);
+    const resultsRoom = submitGuess(code, guest.participantId, startedRoom.secretWord!);
+
+    const restartedRoom = restartGame(code, hostId);
+
+    expect(resultsRoom.status).toBe("results");
+    expect(restartedRoom.status).toBe("lobby");
+    expect(restartedRoom.participants.map((participant) => participant.id)).toEqual(
+      resultsRoom.participants.map((participant) => participant.id)
+    );
+    expect(restartedRoom.drawing).toEqual([]);
+    expect(restartedRoom.guesses).toEqual([]);
+    expect(restartedRoom.correctGuessers).toEqual([]);
+    expect(restartedRoom.secretWord).toBeUndefined();
+    expect(restartedRoom.drawerId).toBeUndefined();
+    expect(restartedRoom.scores[hostId]).toBe(0);
+    expect(restartedRoom.scores[guest.participantId]).toBe(0);
+  });
+
+  it("rejects restart when caller is not host", () => {
+    const createResult = createRoom("Alice");
+    const code = createResult.room.code;
+    const hostId = createResult.participantId;
+    const guest = joinRoom(code, "Bob")!;
+    const startedRoom = startGame(code, hostId);
+    submitGuess(code, guest.participantId, startedRoom.secretWord!);
+
+    expect(() => restartGame(code, guest.participantId)).toThrow("Only the host can restart the game");
+  });
+
+  it("rejects restart outside results state", () => {
+    const createResult = createRoom("Alice");
+    const code = createResult.room.code;
+    const hostId = createResult.participantId;
+    joinRoom(code, "Bob");
+
+    expect(() => restartGame(code, hostId)).toThrow("Game can only be restarted from results");
+
+    startGame(code, hostId);
+    expect(() => restartGame(code, hostId)).toThrow("Game can only be restarted from results");
   });
 });

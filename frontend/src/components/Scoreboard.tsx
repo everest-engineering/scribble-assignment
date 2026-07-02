@@ -1,8 +1,24 @@
 import { Card } from "./Card";
 import { useRoomState } from "../state/roomStore";
 
-export function Scoreboard() {
+interface ScoreboardProps {
+  sortByScore?: boolean;
+}
+
+export function Scoreboard({ sortByScore = false }: ScoreboardProps) {
   const { room, participantId } = useRoomState();
+
+  const rankedParticipants =
+    room && sortByScore
+      ? [...room.participants].sort((a, b) => {
+          const scoreDelta = (room.scores[b.id] ?? 0) - (room.scores[a.id] ?? 0);
+          if (scoreDelta !== 0) {
+            return scoreDelta;
+          }
+
+          return a.name.localeCompare(b.name);
+        })
+      : room?.participants ?? [];
 
   return (
     <Card title="Scoreboard">
@@ -10,7 +26,7 @@ export function Scoreboard() {
         <p className="placeholder-note">Waiting for room data...</p>
       ) : (
         <ul className="scoreboard-list">
-          {room.participants.map((participant) => (
+          {rankedParticipants.map((participant) => (
             <li
               className={`scoreboard-list__item ${participant.id === participantId ? "scoreboard-list__item--self" : ""}`}
               key={participant.id}
