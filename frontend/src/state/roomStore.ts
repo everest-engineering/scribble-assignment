@@ -7,7 +7,7 @@ import {
   useSyncExternalStore,
   type PropsWithChildren
 } from "react";
-import { api, type RoomSessionResponse, type RoomSnapshot } from "../services/api";
+import { api, type Point, type RoomSessionResponse, type RoomSnapshot } from "../services/api";
 
 export interface RoomState {
   room: RoomSnapshot | null;
@@ -71,6 +71,9 @@ class RoomStore {
   }
 
   setRoomSnapshot(room: RoomSnapshot) {
+    if (this.state.room && this.state.room.currentRound > room.currentRound && room.status !== "lobby") {
+      return;
+    }
     this.setState({
       room,
       error: null
@@ -89,12 +92,102 @@ class RoomStore {
     return response;
   }
 
+  async startGame() {
+    const currentRoom = this.state.room;
+    const currentParticipantId = this.state.participantId;
+    if (!currentRoom || !currentParticipantId) {
+      throw new Error("No active room");
+    }
+
+    const response = await this.withLoading(() =>
+      api.startGame(currentRoom.code, currentParticipantId)
+    );
+    this.setRoomSnapshot(response.room);
+    return response.room;
+  }
+
   async fetchRoom() {
     if (!this.state.room) {
       return null;
     }
 
     const response = await api.fetchRoom(this.state.room.code, this.state.participantId ?? undefined);
+    this.setRoomSnapshot(response.room);
+    return response.room;
+  }
+
+  async submitGuess(guess: string) {
+    const currentRoom = this.state.room;
+    const currentParticipantId = this.state.participantId;
+    if (!currentRoom || !currentParticipantId) {
+      throw new Error("No active room");
+    }
+
+    const response = await this.withLoading(() =>
+      api.submitGuess(currentRoom.code, currentParticipantId, guess)
+    );
+    this.setRoomSnapshot(response.room);
+    return response;
+  }
+
+  async nextWord() {
+    const currentRoom = this.state.room;
+    const currentParticipantId = this.state.participantId;
+    if (!currentRoom || !currentParticipantId) {
+      throw new Error("No active room");
+    }
+
+    const response = await this.withLoading(() =>
+      api.nextWord(currentRoom.code, currentParticipantId)
+    );
+    this.setRoomSnapshot(response.room);
+    return response.room;
+  }
+
+  async submitCanvasStroke(points: Point[]) {
+    const currentRoom = this.state.room;
+    const currentParticipantId = this.state.participantId;
+    if (!currentRoom || !currentParticipantId) {
+      throw new Error("No active room");
+    }
+
+    await api.submitCanvasStroke(currentRoom.code, currentParticipantId, { points });
+  }
+
+  async clearCanvas() {
+    const currentRoom = this.state.room;
+    const currentParticipantId = this.state.participantId;
+    if (!currentRoom || !currentParticipantId) {
+      throw new Error("No active room");
+    }
+
+    await api.clearCanvas(currentRoom.code, currentParticipantId);
+  }
+
+  async endGame() {
+    const currentRoom = this.state.room;
+    const currentParticipantId = this.state.participantId;
+    if (!currentRoom || !currentParticipantId) {
+      throw new Error("No active room");
+    }
+
+    const response = await this.withLoading(() =>
+      api.endGame(currentRoom.code, currentParticipantId)
+    );
+    this.setRoomSnapshot(response.room);
+    return response.room;
+  }
+
+  async restartGame() {
+    const currentRoom = this.state.room;
+    const currentParticipantId = this.state.participantId;
+    if (!currentRoom || !currentParticipantId) {
+      throw new Error("No active room");
+    }
+
+    const response = await this.withLoading(() =>
+      api.restartGame(currentRoom.code, currentParticipantId)
+    );
     this.setRoomSnapshot(response.room);
     return response.room;
   }

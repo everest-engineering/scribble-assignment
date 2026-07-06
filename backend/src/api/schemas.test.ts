@@ -8,7 +8,38 @@ describe("schemas", () => {
     expect(result.playerName).toBe("Alice");
   });
 
+  it("createRoomSchema rejects empty playerName", () => {
+    expect(() => createRoomSchema.parse({ playerName: "" })).toThrow();
+  });
+
+  it("createRoomSchema rejects whitespace-only playerName", () => {
+    expect(() => createRoomSchema.parse({ playerName: "   " })).toThrow();
+  });
+
+  it("createRoomSchema trims playerName", () => {
+    const result = createRoomSchema.parse({ playerName: "  Alice  " });
+    expect(result.playerName).toBe("Alice");
+  });
+
   it("roomCodeParamsSchema rejects missing code", () => {
     expect(() => roomCodeParamsSchema.parse({})).toThrow();
+  });
+
+  it("roomCodeParamsSchema rejects empty code", () => {
+    expect(() => roomCodeParamsSchema.parse({ code: "" })).toThrow();
+  });
+
+  it("roomCodeParamsSchema rejects whitespace-only code", () => {
+    expect(() => roomCodeParamsSchema.parse({ code: "   " })).toThrow();
+  });
+
+  it("roomCodeParamsSchema accepts valid code", () => {
+    const result = roomCodeParamsSchema.parse({ code: "ABCD" });
+    expect(result.code).toBe("ABCD");
+  });
+
+  it("roomCodeParamsSchema trims whitespace from code", () => {
+    const result = roomCodeParamsSchema.parse({ code: "  ABCD  " });
+    expect(result.code).toBe("ABCD");
   });
 });

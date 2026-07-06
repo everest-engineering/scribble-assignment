@@ -404,6 +404,36 @@ input {
   font-weight: 400;
 }
 
+.player-list__badge {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  line-height: 1.4;
+}
+
+.scoreboard-list {
+  display: grid;
+  gap: 8px;
+}
+
+.scoreboard-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--surface-strong);
+  color: var(--ink);
+  font-size: 0.875rem;
+}
+
 .status-line,
 .placeholder-note {
   width: max-content;
@@ -565,4 +595,89 @@ input {
   .button-row--spread {
     justify-content: stretch;
   }
+}
+
+.canvas-container {
+  position: relative;
+  width: 100%;
+}
+
+.canvas {
+  display: block;
+  width: 100%;
+  height: 500px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  cursor: crosshair;
+  touch-action: none;
+  background: #ffffff;
+}
+
+.canvas-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  padding: 8px 0 0;
+}
+
+.guess-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.guess-list__item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: var(--surface-muted);
+  font-size: 0.875rem;
+}
+
+.guess-list__item--correct {
+  background: #d1fae5;
+}
+
+.guess-list__name {
+  font-weight: 600;
+  color: var(--ink);
+  min-width: 60px;
+}
+
+.guess-list__text {
+  flex: 1;
+  color: var(--ink-soft);
+  font-style: italic;
+}
+
+.guess-list__result {
+  font-weight: 600;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  color: #991b1b;
+}
+
+.guess-list__item--correct .guess-list__result {
+  color: #065f46;
+}
+
+.form__success {
+  padding: 12px 16px;
+  border-radius: 8px;
+  background: #d1fae5;
+  color: #065f46;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.guess-form__correct {
+  padding: 16px;
+  text-align: center;
+  background: #d1fae5;
+  border-radius: 8px;
+  color: #065f46;
+  font-weight: 600;
 }

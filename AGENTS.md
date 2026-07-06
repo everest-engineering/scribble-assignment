@@ -40,3 +40,58 @@ You are working on a monolithic repository for a multiplayer drawing game ("Scri
 -   Give concise, direct answers.
 -   Do not output large blocks of code if a small change suffices.
 -   When creating or editing files, ensure consistency with the existing directory structure detailed above.
+
+<!-- SPECKIT START -->
+Feature 001 (complete): Host tracking on room creation. The creator is
+automatically designated as host (stored via hostId on Room + isHost on
+Participant). A "Host" label is displayed next to the host's name on all
+screens. See the full plan at:
+specs/001-host-tracking/plan.md
+
+Feature 002 (complete): Join validation with clear error messages.
+Invalid/empty room codes are rejected with clear feedback. See the plan at:
+specs/002-join-validation/plan.md
+and the spec at: specs/002-join-validation/spec.md
+
+Feature 003 (complete): Multi-room isolation. Each room has its own
+independent state in the in-memory Map and participants/state never leak
+between rooms. Verified with dedicated isolation tests.
+
+Feature 004 (complete): Automatic lobby polling. The Lobby page
+auto-polls room state every ~2s so players see new joiners without manual
+refresh. Auto-navigates to game page on status change and to home on 404.
+See the plan at:
+specs/004-lobby-polling/plan.md
+and the spec at: specs/004-lobby-polling/spec.md
+
+Feature 005 (complete): Host start control. Only the host can see
+and use the "Start Game" button. Button is disabled until at least 2
+players are in the room. See the plan at:
+specs/005-host-start-control/plan.md
+and the spec at: specs/005-host-start-control/spec.md
+
+Feature 006 (complete): Game start and drawer flow. Player name
+validation (trim, reject empty). Game start endpoint transitions room
+to drawing status, assigns host as round-1 drawer, selects secret word
+deterministically via (round-1) % words.length. Word visible only to
+drawer. See the plan at:
+specs/006-game-start-drawer-flow/plan.md
+and the spec at: specs/006-game-start-drawer-flow/spec.md
+
+Feature 007 (complete): Gameplay interaction — drawing, guessing, and
+scoring. Interactive drawing canvas (single black pen, HTML Canvas API),
+guess submission with frontend+backend validation (trim, reject empty,
+case-insensitive compare), guess history and scoring synced via HTTP
+polling (only first correct guesser scores 100, subsequent get 0),
+"Clear Canvas" button for drawer, "Next Word" button for drawer
+(advances round while preserving cumulative scores). See the plan at:
+specs/007-gameplay-interaction/plan.md
+and the spec at: specs/007-gameplay-interaction/spec.md
+
+Feature 008 (complete): Result, restart, and final validation.
+Game result display (correct word, final scores, guess history),
+host-only restart to lobby with participants preserved and all round
+state cleared. See the plan at:
+specs/008-result-restart-validation/plan.md
+and the spec at: specs/008-result-restart-validation/spec.md
+<!-- SPECKIT END -->

@@ -12,13 +12,24 @@ export function JoinRoomPage() {
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    setError(null);
+
+    const trimmedName = playerName.trim();
+    if (!trimmedName) {
+      setError("Player name is required");
+      return;
+    }
+
+    if (!roomCode.trim()) {
+      setError("Invalid room code. Please try again with correct one.");
+      return;
+    }
 
     try {
-      setError(null);
-      await roomStore.joinRoom(roomCode.toUpperCase(), playerName);
+      await roomStore.joinRoom(roomCode.toUpperCase(), trimmedName);
       navigate("/lobby");
     } catch (caughtError) {
-      setError(caughtError instanceof Error ? caughtError.message : "Unable to join room");
+      setError(caughtError instanceof Error ? caughtError.message : "Invalid room code. Please try again with correct one.");
     }
   }
 
