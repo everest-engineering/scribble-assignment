@@ -53,7 +53,20 @@ Invalid/empty room codes are rejected with clear feedback. See the plan at:
 specs/002-join-validation/plan.md
 and the spec at: specs/002-join-validation/spec.md
 
-Feature 003 (in progress): Multi-room isolation. Each room has its own
+Feature 003 (complete): Multi-room isolation. Each room has its own
 independent state in the in-memory Map and participants/state never leak
 between rooms. Verified with dedicated isolation tests.
+
+Feature 004 (complete): Automatic lobby polling. The Lobby page
+auto-polls room state every ~2s so players see new joiners without manual
+refresh. Auto-navigates to game page on status change and to home on 404.
+See the plan at:
+specs/004-lobby-polling/plan.md
+and the spec at: specs/004-lobby-polling/spec.md
+
+Feature 005 (complete): Host start control. Only the host can see
+and use the "Start Game" button. Button is disabled until at least 2
+players are in the room. See the plan at:
+specs/005-host-start-control/plan.md
+and the spec at: specs/005-host-start-control/spec.md
 <!-- SPECKIT END -->
