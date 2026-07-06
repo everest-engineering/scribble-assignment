@@ -1,12 +1,13 @@
-import type { Participant } from "../services/api";
+import type { Participant, ScoreMap } from "../services/api";
 import { Card } from "./Card";
 
 interface ScoreboardProps {
   participants: Participant[];
   currentDrawerId?: string;
+  scores?: ScoreMap;
 }
 
-export function Scoreboard({ participants, currentDrawerId }: ScoreboardProps) {
+export function Scoreboard({ participants, currentDrawerId, scores = {} }: ScoreboardProps) {
   return (
     <Card title="Scoreboard">
       {participants.length === 0 ? (
@@ -25,7 +26,7 @@ export function Scoreboard({ participants, currentDrawerId }: ScoreboardProps) {
                 {p.isHost && <span className="player-list__badge">Host</span>}
                 {p.id === currentDrawerId && <span className="player-list__badge">Drawer</span>}
               </span>
-              <strong>0</strong>
+              <strong>{scores[p.id] ?? 0}</strong>
             </div>
           ))}
         </div>

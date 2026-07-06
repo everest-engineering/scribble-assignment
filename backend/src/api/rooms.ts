@@ -1,13 +1,15 @@
 import { Router } from "express";
 import { ZodError } from "zod";
 import {
+  canvasBodySchema,
   createRoomSchema,
   HttpError,
   joinRoomSchema,
   roomCodeParamsSchema,
-  roomViewerQuerySchema
+  roomViewerQuerySchema,
+  submitGuessSchema
 } from "./schemas.js";
-import { createRoom, getRoom, joinRoom, startGame, toRoomSnapshot } from "../services/roomStore.js";
+import { addCanvasStroke, clearCanvas, createRoom, getRoom, joinRoom, nextWord, startGame, submitGuess, toRoomSnapshot } from "../services/roomStore.js";
 
 export function createRoomsRouter() {
   const router = Router();
@@ -65,6 +67,79 @@ export function createRoomsRouter() {
       }
 
       const result = startGame(code.toUpperCase(), participantId);
+
+      if (!result.ok) {
+        throw result.error;
+      }
+
+      response.json({
+        room: toRoomSnapshot(result.room, participantId)
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/:code/guess", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { guess, participantId } = submitGuessSchema.parse(request.body);
+
+      const result = submitGuess(code.toUpperCase(), participantId, guess);
+
+      if (!result.ok) {
+        throw result.error;
+      }
+
+      response.json({
+        room: toRoomSnapshot(result.room, participantId),
+        ...(result.message ? { message: result.message } : {})
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/:code/canvas", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const body = canvasBodySchema.parse(request.body);
+      const { participantId } = roomViewerQuerySchema.parse(request.query);
+
+      if (!participantId) {
+        throw new HttpError(400, "participantId query parameter is required");
+      }
+
+      let result;
+
+      if (body.type === "clear") {
+        result = clearCanvas(code.toUpperCase(), participantId);
+      } else {
+        result = addCanvasStroke(code.toUpperCase(), participantId, body.stroke);
+      }
+
+      if (!result.ok) {
+        throw result.error;
+      }
+
+      response.json({
+        room: toRoomSnapshot(result.room, participantId)
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/:code/next-word", (request, response, next) => {
+    try {
+      const { code } = roomCodeParamsSchema.parse(request.params);
+      const { participantId } = roomViewerQuerySchema.parse(request.query);
+
+      if (!participantId) {
+        throw new HttpError(400, "participantId query parameter is required");
+      }
+
+      const result = nextWord(code.toUpperCase(), participantId);
 
       if (!result.ok) {
         throw result.error;

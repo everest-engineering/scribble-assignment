@@ -70,11 +70,21 @@ players are in the room. See the plan at:
 specs/005-host-start-control/plan.md
 and the spec at: specs/005-host-start-control/spec.md
 
-Feature 006 (in progress): Game start and drawer flow. Player name
+Feature 006 (complete): Game start and drawer flow. Player name
 validation (trim, reject empty). Game start endpoint transitions room
 to drawing status, assigns host as round-1 drawer, selects secret word
 deterministically via (round-1) % words.length. Word visible only to
 drawer. See the plan at:
 specs/006-game-start-drawer-flow/plan.md
 and the spec at: specs/006-game-start-drawer-flow/spec.md
+
+Feature 007 (complete): Gameplay interaction — drawing, guessing, and
+scoring. Interactive drawing canvas (single black pen, HTML Canvas API),
+guess submission with frontend+backend validation (trim, reject empty,
+case-insensitive compare), guess history and scoring synced via HTTP
+polling (only first correct guesser scores 100, subsequent get 0),
+"Clear Canvas" button for drawer, "Next Word" button for drawer
+(advances round while preserving cumulative scores). See the plan at:
+specs/007-gameplay-interaction/plan.md
+and the spec at: specs/007-gameplay-interaction/spec.md
 <!-- SPECKIT END -->

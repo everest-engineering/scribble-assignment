@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import type { Participant, Room, RoomSnapshot } from "../models/game.js";
+import type { Guess, Participant, Room, RoomSnapshot, Stroke } from "../models/game.js";
 import { STARTER_ROLES, STARTER_WORDS } from "../seed/starterData.js";
 import { HttpError } from "../api/schemas.js";
 
@@ -59,6 +59,10 @@ export function createRoom(playerName: string) {
     currentRound: 0,
     currentDrawerId: "",
     secretWord: null,
+    scores: {},
+    guesses: [],
+    canvasStrokes: [],
+    correctGuessersInRound: [],
     createdAt: now(),
     updatedAt: now()
   };
@@ -128,10 +132,150 @@ export function startGame(code: string, requesterId: string) {
   room.currentRound = 1;
   room.currentDrawerId = room.hostId;
   room.secretWord = secretWord;
+  room.canvasStrokes = [];
+  room.guesses = [];
+  room.correctGuessersInRound = [];
   room.updatedAt = now();
   rooms.set(room.code, room);
 
   return { ok: true as const, room: cloneRoom(room) };
+}
+
+export function submitGuess(
+  code: string,
+  participantId: string,
+  guessText: string
+): { ok: true; room: Room; message?: string } | { ok: false; error: HttpError } {
+  const room = rooms.get(code);
+
+  if (!room) {
+    return { ok: false, error: new HttpError(404, "Room not found") };
+  }
+
+  if (room.status !== "drawing") {
+    return { ok: false, error: new HttpError(400, "Game is not in progress") };
+  }
+
+  const participant = room.participants.find((p) => p.id === participantId);
+  if (!participant) {
+    return { ok: false, error: new HttpError(404, "Participant not found") };
+  }
+
+  if (participant.id === room.currentDrawerId) {
+    return { ok: false, error: new HttpError(400, "The drawer cannot submit guesses") };
+  }
+
+  if (room.correctGuessersInRound.includes(participantId)) {
+    return { ok: false, error: new HttpError(400, "You already guessed correctly!") };
+  }
+
+  if (!guessText || !guessText.trim()) {
+    return { ok: false, error: new HttpError(400, "Guess cannot be empty") };
+  }
+
+  const trimmed = guessText.trim();
+  const isCorrect = trimmed.toLowerCase() === (room.secretWord ?? "").toLowerCase();
+
+  const isFirstCorrect = isCorrect && room.correctGuessersInRound.length === 0;
+
+  const pointsAwarded = isFirstCorrect ? 100 : 0;
+
+  const guess: Guess = {
+    participantId,
+    participantName: participant.name,
+    text: trimmed,
+    isCorrect,
+    pointsAwarded,
+    timestamp: now()
+  };
+
+  room.guesses.push(guess);
+
+  if (isCorrect) {
+    room.correctGuessersInRound.push(participantId);
+
+    if (isFirstCorrect) {
+      const currentScore = room.scores[participantId] ?? 0;
+      room.scores[participantId] = currentScore + 100;
+    }
+  }
+
+  room.updatedAt = now();
+  rooms.set(room.code, room);
+
+  const message = isCorrect && !isFirstCorrect
+    ? "Already guessed! 0 points added."
+    : undefined;
+
+  return { ok: true, room: cloneRoom(room), message };
+}
+
+export function addCanvasStroke(
+  code: string,
+  participantId: string,
+  stroke: Stroke
+): { ok: true; room: Room } | { ok: false; error: HttpError } {
+  const room = rooms.get(code);
+
+  if (!room) {
+    return { ok: false, error: new HttpError(404, "Room not found") };
+  }
+
+  if (participantId !== room.currentDrawerId) {
+    return { ok: false, error: new HttpError(403, "Only the drawer can draw") };
+  }
+
+  room.canvasStrokes.push(stroke);
+  room.updatedAt = now();
+  rooms.set(room.code, room);
+
+  return { ok: true, room: cloneRoom(room) };
+}
+
+export function clearCanvas(
+  code: string,
+  participantId: string
+): { ok: true; room: Room } | { ok: false; error: HttpError } {
+  const room = rooms.get(code);
+
+  if (!room) {
+    return { ok: false, error: new HttpError(404, "Room not found") };
+  }
+
+  if (participantId !== room.currentDrawerId) {
+    return { ok: false, error: new HttpError(403, "Only the drawer can clear the canvas") };
+  }
+
+  room.canvasStrokes = [];
+  room.updatedAt = now();
+  rooms.set(room.code, room);
+
+  return { ok: true, room: cloneRoom(room) };
+}
+
+export function nextWord(
+  code: string,
+  participantId: string
+): { ok: true; room: Room } | { ok: false; error: HttpError } {
+  const room = rooms.get(code);
+
+  if (!room) {
+    return { ok: false, error: new HttpError(404, "Room not found") };
+  }
+
+  if (participantId !== room.currentDrawerId) {
+    return { ok: false, error: new HttpError(403, "Only the drawer can skip to the next word") };
+  }
+
+  room.currentRound += 1;
+  room.secretWord = selectWord(room.currentRound);
+  room.canvasStrokes = [];
+  room.guesses = [];
+  room.correctGuessersInRound = [];
+  room.updatedAt = now();
+  rooms.set(room.code, room);
+
+  return { ok: true, room: cloneRoom(room) };
 }
 
 export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSnapshot {
@@ -144,6 +288,9 @@ export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSn
     roles: [...STARTER_ROLES],
     currentRound: room.currentRound,
     currentDrawerId: room.currentDrawerId,
-    secretWord: viewerParticipantId === room.currentDrawerId ? room.secretWord : null
+    secretWord: viewerParticipantId === room.currentDrawerId ? room.secretWord : null,
+    scores: { ...room.scores },
+    guesses: room.guesses.map((g) => ({ ...g })),
+    canvasStrokes: room.canvasStrokes.map((s) => ({ ...s, points: [...s.points] }))
   };
 }
