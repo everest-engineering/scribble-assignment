@@ -69,4 +69,12 @@ and use the "Start Game" button. Button is disabled until at least 2
 players are in the room. See the plan at:
 specs/005-host-start-control/plan.md
 and the spec at: specs/005-host-start-control/spec.md
+
+Feature 006 (in progress): Game start and drawer flow. Player name
+validation (trim, reject empty). Game start endpoint transitions room
+to drawing status, assigns host as round-1 drawer, selects secret word
+deterministically via (round-1) % words.length. Word visible only to
+drawer. See the plan at:
+specs/006-game-start-drawer-flow/plan.md
+and the spec at: specs/006-game-start-drawer-flow/spec.md
 <!-- SPECKIT END -->

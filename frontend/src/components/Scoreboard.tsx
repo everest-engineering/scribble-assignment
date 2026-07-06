@@ -3,9 +3,10 @@ import { Card } from "./Card";
 
 interface ScoreboardProps {
   participants: Participant[];
+  currentDrawerId?: string;
 }
 
-export function Scoreboard({ participants }: ScoreboardProps) {
+export function Scoreboard({ participants, currentDrawerId }: ScoreboardProps) {
   return (
     <Card title="Scoreboard">
       {participants.length === 0 ? (
@@ -22,6 +23,7 @@ export function Scoreboard({ participants }: ScoreboardProps) {
               <span>
                 {p.name}
                 {p.isHost && <span className="player-list__badge">Host</span>}
+                {p.id === currentDrawerId && <span className="player-list__badge">Drawer</span>}
               </span>
               <strong>0</strong>
             </div>

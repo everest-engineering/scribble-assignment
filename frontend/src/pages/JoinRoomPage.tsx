@@ -14,13 +14,19 @@ export function JoinRoomPage() {
     event.preventDefault();
     setError(null);
 
+    const trimmedName = playerName.trim();
+    if (!trimmedName) {
+      setError("Player name is required");
+      return;
+    }
+
     if (!roomCode.trim()) {
       setError("Invalid room code. Please try again with correct one.");
       return;
     }
 
     try {
-      await roomStore.joinRoom(roomCode.toUpperCase(), playerName);
+      await roomStore.joinRoom(roomCode.toUpperCase(), trimmedName);
       navigate("/lobby");
     } catch (caughtError) {
       setError(caughtError instanceof Error ? caughtError.message : "Invalid room code. Please try again with correct one.");

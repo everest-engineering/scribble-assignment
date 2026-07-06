@@ -65,6 +65,15 @@ export function LobbyPage() {
     }
   }
 
+  async function handleStartGame() {
+    try {
+      await roomStore.startGame();
+      navigate("/game");
+    } catch (caughtError) {
+      setRefreshError(caughtError instanceof Error ? caughtError.message : "Unable to start game");
+    }
+  }
+
   async function handleRefresh() {
     try {
       setRefreshError(null);
@@ -123,7 +132,7 @@ export function LobbyPage() {
           {isLoading ? "Refreshing..." : "Refresh Room"}
         </button>
         {isHost && (
-          <button className="button button--primary" disabled={!canStart} onClick={() => navigate("/game")}>
+          <button className="button button--primary" disabled={!canStart} onClick={handleStartGame}>
             Start Game
           </button>
         )}

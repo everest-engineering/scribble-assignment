@@ -71,6 +71,9 @@ class RoomStore {
   }
 
   setRoomSnapshot(room: RoomSnapshot) {
+    if (this.state.room && this.state.room.currentRound > room.currentRound) {
+      return;
+    }
     this.setState({
       room,
       error: null
@@ -87,6 +90,20 @@ class RoomStore {
     const response = await this.withLoading(() => api.joinRoom(code, playerName));
     this.setRoomSession(response);
     return response;
+  }
+
+  async startGame() {
+    const currentRoom = this.state.room;
+    const currentParticipantId = this.state.participantId;
+    if (!currentRoom || !currentParticipantId) {
+      throw new Error("No active room");
+    }
+
+    const response = await this.withLoading(() =>
+      api.startGame(currentRoom.code, currentParticipantId)
+    );
+    this.setRoomSnapshot(response.room);
+    return response.room;
   }
 
   async fetchRoom() {
