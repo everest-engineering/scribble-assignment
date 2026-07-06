@@ -49,6 +49,7 @@ screens. See the full plan at:
 specs/001-host-tracking/plan.md
 
 Feature 002 (in progress): Join validation with clear error messages.
-Invalid/empty room codes are rejected with clear feedback. See the spec at:
-specs/002-join-validation/spec.md
+Invalid/empty room codes are rejected with clear feedback. See the plan at:
+specs/002-join-validation/plan.md
+and the spec at: specs/002-join-validation/spec.md
 <!-- SPECKIT END -->
