@@ -12,13 +12,18 @@ export function JoinRoomPage() {
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    setError(null);
+
+    if (!roomCode.trim()) {
+      setError("Invalid room code. Please try again with correct one.");
+      return;
+    }
 
     try {
-      setError(null);
       await roomStore.joinRoom(roomCode.toUpperCase(), playerName);
       navigate("/lobby");
     } catch (caughtError) {
-      setError(caughtError instanceof Error ? caughtError.message : "Unable to join room");
+      setError(caughtError instanceof Error ? caughtError.message : "Invalid room code. Please try again with correct one.");
     }
   }
 

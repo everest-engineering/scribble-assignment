@@ -11,4 +11,22 @@ describe("schemas", () => {
   it("roomCodeParamsSchema rejects missing code", () => {
     expect(() => roomCodeParamsSchema.parse({})).toThrow();
   });
+
+  it("roomCodeParamsSchema rejects empty code", () => {
+    expect(() => roomCodeParamsSchema.parse({ code: "" })).toThrow();
+  });
+
+  it("roomCodeParamsSchema rejects whitespace-only code", () => {
+    expect(() => roomCodeParamsSchema.parse({ code: "   " })).toThrow();
+  });
+
+  it("roomCodeParamsSchema accepts valid code", () => {
+    const result = roomCodeParamsSchema.parse({ code: "ABCD" });
+    expect(result.code).toBe("ABCD");
+  });
+
+  it("roomCodeParamsSchema trims whitespace from code", () => {
+    const result = roomCodeParamsSchema.parse({ code: "  ABCD  " });
+    expect(result.code).toBe("ABCD");
+  });
 });

@@ -50,6 +50,7 @@ export function LobbyPage() {
               {room.participants.map((participant) => (
                 <li key={participant.id}>
                   <span>{participant.name}</span>
+                  {participant.isHost && <span className="player-list__badge">Host</span>}
                   <span className="player-list__meta">joined</span>
                 </li>
               ))}

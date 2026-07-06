@@ -35,7 +35,7 @@ export function GamePage() {
 
       <div className="game-page__layout">
         <aside className="game-page__sidebar game-page__sidebar--left">
-          <Scoreboard />
+          <Scoreboard participants={room.participants} />
           <ResultPanel />
         </aside>
 
@@ -52,7 +52,10 @@ export function GamePage() {
             <dl className="detail-list">
               <div>
                 <dt>Name</dt>
-                <dd>{viewer?.name ?? "Unknown player"}</dd>
+                <dd>
+                  {viewer?.name ?? "Unknown player"}
+                  {viewer?.isHost && <span className="player-list__badge">Host</span>}
+                </dd>
               </div>
               <div>
                 <dt>Status</dt>

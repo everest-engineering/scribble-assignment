@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { ZodError } from "zod";
 import {
   createRoomSchema,
   HttpError,
@@ -29,10 +30,15 @@ export function createRoomsRouter() {
     try {
       const { code } = roomCodeParamsSchema.parse(request.params);
       const { playerName } = joinRoomSchema.parse(request.body);
+
+      if (!code || !code.trim()) {
+        throw new HttpError(400, "Invalid room code. Please try again with correct one.");
+      }
+
       const result = joinRoom(code.toUpperCase(), playerName);
 
       if (!result) {
-        throw new HttpError(404, "Unable to join room");
+        throw new HttpError(404, "Invalid room code. Please try again with correct one.");
       }
 
       response.json({
@@ -40,7 +46,11 @@ export function createRoomsRouter() {
         room: toRoomSnapshot(result.room, result.participantId)
       });
     } catch (error) {
-      next(error);
+      if (error instanceof ZodError) {
+        next(new HttpError(400, "Invalid room code. Please try again with correct one."));
+      } else {
+        next(error);
+      }
     }
   });
 

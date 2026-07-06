@@ -40,3 +40,15 @@ You are working on a monolithic repository for a multiplayer drawing game ("Scri
 -   Give concise, direct answers.
 -   Do not output large blocks of code if a small change suffices.
 -   When creating or editing files, ensure consistency with the existing directory structure detailed above.
+
+<!-- SPECKIT START -->
+Feature 001 (complete): Host tracking on room creation. The creator is
+automatically designated as host (stored via hostId on Room + isHost on
+Participant). A "Host" label is displayed next to the host's name on all
+screens. See the full plan at:
+specs/001-host-tracking/plan.md
+
+Feature 002 (in progress): Join validation with clear error messages.
+Invalid/empty room codes are rejected with clear feedback. See the spec at:
+specs/002-join-validation/spec.md
+<!-- SPECKIT END -->
