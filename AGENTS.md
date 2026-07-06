@@ -52,4 +52,8 @@ Feature 002 (complete): Join validation with clear error messages.
 Invalid/empty room codes are rejected with clear feedback. See the plan at:
 specs/002-join-validation/plan.md
 and the spec at: specs/002-join-validation/spec.md
+
+Feature 003 (in progress): Multi-room isolation. Each room has its own
+independent state in the in-memory Map and participants/state never leak
+between rooms. Verified with dedicated isolation tests.
 <!-- SPECKIT END -->
