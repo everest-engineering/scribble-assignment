@@ -221,6 +221,10 @@ export function addCanvasStroke(
     return { ok: false, error: new HttpError(404, "Room not found") };
   }
 
+  if (room.status === "result") {
+    return { ok: false, error: new HttpError(400, "Game has ended") };
+  }
+
   if (participantId !== room.currentDrawerId) {
     return { ok: false, error: new HttpError(403, "Only the drawer can draw") };
   }
@@ -240,6 +244,10 @@ export function clearCanvas(
 
   if (!room) {
     return { ok: false, error: new HttpError(404, "Room not found") };
+  }
+
+  if (room.status === "result") {
+    return { ok: false, error: new HttpError(400, "Game has ended") };
   }
 
   if (participantId !== room.currentDrawerId) {
@@ -263,6 +271,10 @@ export function nextWord(
     return { ok: false, error: new HttpError(404, "Room not found") };
   }
 
+  if (room.status === "result") {
+    return { ok: false, error: new HttpError(400, "Game has ended") };
+  }
+
   if (participantId !== room.currentDrawerId) {
     return { ok: false, error: new HttpError(403, "Only the drawer can skip to the next word") };
   }
@@ -271,6 +283,63 @@ export function nextWord(
   room.secretWord = selectWord(room.currentRound);
   room.canvasStrokes = [];
   room.guesses = [];
+  room.correctGuessersInRound = [];
+  room.updatedAt = now();
+  rooms.set(room.code, room);
+
+  return { ok: true, room: cloneRoom(room) };
+}
+
+export function endGame(
+  code: string,
+  requesterId: string
+): { ok: true; room: Room } | { ok: false; error: HttpError } {
+  const room = rooms.get(code);
+
+  if (!room) {
+    return { ok: false, error: new HttpError(404, "Room not found") };
+  }
+
+  if (room.status !== "drawing") {
+    return { ok: false, error: new HttpError(400, "Game is not in progress") };
+  }
+
+  if (requesterId !== room.currentDrawerId) {
+    return { ok: false, error: new HttpError(403, "Only the drawer can end the game") };
+  }
+
+  room.status = "result";
+  room.updatedAt = now();
+  rooms.set(room.code, room);
+
+  return { ok: true, room: cloneRoom(room) };
+}
+
+export function restartGame(
+  code: string,
+  requesterId: string
+): { ok: true; room: Room } | { ok: false; error: HttpError } {
+  const room = rooms.get(code);
+
+  if (!room) {
+    return { ok: false, error: new HttpError(404, "Room not found") };
+  }
+
+  if (room.status !== "result") {
+    return { ok: false, error: new HttpError(400, "Game is not in result state") };
+  }
+
+  if (requesterId !== room.hostId) {
+    return { ok: false, error: new HttpError(403, "Only the host can restart the game") };
+  }
+
+  room.status = "lobby";
+  room.currentRound = 0;
+  room.currentDrawerId = "";
+  room.secretWord = null;
+  room.scores = {};
+  room.guesses = [];
+  room.canvasStrokes = [];
   room.correctGuessersInRound = [];
   room.updatedAt = now();
   rooms.set(room.code, room);
@@ -288,7 +357,7 @@ export function toRoomSnapshot(room: Room, viewerParticipantId?: string): RoomSn
     roles: [...STARTER_ROLES],
     currentRound: room.currentRound,
     currentDrawerId: room.currentDrawerId,
-    secretWord: viewerParticipantId === room.currentDrawerId ? room.secretWord : null,
+    secretWord: room.status === "result" || viewerParticipantId === room.currentDrawerId ? room.secretWord : null,
     scores: { ...room.scores },
     guesses: room.guesses.map((g) => ({ ...g })),
     canvasStrokes: room.canvasStrokes.map((s) => ({ ...s, points: [...s.points] }))

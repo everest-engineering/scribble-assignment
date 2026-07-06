@@ -71,7 +71,7 @@ class RoomStore {
   }
 
   setRoomSnapshot(room: RoomSnapshot) {
-    if (this.state.room && this.state.room.currentRound > room.currentRound) {
+    if (this.state.room && this.state.room.currentRound > room.currentRound && room.status !== "lobby") {
       return;
     }
     this.setState({
@@ -162,6 +162,34 @@ class RoomStore {
     }
 
     await api.clearCanvas(currentRoom.code, currentParticipantId);
+  }
+
+  async endGame() {
+    const currentRoom = this.state.room;
+    const currentParticipantId = this.state.participantId;
+    if (!currentRoom || !currentParticipantId) {
+      throw new Error("No active room");
+    }
+
+    const response = await this.withLoading(() =>
+      api.endGame(currentRoom.code, currentParticipantId)
+    );
+    this.setRoomSnapshot(response.room);
+    return response.room;
+  }
+
+  async restartGame() {
+    const currentRoom = this.state.room;
+    const currentParticipantId = this.state.participantId;
+    if (!currentRoom || !currentParticipantId) {
+      throw new Error("No active room");
+    }
+
+    const response = await this.withLoading(() =>
+      api.restartGame(currentRoom.code, currentParticipantId)
+    );
+    this.setRoomSnapshot(response.room);
+    return response.room;
   }
 }
 

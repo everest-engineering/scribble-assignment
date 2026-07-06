@@ -4,6 +4,7 @@ import { Canvas } from "../components/Canvas";
 import { Card } from "../components/Card";
 import { GuessForm } from "../components/GuessForm";
 import { ResultPanel } from "../components/ResultPanel";
+import { ResultView } from "../components/ResultView";
 import { RoomCodeBadge } from "../components/RoomCodeBadge";
 import { Scoreboard } from "../components/Scoreboard";
 import { useRoomState, useRoomStore } from "../state/roomStore";
@@ -41,6 +42,11 @@ export function GamePage() {
       if (!snapshot) {
         if (intervalIdRef.current) clearInterval(intervalIdRef.current);
         navigate("/", { replace: true });
+        return;
+      }
+      if (snapshot.status === "lobby") {
+        if (intervalIdRef.current) clearInterval(intervalIdRef.current);
+        navigate("/lobby", { replace: true });
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : "";
@@ -73,8 +79,35 @@ export function GamePage() {
     }
   }
 
+  async function handleEndGame() {
+    try {
+      await roomStore.endGame();
+    } catch {
+    }
+  }
+
+  async function handleRestart() {
+    try {
+      await roomStore.restartGame();
+      navigate("/lobby", { replace: true });
+    } catch {
+    }
+  }
+
   if (!room) {
     return null;
+  }
+
+  if (room.status === "result") {
+    const isHost = participantId != null && participantId === room.hostId;
+    return (
+      <ResultView
+        room={room}
+        participantId={participantId}
+        isHost={isHost}
+        onRestart={handleRestart}
+      />
+    );
   }
 
   const viewer = room.participants.find((p) => p.id === participantId) ?? null;
@@ -158,9 +191,14 @@ export function GamePage() {
 
       <div className="button-row">
         {isDrawer && (
-          <button className="button button--primary" type="button" onClick={handleNextWord}>
-            Next Word
-          </button>
+          <>
+            <button className="button button--primary" type="button" onClick={handleNextWord}>
+              Next Word
+            </button>
+            <button className="button button--secondary" type="button" onClick={handleEndGame}>
+              End Game
+            </button>
+          </>
         )}
         <button className="button button--secondary" onClick={() => navigate("/lobby")}>
           Exit Game

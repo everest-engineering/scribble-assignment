@@ -87,4 +87,11 @@ polling (only first correct guesser scores 100, subsequent get 0),
 (advances round while preserving cumulative scores). See the plan at:
 specs/007-gameplay-interaction/plan.md
 and the spec at: specs/007-gameplay-interaction/spec.md
+
+Feature 008 (complete): Result, restart, and final validation.
+Game result display (correct word, final scores, guess history),
+host-only restart to lobby with participants preserved and all round
+state cleared. See the plan at:
+specs/008-result-restart-validation/plan.md
+and the spec at: specs/008-result-restart-validation/spec.md
 <!-- SPECKIT END -->

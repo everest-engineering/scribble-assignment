@@ -29,7 +29,7 @@ export interface Participant {
 
 export interface RoomSnapshot {
   code: string;
-  status: "lobby" | "drawing";
+  status: "lobby" | "drawing" | "result";
   hostId: string;
   participants: Participant[];
   availableWords: string[];
@@ -112,6 +112,16 @@ export const api = {
     return request<{ room: RoomSnapshot }>(`/rooms/${encodeURIComponent(code)}/canvas?participantId=${encodeURIComponent(participantId)}`, {
       method: "POST",
       body: JSON.stringify({ type: "clear" })
+    });
+  },
+  endGame(code: string, participantId: string) {
+    return request<{ room: RoomSnapshot }>(`/rooms/${encodeURIComponent(code)}/end-game?participantId=${encodeURIComponent(participantId)}`, {
+      method: "POST"
+    });
+  },
+  restartGame(code: string, participantId: string) {
+    return request<{ room: RoomSnapshot }>(`/rooms/${encodeURIComponent(code)}/restart?participantId=${encodeURIComponent(participantId)}`, {
+      method: "POST"
     });
   }
 };
