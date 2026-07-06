@@ -24,7 +24,7 @@
 
 **Purpose**: No project setup required — project already initialized. Feature uses only existing dependencies (Zod, Express, React).
 
-- [ ] T001 Review existing validation patterns in `backend/src/api/schemas.ts` and `backend/src/api/rooms.ts` to understand current join flow
+- [x] T001 Review existing validation patterns in `backend/src/api/schemas.ts` and `backend/src/api/rooms.ts` to understand current join flow
 
 ---
 
@@ -34,8 +34,8 @@
 
 **⚠️ CRITICAL**: No user story work can begin until schema validation patterns are understood
 
-- [ ] T002 [P] Read `backend/src/api/schemas.ts` to understand existing Zod schema definitions
-- [ ] T003 [P] Read `backend/src/api/router.ts` to understand errorHandler middleware behavior with ZodError
+- [x] T002 [P] Read `backend/src/api/schemas.ts` to understand existing Zod schema definitions
+- [x] T003 [P] Read `backend/src/api/router.ts` to understand errorHandler middleware behavior with ZodError
 
 **Checkpoint**: Foundation ready — user story implementation can begin
 
@@ -49,11 +49,11 @@
 
 ### Implementation for User Story 1
 
-- [ ] T004 [P] [US1] Update `roomCodeParamsSchema.code` in `backend/src/api/schemas.ts` to use `.trim().min(1)` for Zod validation
-- [ ] T005 [P] [US1] Add client-side empty/whitespace code check in `frontend/src/pages/JoinRoomPage.tsx` — before API call, validate `roomCode.trim()` is non-empty
-- [ ] T006 [US1] Update join route handler in `backend/src/api/rooms.ts` — change error message from "Unable to join room" to "Invalid room code. Please try again with correct one." for empty/non-existent cases; add ZodError catch block that converts to HttpError(400) with same message
-- [ ] T007 [P] [US1] Add schema validation tests in `backend/src/api/schemas.test.ts` — test empty code, whitespace-only code, valid code, and trimmed code
-- [ ] T008 [US1] Update catch fallback message in `frontend/src/pages/JoinRoomPage.tsx` to "Invalid room code. Please try again with correct one."
+- [x] T004 [P] [US1] Update `roomCodeParamsSchema.code` in `backend/src/api/schemas.ts` to use `.trim().min(1)` for Zod validation
+- [x] T005 [P] [US1] Add client-side empty/whitespace code check in `frontend/src/pages/JoinRoomPage.tsx` — before API call, validate `roomCode.trim()` is non-empty
+- [x] T006 [US1] Update join route handler in `backend/src/api/rooms.ts` — change error message from "Unable to join room" to "Invalid room code. Please try again with correct one." for empty/non-existent cases; add ZodError catch block that converts to HttpError(400) with same message
+- [x] T007 [P] [US1] Add schema validation tests in `backend/src/api/schemas.test.ts` — test empty code, whitespace-only code, valid code, and trimmed code
+- [x] T008 [US1] Update catch fallback message in `frontend/src/pages/JoinRoomPage.tsx` to "Invalid room code. Please try again with correct one."
 
 **Checkpoint**: At this point, User Story 1 should be fully functional — empty/whitespace codes rejected client-side AND server-side with correct message
 
@@ -67,7 +67,7 @@
 
 ### Implementation for User Story 2
 
-- [ ] T009 [US2] Error message already handled by T006 (same message for 404 from `joinRoom` returning null) — verify `backend/src/api/rooms.ts` returns "Invalid room code. Please try again with correct one." for non-existent codes
+- [x] T009 [US2] Error message already handled by T006 (same message for 404 from `joinRoom` returning null) — verify `backend/src/api/rooms.ts` returns "Invalid room code. Please try again with correct one." for non-existent codes
 
 **Checkpoint**: User Story 1 AND 2 should both work — all invalid codes rejected with same message
 
@@ -81,7 +81,7 @@
 
 ### Implementation for User Story 3
 
-- [ ] T010 [US3] Manually verify valid room code still works end-to-end (create room in tab A, join with valid code in tab B, confirm redirect to lobby)
+- [x] T010 [US3] Manually verify valid room code still works end-to-end (create room in tab A, join with valid code in tab B, confirm redirect to lobby)
 
 **Checkpoint**: All user stories independently functional
 
@@ -91,9 +91,9 @@
 
 **Purpose**: Build validation and final verification
 
-- [ ] T011 Run `npm run build` and `npm test` in `backend/` to verify no compilation errors and all tests pass
-- [ ] T012 Run `npm run build` and `npm test` in `frontend/` to verify no compilation errors and all tests pass
-- [ ] T013 Run `specs/002-join-validation/quickstart.md` validation — manually test all verification scenarios with two browser tabs
+- [x] T011 Run `npm run build` and `npm test` in `backend/` to verify no compilation errors and all tests pass
+- [x] T012 Run `npm run build` and `npm test` in `frontend/` to verify no compilation errors and all tests pass
+- [x] T013 Run `specs/002-join-validation/quickstart.md` validation — manually test all verification scenarios with two browser tabs
 
 ---
 

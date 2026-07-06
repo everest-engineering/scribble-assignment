@@ -48,7 +48,7 @@ Participant). A "Host" label is displayed next to the host's name on all
 screens. See the full plan at:
 specs/001-host-tracking/plan.md
 
-Feature 002 (in progress): Join validation with clear error messages.
+Feature 002 (complete): Join validation with clear error messages.
 Invalid/empty room codes are rejected with clear feedback. See the plan at:
 specs/002-join-validation/plan.md
 and the spec at: specs/002-join-validation/spec.md
