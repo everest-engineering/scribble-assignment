@@ -1,27 +1,61 @@
-import { useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import { Card } from "../components/Card";
 import { GuessForm } from "../components/GuessForm";
 import { ResultPanel } from "../components/ResultPanel";
 import { RoomCodeBadge } from "../components/RoomCodeBadge";
 import { Scoreboard } from "../components/Scoreboard";
-import { useRoomState } from "../state/roomStore";
+import { useRoomState, useRoomStore } from "../state/roomStore";
+import { api } from "../services/api";
+import { DrawingCanvas } from "../components/DrawingCanvas";
 
 export function GamePage() {
   const navigate = useNavigate();
-  const { room, participantId } = useRoomState();
+  const { code } = useParams<{ code: string }>();
+  const playerName = localStorage.getItem("playerName");
+  const roomStore = useRoomStore();
+  const { room } = useRoomState();
+  const [refreshError, setRefreshError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!room) {
-      navigate("/", { replace: true });
-    }
-  }, [navigate, room]);
+    if (!playerName) navigate("/", { replace: true });
+  }, [playerName, navigate]);
 
-  if (!room) {
-    return null;
+  useEffect(() => {
+    if (!code || !playerName) return;
+    roomStore.fetchRoomByCode(code, playerName)
+      .catch(err =>
+        setRefreshError(err instanceof Error ? err.message : "Unable to load game"));
+  }, [code, playerName, roomStore]);
+
+  useEffect(() => {
+    if (!code || !playerName) return;
+    const id = setInterval(async () => {
+      try {
+        const updated = await roomStore.fetchRoomByCode(code, playerName);
+        if (updated?.status === "result") navigate("/result");
+      } catch (err) {
+        setRefreshError(err instanceof Error ? err.message : "Unable to refresh game");
+      }
+    }, 2000);
+    return () => clearInterval(id);
+  }, [code, playerName, roomStore, navigate]);
+
+  const myRole = room?.participants.find(p => p.name === playerName)?.role ?? "";
+  const drawerName = room?.participants.find(p => p.role === "drawer")?.name ?? "";
+
+  async function handleCanvasUpdate(dataUrl: string) {
+    if (!code) return;
+    api.updateCanvas(code, dataUrl).catch(err =>
+      setRefreshError(err instanceof Error ? err.message : "Canvas upload failed"));
   }
 
-  const viewer = room.participants.find((participant) => participant.id === participantId) ?? null;
+  async function handleGuessSubmit(guess: string) {
+    if (!code || !playerName) return;
+    const result = await api.submitGuess(code, playerName, guess);
+    roomStore.setRoomSnapshot(result.room);
+    if (result.room.status === "result") navigate("/result");
+  }
 
   return (
     <section className="panel game-page">
@@ -30,20 +64,22 @@ export function GamePage() {
           <span className="section-kicker">Round 1</span>
           <h1 className="game-page__title">Guess the Word!</h1>
         </div>
-        <RoomCodeBadge code={room.code} />
+        <RoomCodeBadge code={code ?? ""} />
       </div>
 
       <div className="game-page__layout">
         <aside className="game-page__sidebar game-page__sidebar--left">
-          <Scoreboard />
-          <ResultPanel />
+          <Scoreboard participants={room?.participants ?? []} />
+          <ResultPanel guesses={room?.guesses ?? []} />
         </aside>
 
-        <div className="game-page__main">
+        <div className="game-page__main" style={{ minWidth: 0 }}>
           <Card title="Canvas">
-            <div className="canvas-placeholder" style={{ minHeight: '500px', backgroundColor: '#ffffff', border: '1px solid #e5e7eb' }}>
-              Waiting for drawer...
-            </div>
+            <DrawingCanvas
+              role={myRole}
+              canvasData={room?.canvasData ?? ""}
+              onStrokeEnd={handleCanvasUpdate}
+            />
           </Card>
         </div>
 
@@ -52,18 +88,32 @@ export function GamePage() {
             <dl className="detail-list">
               <div>
                 <dt>Name</dt>
-                <dd>{viewer?.name ?? "Unknown player"}</dd>
+                <dd>{playerName ?? "Unknown player"}</dd>
               </div>
               <div>
                 <dt>Status</dt>
-                <dd>Playing</dd>
+                <dd>{myRole === "drawer" ? "You are drawing!" : myRole === "guesser" ? "You are guessing!" : "Waiting..."}</dd>
               </div>
+              {myRole === "guesser" && (
+                <div>
+                  <dt>Drawer</dt>
+                  <dd>{drawerName} is drawing</dd>
+                </div>
+              )}
             </dl>
           </Card>
 
-          <Card title="Your Guess">
-            <GuessForm />
-          </Card>
+          {myRole === "drawer" && (
+            <Card title="Secret Word">
+              <p className="section-kicker">{room?.secretWord ?? "…"}</p>
+            </Card>
+          )}
+
+          {myRole === "guesser" && (
+            <Card title="Your Guess">
+              <GuessForm onSubmit={handleGuessSubmit} />
+            </Card>
+          )}
         </aside>
       </div>
 
@@ -71,6 +121,7 @@ export function GamePage() {
         <button className="button button--secondary" onClick={() => navigate("/lobby")}>
           Exit Game
         </button>
+        {refreshError && <p className="form__error">{refreshError}</p>}
       </div>
     </section>
   );
