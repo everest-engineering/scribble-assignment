@@ -24,6 +24,6 @@ test.describe("Lobby", () => {
     await test.step("Land in the lobby", async () => {
       await expect(page.getByRole("heading", { name: "Lobby" })).toBeVisible();
     });
-    await expect(page.getByText("Room Code")).toBeVisible();
+    await expect(page.getByText("Room Code", { exact: true })).toBeVisible();
   });
 });
