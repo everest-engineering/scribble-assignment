@@ -1,0 +1,58 @@
+<!-- SYNC IMPACT REPORT
+Version change: template -> 1.0.0
+List of modified principles:
+- [PRINCIPLE_1_NAME] -> I. TypeScript Strict Mode
+- [PRINCIPLE_2_NAME] -> II. Functional React Components
+- [PRINCIPLE_3_NAME] -> III. 80% Test Coverage Requirement
+- [PRINCIPLE_4_NAME] -> IV. Pure HTTP Polling & Single-Round Scope
+- [PRINCIPLE_5_NAME] -> V. In-Memory Isolated Storage
+Added sections:
+- Technical Constraints & Technology Stack
+- Development Workflow & Self-Review
+Removed sections: None
+Templates requiring updates:
+- .specify/templates/plan-template.md: ✅ aligned
+- .specify/templates/spec-template.md: ✅ aligned
+- .specify/templates/tasks-template.md: ✅ aligned
+-->
+# Scribble Drawing Game Constitution
+
+## Core Principles
+
+### I. TypeScript Strict Mode
+All backend and frontend code must compile in TypeScript strict mode. Ensure types are explicit and type safety is strictly maintained. Avoid the use of `any`; use `unknown` if a type is truly dynamic.
+
+### II. Functional React Components
+All React components must be functional components utilizing strict hooks (`useState`, `useEffect`, etc.). Avoid class-based components and keep state localized and immutable where possible.
+
+### III. 80% Test Coverage Requirement
+Core business logic (such as room state management, Zod validations, and utility functions) must maintain a test coverage of at least 80%. Automated tests must pass prior to merge.
+
+### IV. Pure HTTP Polling & Single-Round Scope
+State synchronization between the client and server must use pure HTTP polling at a regular cadence (~2s). No WebSockets, Socket.io, or other real-time transport protocols are allowed. The game must be strictly constrained to a single round of drawing and guessing with no complex multiple-round logic.
+
+### V. In-Memory Isolated Storage
+No database (SQL, NoSQL, SQLite) or persistent storage is permitted. All room and participant state is stored in-memory and strictly isolated by Room Code. Inactive rooms must be garbage-collected or cleaned up to prevent memory leaks.
+
+## Technical Constraints & Technology Stack
+
+The project technology stack is strictly defined as follows:
+- **Backend**: Node.js, Express, TypeScript, Zod, and `tsx` for execution.
+- **Frontend**: React (v18), React Router (v6), Vite, TypeScript.
+- **Styling**: Vanilla CSS in `app.css` or CSS modules. No TailwindCSS or external UI utility libraries.
+
+## Development Workflow & Self-Review
+
+All development follows the Spec-Driven Development (SDD) workflow:
+1. **Discovery**: Document gaps, assumptions, and files.
+2. **Specification**: Write feature spec with acceptance criteria.
+3. **Plan**: Define data models and state transitions.
+4. **Tasks**: Break into ordered checklist.
+5. **Implementation**: Build and commit incrementally.
+6. **Validation**: Test behavior across two browser tabs.
+
+## Governance
+
+Compliance checks are executed prior to each development phase. The constitution is the ultimate authority for development guidelines. Any amendments must be documented, increment the version, and propagate across dependent templates and files.
+
+**Version**: 1.0.0 | **Ratified**: 2026-06-01 | **Last Amended**: 2026-06-01

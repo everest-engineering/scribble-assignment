@@ -1,0 +1,75 @@
+# Implementation Plan: Fix Gaps and Assumptions
+
+**Branch**: `001-fix-gaps-assumptions` | **Date**: 2026-06-01 | **Spec**: [spec.md](./spec.md)
+
+**Input**: Feature specification from `specs/001-fix-gaps-assumptions/spec.md`
+
+## Summary
+The goal is to resolve the gaps (G1–G5) and verify assumptions (A1–A3) mentioned in `document.md`. This involves correcting the frontend API base URL to remove the `/bug` suffix, validating and trimming player names, propagating the custom names to the backend, validating room codes on join, ensuring room isolation on the backend, and verifying that the Lobby page renders the participant list on manual refresh.
+
+## Technical Context
+
+**Language/Version**: TypeScript / Node.js (ES Modules)
+**Primary Dependencies**: React (v18), React Router (v6), Express, Zod
+**Storage**: In-memory `Map` inside `backend/src/services/roomStore.ts`
+**Testing**: Vitest for backend and frontend tests
+**Target Platform**: Web Browsers
+**Project Type**: Web application (monorepo frontend + backend)
+**Performance Goals**: API response time < 100ms; room isolation validated with separate codes.
+**Constraints**: Pure HTTP polling (no WebSockets, no external database). Manual refresh in lobby.
+
+## Constitution Check
+
+- **TypeScript Strict Mode**: All code in routes, stores, and schemas must be strictly typed. No use of `any`.
+- **Functional React Components**: Lobby, Create Room, and Join Room pages must use functional components and React hooks.
+- **80% Test Coverage**: Core business logic in `roomStore.ts` must maintain at least 80% test coverage.
+- **Pure HTTP Polling**: The lobby updates on manual refresh only; no auto-polling cadence is implemented.
+- **In-Memory Isolated Storage**: Backend storage remains inside a local `Map`. Rooms are isolated.
+
+## Project Structure
+
+### Documentation (this feature)
+
+```text
+specs/001-fix-gaps-assumptions/
+├── spec.md              # Feature specification
+├── plan.md              # This file
+├── research.md          # Technical analysis of codebases
+├── data-model.md        # Data models and structures
+├── quickstart.md        # Quick validation guide
+└── checklists/
+    └── requirements.md  # Quality checklists
+```
+
+### Source Layout
+
+```text
+backend/
+├── src/
+│   ├── models/
+│   │   └── game.ts      # Room and Participant definitions
+│   ├── services/
+│   │   └── roomStore.ts # displayName, createParticipant, joinRoom updates
+│   └── api/
+│       ├── rooms.ts     # Join room validation & HTTP error throwing
+│       └── schemas.ts   # Zod schema checks
+└── tests/
+
+frontend/
+├── src/
+│   ├── pages/
+│   │   ├── LobbyPage.tsx       # Manual refresh and participant display
+│   │   ├── CreateRoomPage.tsx  # Name input and submission
+│   │   └── JoinRoomPage.tsx    # Code/Name input and error display
+│   ├── services/
+│   │   └── api.ts              # Remove `/bug` from API_BASE_URL
+│   └── state/
+│       └── roomStore.ts        # Zustand hooks for room session
+└── tests/
+```
+
+**Structure Decision**: Web application option (Option 2) matching the existing monorepo.
+
+## Complexity Tracking
+
+No violations of the constitution. Minimal design is maintained.

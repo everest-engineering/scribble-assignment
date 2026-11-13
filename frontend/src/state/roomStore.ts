@@ -19,14 +19,33 @@ export interface RoomState {
 type Listener = () => void;
 
 class RoomStore {
-  private state: RoomState = {
-    room: null,
-    participantId: null,
-    error: null,
-    isLoading: false
-  };
-
+  private state: RoomState;
   private listeners = new Set<Listener>();
+
+  constructor() {
+    let initialRoom: RoomSnapshot | null = null;
+    let initialParticipantId: string | null = null;
+
+    try {
+      const saved = sessionStorage.getItem("scribble_session");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed?.room && parsed?.participantId) {
+          initialRoom = parsed.room;
+          initialParticipantId = parsed.participantId;
+        }
+      }
+    } catch {
+      // Ignore sessionStorage parsing errors
+    }
+
+    this.state = {
+      room: initialRoom,
+      participantId: initialParticipantId,
+      error: null,
+      isLoading: false
+    };
+  }
 
   subscribe = (listener: Listener) => {
     this.listeners.add(listener);
@@ -68,6 +87,17 @@ class RoomStore {
       room: response.room,
       error: null
     });
+    try {
+      sessionStorage.setItem(
+        "scribble_session",
+        JSON.stringify({
+          participantId: response.participantId,
+          room: response.room
+        })
+      );
+    } catch {
+      // Ignore sessionStorage write errors
+    }
   }
 
   setRoomSnapshot(room: RoomSnapshot) {
@@ -75,6 +105,29 @@ class RoomStore {
       room,
       error: null
     });
+    try {
+      const saved = sessionStorage.getItem("scribble_session");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        parsed.room = room;
+        sessionStorage.setItem("scribble_session", JSON.stringify(parsed));
+      }
+    } catch {
+      // Ignore
+    }
+  }
+
+  clearSession() {
+    this.setState({
+      room: null,
+      participantId: null,
+      error: null
+    });
+    try {
+      sessionStorage.removeItem("scribble_session");
+    } catch {
+      // Ignore
+    }
   }
 
   async createRoom(playerName: string) {
@@ -94,9 +147,35 @@ class RoomStore {
       return null;
     }
 
-    const response = await api.fetchRoom(this.state.room.code, this.state.participantId ?? undefined);
+    const response = await this.withLoading(() =>
+      api.fetchRoom(this.state.room!.code, this.state.participantId ?? undefined)
+    );
     this.setRoomSnapshot(response.room);
     return response.room;
+  }
+
+  async startGame() {
+    if (!this.state.room || !this.state.participantId) {
+      return null;
+    }
+
+    const response = await this.withLoading(() =>
+      api.startGame(this.state.room!.code, this.state.participantId!)
+    );
+    await this.fetchRoom();
+    return response;
+  }
+
+  async leaveRoom() {
+    if (!this.state.room || !this.state.participantId) {
+      return null;
+    }
+
+    const response = await this.withLoading(() =>
+      api.leaveRoom(this.state.room!.code, this.state.participantId!)
+    );
+    this.clearSession();
+    return response;
   }
 }
 

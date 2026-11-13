@@ -33,10 +33,15 @@ You are working on a monolithic repository for a multiplayer drawing game ("Scri
 
 ## Strictly Forbidden
 -   **No WebSockets**: Do not use WebSockets, Socket.io, or any real-time push protocol. All sync must use HTTP polling.
--   **No Databases**: Do not use any database (SQL, NoSQL, SQLite, etc.). All data is stored in-memory only.
+-   **Database**: Room data is persisted in SQLite via Node's built-in `node:sqlite` (`backend/src/db`). DB file defaults to `backend/data/scribble.db` (override with `DB_PATH`); tests use an in-memory DB.
 -   **No Authentication**: Do not add authentication, sessions, JWT, or OAuth.
 
 ## Agent Persona
 -   Give concise, direct answers.
 -   Do not output large blocks of code if a small change suffices.
 -   When creating or editing files, ensure consistency with the existing directory structure detailed above.
+
+<!-- SPECKIT START -->
+For additional context about technologies to be used, project structure,
+shell commands, and other important information, read the current plan: specs/003-game-start-drawer-flow/plan.md
+<!-- SPECKIT END -->
